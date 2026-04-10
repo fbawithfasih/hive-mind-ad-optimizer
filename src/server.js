@@ -22,7 +22,7 @@ app.use('/api', routes);
 
 // Serve built frontend in production
 if (isProd) {
-  const distPath = join(__dirname, '../../frontend/dist');
+  const distPath = join(__dirname, '../frontend/dist');
   if (existsSync(distPath)) {
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
