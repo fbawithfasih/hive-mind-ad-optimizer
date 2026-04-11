@@ -2,6 +2,82 @@ import React, { useState, useMemo } from 'react';
 import SearchTermTable from './SearchTermTable.jsx';
 import { getSearchTerms } from '../services/api.js';
 
+// ── Export helpers ────────────────────────────────────────────────────────────
+
+const REC_LABEL = { SCALE_UP: 'Scale Up', ADD_EXACT: 'Add as Exact', ADD_NEGATIVE: 'Add Negative', WATCH: 'Watch' };
+
+function buildRows(terms) {
+  return terms.map(t => [
+    t.searchTerm   || '',
+    t.campaignName || '',
+    t.adGroupName  || '',
+    t.matchType    || '',
+    t.impressions  ?? '',
+    t.clicks       ?? '',
+    t.ctr    != null ? Number(t.ctr).toFixed(2)  : '',
+    t.cost   != null ? Number(t.cost).toFixed(2)  : '',
+    t.cpc    != null ? Number(t.cpc).toFixed(2)   : '',
+    t.purchases ?? '',
+    t.sales  != null ? Number(t.sales).toFixed(2) : '',
+    t.acos   != null ? Number(t.acos).toFixed(2)  : '',
+    t.roas   != null ? Number(t.roas).toFixed(2)  : '',
+    REC_LABEL[t.recommendation] || t.recommendation || '',
+  ]);
+}
+
+const CSV_HEADERS = ['Search Term','Campaign','Ad Group','Match Type','Impressions','Clicks','CTR %','Spend $','CPC $','Purchases','Sales $','ACoS %','ROAS','Recommendation'];
+
+function exportCsv(terms, dateRange) {
+  const rows  = buildRows(terms);
+  const csv   = [CSV_HEADERS, ...rows]
+    .map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  const blob  = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
+  a.href      = url;
+  a.download  = `search-terms-${dateRange.start || 'report'}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function exportPdf(terms, dateRange) {
+  const { default: jsPDF }   = await import('jspdf');
+  const { default: autoTable } = await import('jspdf-autotable');
+
+  const doc = new jsPDF({ orientation: 'landscape' });
+
+  // Header
+  doc.setFontSize(14); doc.setTextColor(241, 245, 249);
+  doc.text('Search Term Report — Hive Mind Nestor', 14, 14);
+  doc.setFontSize(9);  doc.setTextColor(148, 163, 184);
+  if (dateRange.start) doc.text(`${dateRange.start}  →  ${dateRange.end}   ·   ${terms.length} terms`, 14, 21);
+
+  const recColors = { 'Scale Up': [16,185,129], 'Add as Exact': [59,130,246], 'Add Negative': [244,63,94], 'Watch': [245,158,11] };
+
+  autoTable(doc, {
+    startY: dateRange.start ? 26 : 20,
+    head:   [['Search Term','Campaign','Ad Group','Match','Impr.','Clicks','CTR%','Spend','CPC','Orders','Sales','ACoS%','ROAS','Rec.']],
+    body:   buildRows(terms),
+    styles:          { fontSize: 6.5, cellPadding: 2.5, textColor: [203,213,225], fillColor: [15,23,42] },
+    headStyles:      { fillColor: [30,41,59], textColor: [148,163,184], fontStyle: 'bold', fontSize: 6.5 },
+    alternateRowStyles: { fillColor: [26,37,53] },
+    columnStyles:    { 0: { cellWidth: 32 }, 1: { cellWidth: 34 }, 2: { cellWidth: 28 } },
+    didParseCell:    data => {
+      if (data.section === 'body' && data.column.index === 13) {
+        const c = recColors[data.cell.raw];
+        if (c) { data.cell.styles.textColor = c; data.cell.styles.fontStyle = 'bold'; }
+      }
+      if (data.section === 'body' && data.column.index === 11 && data.cell.raw !== '') {
+        const v = parseFloat(data.cell.raw);
+        data.cell.styles.textColor = v < 20 ? [16,185,129] : v <= 30 ? [245,158,11] : [244,63,94];
+      }
+    },
+  });
+
+  doc.save(`search-terms-${dateRange.start || 'report'}.pdf`);
+}
+
 const today        = new Date().toISOString().slice(0, 10);
 const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
 
@@ -23,6 +99,8 @@ export default function SearchTermPanel({ profileId, onAskAI, onSearchTermsLoade
   const [dateTo, setDateTo]               = useState(today);
   const [search, setSearch]               = useState('');
   const [recFilter, setRecFilter]         = useState('all');
+  const [exportOpen, setExportOpen]       = useState(false);
+  const [isPdfExporting, setIsPdfExporting] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -139,20 +217,91 @@ export default function SearchTermPanel({ profileId, onAskAI, onSearchTermsLoade
           <MiniStat label="Add Negative"  value={stats.addNegative} color="#F43F5E" />
           <MiniStat label="Watch"         value={stats.watch}       color="#F59E0B" />
 
-          <button onClick={handleAskAI} disabled={!filtered.length}
-            style={{
-              marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6,
-              padding: '10px 16px', borderRadius: 8, border: 'none',
-              cursor: filtered.length ? 'pointer' : 'not-allowed',
-              background: 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
-              color: '#fff', fontWeight: 600, fontSize: 13,
-              opacity: filtered.length ? 1 : 0.4,
-            }}>
-            <svg style={{ width: 15, height: 15 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
-            </svg>
-            Ask AI about these search terms
-          </button>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+
+            {/* Export dropdown */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setExportOpen(o => !o)}
+                disabled={!filtered.length}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '10px 14px', borderRadius: 8,
+                  border: '1px solid #334155', background: '#1E293B',
+                  color: '#94A3B8', fontWeight: 600, fontSize: 13,
+                  cursor: filtered.length ? 'pointer' : 'not-allowed',
+                  opacity: filtered.length ? 1 : 0.4,
+                }}>
+                <svg style={{ width: 15, height: 15 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Export
+                <svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+
+              {exportOpen && (
+                <div
+                  style={{
+                    position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 50,
+                    background: '#1E293B', border: '1px solid #334155', borderRadius: 10,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)', minWidth: 160, overflow: 'hidden',
+                  }}
+                  onMouseLeave={() => setExportOpen(false)}>
+                  <button
+                    onClick={() => { exportCsv(filtered, dateRange); setExportOpen(false); }}
+                    style={{ width: '100%', padding: '10px 16px', background: 'none', border: 'none',
+                      textAlign: 'left', color: '#F1F5F9', fontSize: 13, fontWeight: 500,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#263348'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                    <svg style={{ width: 15, height: 15, color: '#10B981' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Download CSV
+                  </button>
+                  <div style={{ height: 1, background: '#334155', margin: '0 12px' }} />
+                  <button
+                    disabled={isPdfExporting}
+                    onClick={async () => {
+                      setExportOpen(false);
+                      setIsPdfExporting(true);
+                      await exportPdf(filtered, dateRange);
+                      setIsPdfExporting(false);
+                    }}
+                    style={{ width: '100%', padding: '10px 16px', background: 'none', border: 'none',
+                      textAlign: 'left', color: isPdfExporting ? '#475569' : '#F1F5F9', fontSize: 13, fontWeight: 500,
+                      cursor: isPdfExporting ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                    }}
+                    onMouseEnter={e => { if (!isPdfExporting) e.currentTarget.style.background = '#263348'; }}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                    <svg style={{ width: 15, height: 15, color: '#F43F5E' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                    {isPdfExporting ? 'Generating PDF…' : 'Download PDF'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Ask AI */}
+            <button onClick={handleAskAI} disabled={!filtered.length}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '10px 16px', borderRadius: 8, border: 'none',
+                cursor: filtered.length ? 'pointer' : 'not-allowed',
+                background: 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
+                color: '#fff', fontWeight: 600, fontSize: 13,
+                opacity: filtered.length ? 1 : 0.4,
+              }}>
+              <svg style={{ width: 15, height: 15 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+              Ask AI about these search terms
+            </button>
+          </div>
         </div>
       )}
 
