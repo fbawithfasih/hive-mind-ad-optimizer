@@ -7,32 +7,23 @@ import reportsRouter from './reports.js';
 import searchTermsRouter from './search-terms.js';
 import listingsRouter from './listings.js';
 import spOauthRouter from './sp-oauth.js';
+import { requireAuth } from '../middleware/requireAuth.js';
 
 const { Router } = express;
 const router = Router();
 
-// Auth routes
+// Auth routes — public (login/me/logout must be reachable before auth)
 router.use('/auth', authRouter);
 
-// Profiles routes
+// All routes below require a valid session
+router.use(requireAuth);
+
 router.use('/profiles', profilesRouter);
-
-// MCP routes
 router.use('/mcp', mcpRouter);
-
-// Campaign routes
 router.use('/campaigns', campaignsRouter);
-
-// Reports routes (metrics via Reporting API)
 router.use('/reports', reportsRouter);
-
-// Search term report routes
 router.use('/search-terms', searchTermsRouter);
-
-// Listing optimizer routes
 router.use('/listings', listingsRouter);
-
-// Temporary SP-API OAuth helper (remove after obtaining refresh token)
 router.use('/sp-oauth', spOauthRouter);
 
 console.log('✅ Routes loaded: /auth, /profiles, /mcp, /campaigns, /reports, /search-terms, /listings, /sp-oauth');

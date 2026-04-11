@@ -2,12 +2,31 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: '/api',
+  withCredentials: true,  // send session cookie on every request
 });
 
 /**
  * Fetches all campaigns.
  * @returns {Promise<any>} The campaigns data.
  */
+// ── Auth ─────────────────────────────────────────────────────────────────────
+
+export async function getMeApi() {
+  const res = await api.get('/auth/me');
+  return res.data;
+}
+
+export async function loginApi(email, password) {
+  const res = await api.post('/auth/login', { email, password });
+  return res.data;
+}
+
+export async function logoutApi() {
+  await api.post('/auth/logout');
+}
+
+// ── Amazon data ───────────────────────────────────────────────────────────────
+
 export async function getProfiles() {
   try {
     const response = await api.get('/profiles');

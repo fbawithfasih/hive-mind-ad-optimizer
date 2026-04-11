@@ -4,7 +4,7 @@ import CommandInput from '../components/CommandInput';
 import ResultsDisplay from '../components/ResultsDisplay';
 import SearchTermPanel from '../components/SearchTermPanel.jsx';
 import ListingOptimizerPanel from '../components/ListingOptimizerPanel.jsx';
-import { getProfiles, getCampaigns, startReports, pollReportStatus, executeCommand } from '../services/api.js';
+import { getProfiles, getCampaigns, startReports, pollReportStatus, executeCommand, logoutApi } from '../services/api.js';
 
 function StatCard({ label, value, sub, gradient, icon }) {
   return (
@@ -21,7 +21,7 @@ function StatCard({ label, value, sub, gradient, icon }) {
   );
 }
 
-export default function Dashboard() {
+export default function Dashboard({ user, onLogout }) {
   const [profiles, setProfiles]             = useState([]);
   const [selectedProfileId, setSelectedProfileId] = useState('');
   const [campaigns, setCampaigns]           = useState([]);
@@ -185,6 +185,24 @@ export default function Dashboard() {
             <div className="w-2 h-2 rounded-full animate-[pulse_2s_ease-in-out_infinite]"
                  style={{ background: '#10B981' }} />
             <span className="text-xs font-semibold" style={{ color: '#10B981' }}>Live</span>
+          </div>
+
+          {/* User + Logout */}
+          <div className="flex items-center gap-2" style={{ borderLeft: '1px solid #334155', paddingLeft: 12 }}>
+            {user?.email && (
+              <span style={{ fontSize: 12, color: '#64748B', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.email}
+              </span>
+            )}
+            <button
+              onClick={async () => { await logoutApi(); onLogout(); }}
+              style={{
+                padding: '5px 12px', borderRadius: 6, border: '1px solid #334155',
+                background: 'transparent', color: '#94A3B8', fontSize: 12,
+                fontWeight: 600, cursor: 'pointer',
+              }}>
+              Sign out
+            </button>
           </div>
         </div>
       </header>
