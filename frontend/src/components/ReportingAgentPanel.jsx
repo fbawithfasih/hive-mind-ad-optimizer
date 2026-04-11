@@ -223,7 +223,55 @@ export default function ReportingAgentPanel({ profileId, aiModel = 'claude' }) {
   }
 
   function handlePrint() {
-    window.print();
+    const content = reportRef.current?.innerHTML;
+    if (!content) return;
+
+    const title = `${selectedType?.label ?? 'Amazon Report'} — ${dateFrom} to ${dateTo}`;
+    const win = window.open('', '_blank', 'width=960,height=800');
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${title}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+           font-size: 13px; line-height: 1.65; color: #111827; padding: 40px 52px;
+           max-width: 960px; margin: 0 auto; }
+    h1 { font-size: 22px; font-weight: 800; color: #111827; margin: 0 0 4px; }
+    h2 { font-size: 16px; font-weight: 700; color: #1f2937; margin: 28px 0 10px;
+         border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; page-break-after: avoid; }
+    h3 { font-size: 12px; font-weight: 700; color: #6b7280; margin: 18px 0 8px;
+         text-transform: uppercase; letter-spacing: 0.06em; page-break-after: avoid; }
+    p  { margin: 0 0 10px; color: #374151; }
+    ul, ol { padding-left: 22px; margin: 0 0 12px; }
+    li { margin: 4px 0; color: #374151; }
+    strong { font-weight: 700; color: #111827; }
+    em     { color: #6b7280; }
+    hr { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
+    code { background: #f3f4f6; color: #0369a1; padding: 2px 6px;
+           border-radius: 4px; font-family: monospace; font-size: 11px; }
+    blockquote { border-left: 3px solid #8b5cf6; margin: 0 0 12px;
+                 padding: 4px 14px; background: #f5f3ff; border-radius: 0 6px 6px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 14px 0;
+            font-size: 12px; page-break-inside: avoid; }
+    thead tr { background: #f9fafb; }
+    th { padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 700;
+         text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280;
+         border-bottom: 2px solid #e5e7eb; white-space: nowrap; }
+    td { padding: 8px 12px; color: #374151; border-bottom: 1px solid #f3f4f6; }
+    tbody tr:nth-child(even) td { background: #fafafa; }
+    @media print {
+      body { padding: 20px 32px; }
+      h2 { page-break-before: auto; }
+    }
+  </style>
+</head>
+<body>${content}</body>
+</html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); win.close(); }, 600);
   }
 
   const selectedType = REPORT_TYPES.find(r => r.id === reportType);
@@ -267,20 +315,6 @@ export default function ReportingAgentPanel({ profileId, aiModel = 'claude' }) {
                                   border-radius:0 6px 6px 0; }
         .ra-report hr           { border:none; border-top:1px solid #334155; margin:20px 0; }
 
-        /* ── print ── */
-        @media print {
-          body > *                         { display:none !important; }
-          .ra-print-area, .ra-print-area * { display:block !important; visibility:visible !important; }
-          .ra-print-area                   { position:fixed; inset:0; padding:24px 32px;
-                                             background:#fff; color:#111;
-                                             font-family:system-ui,sans-serif; }
-          .ra-report table { border-collapse:collapse; width:100%; }
-          .ra-report th, .ra-report td { border:1px solid #ccc; padding:6px 10px; font-size:11px; }
-          .ra-report th  { background:#f3f4f6; color:#374151; }
-          .ra-report h1  { color:#111; } .ra-report h2 { color:#1f2937; border-bottom:1px solid #ccc; }
-          .ra-report p, .ra-report li { color:#374151; }
-          .ra-report strong { color:#1f2937; }
-        }
       `}</style>
 
       {/* ── Header ── */}
