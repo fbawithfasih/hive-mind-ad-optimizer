@@ -63,6 +63,7 @@ function extractListingFields(data, asin) {
   return {
     asin:        asin ?? data.asin ?? '',
     sku:         data.sku ?? null,
+    productType: data.productType ?? null,   // required for PUT — must match the listing's actual type
     title,
     bullets:     bullets.slice(0, 5),
     description,
@@ -168,8 +169,9 @@ export async function getProductByAsin(asin) {
  * @param {string} sku
  * @param {{ title: string, bullets: string[], description: string }} content
  */
-export async function updateListingBySku(sku, { title, bullets, description }) {
+export async function updateListingBySku(sku, { title, bullets, description, productType }) {
   if (!SELLER_ID) throw new Error('SP_API_SELLER_ID is not configured');
+  if (!productType) throw new Error('productType is required — re-fetch the listing to obtain it');
   const token = await getSPToken();
 
   const attributes = {};
@@ -177,9 +179,10 @@ export async function updateListingBySku(sku, { title, bullets, description }) {
   if (bullets?.length) attributes.bullet_point        = bullets.filter(Boolean).map(b => ({ value: b, language_tag: 'en_US', marketplace_id: MARKETPLACE_ID }));
   if (description)     attributes.product_description = [{ value: description, language_tag: 'en_US', marketplace_id: MARKETPLACE_ID }];
 
+  console.log(`Updating listing SKU ${sku} with productType ${productType}…`);
   const res = await axios.put(
     `${SP_BASE}/listings/2021-08-01/items/${SELLER_ID}/${encodeURIComponent(sku)}`,
-    { productType: 'PRODUCT', attributes },
+    { productType, attributes },
     {
       params:  { marketplaceIds: MARKETPLACE_ID },
       headers: spHeaders(token),

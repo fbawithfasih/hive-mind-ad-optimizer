@@ -72,8 +72,9 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
   const [title, setTitle]             = useState('');
   const [bullets, setBullets]         = useState(['', '', '', '', '']);
   const [description, setDescription] = useState('');
-  const [fetchedAsin, setFetchedAsin] = useState('');
-  const [fetchedSku, setFetchedSku]   = useState('');
+  const [fetchedAsin, setFetchedAsin]         = useState('');
+  const [fetchedSku, setFetchedSku]           = useState('');
+  const [fetchedProductType, setFetchedProductType] = useState('');
   const [hasFetched, setHasFetched]   = useState(true);
 
   // Product-specific search terms (loaded via "Load Search Terms for this Product")
@@ -103,6 +104,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
       setDescription(p.description ?? '');
       setFetchedAsin(p.asin ?? asin.trim());
       setFetchedSku(p.sku ?? '');
+      setFetchedProductType(p.productType ?? '');
       setHasFetched(true);
     } catch (err) {
       setError(err.response?.data?.error ?? err.message ?? 'Failed to fetch product');
@@ -118,6 +120,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
     try {
       const result = await publishListing({
         sku: skuToUse,
+        productType: fetchedProductType,
         title: optimized.title,
         bullets: optimized.bullets.filter(Boolean),
         description: optimized.description,

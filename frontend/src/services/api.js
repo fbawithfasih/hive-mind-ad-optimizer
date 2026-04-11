@@ -122,8 +122,8 @@ export async function getSearchTermsForProduct({ profileId, sku, asin, startDate
   }
 }
 
-export async function publishListing({ sku, title, bullets, description }) {
-  const response = await api.put('/listings/update', { sku, title, bullets, description });
+export async function publishListing({ sku, productType, title, bullets, description }) {
+  const response = await api.put('/listings/update', { sku, productType, title, bullets, description });
   return response.data;
 }
 

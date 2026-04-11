@@ -56,13 +56,14 @@ router.post('/optimize', async (req, res) => {
  * Pushes optimized content to the live Amazon listing via SP-API.
  */
 router.put('/update', async (req, res) => {
-  const { sku, title, bullets, description } = req.body;
+  const { sku, title, bullets, description, productType } = req.body;
   if (!sku) return res.status(400).json({ error: 'sku is required to update a listing' });
+  if (!productType) return res.status(400).json({ error: 'productType is required — re-fetch the listing first' });
   if (!title && !bullets?.length && !description)
     return res.status(400).json({ error: 'At least one of title, bullets, or description required' });
 
   try {
-    const result = await updateListingBySku(sku, { title, bullets, description });
+    const result = await updateListingBySku(sku, { title, bullets, description, productType });
     res.json(result); // { status: 'ACCEPTED', issues: [] }
   } catch (err) {
     console.error('Listing update error:', err.message);
