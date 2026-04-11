@@ -1,14 +1,24 @@
 import express from 'express';
+import jwt from 'jsonwebtoken';
 import axios from 'axios';
 
 const router = express.Router();
 
-// ── User login/session ──────────────────────────────────────────────────────
+const JWT_SECRET  = process.env.SESSION_SECRET || 'change-me-in-production';
+const COOKIE_NAME = 'hmn_token';
+const COOKIE_OPTS = {
+  httpOnly: true,
+  sameSite: 'lax',
+  maxAge:   8 * 60 * 60 * 1000,  // 8 hours in ms
+  // secure is set per-response based on NODE_ENV
+};
+
+// ── User login/session (JWT cookie) ──────────────────────────────────────────
 
 /**
  * POST /api/auth/login
  * Body: { email, password }
- * Validates against LOGIN_EMAIL / LOGIN_PASSWORD env vars.
+ * Sets a signed JWT cookie on success.
  */
 router.post('/login', (req, res) => {
   const { email, password } = req.body;
@@ -16,11 +26,13 @@ router.post('/login', (req, res) => {
   const validPassword = process.env.LOGIN_PASSWORD;
 
   if (!validEmail || !validPassword) {
-    return res.status(500).json({ error: 'Server login credentials are not configured (LOGIN_EMAIL / LOGIN_PASSWORD missing in env)' });
+    return res.status(500).json({ error: 'Server login credentials not configured (LOGIN_EMAIL / LOGIN_PASSWORD missing)' });
   }
 
   if (email === validEmail && password === validPassword) {
-    req.session.user = { email };
+    const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '8h' });
+    const isProd = process.env.NODE_ENV === 'production';
+    res.cookie(COOKIE_NAME, token, { ...COOKIE_OPTS, secure: isProd });
     return res.json({ ok: true, email });
   }
 
@@ -29,27 +41,32 @@ router.post('/login', (req, res) => {
 
 /**
  * GET /api/auth/me
- * Returns current session user, or 401 if not logged in.
+ * Returns { email } if the JWT cookie is valid, else 401.
  */
 router.get('/me', (req, res) => {
-  if (req.session?.user) return res.json({ email: req.session.user.email });
-  res.status(401).json({ error: 'Not authenticated' });
+  const token = req.cookies?.[COOKIE_NAME];
+  if (!token) return res.status(401).json({ error: 'Not authenticated' });
+
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    res.json({ email: payload.email });
+  } catch {
+    res.status(401).json({ error: 'Session expired — please log in again' });
+  }
 });
 
 /**
  * POST /api/auth/logout
- * Destroys the session.
+ * Clears the JWT cookie.
  */
 router.post('/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie('connect.sid');
-    res.json({ ok: true });
-  });
+  res.clearCookie(COOKIE_NAME);
+  res.json({ ok: true });
 });
 
-// ── Amazon Ads OAuth (existing — used for initial token setup) ──────────────
+// ── Amazon Ads OAuth (existing — used for initial token setup) ────────────────
 
-const CLIENT_ID    = process.env.AMAZON_ADS_CLIENT_ID;
+const CLIENT_ID     = process.env.AMAZON_ADS_CLIENT_ID;
 const CLIENT_SECRET = process.env.AMAZON_ADS_CLIENT_SECRET;
 const REDIRECT_URI  = 'http://localhost:3000/api/auth/amazon/callback';
 
@@ -68,7 +85,7 @@ router.get('/amazon/callback', async (req, res) => {
       code, client_id: CLIENT_ID, client_secret: CLIENT_SECRET, redirect_uri: REDIRECT_URI,
     }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
 
-    const { refresh_token, access_token } = response.data;
+    const { refresh_token } = response.data;
     console.log('\n✅ Amazon Ads tokens received\nRefresh token:', refresh_token);
 
     res.send(`

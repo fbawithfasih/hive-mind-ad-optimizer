@@ -1,8 +1,21 @@
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET  = process.env.SESSION_SECRET || 'change-me-in-production';
+const COOKIE_NAME = 'hmn_token';
+
 /**
  * Middleware: reject unauthenticated requests with 401.
- * Applied to all /api routes except /api/auth/login and /health.
+ * Reads a signed JWT from the hmn_token cookie.
+ * Applied to all /api routes except /api/auth/*.
  */
 export function requireAuth(req, res, next) {
-  if (req.session?.user) return next();
-  res.status(401).json({ error: 'Unauthorized' });
+  const token = req.cookies?.[COOKIE_NAME];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    res.status(401).json({ error: 'Session expired — please log in again' });
+  }
 }
