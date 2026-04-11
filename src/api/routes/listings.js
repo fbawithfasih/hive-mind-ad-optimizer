@@ -1,5 +1,5 @@
 import express from 'express';
-import { getProductByAsin, getProductBySku } from '../../services/amazon-sp-api.js';
+import { getProductByAsin, getProductBySku, updateListingBySku } from '../../services/amazon-sp-api.js';
 import { optimizeListing } from '../../services/claude-mcp.js';
 
 const router = express.Router();
@@ -46,6 +46,26 @@ router.post('/optimize', async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('Listing optimize error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * PUT /api/listings/update
+ * Body: { sku, title, bullets[], description }
+ * Pushes optimized content to the live Amazon listing via SP-API.
+ */
+router.put('/update', async (req, res) => {
+  const { sku, title, bullets, description } = req.body;
+  if (!sku) return res.status(400).json({ error: 'sku is required to update a listing' });
+  if (!title && !bullets?.length && !description)
+    return res.status(400).json({ error: 'At least one of title, bullets, or description required' });
+
+  try {
+    const result = await updateListingBySku(sku, { title, bullets, description });
+    res.json(result); // { status: 'ACCEPTED', issues: [] }
+  } catch (err) {
+    console.error('Listing update error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

@@ -122,6 +122,11 @@ export async function getSearchTermsForProduct({ profileId, sku, asin, startDate
   }
 }
 
+export async function publishListing({ sku, title, bullets, description }) {
+  const response = await api.put('/listings/update', { sku, title, bullets, description });
+  return response.data;
+}
+
 export async function executeCommand(command, history = [], model = 'gemini') {
   try {
     const response = await api.post('/mcp/execute', { command, history, model });

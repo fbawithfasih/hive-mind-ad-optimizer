@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { lookupProduct, optimizeListingApi, getSearchTermsForProduct } from '../services/api.js';
+import { lookupProduct, optimizeListingApi, getSearchTermsForProduct, publishListing } from '../services/api.js';
 
 const today        = new Date().toISOString().slice(0, 10);
 const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
@@ -58,6 +58,9 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
   const [isFetching, setIsFetching]   = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isLoadingTerms, setIsLoadingTerms] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [confirmPublish, setConfirmPublish] = useState(false);
+  const [publishResult, setPublishResult] = useState(null);
   const [error, setError]             = useState(null);
   const [termsMessage, setTermsMessage] = useState(null);
 
@@ -70,6 +73,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
   const [bullets, setBullets]         = useState(['', '', '', '', '']);
   const [description, setDescription] = useState('');
   const [fetchedAsin, setFetchedAsin] = useState('');
+  const [fetchedSku, setFetchedSku]   = useState('');
   const [hasFetched, setHasFetched]   = useState(true);
 
   // Product-specific search terms (loaded via "Load Search Terms for this Product")
@@ -91,17 +95,38 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
     if (!asin.trim() && !sku.trim()) return;
     setIsFetching(true); setError(null); setOptimized(null);
     setProductSearchTerms([]); setTermsMessage(null);
+    setPublishResult(null); setConfirmPublish(false);
     try {
       const p = await lookupProduct(asin.trim() || undefined, sku.trim() || undefined);
       setTitle(p.title ?? '');
       setBullets(Array.from({ length: 5 }, (_, i) => p.bullets?.[i] ?? ''));
       setDescription(p.description ?? '');
       setFetchedAsin(p.asin ?? asin.trim());
+      setFetchedSku(p.sku ?? '');
       setHasFetched(true);
     } catch (err) {
       setError(err.response?.data?.error ?? err.message ?? 'Failed to fetch product');
     } finally {
       setIsFetching(false);
+    }
+  }
+
+  async function handlePublish() {
+    const skuToUse = sku.trim() || fetchedSku;
+    if (!skuToUse || !optimized) return;
+    setIsPublishing(true); setPublishResult(null); setError(null);
+    try {
+      const result = await publishListing({
+        sku: skuToUse,
+        title: optimized.title,
+        bullets: optimized.bullets.filter(Boolean),
+        description: optimized.description,
+      });
+      setPublishResult({ ok: true, issues: result.issues ?? [] });
+    } catch (err) {
+      setError('Publish failed: ' + (err.response?.data?.error ?? err.message));
+    } finally {
+      setIsPublishing(false);
     }
   }
 
@@ -388,6 +413,71 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                     }}>
                     Copy All
                   </button>
+
+                  {/* Publish to Amazon — only when a SKU is known */}
+                  {(sku.trim() || fetchedSku) && (
+                    <>
+                      <button
+                        onClick={() => setConfirmPublish(true)}
+                        disabled={isPublishing}
+                        style={{
+                          width: '100%', marginTop: 8, padding: '9px', borderRadius: 8,
+                          border: 'none', cursor: isPublishing ? 'not-allowed' : 'pointer',
+                          background: isPublishing ? '#334155' : 'linear-gradient(135deg,#10B981,#059669)',
+                          color: '#fff', fontWeight: 700, fontSize: 12,
+                          opacity: isPublishing ? 0.7 : 1,
+                        }}>
+                        {isPublishing ? (
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                            <svg style={{ width: 13, height: 13, animation: 'spin 1s linear infinite' }} fill="none" viewBox="0 0 24 24">
+                              <circle style={{ opacity: .25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                              <path style={{ opacity: .75 }} fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                            </svg>
+                            Publishing…
+                          </span>
+                        ) : 'Publish to Amazon'}
+                      </button>
+
+                      {confirmPublish && (
+                        <div style={{
+                          marginTop: 8, background: '#F59E0B10', border: '1px solid #F59E0B60',
+                          borderRadius: 8, padding: '12px 14px', fontSize: 12, color: '#F59E0B',
+                        }}>
+                          <p style={{ margin: '0 0 8px', fontWeight: 600 }}>
+                            This will overwrite the live listing for SKU: <strong>{sku.trim() || fetchedSku}</strong>
+                          </p>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                              onClick={() => { setConfirmPublish(false); handlePublish(); }}
+                              style={{ padding: '5px 14px', borderRadius: 6, border: 'none',
+                                background: '#10B981', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}>
+                              Yes, publish
+                            </button>
+                            <button
+                              onClick={() => setConfirmPublish(false)}
+                              style={{ padding: '5px 14px', borderRadius: 6, border: '1px solid #334155',
+                                background: 'transparent', color: '#94A3B8', cursor: 'pointer', fontSize: 12 }}>
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {publishResult?.ok && (
+                        <div style={{
+                          marginTop: 8, background: '#10B98110', border: '1px solid #10B98140',
+                          borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#10B981',
+                        }}>
+                          Listing published successfully.
+                          {publishResult.issues.length > 0 && (
+                            <span style={{ color: '#F59E0B', display: 'block', marginTop: 4 }}>
+                              Warnings: {publishResult.issues.map(i => i.message).join('; ')}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 10, color: '#475569' }}>

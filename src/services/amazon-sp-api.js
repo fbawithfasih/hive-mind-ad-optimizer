@@ -161,4 +161,38 @@ export async function getProductByAsin(asin) {
   }
 }
 
-export default { getProductByAsin, getProductBySku };
+/**
+ * Update listing content via Listings Items API v2021-08-01.
+ * Requires "Product Listing" SP-API role (same as read — already approved).
+ *
+ * @param {string} sku
+ * @param {{ title: string, bullets: string[], description: string }} content
+ */
+export async function updateListingBySku(sku, { title, bullets, description }) {
+  if (!SELLER_ID) throw new Error('SP_API_SELLER_ID is not configured');
+  const token = await getSPToken();
+
+  const attributes = {};
+  if (title)           attributes.item_name           = [{ value: title, language_tag: 'en_US', marketplace_id: MARKETPLACE_ID }];
+  if (bullets?.length) attributes.bullet_point        = bullets.filter(Boolean).map(b => ({ value: b, language_tag: 'en_US', marketplace_id: MARKETPLACE_ID }));
+  if (description)     attributes.product_description = [{ value: description, language_tag: 'en_US', marketplace_id: MARKETPLACE_ID }];
+
+  const res = await axios.put(
+    `${SP_BASE}/listings/2021-08-01/items/${SELLER_ID}/${encodeURIComponent(sku)}`,
+    { productType: 'PRODUCT', attributes },
+    {
+      params:  { marketplaceIds: MARKETPLACE_ID },
+      headers: spHeaders(token),
+    }
+  );
+
+  const { status, issues } = res.data;
+  if (status === 'INVALID') {
+    const msg = issues?.map(i => i.message).join('; ') ?? 'Unknown validation error';
+    throw new Error(`Amazon rejected the update: ${msg}`);
+  }
+  console.log(`✅ Listing update accepted for SKU ${sku}`);
+  return { status, issues: issues ?? [] };
+}
+
+export default { getProductByAsin, getProductBySku, updateListingBySku };
