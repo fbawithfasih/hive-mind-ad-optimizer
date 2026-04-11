@@ -119,6 +119,196 @@ export async function executeMCPCommand(userCommand, conversationHistory = [], m
   return { data: [], summary, conversationHistory: updatedHistory, model };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// AI Reporting Agent
+// ─────────────────────────────────────────────────────────────────────────────
+
+const REPORT_SYSTEM_PROMPT = `You are a senior Amazon advertising analyst and business consultant specializing in Amazon Seller Central reporting for brands and agencies.
+
+You receive structured campaign metrics and search term data from the Amazon Ads API and generate comprehensive, presentation-ready business reports.
+
+Formatting rules (STRICT):
+- Use clean GitHub-flavored Markdown with proper heading hierarchy (##, ###)
+- Every data table MUST have a header row AND a separator row (| --- | --- |)
+- Currency: $1,234.56 format. Percentages: 12.3% format. Large integers: 1,234 commas.
+- Lead each section with a one-line insight in bold before the table or bullets
+- Bullet action items use "**Action:**" prefix for emphasis
+- Tone: professional, data-driven, concise — like a consultant report
+- Do NOT include caveats about data freshness or API limitations
+- Always start with a report title line: # [Report Type] and a metadata line`;
+
+const REPORT_SECTIONS = {
+  WBR: `
+1. # Weekly Business Report header with period and generation note
+2. ## Executive Summary — 4 sentences: total spend, revenue, ACoS, ROAS, and one insight
+3. ## Performance Dashboard — table with 8 rows: Spend, Revenue, ACoS, ROAS, Impressions, Clicks, CTR, Orders
+4. ## Campaign Performance — table of ALL campaigns (sorted by spend desc): Campaign, Status, Spend, Revenue, ACoS, ROAS, Orders, Budget
+5. ## Top Converting Search Terms — table of top 15 SCALE_UP terms: Term, Spend, Revenue, ACoS, ROAS, Orders, Campaign
+6. ## Wasted Spend & Negative Keywords — table of top 12 ADD_NEGATIVE terms: Term, Wasted Spend, Clicks, Campaign, Recommended Match Type
+7. ## Budget Analysis — paragraph analyzing budget utilization + table of top/bottom spenders
+8. ## 5 Priority Actions for Next 7 Days — numbered list, each starting with "**Action:**"`,
+
+  MBR: `
+1. # Monthly Business Report header
+2. ## Executive Summary — 5 sentences covering month performance, key wins, key issues
+3. ## Monthly Performance Dashboard — table: Spend, Revenue, ACoS, ROAS, Impressions, Clicks, CTR, Conversion Rate, Total Orders
+4. ## Campaign Portfolio Breakdown — two small tables: (a) by Status, (b) by Bidding Strategy — show campaign count and total spend per group
+5. ## Top 10 Campaigns by Revenue — full metrics table
+6. ## Bottom 5 Campaigns (High ACoS / Low Revenue) — table with remediation notes
+7. ## Search Term Intelligence — summary table: Category, Count, Spend, Revenue; plus top 10 scale-up terms
+8. ## Wasted Spend Analysis — total wasted spend figure + top 10 negative keyword recommendations with match types
+9. ## Budget Optimization Opportunities — identify over/under-spending campaigns
+10. ## 7 Strategic Recommendations — numbered list with "**Action:**" prefix
+11. ## Next Month Action Plan — 3-5 bullet priorities`,
+
+  AUDIT: `
+1. # Campaign Performance Audit header
+2. ## Account Health Overview — paragraph summary + quick-stats table (total campaigns, active, paused, archived, total budget, total spend, total revenue, overall ACoS, overall ROAS)
+3. ## Campaign Status Breakdown — table: Status, Count, % of Total, Total Spend, Total Revenue, Avg ACoS
+4. ## Bidding Strategy Analysis — table: Strategy, Campaign Count, Total Spend, Total Revenue, Avg ACoS, Avg ROAS
+5. ## Full Campaign Performance Table — table of top 20 campaigns by spend with all metrics
+6. ## ACoS Distribution Analysis — table of ACoS tiers: <15%, 15-25%, 25-40%, 40-70%, >70% — with campaign count and spend per tier
+7. ## Budget Utilization — identify campaigns spending >95% of budget (risk of missing impressions) and campaigns spending <50% (possible bid issues)
+8. ## Underperforming Campaigns Action Plan — table of worst 8 campaigns with specific recommended fixes
+9. ## 10 Prioritized Optimization Recommendations — numbered, with "**Action:**" prefix and expected impact`,
+
+  SEARCH: `
+1. # Search Term Intelligence Report header
+2. ## Executive Summary — search term landscape in 3-4 sentences with key numbers
+3. ## Search Term Landscape Overview — table: Category, Count, Total Spend, Total Revenue, Avg ACoS — for SCALE_UP, ADD_EXACT, ADD_NEGATIVE, WATCH
+4. ## High-Value Terms — Scale Up Bids — table of top 20 SCALE_UP terms: Term, Spend, Revenue, ACoS, ROAS, Orders, Current Campaign, Recommended Bid Action
+5. ## Exact Match Keyword Opportunities — table of top 20 ADD_EXACT terms: Term, Spend, Revenue, ACoS, Purchases, Campaign, Recommended Action
+6. ## Negative Keyword Recommendations — table of top 20 ADD_NEGATIVE terms: Term, Wasted Spend, Clicks, CPC, Campaign, Recommended Match Type (broad/phrase/exact)
+7. ## Wasted Spend Summary — total dollar amount + paragraph on impact + top 5 worst offenders
+8. ## Campaign-Level Search Term Health — table per campaign: Campaign Name, Total Terms, SCALE_UP, ADD_EXACT, ADD_NEGATIVE, Health Score
+9. ## Implementation Priority List — ordered action plan (do this week, do this month)`,
+
+  OVERVIEW: `
+1. # Account Overview header
+2. ## Account Snapshot — quick stats table (total campaigns, active %, total daily budget, total spend period, total revenue, overall ACoS, overall ROAS)
+3. ## Campaign Portfolio Summary — by status table + by bidding strategy table
+4. ## Performance KPIs — table with benchmarks: Metric, Value, Amazon Benchmark, Status (Good/Warning/Critical)
+5. ## Search Term Health Summary — overview table + paragraph
+6. ## Top 5 Quick Wins — specific, high-impact actions achievable in the next 48 hours
+7. ## Account Health Assessment — overall rating (Strong/Good/Needs Attention/Critical) with 3-sentence justification`,
+};
+
+/**
+ * Generate a professional Amazon advertising report from campaign + search term data.
+ */
+export async function generateAmazonReport({ reportType, startDate, endDate, campaigns, searchTerms, model = 'claude' }) {
+  // Pre-compute aggregates
+  const totalSpend      = campaigns.reduce((s, c) => s + (c.spend || 0), 0);
+  const totalSales      = campaigns.reduce((s, c) => s + (c.sales || 0), 0);
+  const totalClicks     = campaigns.reduce((s, c) => s + (c.clicks || 0), 0);
+  const totalImpressions = campaigns.reduce((s, c) => s + (c.impressions || 0), 0);
+  const totalOrders     = campaigns.reduce((s, c) => s + (c.purchases || 0), 0);
+  const totalBudget     = campaigns.reduce((s, c) => s + (c.budget || 0), 0);
+  const overallACoS     = totalSales > 0 ? (totalSpend / totalSales * 100).toFixed(1) : 'N/A';
+  const overallROAS     = totalSpend > 0 ? (totalSales / totalSpend).toFixed(2) : 'N/A';
+  const overallCTR      = totalImpressions > 0 ? (totalClicks / totalImpressions * 100).toFixed(3) : 'N/A';
+  const convRate        = totalClicks > 0 ? (totalOrders / totalClicks * 100).toFixed(2) : 'N/A';
+
+  // Campaign breakdowns
+  const byStatus = {};
+  const byStrategy = {};
+  for (const c of campaigns) {
+    byStatus[c.status] = (byStatus[c.status] || 0) + 1;
+    if (c.strategy) byStrategy[c.strategy] = (byStrategy[c.strategy] || 0) + 1;
+  }
+
+  const sorted = [...campaigns].sort((a, b) => (b.spend || 0) - (a.spend || 0));
+  const worstAcos = [...campaigns]
+    .filter(c => c.spend > 0 && c.acos != null && c.acos > 0)
+    .sort((a, b) => (b.acos || 0) - (a.acos || 0))
+    .slice(0, 10);
+
+  // Search term breakdowns
+  const scaleUp   = searchTerms.filter(t => t.recommendation === 'SCALE_UP');
+  const addExact  = searchTerms.filter(t => t.recommendation === 'ADD_EXACT');
+  const addNeg    = searchTerms.filter(t => t.recommendation === 'ADD_NEGATIVE');
+  const watch     = searchTerms.filter(t => t.recommendation === 'WATCH');
+  const wastedSpend = addNeg.reduce((s, t) => s + (t.cost || 0), 0);
+
+  const topScaleUp = [...scaleUp].sort((a, b) => (b.sales || 0) - (a.sales || 0)).slice(0, 30);
+  const topExact   = [...addExact].sort((a, b) => (b.purchases || 0) - (a.purchases || 0)).slice(0, 25);
+  const topNeg     = [...addNeg].sort((a, b) => (b.cost || 0) - (a.cost || 0)).slice(0, 25);
+
+  const reportLabels = {
+    WBR: 'Weekly Business Report',
+    MBR: 'Monthly Business Report',
+    AUDIT: 'Campaign Performance Audit',
+    SEARCH: 'Search Term Intelligence Report',
+    OVERVIEW: 'Account Overview',
+  };
+
+  const sections = REPORT_SECTIONS[reportType] ?? REPORT_SECTIONS.OVERVIEW;
+
+  const userPrompt = `Generate a professional Amazon Advertising ${reportLabels[reportType] ?? 'Report'} for the period ${startDate} to ${endDate}.
+
+## ACCOUNT AGGREGATES
+- Campaigns: ${campaigns.length} total | ${byStatus['enabled'] ?? byStatus['active'] ?? 0} active | ${byStatus['paused'] ?? 0} paused | ${byStatus['archived'] ?? byStatus['ended'] ?? 0} archived
+- Total Daily Budget: $${totalBudget.toFixed(2)}
+- Total Ad Spend: $${totalSpend.toFixed(2)}
+- Total Ad Revenue: $${totalSales.toFixed(2)}
+- Overall ACoS: ${overallACoS}%
+- Overall ROAS: ${overallROAS}x
+- Total Impressions: ${totalImpressions.toLocaleString()}
+- Total Clicks: ${totalClicks.toLocaleString()}
+- Overall CTR: ${overallCTR}%
+- Total Orders: ${totalOrders.toLocaleString()}
+- Conversion Rate: ${convRate}%
+
+## STATUS BREAKDOWN
+${JSON.stringify(byStatus)}
+
+## BIDDING STRATEGY BREAKDOWN
+${JSON.stringify(byStrategy)}
+
+## ALL CAMPAIGNS (${campaigns.length}, sorted by spend desc)
+${JSON.stringify(sorted.slice(0, 50).map(c => ({
+  name: c.name, status: c.status, budget: c.budget?.toFixed(2),
+  spend: c.spend?.toFixed(2), sales: c.sales?.toFixed(2),
+  acos: c.acos, roas: c.roas?.toFixed(2),
+  clicks: c.clicks, impressions: c.impressions,
+  purchases: c.purchases, ctr: c.ctr, strategy: c.strategy,
+  topOfSearch: c.topOfSearch,
+})))}
+
+## WORST ACoS CAMPAIGNS
+${JSON.stringify(worstAcos.map(c => ({ name: c.name, spend: c.spend?.toFixed(2), sales: c.sales?.toFixed(2), acos: c.acos, purchases: c.purchases })))}
+
+## SEARCH TERMS SUMMARY
+- Total: ${searchTerms.length} | SCALE_UP: ${scaleUp.length} | ADD_EXACT: ${addExact.length} | ADD_NEGATIVE: ${addNeg.length} | WATCH: ${watch.length}
+- Estimated Wasted Spend (non-converting): $${wastedSpend.toFixed(2)}
+
+## TOP SCALE_UP TERMS (${topScaleUp.length})
+${JSON.stringify(topScaleUp.map(t => ({ term: t.searchTerm, spend: t.cost?.toFixed(2), sales: t.sales?.toFixed(2), acos: t.acos, roas: t.roas?.toFixed(2), orders: t.purchases, campaign: t.campaignName, matchType: t.matchType })))}
+
+## TOP ADD_EXACT OPPORTUNITIES (${topExact.length})
+${JSON.stringify(topExact.map(t => ({ term: t.searchTerm, spend: t.cost?.toFixed(2), sales: t.sales?.toFixed(2), acos: t.acos, orders: t.purchases, campaign: t.campaignName })))}
+
+## TOP NEGATIVE KEYWORD RECOMMENDATIONS (${topNeg.length})
+${JSON.stringify(topNeg.map(t => ({ term: t.searchTerm, wastedSpend: t.cost?.toFixed(2), clicks: t.clicks, cpc: t.cpc?.toFixed(2), campaign: t.campaignName, matchType: t.matchType })))}
+
+---
+
+Generate the complete report following EXACTLY this section structure:
+${sections}
+
+Write the full report now. Use the real numbers from the data above. Be specific.`;
+
+  const raw = model === 'claude'
+    ? await callClaude(userPrompt, [], REPORT_SYSTEM_PROMPT)
+    : await callGemini(userPrompt, [], REPORT_SYSTEM_PROMPT);
+
+  return raw;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Listing Optimizer
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Optimize an Amazon product listing using high-performing search terms.
  *

@@ -146,6 +146,27 @@ export async function publishListing({ sku, productType, title, bullets, descrip
   return response.data;
 }
 
+// ── Reporting Agent ───────────────────────────────────────────────────────────
+
+/**
+ * Start a background report generation job.
+ * @param {{ reportType, profileId, startDate, endDate, model }} params
+ * @returns {{ jobId, startDate, endDate }}
+ */
+export async function startReportJob({ reportType, profileId, startDate, endDate, model = 'claude' }) {
+  const response = await api.post('/reporting-agent/start', { reportType, profileId, startDate, endDate, model });
+  return response.data;
+}
+
+/**
+ * Poll a report job's status.
+ * @returns {{ status, step, progress, report?, error? }}
+ */
+export async function pollReportJob(jobId) {
+  const response = await api.get('/reporting-agent/poll', { params: { jobId } });
+  return response.data;
+}
+
 export async function executeCommand(command, history = [], model = 'gemini') {
   try {
     const response = await api.post('/mcp/execute', { command, history, model });

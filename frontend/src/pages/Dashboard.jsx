@@ -4,6 +4,7 @@ import CommandInput from '../components/CommandInput';
 import ResultsDisplay from '../components/ResultsDisplay';
 import SearchTermPanel from '../components/SearchTermPanel.jsx';
 import ListingOptimizerPanel from '../components/ListingOptimizerPanel.jsx';
+import ReportingAgentPanel from '../components/ReportingAgentPanel.jsx';
 import { getProfiles, getCampaigns, startReports, pollReportStatus, executeCommand, logoutApi } from '../services/api.js';
 
 function StatCard({ label, value, sub, gradient, icon }) {
@@ -252,6 +253,7 @@ export default function Dashboard({ user, onLogout }) {
             { id: 'campaigns',    label: 'Campaigns' },
             { id: 'search-terms', label: 'Search Terms' },
             { id: 'listings',     label: 'Listing Optimizer' },
+            { id: 'reports',      label: 'Reporting Agent' },
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
               padding: '10px 20px', fontSize: 13, fontWeight: 600,
@@ -313,6 +315,13 @@ export default function Dashboard({ user, onLogout }) {
         {activeTab === 'listings' && (
           <ListingOptimizerPanel
             searchTerms={loadedSearchTerms}
+            aiModel={aiModel}
+          />
+        )}
+
+        {activeTab === 'reports' && (
+          <ReportingAgentPanel
+            profileId={selectedProfileId}
             aiModel={aiModel}
           />
         )}
