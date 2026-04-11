@@ -32,7 +32,7 @@ router.get('/lookup', async (req, res) => {
  * Returns AI-optimized { title, bullets[], description }.
  */
 router.post('/optimize', async (req, res) => {
-  const { asin, title, bullets, description, searchTerms, model } = req.body;
+  const { asin, title, bullets, description, searchTerms, uploadedKeywords, model } = req.body;
 
   if (!title && !bullets?.length && !description) {
     return res.status(400).json({ error: 'At least one of title, bullets, or description is required' });
@@ -40,7 +40,7 @@ router.post('/optimize', async (req, res) => {
 
   try {
     const result = await optimizeListing(
-      { asin, title, bullets, description, searchTerms },
+      { asin, title, bullets, description, searchTerms, uploadedKeywords },
       model || 'gemini'
     );
     res.json(result);

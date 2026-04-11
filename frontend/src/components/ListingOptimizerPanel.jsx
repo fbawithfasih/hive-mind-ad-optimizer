@@ -1,5 +1,61 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { lookupProduct, optimizeListingApi, getSearchTermsForProduct, publishListing } from '../services/api.js';
+
+// ── CSV / XLSX keyword parsers ────────────────────────────────────────────────
+
+function parseCsvKeywords(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length === 0) return [];
+
+  // Detect header row — look for common keyword column names
+  const firstLine = lines[0].toLowerCase().replace(/"/g, '');
+  const keywordHeaders = ['keyword', 'search term', 'query', 'term', 'keywords'];
+  const isHeader = keywordHeaders.some(h => firstLine.includes(h));
+
+  // Find which column index holds keywords (default: 0)
+  let colIdx = 0;
+  if (isHeader) {
+    const cols = lines[0].split(',').map(c => c.replace(/"/g, '').trim().toLowerCase());
+    for (const h of keywordHeaders) {
+      const found = cols.findIndex(c => c.includes(h));
+      if (found !== -1) { colIdx = found; break; }
+    }
+  }
+
+  const dataLines = isHeader ? lines.slice(1) : lines;
+  return dataLines
+    .map(line => {
+      // Handle quoted fields: "keyword with, comma", other, fields
+      const parts = line.match(/(".*?"|[^,]+)(?=,|$)/g) ?? [line];
+      const val = (parts[colIdx] ?? parts[0] ?? '').replace(/^"|"$/g, '').trim();
+      return val;
+    })
+    .filter(Boolean);
+}
+
+async function parseXlsxKeywords(file) {
+  const { read, utils } = await import('xlsx');
+  const buffer = await file.arrayBuffer();
+  const wb = read(new Uint8Array(buffer), { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = utils.sheet_to_json(ws, { header: 1, defval: '' });
+  if (rows.length === 0) return [];
+
+  // Find keyword column
+  const keywordHeaders = ['keyword', 'search term', 'query', 'term', 'keywords'];
+  const headerRow = rows[0].map(h => String(h).toLowerCase().trim());
+  let colIdx = 0;
+  for (const h of keywordHeaders) {
+    const found = headerRow.findIndex(c => c.includes(h));
+    if (found !== -1) { colIdx = found; break; }
+  }
+
+  const isHeader = keywordHeaders.some(h => headerRow.some(c => c.includes(h)));
+  const dataRows = isHeader ? rows.slice(1) : rows;
+  return dataRows
+    .map(row => String(row[colIdx] ?? '').trim())
+    .filter(Boolean);
+}
 
 const today        = new Date().toISOString().slice(0, 10);
 const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
@@ -63,6 +119,12 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
   const [publishResult, setPublishResult] = useState(null);
   const [error, setError]             = useState(null);
   const [termsMessage, setTermsMessage] = useState(null);
+
+  // Uploaded keywords
+  const [uploadedKeywords, setUploadedKeywords] = useState([]);
+  const [uploadFileName, setUploadFileName]     = useState('');
+  const [isParsingFile, setIsParsingFile]       = useState(false);
+  const fileInputRef = useRef(null);
 
   // Date range for search term loading
   const [dateFrom, setDateFrom] = useState(thirtyDaysAgo);
@@ -166,6 +228,38 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
     }
   }
 
+  async function handleFileUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsParsingFile(true); setError(null);
+    try {
+      let keywords = [];
+      const name = file.name.toLowerCase();
+      if (name.endsWith('.csv') || name.endsWith('.txt')) {
+        const text = await file.text();
+        keywords = parseCsvKeywords(text);
+      } else if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+        keywords = await parseXlsxKeywords(file);
+      } else {
+        setError('Unsupported file type. Please upload a .csv, .txt, or .xlsx file.');
+        return;
+      }
+      const unique = [...new Set(keywords.filter(k => k.length > 0))];
+      if (unique.length === 0) {
+        setError('No keywords found in the file. Make sure it has a "keyword" or "search term" column, or one keyword per row.');
+        return;
+      }
+      setUploadedKeywords(unique);
+      setUploadFileName(file.name);
+    } catch (err) {
+      setError('Failed to parse file: ' + err.message);
+    } finally {
+      setIsParsingFile(false);
+      // Reset input so the same file can be re-uploaded if needed
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
   async function handleOptimize() {
     setIsOptimizing(true); setError(null); setOptimized(null);
     try {
@@ -175,6 +269,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
         bullets: bullets.filter(Boolean),
         description,
         searchTerms: relevantTerms,
+        uploadedKeywords: uploadedKeywords.length > 0 ? uploadedKeywords : undefined,
         model: aiModel,
       });
       const normalizedBullets = Array.from({ length: 5 }, (_, i) => result.bullets?.[i] ?? '');
@@ -253,9 +348,63 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
           </div>
         </div>
 
+        {/* ── Upload Keywords ── */}
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #334155', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.txt,.xlsx,.xls"
+            style={{ display: 'none' }}
+            onChange={handleFileUpload}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isParsingFile}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 14px', borderRadius: 8, border: '1px dashed #334155',
+              cursor: isParsingFile ? 'not-allowed' : 'pointer',
+              background: 'transparent',
+              color: uploadedKeywords.length > 0 ? '#A78BFA' : '#64748B',
+              fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap',
+            }}>
+            {isParsingFile ? (
+              <>
+                <svg style={{ width: 13, height: 13, animation: 'spin 1s linear infinite' }} fill="none" viewBox="0 0 24 24">
+                  <circle style={{ opacity: .25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path style={{ opacity: .75 }} fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+                Parsing…
+              </>
+            ) : (
+              <>
+                <svg style={{ width: 13, height: 13 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                {uploadedKeywords.length > 0
+                  ? `${uploadedKeywords.length} keywords from "${uploadFileName}"`
+                  : 'Upload Keywords (CSV / Excel)'}
+              </>
+            )}
+          </button>
+          {uploadedKeywords.length > 0 && (
+            <button
+              onClick={() => { setUploadedKeywords([]); setUploadFileName(''); }}
+              style={{
+                fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid #334155',
+                background: 'transparent', color: '#64748B', cursor: 'pointer',
+              }}>
+              Clear
+            </button>
+          )}
+          <span style={{ fontSize: 11, color: '#475569' }}>
+            Upload a filtered keyword list — AI will prioritize these in the optimized listing.
+          </span>
+        </div>
+
         {/* ── Load Search Terms for this Product ── */}
         {hasFetched && (sku.trim() || fetchedAsin) && (
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #1E293B', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 12, color: '#64748B' }}>Search term date range:</span>
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} max={dateTo}
               style={{ ...inputStyle, fontSize: 12, padding: '6px 10px' }} />
@@ -321,11 +470,35 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
         </div>
       )}
 
-      {/* ── Keyword pills ── */}
+      {/* ── Uploaded keyword pills ── */}
+      {uploadedKeywords.length > 0 && (
+        <div style={{ background: '#1E293B', border: '1px solid #A78BFA40', borderRadius: 10, padding: '12px 16px' }}>
+          <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#64748B' }}>
+            <span style={{ color: '#A78BFA' }}>★ Priority Keywords</span>
+            <span style={{ marginLeft: 6 }}>({uploadedKeywords.length} uploaded — AI will use these first)</span>
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {uploadedKeywords.slice(0, 60).map((kw, i) => (
+              <span key={i} style={{
+                fontSize: 11, padding: '3px 9px', borderRadius: 999, fontWeight: 500,
+                background: '#A78BFA18', color: '#A78BFA',
+                border: '1px solid #A78BFA40',
+              }}>
+                {kw}
+              </span>
+            ))}
+            {uploadedKeywords.length > 60 && (
+              <span style={{ fontSize: 11, color: '#64748B', padding: '3px 0' }}>+{uploadedKeywords.length - 60} more</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Campaign keyword pills ── */}
       {relevantTerms.length > 0 && (
         <div style={{ background: '#1E293B', border: '1px solid #334155', borderRadius: 10, padding: '12px 16px' }}>
           <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#64748B' }}>
-            Keywords for optimization ({relevantTerms.length} terms — SCALE_UP + ADD_EXACT)
+            Campaign keywords ({relevantTerms.length} terms — SCALE_UP + ADD_EXACT)
             {productSearchTerms.length > 0 && <span style={{ color: '#10B981', marginLeft: 8, fontWeight: 500 }}>· product-specific</span>}
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -520,7 +693,9 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                 <svg style={{ width: 16, height: 16 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
-                Optimize Listing {relevantTerms.length > 0 ? `(${relevantTerms.length} keywords)` : ''}
+                Optimize Listing {uploadedKeywords.length > 0
+                  ? `(${uploadedKeywords.length} priority + ${relevantTerms.length} campaign keywords)`
+                  : relevantTerms.length > 0 ? `(${relevantTerms.length} keywords)` : ''}
               </>
             )}
           </button>

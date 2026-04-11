@@ -24,7 +24,7 @@ Search term analysis rules:
 - Add-as-exact suggestions should explain the conversion potential and recommend creating a new exact match keyword in the relevant ad group.`;
 
 const LISTING_SYSTEM_PROMPT = `You are an Amazon listing optimization expert.
-You will receive a product's current listing content and a set of high-performing search terms from the product's ad campaigns.
+You will receive a product's current listing content, a set of high-performing search terms from the product's ad campaigns, and optionally a list of manually selected priority keywords uploaded by the user.
 
 Rules:
 - Respond ONLY with valid JSON in exactly this shape (no markdown fences, no extra text):
@@ -32,8 +32,8 @@ Rules:
 - Title: max 200 characters, front-load the single most important keyword, keep it natural and readable.
 - Bullets: exactly 5 items, start each with a capitalized benefit phrase (e.g. "SUPERIOR QUALITY —"), weave in keywords naturally, max 255 chars each.
 - Description: 400-1000 characters, include brand story + key use cases + secondary keywords, readable paragraphs.
-- Use only the provided search terms — do not invent keywords.
-- Prioritize SCALE_UP terms (best performing) over ADD_EXACT terms.
+- If PRIORITY KEYWORDS (user-uploaded) are provided, you MUST include as many of them as naturally possible in the title, bullets and description. These take highest priority over campaign search terms.
+- After incorporating priority keywords, use campaign search terms (SCALE_UP first, then ADD_EXACT).
 - Do not keyword-stuff — listings must read naturally for human shoppers.`;
 
 async function callGemini(userCommand, conversationHistory = [], systemPrompt = SYSTEM_PROMPT) {
@@ -126,8 +126,11 @@ export async function executeMCPCommand(userCommand, conversationHistory = [], m
  * @param {'gemini'|'claude'} model
  * @returns {Promise<{ title: string, bullets: string[], description: string }>}
  */
-export async function optimizeListing({ asin, title, bullets, description, searchTerms }, model = 'gemini') {
+export async function optimizeListing({ asin, title, bullets, description, searchTerms, uploadedKeywords }, model = 'gemini') {
   const bulletsText = (bullets ?? []).map((b, i) => `${i + 1}. ${b}`).join('\n');
+  const priorityBlock = (uploadedKeywords ?? []).length > 0
+    ? `\nPRIORITY KEYWORDS (user-uploaded — MUST include as many as possible, these take highest priority):\n${(uploadedKeywords).join(', ')}\n`
+    : '';
 
   const userPrompt = `ASIN: ${asin ?? 'N/A'}
 
@@ -139,8 +142,8 @@ ${bulletsText || '(none provided)'}
 
 CURRENT DESCRIPTION:
 ${description ?? '(none provided)'}
-
-HIGH-PERFORMING SEARCH TERMS (SCALE_UP and ADD_EXACT — use these as keywords):
+${priorityBlock}
+HIGH-PERFORMING SEARCH TERMS (SCALE_UP and ADD_EXACT — use these as secondary keywords):
 ${JSON.stringify((searchTerms ?? []).slice(0, 80).map(t => ({
   term: t.searchTerm,
   recommendation: t.recommendation,
@@ -149,7 +152,7 @@ ${JSON.stringify((searchTerms ?? []).slice(0, 80).map(t => ({
   roas: t.roas,
 })))}
 
-Optimize the title, bullets, and description using the search terms above. Return ONLY JSON.`;
+Optimize the title, bullets, and description.${(uploadedKeywords ?? []).length > 0 ? ' Prioritize the PRIORITY KEYWORDS first, then the search terms.' : ' Use the search terms above.'} Return ONLY JSON.`;
 
   const raw = model === 'claude'
     ? await callClaude(userPrompt, [], LISTING_SYSTEM_PROMPT)
