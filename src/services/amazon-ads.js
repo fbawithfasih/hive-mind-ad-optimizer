@@ -105,14 +105,13 @@ export async function getProductAdCampaigns(profileId, { sku, asin } = {}) {
 }
 
 /**
- * Fetch SP campaign performance metrics via the v3 Reporting API.
- * This is async on Amazon's side — we poll until COMPLETED (up to ~90s).
+ * Create a campaign metrics report and return the reportId immediately (no polling).
+ * Call checkReportStatus() to poll for completion.
  */
-export async function getCampaignMetrics(profileId, startDate, endDate) {
+export async function startCampaignMetricsReport(profileId, startDate, endDate) {
   const token = await getAccessToken();
   const h = adsHeaders(token, profileId);
 
-  // 1. Create report
   console.log(`Creating SP metrics report for profile ${profileId} (${startDate} → ${endDate})…`);
   let createRes;
   try {
@@ -148,49 +147,66 @@ export async function getCampaignMetrics(profileId, startDate, endDate) {
       }
     );
   } catch (e) {
-    // 425 = duplicate report — Amazon returns the existing reportId; reuse it
     if (e.response?.status === 425) {
       const detail = e.response.data?.detail ?? '';
       const match  = detail.match(/([0-9a-f-]{36})/i);
       if (match) {
-        console.log(`↩️  Duplicate report detected — reusing existing report ${match[1]}`);
-        createRes = { data: { reportId: match[1] } };
-      } else {
-        throw new Error(`Report create 425 (no reportId in response): ${detail}`);
+        console.log(`↩️  Duplicate report detected — reusing ${match[1]}`);
+        return match[1];
       }
-    } else {
-      console.error('❌ Report create error:', e.response?.status, JSON.stringify(e.response?.data));
-      throw new Error(`Report create failed ${e.response?.status}: ${JSON.stringify(e.response?.data)}`);
+      throw new Error(`Report create 425 (no reportId): ${detail}`);
     }
+    console.error('❌ Report create error:', e.response?.status, JSON.stringify(e.response?.data));
+    throw new Error(`Report create failed ${e.response?.status}: ${JSON.stringify(e.response?.data)}`);
   }
 
   const reportId = createRes.data.reportId;
-  console.log(`Report ${reportId} created — polling…`);
+  console.log(`Report ${reportId} created`);
+  return reportId;
+}
 
-  // 2. Poll — up to 36 × 5s = 3 minutes
-  for (let i = 0; i < 36; i++) {
-    await new Promise(r => setTimeout(r, 5000));
-    let poll;
-    try {
-      poll = await axios.get(`https://advertising-api.amazon.com/reporting/reports/${reportId}`, { headers: h });
-    } catch (e) {
-      console.error(`  Poll ${i + 1} error:`, e.response?.status, JSON.stringify(e.response?.data));
-      throw new Error(`Poll failed ${e.response?.status}: ${JSON.stringify(e.response?.data)}`);
-    }
-    const { status, url } = poll.data;
-    console.log(`  Poll ${i + 1}: ${status}`);
+/**
+ * Poll a single report status tick. Returns:
+ *   { status: 'PENDING' | 'PROCESSING' }  — still in progress
+ *   { status: 'COMPLETED', data: [] }      — finished, data included
+ *   throws on FAILED / EXPIRED
+ */
+export async function checkReportStatus(profileId, reportId) {
+  const token = await getAccessToken();
+  const h = adsHeaders(token, profileId);
 
-    if (status === 'COMPLETED') {
-      const dlRes = await axios.get(url, { responseType: 'arraybuffer' });
-      const records = JSON.parse(gunzipSync(Buffer.from(dlRes.data)).toString());
-      console.log(`✅ Report downloaded — ${records.length} SP campaign records`);
-      return records;
-    }
-    if (status === 'FAILED')  throw new Error(`Report ${reportId} failed: ${poll.data.failureReason ?? 'unknown'}`);
-    if (status === 'EXPIRED') throw new Error(`Report ${reportId} expired before download`);
-    // PENDING / PROCESSING → keep polling
+  let poll;
+  try {
+    poll = await axios.get(`https://advertising-api.amazon.com/reporting/reports/${reportId}`, { headers: h });
+  } catch (e) {
+    throw new Error(`Poll failed ${e.response?.status}: ${JSON.stringify(e.response?.data)}`);
   }
 
+  const { status, url } = poll.data;
+  console.log(`  Report ${reportId} status: ${status}`);
+
+  if (status === 'COMPLETED') {
+    const dlRes = await axios.get(url, { responseType: 'arraybuffer' });
+    const data  = JSON.parse(gunzipSync(Buffer.from(dlRes.data)).toString());
+    console.log(`✅ Report downloaded — ${data.length} SP campaign records`);
+    return { status: 'COMPLETED', data };
+  }
+  if (status === 'FAILED')  throw new Error(`Report ${reportId} failed: ${poll.data.failureReason ?? 'unknown'}`);
+  if (status === 'EXPIRED') throw new Error(`Report ${reportId} expired before download`);
+  return { status };
+}
+
+/**
+ * @deprecated Use startCampaignMetricsReport + checkReportStatus instead.
+ * Kept for internal use only.
+ */
+export async function getCampaignMetrics(profileId, startDate, endDate) {
+  const reportId = await startCampaignMetricsReport(profileId, startDate, endDate);
+  for (let i = 0; i < 36; i++) {
+    await new Promise(r => setTimeout(r, 5000));
+    const result = await checkReportStatus(profileId, reportId);
+    if (result.status === 'COMPLETED') return result.data;
+  }
   throw new Error('Report timed out after 3 minutes');
 }
 
@@ -288,4 +304,4 @@ export async function getSearchTermReport(profileId, startDate, endDate, campaig
   throw new Error('Search term report timed out after 3 minutes');
 }
 
-export default { getProfiles, getCampaigns, getCampaignMetrics, getSearchTermReport, getProductAdCampaigns };
+export default { getProfiles, getCampaigns, getCampaignMetrics, startCampaignMetricsReport, checkReportStatus, getSearchTermReport, getProductAdCampaigns };

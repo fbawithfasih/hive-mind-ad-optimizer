@@ -50,18 +50,23 @@ export async function getCampaign(id) {
  * @param {Array} [history=[]] - The conversation history.
  * @returns {Promise<any>} The execution result data.
  */
+export async function startReports(profileId, startDate, endDate) {
+  const params = {};
+  if (profileId) params.profileId = profileId;
+  if (startDate) params.startDate = startDate;
+  if (endDate)   params.endDate   = endDate;
+  const response = await api.get('/reports/start', { params });
+  return response.data; // { reportId, campaigns, startDate, endDate }
+}
+
+export async function pollReportStatus(profileId, reportId) {
+  const response = await api.get('/reports/status', { params: { profileId, reportId } });
+  return response.data; // { status } or { status: 'COMPLETED', data: [] }
+}
+
+/** @deprecated kept for compatibility — use startReports + pollReportStatus */
 export async function getReports(profileId, startDate, endDate) {
-  try {
-    const params = {};
-    if (profileId) params.profileId = profileId;
-    if (startDate) params.startDate = startDate;
-    if (endDate)   params.endDate   = endDate;
-    const response = await api.get('/reports', { params });
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching reports:', error);
-    throw error;
-  }
+  return startReports(profileId, startDate, endDate);
 }
 
 export async function lookupProduct(asin, sku) {
