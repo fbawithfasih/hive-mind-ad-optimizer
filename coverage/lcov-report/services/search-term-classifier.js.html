@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/13</span>
+                <span class='fraction'>13/13</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">96.29% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/54</span>
+                <span class='fraction'>52/54</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/2</span>
+                <span class='fraction'>2/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/13</span>
+                <span class='fraction'>13/13</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -121,24 +121,24 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-yes">30x</span>
+<span class="cline-any cline-yes">30x</span>
+<span class="cline-any cline-yes">30x</span>
+<span class="cline-any cline-yes">30x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">30x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">21x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">30x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -168,35 +168,35 @@
  *  ADD_NEGATIVE — spending with zero conversions (clicks &gt;= 10, purchases = 0, cost &gt; $5)
  *  WATCH        — limited data, monitor further
  */
-export function <span class="fstat-no" title="function not covered" >classifySearchTerms(</span>records) {
-<span class="cstat-no" title="statement not covered" >  return records.map(<span class="fstat-no" title="function not covered" >r </span>=&gt; {</span>
-    const purchases = <span class="cstat-no" title="statement not covered" >r.purchases14d ?? 0;</span>
-    const clicks    = <span class="cstat-no" title="statement not covered" >r.clicks       ?? 0;</span>
-    const cost      = <span class="cstat-no" title="statement not covered" >r.cost         ?? 0;</span>
-    const acos      = <span class="cstat-no" title="statement not covered" >r.acosClicks14d != null ? +Number(r.acosClicks14d).toFixed(2) : null;</span>
+export function classifySearchTerms(records) {
+  return records.map(r =&gt; {
+    const purchases = r.purchases14d ?? 0;
+    const clicks    = r.clicks       ?? 0;
+    const cost      = r.cost         ?? 0;
+    const acos      = r.acosClicks14d != null ? +Number(r.acosClicks14d).toFixed(2) : null;
 &nbsp;
     let recommendation;
-<span class="cstat-no" title="statement not covered" >    if (purchases &gt;= 1 &amp;&amp; acos != null &amp;&amp; acos &lt; 25) {</span>
-<span class="cstat-no" title="statement not covered" >      recommendation = 'SCALE_UP';</span>
-    } else <span class="cstat-no" title="statement not covered" >if (clicks &gt;= 10 &amp;&amp; purchases === 0 &amp;&amp; cost &gt; 5) {</span>
-<span class="cstat-no" title="statement not covered" >      recommendation = 'ADD_NEGATIVE';</span>
-    } else <span class="cstat-no" title="statement not covered" >if (purchases &gt;= 1 &amp;&amp; acos != null &amp;&amp; acos &gt;= 25 &amp;&amp; acos &lt; 40) {</span>
-<span class="cstat-no" title="statement not covered" >      recommendation = 'ADD_EXACT';</span>
+    if (purchases &gt;= 1 &amp;&amp; acos != null &amp;&amp; acos &lt; 25) {
+      recommendation = 'SCALE_UP';
+    } else if (clicks &gt;= 10 &amp;&amp; purchases === 0 &amp;&amp; cost &gt; 5) {
+      recommendation = 'ADD_NEGATIVE';
+    } else if (purchases &gt;= 1 &amp;&amp; acos != null &amp;&amp; acos &gt;= 25 &amp;&amp; acos &lt; 40) {
+      recommendation = 'ADD_EXACT';
     } else {
-<span class="cstat-no" title="statement not covered" >      recommendation = 'WATCH';</span>
+      recommendation = 'WATCH';
     }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    return {</span>
+    return {
       campaignId:   r.campaignId?.toString() ?? '',
       campaignName: r.campaignName ?? '',
       adGroupId:    r.adGroupId?.toString()  ?? '',
       adGroupName:  r.adGroupName ?? '',
-      searchTerm:   r.searchTerm  ?? '',
+      searchTerm:   r.searchTerm  ?? <span class="branch-1 cbranch-no" title="branch not covered" >'',</span>
       targeting:    r.targeting   ?? '',
       matchType:    r.matchType   ?? '',
       impressions:  r.impressions  ?? null,
       clicks:       r.clicks       ?? null,
-      ctr:          r.clickThroughRate != null ? +Number(r.clickThroughRate).toFixed(4) : null,
+      ctr:          r.clickThroughRate != null ? <span class="branch-0 cbranch-no" title="branch not covered" >+Number(r.clickThroughRate).toFixed(4) </span>: null,
       cost:         r.cost          ?? null,
       cpc:          r.costPerClick  ?? null,
       purchases:    r.purchases14d  ?? null,
@@ -214,7 +214,7 @@ export function <span class="fstat-no" title="function not covered" >classifySea
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-13T19:41:30.445Z
+                at 2026-04-13T19:44:55.544Z
             </div>
         <script src="../prettify.js"></script>
         <script>

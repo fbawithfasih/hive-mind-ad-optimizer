@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">5.34% </span>
+                <span class="strong">11.45% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>7/131</span>
+                <span class='fraction'>15/131</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">5.55% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/54</span>
+                <span class='fraction'>3/54</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">15.38% </span>
+                <span class="strong">30.76% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>2/13</span>
+                <span class='fraction'>4/13</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">5.93% </span>
+                <span class="strong">12.71% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>7/118</span>
+                <span class='fraction'>15/118</span>
             </div>
         
             
@@ -376,34 +376,34 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14x</span>
+<span class="cline-any cline-yes">14x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -677,8 +677,8 @@ async function getAccessToken() {
   return tokenManager.getToken();
 }
 &nbsp;
-function <span class="fstat-no" title="function not covered" >adsHeaders(</span>token, profileId, extra = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
-<span class="cstat-no" title="statement not covered" >  return {</span>
+function adsHeaders(token, profileId, extra = {}) {
+  return {
     Authorization: `Bearer ${token}`,
     'Amazon-Advertising-API-ClientId': CLIENT_ID,
     ...(profileId ? { 'Amazon-Advertising-API-Scope': profileId.toString() } : {}),
@@ -688,20 +688,20 @@ function <span class="fstat-no" title="function not covered" >adsHeaders(</span>
 &nbsp;
 export async function getProfiles() {
   const token = await getAccessToken();
-  const res = <span class="cstat-no" title="statement not covered" >await axios.get('https://advertising-api.amazon.com/v2/profiles', {</span>
+  const res = await axios.get('https://advertising-api.amazon.com/v2/profiles', {
     headers: adsHeaders(token),
   });
-<span class="cstat-no" title="statement not covered" >  console.log(`✅ Fetched ${res.data.length} profiles`);</span>
-<span class="cstat-no" title="statement not covered" >  return res.data;</span>
+  console.log(`✅ Fetched ${res.data.length} profiles`);
+  return res.data;
 }
 &nbsp;
-export async function <span class="fstat-no" title="function not covered" >getCampaigns(</span>profileId) {
-  const token = <span class="cstat-no" title="statement not covered" >await getAccessToken();</span>
-  const res = <span class="cstat-no" title="statement not covered" >await axios.get('https://advertising-api.amazon.com/v2/campaigns', {</span>
+export async function getCampaigns(profileId) {
+  const token = await getAccessToken();
+  const res = await axios.get('https://advertising-api.amazon.com/v2/campaigns', {
     headers: adsHeaders(token, profileId),
   });
-<span class="cstat-no" title="statement not covered" >  console.log(`✅ Fetched ${res.data.length} campaigns for profile ${profileId}`);</span>
-<span class="cstat-no" title="statement not covered" >  return res.data;</span>
+  console.log(`✅ Fetched ${res.data.length} campaigns for profile ${profileId}`);
+  return res.data;
 }
 &nbsp;
 /**
@@ -964,7 +964,7 @@ export default { getProfiles, getCampaigns, getCampaignMetrics, startCampaignMet
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-13T19:41:30.445Z
+                at 2026-04-13T19:44:55.544Z
             </div>
         <script src="../prettify.js"></script>
         <script>

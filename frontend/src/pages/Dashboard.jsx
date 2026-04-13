@@ -1,12 +1,17 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import CampaignTable from '../components/CampaignTable';
 import CommandInput from '../components/CommandInput';
 import ResultsDisplay from '../components/ResultsDisplay';
 import SearchTermPanel from '../components/SearchTermPanel.jsx';
 import ListingOptimizerPanel from '../components/ListingOptimizerPanel.jsx';
 import ReportingAgentPanel from '../components/ReportingAgentPanel.jsx';
-import { getProfiles, getCampaigns, startReports, pollReportStatus, executeCommand, logoutApi } from '../services/api.js';
+import { logoutApi } from '../services/api.js';
 import { getTodayISO, getDaysAgoISO } from '../utils/date-helpers.js';
+import { useProfileState } from '../hooks/useProfileState.js';
+import { useDateRangeState } from '../hooks/useDateRangeState.js';
+import { useCampaignFiltering } from '../hooks/useCampaignFiltering.js';
+import { useMetricsPolling } from '../hooks/useMetricsPolling.js';
+import { useAICommandExecution } from '../hooks/useAICommandExecution.js';
 
 function StatCard({ label, value, sub, gradient, icon }) {
   return (
@@ -24,136 +29,19 @@ function StatCard({ label, value, sub, gradient, icon }) {
 }
 
 export default function Dashboard({ user, onLogout }) {
-  const [profiles, setProfiles]             = useState([]);
-  const [selectedProfileId, setSelectedProfileId] = useState('');
-  const [campaigns, setCampaigns]           = useState([]);
-  const [isLoading, setIsLoading]           = useState(true);
-  const [isExecuting, setIsExecuting]       = useState(false);
-  const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
-  const [metricsStatus, setMetricsStatus]       = useState('');  // polling status message
-  const [metricsDateRange, setMetricsDateRange] = useState({ start: '', end: '' });
-  const today = new Date().toISOString().slice(0, 10);
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-  const sixtyDaysAgo  = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
-  const today = getTodayISO();
-  const thirtyDaysAgo = getDaysAgoISO(30);
-  const sixtyDaysAgo  = getDaysAgoISO(60);
-  const [dateFrom, setDateFrom] = useState(thirtyDaysAgo);
-  const [dateTo, setDateTo]     = useState(today);
+  // Custom hooks for state management
+  const { profiles, selectedProfileId, setSelectedProfileId, selectedProfile } = useProfileState();
+  const { dateFrom, dateTo, today, thirtyDaysAgo, handleDateFromChange, handleDateToChange } = useDateRangeState();
+  const { campaigns, setCampaigns, search, setSearch, statusFilter, setStatusFilter, filtered, stats, isLoading, error: campaignError } = useCampaignFiltering(selectedProfileId);
+  const { isLoadingMetrics, metricsStatus, metricsDateRange, error: metricsError, setError: setMetricsError, handleLoadMetrics } = useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampaigns);
+  const { isExecuting, result, error: aiError, aiModel, setAiModel, handleCommandSubmit } = useAICommandExecution(filtered, campaigns);
 
-  // Enforce max 31-day range when either date changes
-  function handleDateFromChange(val) {
-    setDateFrom(val);
-    const maxTo = new Date(new Date(val).getTime() + 31 * 86400000).toISOString().slice(0, 10);
-    if (dateTo > maxTo) setDateTo(maxTo);
-  }
-  function handleDateToChange(val) {
-    setDateTo(val);
-    const minFrom = new Date(new Date(val).getTime() - 31 * 86400000).toISOString().slice(0, 10);
-    if (dateFrom < minFrom) setDateFrom(minFrom);
-  }
-  const [result, setResult]                 = useState(null);
-  const [error, setError]                   = useState(null);
-  const [search, setSearch]                 = useState('');
-  const [statusFilter, setStatusFilter]     = useState('all');
-  const [aiModel, setAiModel]               = useState('gemini');
-  const [activeTab, setActiveTab]           = useState('campaigns');
+  const sixtyDaysAgo = getDaysAgoISO(60);
+  const [activeTab, setActiveTab] = useState('campaigns');
   const [loadedSearchTerms, setLoadedSearchTerms] = useState([]);
 
-  useEffect(() => {
-    getProfiles().then(d => setProfiles(Array.isArray(d) ? d : [])).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    setIsLoading(true); setError(null);
-    getCampaigns(selectedProfileId || undefined)
-      .then(d => { setCampaigns(Array.isArray(d) ? d : []); setIsLoading(false); })
-      .catch(err => { setError(err.message); setIsLoading(false); });
-  }, [selectedProfileId]);
-
-  const stats = useMemo(() => {
-    const enabled  = campaigns.filter(c => ['enabled','active'].includes(c.status)).length;
-    const paused   = campaigns.filter(c => c.status === 'paused').length;
-    const archived = campaigns.filter(c => ['ended','archived'].includes(c.status)).length;
-    const budget   = campaigns.reduce((s, c) => s + (c.budget ?? 0), 0);
-    return { total: campaigns.length, enabled, paused, archived, budget };
-  }, [campaigns]);
-
-  const filtered = useMemo(() => campaigns.filter(c => {
-    const q = search.toLowerCase();
-    return (!q || c.name.toLowerCase().includes(q)) &&
-           (statusFilter === 'all' || c.status === statusFilter);
-  }), [campaigns, search, statusFilter]);
-
-  async function handleLoadMetrics() {
-    setIsLoadingMetrics(true);
-    setMetricsStatus('Creating report…');
-    setError(null);
-    try {
-      const profileId = selectedProfileId || undefined;
-      // Step 1: create report + fetch campaigns list (fast, ~2s)
-      const { reportId, campaigns: rawCampaigns, startDate, endDate } = await startReports(profileId, dateFrom, dateTo);
-      setCampaigns(Array.isArray(rawCampaigns) ? rawCampaigns : []);
-
-      // Step 2: poll until Amazon finishes the async report
-      let attempts = 0;
-      while (attempts < 40) {
-        await new Promise(r => setTimeout(r, 4000));
-        attempts++;
-        setMetricsStatus(`Waiting for Amazon report… (${attempts * 4}s)`);
-        const result = await pollReportStatus(profileId, reportId);
-        if (result.status === 'COMPLETED') {
-          // Merge metrics into campaigns
-          const metricsMap = {};
-          for (const m of result.data) metricsMap[m.campaignId] = m;
-          setCampaigns(prev => prev.map(c => {
-            const m = metricsMap[c.campaignId] ?? metricsMap[c.id] ?? {};
-            return {
-              ...c,
-              status:          (m.campaignStatus ?? c.status ?? '').toLowerCase().replace('campaign_status_', '').replace('campaign_', ''),
-              biddingStrategy: m.campaignBiddingStrategy ?? c.biddingStrategy,
-              impressions:     m.impressions    ?? c.impressions,
-              clicks:          m.clicks         ?? c.clicks,
-              ctr:             m.clickThroughRate != null ? +Number(m.clickThroughRate).toFixed(4) : c.ctr,
-              spend:           m.cost           ?? c.spend,
-              cpc:             m.costPerClick   ?? c.cpc,
-              purchases:       m.purchases14d   ?? c.purchases,
-              sales:           m.sales14d       ?? c.sales,
-              acos:            m.acosClicks14d  != null ? +Number(m.acosClicks14d).toFixed(2) : c.acos,
-              roas:            m.roasClicks14d  ?? c.roas,
-              topOfSearch:     m.topOfSearchImpressionShare ?? c.topOfSearch,
-            };
-          }));
-          setMetricsDateRange({ start: startDate, end: endDate });
-          setMetricsStatus('');
-          return;
-        }
-      }
-      setError('Metrics timed out — Amazon report took too long. Try again.');
-    } catch (err) {
-      setError('Metrics failed: ' + (err.message || 'Unknown error'));
-    } finally {
-      setIsLoadingMetrics(false);
-      setMetricsStatus('');
-    }
-  }
-
-  async function handleCommandSubmit(command, prebuiltContext = null) {
-    setIsExecuting(true); setError(null); setResult(null);
-    // Scroll AI panel into view
-    document.getElementById('ai-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    try {
-      const ctx = prebuiltContext
-        ?? `Campaigns (${filtered.length} of ${campaigns.length}): ${JSON.stringify(filtered.slice(0, 60))}\n\nCommand: ${command}`;
-      setResult(await executeCommand(ctx, [], aiModel));
-    } catch (err) {
-      setError(err.message || 'Command failed');
-    } finally {
-      setIsExecuting(false);
-    }
-  }
-
-  const selProfile = profiles.find(p => String(p.profileId) === String(selectedProfileId));
+  // Consolidate errors: prioritize metrics error, then campaign error, then AI error
+  const error = metricsError || campaignError || aiError;
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#0F172A', color: '#F1F5F9' }}>
@@ -218,7 +106,7 @@ export default function Dashboard({ user, onLogout }) {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             label="Total Campaigns" value={stats.total}
-            sub={selProfile?.accountInfo?.name ?? 'All accounts'}
+            sub={selectedProfile?.accountInfo?.name ?? 'All accounts'}
             gradient="#3B82F6"
             icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>}
           />
