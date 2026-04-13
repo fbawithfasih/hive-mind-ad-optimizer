@@ -1,0 +1,58 @@
+{
+  "ci": {
+    "collect": {
+      "url": [
+        "http://localhost:5173",
+        "http://localhost:5173/?tab=search-terms",
+        "http://localhost:5173/?tab=listings",
+        "http://localhost:5173/?tab=reports"
+      ],
+      "numberOfRuns": 3,
+      "settings": {
+        "chromeFlags": ["--no-sandbox"],
+        "onlyCategories": ["performance", "accessibility", "best-practices", "seo"]
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    },
+    "assert": {
+      "preset": "lighthouse:recommended",
+      "assertions": {
+        "categories:performance": ["error", { "minScore": 0.8 }],
+        "categories:accessibility": ["error", { "minScore": 0.9 }],
+        "categories:best-practices": ["error", { "minScore": 0.85 }],
+        "categories:seo": ["error", { "minScore": 0.85 }],
+        "performance-budget": [
+          "error",
+          {
+            "resourceSizes": [
+              {
+                "resourceType": "script",
+                "budget": 300000
+              },
+              {
+                "resourceType": "stylesheet",
+                "budget": 50000
+              },
+              {
+                "resourceType": "image",
+                "budget": 500000
+              }
+            ],
+            "resourceCounts": [
+              {
+                "resourceType": "third-party",
+                "budget": 10
+              }
+            ]
+          }
+        ],
+        "speed-index": ["error", { "maxNumericValue": 3500 }],
+        "largest-contentful-paint": ["error", { "maxNumericValue": 2500 }],
+        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
+        "first-input-delay": ["error", { "maxNumericValue": 100 }]
+      }
+    }
+  }
+}
