@@ -322,6 +322,9 @@ export async function optimizeListing({ asin, title, bullets, description, searc
     ? `\nPRIORITY KEYWORDS (user-uploaded — MUST include as many as possible, these take highest priority):\n${(uploadedKeywords).join(', ')}\n`
     : '';
 
+  // Limit search terms to prevent token bloat
+  const limitedTerms = (searchTerms ?? []).slice(0, 50);
+
   const userPrompt = `ASIN: ${asin ?? 'N/A'}
 
 CURRENT TITLE:
@@ -334,7 +337,7 @@ CURRENT DESCRIPTION:
 ${description ?? '(none provided)'}
 ${priorityBlock}
 HIGH-PERFORMING SEARCH TERMS (SCALE_UP and ADD_EXACT — use these as secondary keywords):
-${JSON.stringify((searchTerms ?? []).slice(0, 80).map(t => ({
+${JSON.stringify(limitedTerms.map(t => ({
   term: t.searchTerm,
   recommendation: t.recommendation,
   purchases: t.purchases,
@@ -348,11 +351,31 @@ Optimize the title, bullets, and description.${(uploadedKeywords ?? []).length >
     ? await callClaude(userPrompt, [], LISTING_SYSTEM_PROMPT)
     : await callGemini(userPrompt, [], LISTING_SYSTEM_PROMPT);
 
+  console.log(`[optimizeListing] Raw AI response (${raw.length} chars):`, raw.slice(0, 500));
+
   // Strip markdown code fences if the model wrapped the JSON
   const jsonStr = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
+
+  // Validate structure before parsing
+  if (!jsonStr.startsWith('{') || !jsonStr.endsWith('}')) {
+    throw new Error(`AI response is not JSON format. Response: ${raw}`);
+  }
+
   try {
-    return JSON.parse(jsonStr);
-  } catch {
-    throw new Error(`AI returned invalid JSON for listing optimization: ${raw.slice(0, 200)}`);
+    const parsed = JSON.parse(jsonStr);
+    // Validate required fields
+    if (!parsed.title || !Array.isArray(parsed.bullets) || !parsed.description) {
+      throw new Error(`AI JSON missing required fields. Has: ${Object.keys(parsed).join(', ')}`);
+    }
+    return parsed;
+  } catch (parseErr) {
+    // Try to find which character is breaking the JSON
+    const errorMatch = parseErr.message.match(/position (\d+)/);
+    const errorPos = errorMatch ? parseInt(errorMatch[1]) : null;
+    const context = errorPos
+      ? `\nError near: "${jsonStr.slice(Math.max(0, errorPos - 50), errorPos + 50)}"`
+      : '';
+    console.error(`[optimizeListing] JSON parse failed:`, parseErr.message, context);
+    throw new Error(`AI returned invalid JSON for listing optimization. Details: ${parseErr.message}${context}\n\nFull response:\n${raw}`);
   }
 }
