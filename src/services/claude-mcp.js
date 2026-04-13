@@ -325,6 +325,9 @@ export async function optimizeListing({ asin, title, bullets, description, searc
     ? `\nPRIORITY KEYWORDS (user-uploaded — MUST include as many as possible, these take highest priority):\n${(uploadedKeywords).join(', ')}\n`
     : '';
 
+  // Limit search terms to prevent token bloat
+  const limitedTerms = (searchTerms ?? []).slice(0, 50);
+
   const userPrompt = `ASIN: ${asin ?? 'N/A'}
 
 CURRENT TITLE:
@@ -337,7 +340,7 @@ CURRENT DESCRIPTION:
 ${description ?? '(none provided)'}
 ${priorityBlock}
 HIGH-PERFORMING SEARCH TERMS (SCALE_UP and ADD_EXACT — use these as secondary keywords):
-${JSON.stringify((searchTerms ?? []).slice(0, 80).map(t => ({
+${JSON.stringify(limitedTerms.map(t => ({
   term: t.searchTerm,
   recommendation: t.recommendation,
   purchases: t.purchases,
@@ -357,15 +360,28 @@ Optimize the title, bullets, and description.${(uploadedKeywords ?? []).length >
         thinkingConfig: { thinkingBudget: 0 },
       });
 
+  console.log(`[optimizeListing] Raw AI response (${raw.length} chars):`, raw.slice(0, 500));
+
   // Extract the JSON object robustly: find first '{' and last '}' to handle
   // any preamble/postamble text the model adds despite "ONLY JSON" instructions.
   const start = raw.indexOf('{');
   const end = raw.lastIndexOf('}');
   const jsonStr = start !== -1 && end > start ? raw.slice(start, end + 1) : raw.trim();
+
   try {
-    return JSON.parse(jsonStr);
-  } catch {
-    const tail = raw.length > 200 ? `…${raw.slice(-100)}` : '';
-    throw new Error(`AI returned invalid JSON for listing optimization: ${raw.slice(0, 200)}${tail}`);
+    const parsed = JSON.parse(jsonStr);
+    // Validate required fields
+    if (!parsed.title || !Array.isArray(parsed.bullets) || !parsed.description) {
+      throw new Error(`AI JSON missing required fields. Has: ${Object.keys(parsed).join(', ')}`);
+    }
+    return parsed;
+  } catch (parseErr) {
+    const errorMatch = parseErr.message.match(/position (\d+)/);
+    const errorPos = errorMatch ? parseInt(errorMatch[1]) : null;
+    const context = errorPos
+      ? `\nError near: "${jsonStr.slice(Math.max(0, errorPos - 50), errorPos + 50)}"`
+      : '';
+    console.error(`[optimizeListing] JSON parse failed:`, parseErr.message, context);
+    throw new Error(`AI returned invalid JSON for listing optimization. Details: ${parseErr.message}${context}\n\nFull response:\n${raw}`);
   }
 }

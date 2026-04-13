@@ -1,5 +1,5 @@
 import express from 'express';
-import { getProductByAsin, getProductBySku, updateListingBySku } from '../../services/amazon-sp-api.js';
+import { getProductByAsin, getProductBySku, updateListingBySku, getProductTypeByAsin } from '../../services/amazon-sp-api.js';
 import { optimizeListing } from '../../services/claude-mcp.js';
 
 const router = express.Router();
@@ -18,6 +18,22 @@ router.get('/lookup', async (req, res) => {
     const product = asin
       ? await getProductByAsin(asin.trim().toUpperCase())
       : await getProductBySku(sku.trim());
+
+    // If productType is missing, try to fetch it via Catalog API using the ASIN
+    if (!product.productType && product.asin) {
+      console.log(`[lookup] productType missing, attempting Catalog API lookup for ASIN: ${product.asin}`);
+      try {
+        const productType = await getProductTypeByAsin(product.asin);
+        if (productType) {
+          product.productType = productType;
+          console.log(`[lookup] ✅ Resolved productType: ${productType}`);
+        }
+      } catch (catalogErr) {
+        console.warn(`[lookup] Catalog API unavailable:`, catalogErr.message);
+        // Continue anyway - productType will be null but user can still optimize
+      }
+    }
+
     res.json(product);
   } catch (err) {
     console.error('Listings lookup error:', err.message);
@@ -69,22 +85,55 @@ router.put('/update', async (req, res) => {
   // or where SP-API didn't return it in the read response.
   let autoFetchError = null;
   if (!productType) {
+    console.log(`[productType lookup] Starting auto-fetch for SKU: ${sku}`);
     try {
-      console.log(`productType not supplied — fetching from SP-API for SKU ${sku}…`);
+      console.log(`[productType lookup] Attempting Listings API call…`);
       const current = await getProductBySku(sku);
+      console.log(`[productType lookup] Listings API response:`, {
+        sku: current.sku,
+        asin: current.asin,
+        productType: current.productType,
+      });
+
       productType = current.productType;
-      console.log(`Auto-resolved productType: ${productType}`);
+
+      // If still no productType, try Catalog Items API with ASIN
+      if (!productType && current.asin) {
+        console.log(`[productType lookup] Listings API didn't return productType, trying Catalog API for ASIN: ${current.asin}…`);
+        const catalogType = await getProductTypeByAsin(current.asin);
+        console.log(`[productType lookup] Catalog API returned:`, catalogType);
+        if (catalogType) {
+          productType = catalogType;
+        } else {
+          console.warn(`[productType lookup] Catalog API returned null/undefined`);
+        }
+      } else if (!current.asin) {
+        console.warn(`[productType lookup] No ASIN in Listings response, can't try Catalog API`);
+      }
+
+      if (productType) {
+        console.log(`✅ [productType lookup] Successfully resolved: ${productType}`);
+      } else {
+        console.error(`❌ [productType lookup] Failed to resolve productType from both APIs`);
+      }
     } catch (fetchErr) {
       autoFetchError = fetchErr.message;
-      console.warn('Could not auto-fetch productType:', fetchErr.message);
+      console.error('❌ [productType lookup] Error during auto-fetch:', {
+        message: fetchErr.message,
+        status: fetchErr.response?.status,
+        data: fetchErr.response?.data,
+      });
     }
   }
 
   if (!productType) {
     const detail = autoFetchError ? ` (${autoFetchError})` : '';
-    return res.status(400).json({
-      error: `Could not determine productType for this SKU${detail}. Please re-fetch the listing and try again.`,
-    });
+    const errorMsg = `Could not determine productType for this SKU${detail}. `
+      + 'Ensure: (1) SKU exists in your SP-API account, (2) You have "Product Listing" role approved, '
+      + '(3) For Catalog API fallback, also need "Catalog Items" role. '
+      + 'Check server logs for details.';
+    console.error(`[listings.update] Returning error:`, errorMsg);
+    return res.status(400).json({ error: errorMsg });
   }
 
   try {

@@ -1,8 +1,13 @@
 import express from 'express';
 import { executeMCPCommand } from '../../services/claude-mcp.js';
 import campaigns from '../../data/mock-campaigns.js';
+import { rateLimitMiddleware } from '../utils/rateLimit.js';
 
 const router = express.Router();
+
+// Rate limit: max 10 AI API calls per minute per user
+// This prevents cost explosion from accidental or malicious spamming
+const mcpRateLimit = rateLimitMiddleware(10, 60000, req => req.user?.email || req.ip);
 
 /**
  * POST /execute
@@ -16,7 +21,7 @@ const router = express.Router();
  * @returns {Object} 400 - Missing command field
  * @returns {Object} 500 - Internal server error
  */
-router.post('/execute', async (req, res) => {
+router.post('/execute', mcpRateLimit, async (req, res) => {
   const { command, history, model } = req.body;
 
   if (!command) {

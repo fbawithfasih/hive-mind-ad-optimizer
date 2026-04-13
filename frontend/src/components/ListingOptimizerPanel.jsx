@@ -1,64 +1,10 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { lookupProduct, optimizeListingApi, getSearchTermsForProduct, publishListing } from '../services/api.js';
+import { parseCsvKeywords, parseXlsxKeywords } from '../utils/file-parsers.js';
+import { getTodayISO, getDaysAgoISO } from '../utils/date-helpers.js';
 
-// ── CSV / XLSX keyword parsers ────────────────────────────────────────────────
-
-function parseCsvKeywords(text) {
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
-  if (lines.length === 0) return [];
-
-  // Detect header row — look for common keyword column names
-  const firstLine = lines[0].toLowerCase().replace(/"/g, '');
-  const keywordHeaders = ['keyword', 'search term', 'query', 'term', 'keywords'];
-  const isHeader = keywordHeaders.some(h => firstLine.includes(h));
-
-  // Find which column index holds keywords (default: 0)
-  let colIdx = 0;
-  if (isHeader) {
-    const cols = lines[0].split(',').map(c => c.replace(/"/g, '').trim().toLowerCase());
-    for (const h of keywordHeaders) {
-      const found = cols.findIndex(c => c.includes(h));
-      if (found !== -1) { colIdx = found; break; }
-    }
-  }
-
-  const dataLines = isHeader ? lines.slice(1) : lines;
-  return dataLines
-    .map(line => {
-      // Handle quoted fields: "keyword with, comma", other, fields
-      const parts = line.match(/(".*?"|[^,]+)(?=,|$)/g) ?? [line];
-      const val = (parts[colIdx] ?? parts[0] ?? '').replace(/^"|"$/g, '').trim();
-      return val;
-    })
-    .filter(Boolean);
-}
-
-async function parseXlsxKeywords(file) {
-  const { read, utils } = await import('xlsx');
-  const buffer = await file.arrayBuffer();
-  const wb = read(new Uint8Array(buffer), { type: 'array' });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const rows = utils.sheet_to_json(ws, { header: 1, defval: '' });
-  if (rows.length === 0) return [];
-
-  // Find keyword column
-  const keywordHeaders = ['keyword', 'search term', 'query', 'term', 'keywords'];
-  const headerRow = rows[0].map(h => String(h).toLowerCase().trim());
-  let colIdx = 0;
-  for (const h of keywordHeaders) {
-    const found = headerRow.findIndex(c => c.includes(h));
-    if (found !== -1) { colIdx = found; break; }
-  }
-
-  const isHeader = keywordHeaders.some(h => headerRow.some(c => c.includes(h)));
-  const dataRows = isHeader ? rows.slice(1) : rows;
-  return dataRows
-    .map(row => String(row[colIdx] ?? '').trim())
-    .filter(Boolean);
-}
-
-const today        = new Date().toISOString().slice(0, 10);
-const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+const today        = getTodayISO();
+const thirtyDaysAgo = getDaysAgoISO(30);
 const CHAR_LIMIT = { title: 200, bullet: 255, description: 2000 };
 
 function CharCount({ value, limit }) {
@@ -301,6 +247,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
             <p style={{ margin: 0, fontWeight: 600, color: '#F1F5F9' }}>Listing Optimizer</p>
             <p style={{ margin: '3px 0 0', fontSize: 12, color: '#94A3B8' }}>
               Fetch by ASIN/SKU — AI finds your campaigns, pulls search terms, and rewrites the listing.
+              <span style={{ color: '#64748B' }}>(Tip: Use ASIN for better publishing success)</span>
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>

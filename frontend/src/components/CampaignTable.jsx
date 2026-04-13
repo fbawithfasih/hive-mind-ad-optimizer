@@ -1,4 +1,5 @@
 import React from 'react';
+import { fmtN, fmtPercent } from '../utils/formatting.js';
 
 const STATUS_STYLE = {
   enabled:  { label: 'Active',    bg: '#10B98118', color: '#10B981', border: '#10B98140' },
@@ -15,9 +16,6 @@ const TYPE_COLOR = {
 };
 
 const dash = <span style={{ color: '#475569' }}>—</span>;
-
-const fmtN = (v, dec = 2) =>
-  v == null ? dash : Number(v).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
 const fmtDate = s => s?.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') ?? '';
 

@@ -1,11 +1,33 @@
 /**
- * Classify and normalize raw Amazon search term report records.
+ * Classify search terms and generate AI recommendations
+ * Normalizes raw Amazon SP API report data and applies business logic
  *
- * Recommendation logic:
- *  SCALE_UP     — converting + efficient (purchases >= 1, ACoS < 25%)
- *  ADD_EXACT    — converting but inefficient (purchases >= 1, ACoS 25-39%)
- *  ADD_NEGATIVE — spending with zero conversions (clicks >= 10, purchases = 0, cost > $5)
- *  WATCH        — limited data, monitor further
+ * Recommendation types:
+ *  - SCALE_UP: Strong performer — increase bid (purchases >= 1, ACoS < 25%)
+ *  - ADD_EXACT: Converts but inefficient — add as exact match keyword (purchases >= 1, ACoS 25-39%)
+ *  - ADD_NEGATIVE: Wasteful — add as negative keyword (clicks >= 10, purchases = 0, cost > $5)
+ *  - WATCH: Insufficient data — monitor for more conversions
+ *
+ * @param {Array<Object>} records - Raw search term report records from Amazon SP API
+ * @param {number} records[].campaignId - Campaign ID
+ * @param {string} records[].campaignName - Campaign name
+ * @param {number} records[].adGroupId - Ad group ID
+ * @param {string} records[].adGroupName - Ad group name
+ * @param {string} records[].searchTerm - The search term text
+ * @param {string} records[].targeting - Targeting type
+ * @param {string} records[].matchType - Match type (broad, phrase, exact)
+ * @param {number} records[].impressions - Impressions count
+ * @param {number} records[].clicks - Clicks count
+ * @param {number} records[].clickThroughRate - CTR as decimal (0-1)
+ * @param {number} records[].cost - Total cost
+ * @param {number} records[].costPerClick - CPC amount
+ * @param {number} records[].purchases14d - Purchases in last 14 days
+ * @param {number} records[].sales14d - Sales amount in last 14 days
+ * @param {number} records[].acosClicks14d - ACoS percentage
+ * @param {number} records[].roasClicks14d - ROAS value
+ *
+ * @returns {Array<Object>} Classified search terms with recommendations
+ * @returns {string} records[].recommendation - AI recommendation (SCALE_UP, ADD_NEGATIVE, ADD_EXACT, WATCH)
  */
 export function classifySearchTerms(records) {
   return records.map(r => {

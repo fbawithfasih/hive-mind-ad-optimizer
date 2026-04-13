@@ -1,5 +1,6 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { createTokenManager } from './auth-utils.js';
 
 dotenv.config({ override: true });
 
@@ -10,26 +11,11 @@ const MARKETPLACE_ID   = process.env.SP_API_MARKETPLACE_ID || 'ATVPDKIKX0DER';
 const SELLER_ID        = process.env.SP_API_SELLER_ID;
 const SP_BASE          = 'https://sellingpartnerapi-na.amazon.com';
 
-let spToken       = null;
-let spTokenExpiry = null;
+// Use shared token manager to handle refresh with caching and race condition prevention
+const spTokenManager = createTokenManager(SP_CLIENT_ID, SP_CLIENT_SECRET, SP_REFRESH_TOKEN, 'SP-API');
 
 async function getSPToken() {
-  if (spToken && spTokenExpiry && Date.now() < spTokenExpiry) return spToken;
-
-  const res = await axios.post(
-    'https://api.amazon.com/auth/o2/token',
-    new URLSearchParams({
-      grant_type:    'refresh_token',
-      refresh_token: SP_REFRESH_TOKEN,
-      client_id:     SP_CLIENT_ID,
-      client_secret: SP_CLIENT_SECRET,
-    }),
-    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-  );
-  spToken       = res.data.access_token;
-  spTokenExpiry = Date.now() + res.data.expires_in * 1000 - 60000;
-  console.log('✅ SP-API access token refreshed');
-  return spToken;
+  return spTokenManager.getToken();
 }
 
 function spHeaders(token) {
@@ -60,8 +46,25 @@ function extractListingFields(data, asin) {
     ?? attrs.item_description?.[0]?.value
     ?? '';
 
+  // Note: Amazon Listings API does NOT return productType.
+  // productType is only available via Catalog Items API.
+  // We'll extract ASIN from multiple possible locations to enable Catalog API fallback.
+  const extractedAsin = asin
+    ?? data.asin
+    ?? data.summaries?.[0]?.asin
+    ?? (data.identifiers?.asin && Array.isArray(data.identifiers.asin) ? data.identifiers.asin[0] : null)
+    ?? '';
+
+  console.log(`[extractListingFields] ASIN resolution:`, {
+    suppliedAsin: asin,
+    dataAsin: data.asin,
+    summariesAsin: data.summaries?.[0]?.asin,
+    identifiersAsin: data.identifiers?.asin?.[0],
+    finalAsin: extractedAsin,
+  });
+
   return {
-    asin:        asin ?? data.asin ?? '',
+    asin:        extractedAsin,
     sku:         data.sku ?? null,
     productType: data.productType                      // top-level (Listings Items API)
       ?? data.summaries?.[0]?.productType              // inside summaries[] (also Listings Items)
@@ -206,4 +209,41 @@ export async function updateListingBySku(sku, { title, bullets, description, pro
   return { status, issues: issues ?? [] };
 }
 
-export default { getProductByAsin, getProductBySku, updateListingBySku };
+/**
+ * Fetch productType for an ASIN via Catalog Items API v2022-04-01.
+ * This is a lightweight call to get just the productType for use in listing updates.
+ * Requires "Catalog Items" role OR "Product Listing" role.
+ *
+ * @param {string} asin
+ * @returns {Promise<string|null>} productType or null if not available
+ */
+export async function getProductTypeByAsin(asin) {
+  const token = await getSPToken();
+  console.log(`Fetching productType for ASIN ${asin}…`);
+
+  try {
+    const res = await axios.get(
+      `${SP_BASE}/catalog/2022-04-01/items/${asin}`,
+      {
+        params: { marketplaceIds: MARKETPLACE_ID },
+        headers: spHeaders(token),
+      }
+    );
+
+    const productType = res.data.productType;
+    if (productType) {
+      console.log(`✅ productType found for ${asin}: ${productType}`);
+      return productType;
+    }
+    console.warn(`⚠️ No productType in response for ${asin}`);
+    return null;
+  } catch (err) {
+    const status = err.response?.status;
+    const msg = err.response?.data?.errors?.[0]?.message ?? err.message;
+    console.warn(`⚠️ Could not fetch productType via Catalog API [${status}]: ${msg}`);
+    // Don't throw — just return null so the caller can handle the fallback
+    return null;
+  }
+}
+
+export default { getProductByAsin, getProductBySku, updateListingBySku, getProductTypeByAsin };
