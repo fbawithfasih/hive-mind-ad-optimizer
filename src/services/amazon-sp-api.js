@@ -1,5 +1,6 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { createTokenManager } from './auth-utils.js';
 
 dotenv.config({ override: true });
 
@@ -10,26 +11,11 @@ const MARKETPLACE_ID   = process.env.SP_API_MARKETPLACE_ID || 'ATVPDKIKX0DER';
 const SELLER_ID        = process.env.SP_API_SELLER_ID;
 const SP_BASE          = 'https://sellingpartnerapi-na.amazon.com';
 
-let spToken       = null;
-let spTokenExpiry = null;
+// Use shared token manager to handle refresh with caching and race condition prevention
+const spTokenManager = createTokenManager(SP_CLIENT_ID, SP_CLIENT_SECRET, SP_REFRESH_TOKEN, 'SP-API');
 
 async function getSPToken() {
-  if (spToken && spTokenExpiry && Date.now() < spTokenExpiry) return spToken;
-
-  const res = await axios.post(
-    'https://api.amazon.com/auth/o2/token',
-    new URLSearchParams({
-      grant_type:    'refresh_token',
-      refresh_token: SP_REFRESH_TOKEN,
-      client_id:     SP_CLIENT_ID,
-      client_secret: SP_CLIENT_SECRET,
-    }),
-    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-  );
-  spToken       = res.data.access_token;
-  spTokenExpiry = Date.now() + res.data.expires_in * 1000 - 60000;
-  console.log('✅ SP-API access token refreshed');
-  return spToken;
+  return spTokenManager.getToken();
 }
 
 function spHeaders(token) {

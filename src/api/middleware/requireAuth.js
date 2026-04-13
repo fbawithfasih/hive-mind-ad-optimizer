@@ -1,6 +1,16 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET  = process.env.SESSION_SECRET || 'change-me-in-production';
+const JWT_SECRET = (() => {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    throw new Error(
+      'SESSION_SECRET environment variable is required but not configured. ' +
+      'Set it in your .env file before starting the server.'
+    );
+  }
+  return secret;
+})();
+
 const COOKIE_NAME = 'hmn_token';
 
 /**

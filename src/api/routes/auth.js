@@ -68,10 +68,19 @@ router.post('/logout', (req, res) => {
 
 const CLIENT_ID     = process.env.AMAZON_ADS_CLIENT_ID;
 const CLIENT_SECRET = process.env.AMAZON_ADS_CLIENT_SECRET;
-const REDIRECT_URI  = 'http://localhost:3000/api/auth/amazon/callback';
+
+// Build redirect URI dynamically based on environment
+const getRedirectUri = (req) => {
+  const baseUrl = process.env.BASE_URL || (req ? `${req.protocol}://${req.get('host')}` : undefined);
+  if (!baseUrl) {
+    throw new Error('BASE_URL env var not set and unable to determine from request');
+  }
+  return `${baseUrl}/api/auth/amazon/callback`;
+};
 
 router.get('/amazon/authorize', (req, res) => {
-  const authUrl = `https://www.amazon.com/ap/oa?client_id=${CLIENT_ID}&scope=advertising::campaign_management&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+  const redirectUri = getRedirectUri(req);
+  const authUrl = `https://www.amazon.com/ap/oa?client_id=${CLIENT_ID}&scope=advertising::campaign_management&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}`;
   res.redirect(authUrl);
 });
 
@@ -80,24 +89,22 @@ router.get('/amazon/callback', async (req, res) => {
   if (!code) return res.status(400).send('No authorization code received');
 
   try {
+    const redirectUri = getRedirectUri(req);
     const response = await axios.post('https://api.amazon.com/auth/o2/token', new URLSearchParams({
       grant_type: 'authorization_code',
-      code, client_id: CLIENT_ID, client_secret: CLIENT_SECRET, redirect_uri: REDIRECT_URI,
+      code, client_id: CLIENT_ID, client_secret: CLIENT_SECRET, redirect_uri: redirectUri,
     }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
 
     const { refresh_token } = response.data;
-    console.log('\n✅ Amazon Ads tokens received\nRefresh token:', refresh_token);
+    console.log('\n✅ Amazon Ads tokens received');
 
-    res.send(`
-      <html><head><title>Authorization Successful</title></head>
-      <body style="font-family:monospace;padding:40px;background:#1a1a1a;color:#f5f5f5;">
-        <h1 style="color:#4ade80;">✅ Authorization Successful!</h1>
-        <p>Add this to your .env:</p>
-        <div style="background:#2a2a2a;padding:20px;border-radius:8px;word-break:break-all;">
-          <strong>AMAZON_ADS_REFRESH_TOKEN=</strong><span style="color:#fbbf24;">${refresh_token}</span>
-        </div>
-      </body></html>
-    `);
+    // Return JSON response with token (never expose sensitive data in HTML/logs)
+    // Frontend will handle securely storing the token
+    res.json({
+      success: true,
+      message: 'Authorization successful. Token received and ready to use.',
+      refresh_token, // Return in JSON body only, not in HTML
+    });
   } catch (err) {
     res.status(500).send(`Error: ${err.message}`);
   }

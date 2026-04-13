@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { gunzipSync } from 'zlib';
 import dotenv from 'dotenv';
+import { createTokenManager } from './auth-utils.js';
 
 dotenv.config({ override: true });
 
@@ -8,21 +9,11 @@ const CLIENT_ID     = process.env.AMAZON_ADS_CLIENT_ID;
 const CLIENT_SECRET = process.env.AMAZON_ADS_CLIENT_SECRET;
 const REFRESH_TOKEN = process.env.AMAZON_ADS_REFRESH_TOKEN;
 
-let accessToken = null;
-let tokenExpiry  = null;
+// Use shared token manager to handle refresh with caching and race condition prevention
+const tokenManager = createTokenManager(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN, 'Ads API');
 
 async function getAccessToken() {
-  if (accessToken && tokenExpiry && Date.now() < tokenExpiry) return accessToken;
-
-  const response = await axios.post(
-    'https://api.amazon.com/auth/o2/token',
-    new URLSearchParams({ grant_type: 'refresh_token', refresh_token: REFRESH_TOKEN, client_id: CLIENT_ID, client_secret: CLIENT_SECRET }),
-    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-  );
-  accessToken = response.data.access_token;
-  tokenExpiry  = Date.now() + response.data.expires_in * 1000 - 60000;
-  console.log('✅ Access token refreshed');
-  return accessToken;
+  return tokenManager.getToken();
 }
 
 function adsHeaders(token, profileId, extra = {}) {

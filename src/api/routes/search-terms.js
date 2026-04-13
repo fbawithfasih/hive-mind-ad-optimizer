@@ -1,6 +1,7 @@
 import express from 'express';
 import { getSearchTermReport, getProductAdCampaigns } from '../../services/amazon-ads.js';
 import { classifySearchTerms } from '../../services/search-term-classifier.js';
+import { isValidDateRange, isValidString } from '../utils/validation.js';
 
 const router = express.Router();
 
@@ -25,13 +26,32 @@ router.get('/', async (req, res) => {
   const startDate = req.query.startDate || new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
   const { sku, asin } = req.query;
 
+  // Validate date format and range
+  const dateValidation = isValidDateRange(startDate, endDate);
+  if (!dateValidation.valid) {
+    return res.status(400).json({ error: dateValidation.error });
+  }
+
+  // Validate date range size
   const diffDays = (new Date(endDate) - new Date(startDate)) / 86400000;
   if (diffDays > 31) {
     return res.status(400).json({ error: `Date range too large (${Math.round(diffDays)} days). Maximum is 31 days.` });
   }
+
+  // Validate date is not too old
   const sixtyDaysAgo = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
   if (startDate < sixtyDaysAgo) {
     return res.status(400).json({ error: `Start date ${startDate} is too far in the past. Amazon retains data for ~60 days.` });
+  }
+
+  // Validate sku and asin if provided
+  if (sku) {
+    const skuValidation = isValidString(sku, 'sku');
+    if (!skuValidation.valid) return res.status(400).json({ error: skuValidation.error });
+  }
+  if (asin) {
+    const asinValidation = isValidString(asin, 'asin');
+    if (!asinValidation.valid) return res.status(400).json({ error: asinValidation.error });
   }
 
   try {
