@@ -68,30 +68,53 @@ router.put('/update', async (req, res) => {
   // This covers cases where the listing was fetched before productType tracking was added,
   // or where SP-API didn't return it in the read response.
   if (!productType) {
+    console.log(`[productType lookup] Starting auto-fetch for SKU: ${sku}`);
     try {
-      console.log(`productType not supplied — fetching from SP-API for SKU ${sku}…`);
+      console.log(`[productType lookup] Attempting Listings API call…`);
       const current = await getProductBySku(sku);
+      console.log(`[productType lookup] Listings API response:`, {
+        sku: current.sku,
+        asin: current.asin,
+        productType: current.productType,
+      });
+
       productType = current.productType;
 
       // If still no productType, try Catalog Items API with ASIN
       if (!productType && current.asin) {
-        console.log(`Trying Catalog API for ASIN ${current.asin}…`);
+        console.log(`[productType lookup] Listings API didn't return productType, trying Catalog API for ASIN: ${current.asin}…`);
         const catalogType = await getProductTypeByAsin(current.asin);
+        console.log(`[productType lookup] Catalog API returned:`, catalogType);
         if (catalogType) {
           productType = catalogType;
+        } else {
+          console.warn(`[productType lookup] Catalog API returned null/undefined`);
         }
+      } else if (!current.asin) {
+        console.warn(`[productType lookup] No ASIN in Listings response, can't try Catalog API`);
       }
 
       if (productType) {
-        console.log(`✅ Auto-resolved productType: ${productType}`);
+        console.log(`✅ [productType lookup] Successfully resolved: ${productType}`);
+      } else {
+        console.error(`❌ [productType lookup] Failed to resolve productType from both APIs`);
       }
     } catch (fetchErr) {
-      console.warn('⚠️ Could not auto-fetch productType:', fetchErr.message);
+      console.error('❌ [productType lookup] Error during auto-fetch:', {
+        message: fetchErr.message,
+        status: fetchErr.response?.status,
+        data: fetchErr.response?.data,
+      });
     }
   }
 
   if (!productType) {
-    return res.status(400).json({ error: 'Could not determine productType for this SKU. Please re-fetch the listing and try again.' });
+    const errorMsg = 'Could not determine productType for this SKU. '
+      + 'Ensure: (1) SKU exists in your SP-API account, (2) You have "Product Listing" role approved, '
+      + '(3) For Catalog API fallback, also need "Catalog Items" role. '
+      + 'Check server logs for details.';
+    console.error(`[listings.update] Returning error:`, errorMsg);
+    return res.status(400).json({ error: errorMsg });
   }
 
   try {
