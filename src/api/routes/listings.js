@@ -18,6 +18,22 @@ router.get('/lookup', async (req, res) => {
     const product = asin
       ? await getProductByAsin(asin.trim().toUpperCase())
       : await getProductBySku(sku.trim());
+
+    // If productType is missing, try to fetch it via Catalog API using the ASIN
+    if (!product.productType && product.asin) {
+      console.log(`[lookup] productType missing, attempting Catalog API lookup for ASIN: ${product.asin}`);
+      try {
+        const productType = await getProductTypeByAsin(product.asin);
+        if (productType) {
+          product.productType = productType;
+          console.log(`[lookup] ✅ Resolved productType: ${productType}`);
+        }
+      } catch (catalogErr) {
+        console.warn(`[lookup] Catalog API unavailable:`, catalogErr.message);
+        // Continue anyway - productType will be null but user can still optimize
+      }
+    }
+
     res.json(product);
   } catch (err) {
     console.error('Listings lookup error:', err.message);
