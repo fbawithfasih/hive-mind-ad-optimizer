@@ -53,16 +53,19 @@ jobs:
 
       - name: Parse and comment Lighthouse results
         if: github.event_name == 'pull_request' && always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ -f .lighthouse/manifest.json ]; then
-            # Extract scores using jq
             PERFORMANCE=$(cat .lighthouse/manifest.json | jq -r '.[0].results[0].summary.performance // 0' | awk '{printf "%.0f", $1 * 100}')
             ACCESSIBILITY=$(cat .lighthouse/manifest.json | jq -r '.[0].results[0].summary.accessibility // 0' | awk '{printf "%.0f", $1 * 100}')
             BEST_PRACTICES=$(cat .lighthouse/manifest.json | jq -r '.[0].results[0].summary["best-practices"] // 0' | awk '{printf "%.0f", $1 * 100}')
             SEO=$(cat .lighthouse/manifest.json | jq -r '.[0].results[0].summary.seo // 0' | awk '{printf "%.0f", $1 * 100}')
 
-            # Create comment body
-            COMMENT="## 🔍 Lighthouse Audit Results
+            REPORT_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+            gh pr comment ${{ github.event.pull_request.number }} --body \
+              "## 🔍 Lighthouse Audit Results
 
 | Category | Score |
 |----------|-------|
@@ -71,13 +74,8 @@ jobs:
 | Best Practices | $BEST_PRACTICES |
 | SEO | $SEO |
 
-[📊 Full Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-
-            # Comment on PR
-            gh pr comment ${{ github.event.pull_request.number }} --body "$COMMENT"
+[📊 Full Report]($REPORT_URL)"
           fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check Lighthouse CI results
         if: always()
