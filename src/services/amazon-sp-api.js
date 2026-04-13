@@ -184,4 +184,41 @@ export async function updateListingBySku(sku, { title, bullets, description, pro
   return { status, issues: issues ?? [] };
 }
 
-export default { getProductByAsin, getProductBySku, updateListingBySku };
+/**
+ * Fetch productType for an ASIN via Catalog Items API v2022-04-01.
+ * This is a lightweight call to get just the productType for use in listing updates.
+ * Requires "Catalog Items" role OR "Product Listing" role.
+ *
+ * @param {string} asin
+ * @returns {Promise<string|null>} productType or null if not available
+ */
+export async function getProductTypeByAsin(asin) {
+  const token = await getSPToken();
+  console.log(`Fetching productType for ASIN ${asin}…`);
+
+  try {
+    const res = await axios.get(
+      `${SP_BASE}/catalog/2022-04-01/items/${asin}`,
+      {
+        params: { marketplaceIds: MARKETPLACE_ID },
+        headers: spHeaders(token),
+      }
+    );
+
+    const productType = res.data.productType;
+    if (productType) {
+      console.log(`✅ productType found for ${asin}: ${productType}`);
+      return productType;
+    }
+    console.warn(`⚠️ No productType in response for ${asin}`);
+    return null;
+  } catch (err) {
+    const status = err.response?.status;
+    const msg = err.response?.data?.errors?.[0]?.message ?? err.message;
+    console.warn(`⚠️ Could not fetch productType via Catalog API [${status}]: ${msg}`);
+    // Don't throw — just return null so the caller can handle the fallback
+    return null;
+  }
+}
+
+export default { getProductByAsin, getProductBySku, updateListingBySku, getProductTypeByAsin };

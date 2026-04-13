@@ -1,5 +1,5 @@
 import express from 'express';
-import { getProductByAsin, getProductBySku, updateListingBySku } from '../../services/amazon-sp-api.js';
+import { getProductByAsin, getProductBySku, updateListingBySku, getProductTypeByAsin } from '../../services/amazon-sp-api.js';
 import { optimizeListing } from '../../services/claude-mcp.js';
 
 const router = express.Router();
@@ -72,9 +72,21 @@ router.put('/update', async (req, res) => {
       console.log(`productType not supplied — fetching from SP-API for SKU ${sku}…`);
       const current = await getProductBySku(sku);
       productType = current.productType;
-      console.log(`Auto-resolved productType: ${productType}`);
+
+      // If still no productType, try Catalog Items API with ASIN
+      if (!productType && current.asin) {
+        console.log(`Trying Catalog API for ASIN ${current.asin}…`);
+        const catalogType = await getProductTypeByAsin(current.asin);
+        if (catalogType) {
+          productType = catalogType;
+        }
+      }
+
+      if (productType) {
+        console.log(`✅ Auto-resolved productType: ${productType}`);
+      }
     } catch (fetchErr) {
-      console.warn('Could not auto-fetch productType:', fetchErr.message);
+      console.warn('⚠️ Could not auto-fetch productType:', fetchErr.message);
     }
   }
 
