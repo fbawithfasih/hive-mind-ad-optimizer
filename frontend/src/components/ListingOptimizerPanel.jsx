@@ -247,6 +247,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
             <p style={{ margin: 0, fontWeight: 600, color: '#F1F5F9' }}>Listing Optimizer</p>
             <p style={{ margin: '3px 0 0', fontSize: 12, color: '#94A3B8' }}>
               Fetch by ASIN/SKU — AI finds your campaigns, pulls search terms, and rewrites the listing.
+              <span style={{ color: '#64748B' }}>(Tip: Use ASIN for better publishing success)</span>
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>

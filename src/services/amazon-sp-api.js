@@ -46,10 +46,27 @@ function extractListingFields(data, asin) {
     ?? attrs.item_description?.[0]?.value
     ?? '';
 
+  // Note: Amazon Listings API does NOT return productType.
+  // productType is only available via Catalog Items API.
+  // We'll extract ASIN from multiple possible locations to enable Catalog API fallback.
+  const extractedAsin = asin
+    ?? data.asin
+    ?? data.summaries?.[0]?.asin
+    ?? (data.identifiers?.asin && Array.isArray(data.identifiers.asin) ? data.identifiers.asin[0] : null)
+    ?? '';
+
+  console.log(`[extractListingFields] ASIN resolution:`, {
+    suppliedAsin: asin,
+    dataAsin: data.asin,
+    summariesAsin: data.summaries?.[0]?.asin,
+    identifiersAsin: data.identifiers?.asin?.[0],
+    finalAsin: extractedAsin,
+  });
+
   return {
-    asin:        asin ?? data.asin ?? '',
+    asin:        extractedAsin,
     sku:         data.sku ?? null,
-    productType: data.productType ?? null,   // required for PUT — must match the listing's actual type
+    productType: data.productType ?? null,   // Listings API never returns this; use Catalog API
     title,
     bullets:     bullets.slice(0, 5),
     description,
