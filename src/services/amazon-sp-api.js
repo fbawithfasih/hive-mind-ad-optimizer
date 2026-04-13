@@ -63,7 +63,11 @@ function extractListingFields(data, asin) {
   return {
     asin:        asin ?? data.asin ?? '',
     sku:         data.sku ?? null,
-    productType: data.productType ?? null,   // required for PUT — must match the listing's actual type
+    productType: data.productType                      // top-level (Listings Items API)
+      ?? data.summaries?.[0]?.productType              // inside summaries[] (also Listings Items)
+      ?? data.classifications?.[0]?.productType        // Catalog Items API classifications
+      ?? data.classifications?.[0]?.classificationId  // alternate field name
+      ?? null,
     title,
     bullets:     bullets.slice(0, 5),
     description,
@@ -91,6 +95,10 @@ export async function getProductBySku(sku) {
       }
     );
     console.log(`✅ Listing fetched for SKU ${sku}`);
+    console.log(`   Response keys: ${Object.keys(res.data).join(', ')}`);
+    console.log(`   top-level productType: ${res.data.productType ?? '(null)'}`);
+    console.log(`   summaries[0].productType: ${res.data.summaries?.[0]?.productType ?? '(null)'}`);
+    console.log(`   summaries[0] keys: ${Object.keys(res.data.summaries?.[0] ?? {}).join(', ')}`);
     return extractListingFields({ ...res.data, sku }, res.data.asin);
   } catch (e) {
     const status = e.response?.status;

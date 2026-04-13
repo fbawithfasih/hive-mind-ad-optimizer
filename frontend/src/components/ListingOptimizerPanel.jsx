@@ -593,15 +593,28 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                   {/* Publish to Amazon — only when a SKU is known */}
                   {(sku.trim() || fetchedSku) && (
                     <>
+                      {/* Product Type — required by SP-API; editable if auto-detect failed */}
+                      <div style={{ marginTop: 8 }}>
+                        <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: fetchedProductType ? '#64748B' : '#F59E0B' }}>
+                          Product Type {!fetchedProductType && <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>— not detected, enter manually</span>}
+                        </label>
+                        <input
+                          value={fetchedProductType}
+                          onChange={e => setFetchedProductType(e.target.value.toUpperCase())}
+                          placeholder="e.g. HOME_FURNISHINGS"
+                          style={{ ...inputStyle, width: '100%', marginTop: 4, fontSize: 12, boxSizing: 'border-box',
+                            borderColor: fetchedProductType ? '#334155' : '#F59E0B60' }}
+                        />
+                      </div>
                       <button
                         onClick={() => setConfirmPublish(true)}
-                        disabled={isPublishing}
+                        disabled={isPublishing || !fetchedProductType}
                         style={{
                           width: '100%', marginTop: 8, padding: '9px', borderRadius: 8,
-                          border: 'none', cursor: isPublishing ? 'not-allowed' : 'pointer',
-                          background: isPublishing ? '#334155' : 'linear-gradient(135deg,#10B981,#059669)',
+                          border: 'none', cursor: (isPublishing || !fetchedProductType) ? 'not-allowed' : 'pointer',
+                          background: (isPublishing || !fetchedProductType) ? '#334155' : 'linear-gradient(135deg,#10B981,#059669)',
                           color: '#fff', fontWeight: 700, fontSize: 12,
-                          opacity: isPublishing ? 0.7 : 1,
+                          opacity: (isPublishing || !fetchedProductType) ? 0.5 : 1,
                         }}>
                         {isPublishing ? (
                           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>

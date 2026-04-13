@@ -36,7 +36,7 @@ Rules:
 - After incorporating priority keywords, use campaign search terms (SCALE_UP first, then ADD_EXACT).
 - Do not keyword-stuff — listings must read naturally for human shoppers.`;
 
-async function callGemini(userCommand, conversationHistory = [], systemPrompt = SYSTEM_PROMPT) {
+async function callGemini(userCommand, conversationHistory = [], systemPrompt = SYSTEM_PROMPT, generationConfigOverrides = {}) {
   const geminiHistory = conversationHistory
     .filter((m) => typeof m.content === 'string')
     .map((m) => ({
@@ -50,7 +50,7 @@ async function callGemini(userCommand, conversationHistory = [], systemPrompt = 
       ...geminiHistory,
       { role: 'user', parts: [{ text: userCommand }] },
     ],
-    generationConfig: { maxOutputTokens: 4096 },
+    generationConfig: { maxOutputTokens: 4096, ...generationConfigOverrides },
   };
 
   const res = await fetch(GEMINI_URL, {
@@ -68,7 +68,7 @@ async function callGemini(userCommand, conversationHistory = [], systemPrompt = 
   return json.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? '';
 }
 
-async function callClaude(userCommand, conversationHistory = [], systemPrompt = SYSTEM_PROMPT) {
+async function callClaude(userCommand, conversationHistory = [], systemPrompt = SYSTEM_PROMPT, maxTokens = 4096) {
   const messages = [
     ...conversationHistory
       .filter((m) => typeof m.content === 'string')
@@ -78,7 +78,7 @@ async function callClaude(userCommand, conversationHistory = [], systemPrompt = 
 
   const body = {
     model: 'claude-sonnet-4-6',
-    max_tokens: 4096,
+    max_tokens: maxTokens,
     system: systemPrompt,
     messages,
   };
@@ -99,6 +99,9 @@ async function callClaude(userCommand, conversationHistory = [], systemPrompt = 
   }
 
   const json = await res.json();
+  if (json.stop_reason === 'max_tokens') {
+    console.warn(`⚠️  Claude hit max_tokens (${maxTokens}) — response was truncated`);
+  }
   return json.content?.map((b) => b.text).join('') ?? '';
 }
 
@@ -344,15 +347,25 @@ ${JSON.stringify((searchTerms ?? []).slice(0, 80).map(t => ({
 
 Optimize the title, bullets, and description.${(uploadedKeywords ?? []).length > 0 ? ' Prioritize the PRIORITY KEYWORDS first, then the search terms.' : ' Use the search terms above.'} Return ONLY JSON.`;
 
+  // Listing optimization is a structured rewrite, not a reasoning task.
+  // Use a generous token budget so the full JSON always fits; for Gemini 2.5-flash
+  // disable thinking (thinkingBudget: 0) so reasoning tokens don't eat output headroom.
   const raw = model === 'claude'
-    ? await callClaude(userPrompt, [], LISTING_SYSTEM_PROMPT)
-    : await callGemini(userPrompt, [], LISTING_SYSTEM_PROMPT);
+    ? await callClaude(userPrompt, [], LISTING_SYSTEM_PROMPT, 8192)
+    : await callGemini(userPrompt, [], LISTING_SYSTEM_PROMPT, {
+        maxOutputTokens: 8192,
+        thinkingConfig: { thinkingBudget: 0 },
+      });
 
-  // Strip markdown code fences if the model wrapped the JSON
-  const jsonStr = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
+  // Extract the JSON object robustly: find first '{' and last '}' to handle
+  // any preamble/postamble text the model adds despite "ONLY JSON" instructions.
+  const start = raw.indexOf('{');
+  const end = raw.lastIndexOf('}');
+  const jsonStr = start !== -1 && end > start ? raw.slice(start, end + 1) : raw.trim();
   try {
     return JSON.parse(jsonStr);
   } catch {
-    throw new Error(`AI returned invalid JSON for listing optimization: ${raw.slice(0, 200)}`);
+    const tail = raw.length > 200 ? `…${raw.slice(-100)}` : '';
+    throw new Error(`AI returned invalid JSON for listing optimization: ${raw.slice(0, 200)}${tail}`);
   }
 }

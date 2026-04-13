@@ -67,6 +67,7 @@ router.put('/update', async (req, res) => {
   // Auto-fetch productType from SP-API if the client didn't supply it (or it was empty).
   // This covers cases where the listing was fetched before productType tracking was added,
   // or where SP-API didn't return it in the read response.
+  let autoFetchError = null;
   if (!productType) {
     try {
       console.log(`productType not supplied — fetching from SP-API for SKU ${sku}…`);
@@ -74,12 +75,16 @@ router.put('/update', async (req, res) => {
       productType = current.productType;
       console.log(`Auto-resolved productType: ${productType}`);
     } catch (fetchErr) {
+      autoFetchError = fetchErr.message;
       console.warn('Could not auto-fetch productType:', fetchErr.message);
     }
   }
 
   if (!productType) {
-    return res.status(400).json({ error: 'Could not determine productType for this SKU. Please re-fetch the listing and try again.' });
+    const detail = autoFetchError ? ` (${autoFetchError})` : '';
+    return res.status(400).json({
+      error: `Could not determine productType for this SKU${detail}. Please re-fetch the listing and try again.`,
+    });
   }
 
   try {

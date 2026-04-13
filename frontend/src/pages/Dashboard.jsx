@@ -127,7 +127,7 @@ export default function Dashboard({ user, onLogout }) {
       }
       setError('Metrics timed out — Amazon report took too long. Try again.');
     } catch (err) {
-      setError('Metrics failed: ' + (err.message || 'Unknown error'));
+      setError('Metrics failed: ' + (err.response?.data?.error || err.message || 'Unknown error'));
     } finally {
       setIsLoadingMetrics(false);
       setMetricsStatus('');
