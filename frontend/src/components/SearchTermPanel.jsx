@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import SearchTermTable from './SearchTermTable.jsx';
 import { getSearchTerms } from '../services/api.js';
+import { getTodayISO, getDaysAgoISO } from '../utils/date-helpers.js';
 
 // ── Export helpers ────────────────────────────────────────────────────────────
 
@@ -78,8 +79,8 @@ async function exportPdf(terms, dateRange) {
   doc.save(`search-terms-${dateRange.start || 'report'}.pdf`);
 }
 
-const today        = new Date().toISOString().slice(0, 10);
-const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+const today        = getTodayISO();
+const thirtyDaysAgo = getDaysAgoISO(30);
 
 function MiniStat({ label, value, color }) {
   return (

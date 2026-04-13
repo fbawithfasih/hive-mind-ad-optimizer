@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { profilesCache, campaignsCache, searchTermsCache } from '../utils/cache.js';
 
 const api = axios.create({
   baseURL: '/api',
@@ -29,8 +30,11 @@ export async function logoutApi() {
 
 export async function getProfiles() {
   try {
-    const response = await api.get('/profiles');
-    return response.data;
+    // Cache profiles with 24hr TTL - they rarely change
+    return await profilesCache.getOrFetch('profiles', async () => {
+      const response = await api.get('/profiles');
+      return response.data;
+    });
   } catch (error) {
     console.error('Error fetching profiles:', error);
     throw error;
@@ -39,9 +43,13 @@ export async function getProfiles() {
 
 export async function getCampaigns(profileId) {
   try {
-    const params = profileId ? { profileId } : {};
-    const response = await api.get('/campaigns', { params });
-    return response.data;
+    // Cache campaigns per profile with 5min TTL
+    const cacheKey = profileId ? `campaigns:${profileId}` : 'campaigns';
+    return await campaignsCache.getOrFetch(cacheKey, async () => {
+      const params = profileId ? { profileId } : {};
+      const response = await api.get('/campaigns', { params });
+      return response.data;
+    });
   } catch (error) {
     console.error('Error fetching campaigns:', error);
     throw error;
@@ -113,12 +121,16 @@ export async function optimizeListingApi(payload) {
 
 export async function getSearchTerms(profileId, startDate, endDate) {
   try {
-    const params = {};
-    if (profileId) params.profileId = profileId;
-    if (startDate) params.startDate = startDate;
-    if (endDate)   params.endDate   = endDate;
-    const response = await api.get('/search-terms', { params });
-    return response.data;
+    // Cache search terms with 5min TTL - same date ranges are often requested repeatedly
+    const cacheKey = `search-terms:${profileId || 'all'}:${startDate || ''}:${endDate || ''}`;
+    return await searchTermsCache.getOrFetch(cacheKey, async () => {
+      const params = {};
+      if (profileId) params.profileId = profileId;
+      if (startDate) params.startDate = startDate;
+      if (endDate)   params.endDate   = endDate;
+      const response = await api.get('/search-terms', { params });
+      return response.data;
+    });
   } catch (error) {
     console.error('Error fetching search terms:', error);
     throw error;
@@ -127,14 +139,18 @@ export async function getSearchTerms(profileId, startDate, endDate) {
 
 export async function getSearchTermsForProduct({ profileId, sku, asin, startDate, endDate }) {
   try {
-    const params = {};
-    if (profileId) params.profileId = profileId;
-    if (sku)       params.sku       = sku;
-    if (asin)      params.asin      = asin;
-    if (startDate) params.startDate = startDate;
-    if (endDate)   params.endDate   = endDate;
-    const response = await api.get('/search-terms', { params });
-    return response.data;
+    // Cache product search terms with 5min TTL
+    const cacheKey = `search-terms-product:${profileId || 'all'}:${sku || ''}:${asin || ''}:${startDate || ''}:${endDate || ''}`;
+    return await searchTermsCache.getOrFetch(cacheKey, async () => {
+      const params = {};
+      if (profileId) params.profileId = profileId;
+      if (sku)       params.sku       = sku;
+      if (asin)      params.asin      = asin;
+      if (startDate) params.startDate = startDate;
+      if (endDate)   params.endDate   = endDate;
+      const response = await api.get('/search-terms', { params });
+      return response.data;
+    });
   } catch (error) {
     console.error('Error fetching product search terms:', error);
     throw error;

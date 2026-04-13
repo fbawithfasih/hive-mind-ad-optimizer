@@ -6,6 +6,7 @@ import SearchTermPanel from '../components/SearchTermPanel.jsx';
 import ListingOptimizerPanel from '../components/ListingOptimizerPanel.jsx';
 import ReportingAgentPanel from '../components/ReportingAgentPanel.jsx';
 import { getProfiles, getCampaigns, startReports, pollReportStatus, executeCommand, logoutApi } from '../services/api.js';
+import { getTodayISO, getDaysAgoISO } from '../utils/date-helpers.js';
 
 function StatCard({ label, value, sub, gradient, icon }) {
   return (
@@ -34,6 +35,9 @@ export default function Dashboard({ user, onLogout }) {
   const today = new Date().toISOString().slice(0, 10);
   const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
   const sixtyDaysAgo  = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
+  const today = getTodayISO();
+  const thirtyDaysAgo = getDaysAgoISO(30);
+  const sixtyDaysAgo  = getDaysAgoISO(60);
   const [dateFrom, setDateFrom] = useState(thirtyDaysAgo);
   const [dateTo, setDateTo]     = useState(today);
 
