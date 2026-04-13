@@ -1,16 +1,50 @@
 /**
- * Custom hook for managing metrics polling and report generation
- * Handles report creation, status polling, and campaign metrics merging
+ * Custom hook for managing metrics polling and performance report generation
+ * Orchestrates: report creation → campaign fetch → async polling → metrics merge
+ * Polls up to 40 times (160 seconds max) for Amazon report completion
  */
 import { useState } from 'react';
 import { startReports, pollReportStatus } from '../services/api.js';
 
+/**
+ * @typedef {Object} MetricsDateRange
+ * @property {string} start - Report start date (ISO 8601)
+ * @property {string} end - Report end date (ISO 8601)
+ */
+
+/**
+ * @typedef {Object} MetricsPollingState
+ * @property {boolean} isLoadingMetrics - Whether metrics are currently loading
+ * @property {string} metricsStatus - Current polling status message
+ * @property {MetricsDateRange} metricsDateRange - Date range of loaded metrics
+ * @property {string|null} error - Error message if loading failed
+ * @property {Function} setError - Update error state
+ * @property {Function} handleLoadMetrics - Start metrics loading process
+ */
+
+/**
+ * Manage metrics report generation and polling
+ * Coordinates Amazon Ads async report flow with client-side polling
+ * Updates campaign data with real metrics when report completes
+ *
+ * @param {string|number} selectedProfileId - Amazon Ads profile ID
+ * @param {string} dateFrom - Start date (ISO 8601: YYYY-MM-DD)
+ * @param {string} dateTo - End date (ISO 8601: YYYY-MM-DD)
+ * @param {Function} setCampaigns - Callback to update campaigns with metrics
+ * @returns {MetricsPollingState} Polling state and control function
+ */
 export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampaigns) {
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
   const [metricsStatus, setMetricsStatus] = useState('');  // polling status message
   const [metricsDateRange, setMetricsDateRange] = useState({ start: '', end: '' });
   const [error, setError] = useState(null);
 
+  /**
+   * Load metrics for selected date range
+   * Step 1: Create report request (fast, ~2s)
+   * Step 2: Poll report status every 4 seconds (max 40 attempts, 160s total)
+   * Step 3: Merge metrics into campaign data when complete
+   */
   async function handleLoadMetrics() {
     setIsLoadingMetrics(true);
     setMetricsStatus('Creating report…');

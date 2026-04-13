@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1776109495570" clover="3.2.0">
-  <project timestamp="1776109495570" name="All files">
+<coverage generated="1776109870013" clover="3.2.0">
+  <project timestamp="1776109870013" name="All files">
     <metrics statements="698" coveredstatements="55" conditionals="585" coveredconditionals="64" methods="133" coveredmethods="11" elements="1416" coveredelements="130" complexity="0" loc="698" ncloc="698" packages="4" files="21" classes="21"/>
     <package name="api.middleware">
       <metrics statements="12" coveredstatements="11" conditionals="4" coveredconditionals="3" methods="2" coveredmethods="2"/>
@@ -760,19 +760,19 @@
       </file>
       <file name="search-term-classifier.js" path="/Users/fasihuddinahmer/Projects/hive-mind-ad-optimizer/.claude/worktrees/relaxed-wilson/src/services/search-term-classifier.js">
         <metrics statements="13" coveredstatements="13" conditionals="54" coveredconditionals="52" methods="2" coveredmethods="2"/>
-        <line num="11" count="22" type="stmt"/>
-        <line num="12" count="30" type="cond" truecount="2" falsecount="0"/>
-        <line num="13" count="30" type="cond" truecount="2" falsecount="0"/>
-        <line num="14" count="30" type="cond" truecount="2" falsecount="0"/>
-        <line num="15" count="30" type="cond" truecount="2" falsecount="0"/>
-        <line num="18" count="30" type="cond" truecount="5" falsecount="0"/>
-        <line num="19" count="9" type="stmt"/>
-        <line num="20" count="21" type="cond" truecount="5" falsecount="0"/>
-        <line num="21" count="4" type="stmt"/>
-        <line num="22" count="17" type="cond" truecount="6" falsecount="0"/>
-        <line num="23" count="7" type="stmt"/>
-        <line num="25" count="10" type="stmt"/>
-        <line num="28" count="30" type="stmt"/>
+        <line num="33" count="22" type="stmt"/>
+        <line num="34" count="30" type="cond" truecount="2" falsecount="0"/>
+        <line num="35" count="30" type="cond" truecount="2" falsecount="0"/>
+        <line num="36" count="30" type="cond" truecount="2" falsecount="0"/>
+        <line num="37" count="30" type="cond" truecount="2" falsecount="0"/>
+        <line num="40" count="30" type="cond" truecount="5" falsecount="0"/>
+        <line num="41" count="9" type="stmt"/>
+        <line num="42" count="21" type="cond" truecount="5" falsecount="0"/>
+        <line num="43" count="4" type="stmt"/>
+        <line num="44" count="17" type="cond" truecount="6" falsecount="0"/>
+        <line num="45" count="7" type="stmt"/>
+        <line num="47" count="10" type="stmt"/>
+        <line num="50" count="30" type="stmt"/>
       </file>
     </package>
   </project>
