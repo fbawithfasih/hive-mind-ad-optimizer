@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">57.89% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/19</span>
+                <span class='fraction'>11/19</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">37.5% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>3/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">75% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/4</span>
+                <span class='fraction'>3/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">57.89% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/19</span>
+                <span class='fraction'>11/19</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -135,28 +135,28 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -170,11 +170,11 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -194,26 +194,26 @@ import axios from 'axios';
  * Create a token manager for an Amazon API service
  * Handles token refresh with caching and expiry
  */
-export function <span class="fstat-no" title="function not covered" >createTokenManager(</span>clientId, clientSecret, refreshToken, logPrefix = <span class="branch-0 cbranch-no" title="branch not covered" >'API')</span> {
-  let cachedToken = <span class="cstat-no" title="statement not covered" >null;</span>
-  let tokenExpiry = <span class="cstat-no" title="statement not covered" >null;</span>
-  let refreshPromise = <span class="cstat-no" title="statement not covered" >null;</span> // Prevent race conditions on simultaneous refresh
+export function createTokenManager(clientId, clientSecret, refreshToken, logPrefix = <span class="branch-0 cbranch-no" title="branch not covered" >'API')</span> {
+  let cachedToken = null;
+  let tokenExpiry = null;
+  let refreshPromise = null; // Prevent race conditions on simultaneous refresh
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  return {</span>
-<span class="fstat-no" title="function not covered" >    as</span>ync getToken() {
+  return {
+    async getToken() {
       // Return cached token if still valid
-<span class="cstat-no" title="statement not covered" >      if (cachedToken &amp;&amp; tokenExpiry &amp;&amp; Date.now() &lt; tokenExpiry) {</span>
+      <span class="missing-if-branch" title="if path not taken" >I</span>if (cachedToken &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >tokenExpiry </span>&amp;&amp; <span class="branch-2 cbranch-no" title="branch not covered" >Date.now() &lt; tokenExpiry)</span> {
 <span class="cstat-no" title="statement not covered" >        return cachedToken;</span>
       }
 &nbsp;
       // Prevent duplicate refresh requests
-<span class="cstat-no" title="statement not covered" >      if (refreshPromise) {</span>
+      <span class="missing-if-branch" title="if path not taken" >I</span>if (refreshPromise) {
 <span class="cstat-no" title="statement not covered" >        return refreshPromise;</span>
       }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      refreshPromise = (<span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >        try {</span>
-          const response = <span class="cstat-no" title="statement not covered" >await axios.post(</span>
+      refreshPromise = (async () =&gt; {
+        try {
+          const response = await axios.post(
             'https://api.amazon.com/auth/o2/token',
             new URLSearchParams({
               grant_type: 'refresh_token',
@@ -230,11 +230,11 @@ export function <span class="fstat-no" title="function not covered" >createToken
 <span class="cstat-no" title="statement not covered" >          console.log(`✅ ${logPrefix} access token refreshed`);</span>
 <span class="cstat-no" title="statement not covered" >          return cachedToken;</span>
         } finally {
-<span class="cstat-no" title="statement not covered" >          refreshPromise = null; </span>// Clear the refresh promise
+          refreshPromise = null; // Clear the refresh promise
         }
       })();
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      return refreshPromise;</span>
+      return refreshPromise;
     },
 &nbsp;
 <span class="fstat-no" title="function not covered" >    in</span>validate() {
@@ -250,7 +250,7 @@ export function <span class="fstat-no" title="function not covered" >createToken
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-13T19:36:39.105Z
+                at 2026-04-13T19:41:30.445Z
             </div>
         <script src="../prettify.js"></script>
         <script>

@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1776108999126" clover="3.2.0">
-  <project timestamp="1776108999126" name="All files">
-    <metrics statements="698" coveredstatements="11" conditionals="585" coveredconditionals="3" methods="133" coveredmethods="2" elements="1416" coveredelements="16" complexity="0" loc="698" ncloc="698" packages="4" files="21" classes="21"/>
+<coverage generated="1776109290474" clover="3.2.0">
+  <project timestamp="1776109290474" name="All files">
+    <metrics statements="698" coveredstatements="18" conditionals="585" coveredconditionals="3" methods="133" coveredmethods="5" elements="1416" coveredelements="26" complexity="0" loc="698" ncloc="698" packages="4" files="21" classes="21"/>
     <package name="api.middleware">
-      <metrics statements="12" coveredstatements="11" conditionals="4" coveredconditionals="3" methods="2" coveredmethods="2"/>
+      <metrics statements="12" coveredstatements="0" conditionals="4" coveredconditionals="0" methods="2" coveredmethods="0"/>
       <file name="requireAuth.js" path="/Users/fasihuddinahmer/Projects/hive-mind-ad-optimizer/.claude/worktrees/relaxed-wilson/src/api/middleware/requireAuth.js">
-        <metrics statements="12" coveredstatements="11" conditionals="4" coveredconditionals="3" methods="2" coveredmethods="2"/>
-        <line num="3" count="1" type="stmt"/>
-        <line num="4" count="1" type="stmt"/>
-        <line num="5" count="1" type="cond" truecount="1" falsecount="1"/>
+        <metrics statements="12" coveredstatements="0" conditionals="4" coveredconditionals="0" methods="2" coveredmethods="0"/>
+        <line num="3" count="0" type="stmt"/>
+        <line num="4" count="0" type="stmt"/>
+        <line num="5" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="6" count="0" type="stmt"/>
-        <line num="11" count="1" type="stmt"/>
-        <line num="14" count="1" type="stmt"/>
-        <line num="22" count="19" type="stmt"/>
-        <line num="23" count="19" type="cond" truecount="2" falsecount="0"/>
-        <line num="25" count="13" type="stmt"/>
-        <line num="26" count="13" type="stmt"/>
-        <line num="27" count="6" type="stmt"/>
-        <line num="29" count="7" type="stmt"/>
+        <line num="11" count="0" type="stmt"/>
+        <line num="14" count="0" type="stmt"/>
+        <line num="22" count="0" type="stmt"/>
+        <line num="23" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="25" count="0" type="stmt"/>
+        <line num="26" count="0" type="stmt"/>
+        <line num="27" count="0" type="stmt"/>
+        <line num="29" count="0" type="stmt"/>
       </file>
     </package>
     <package name="api.routes">
@@ -469,17 +469,17 @@
       </file>
     </package>
     <package name="services">
-      <metrics statements="289" coveredstatements="0" conditionals="286" coveredconditionals="0" methods="65" coveredmethods="0"/>
+      <metrics statements="289" coveredstatements="18" conditionals="286" coveredconditionals="3" methods="65" coveredmethods="5"/>
       <file name="amazon-ads.js" path="/Users/fasihuddinahmer/Projects/hive-mind-ad-optimizer/.claude/worktrees/relaxed-wilson/src/services/amazon-ads.js">
-        <metrics statements="118" coveredstatements="0" conditionals="54" coveredconditionals="0" methods="13" coveredmethods="0"/>
-        <line num="6" count="0" type="stmt"/>
-        <line num="8" count="0" type="stmt"/>
-        <line num="9" count="0" type="stmt"/>
-        <line num="10" count="0" type="stmt"/>
-        <line num="13" count="0" type="stmt"/>
-        <line num="16" count="0" type="stmt"/>
+        <metrics statements="118" coveredstatements="7" conditionals="54" coveredconditionals="0" methods="13" coveredmethods="2"/>
+        <line num="6" count="1" type="stmt"/>
+        <line num="8" count="1" type="stmt"/>
+        <line num="9" count="1" type="stmt"/>
+        <line num="10" count="1" type="stmt"/>
+        <line num="13" count="1" type="stmt"/>
+        <line num="16" count="1" type="stmt"/>
         <line num="20" count="0" type="stmt"/>
-        <line num="29" count="0" type="stmt"/>
+        <line num="29" count="1" type="stmt"/>
         <line num="30" count="0" type="stmt"/>
         <line num="33" count="0" type="stmt"/>
         <line num="34" count="0" type="stmt"/>
@@ -657,24 +657,24 @@
         <line num="184" count="0" type="cond" truecount="0" falsecount="2"/>
       </file>
       <file name="auth-utils.js" path="/Users/fasihuddinahmer/Projects/hive-mind-ad-optimizer/.claude/worktrees/relaxed-wilson/src/services/auth-utils.js">
-        <metrics statements="19" coveredstatements="0" conditionals="8" coveredconditionals="0" methods="4" coveredmethods="0"/>
-        <line num="13" count="0" type="stmt"/>
-        <line num="14" count="0" type="stmt"/>
-        <line num="15" count="0" type="stmt"/>
-        <line num="17" count="0" type="stmt"/>
-        <line num="20" count="0" type="cond" truecount="0" falsecount="5"/>
+        <metrics statements="19" coveredstatements="11" conditionals="8" coveredconditionals="3" methods="4" coveredmethods="3"/>
+        <line num="13" count="1" type="stmt"/>
+        <line num="14" count="1" type="stmt"/>
+        <line num="15" count="1" type="stmt"/>
+        <line num="17" count="1" type="stmt"/>
+        <line num="20" count="1" type="cond" truecount="2" falsecount="3"/>
         <line num="21" count="0" type="stmt"/>
-        <line num="25" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="25" count="1" type="cond" truecount="1" falsecount="1"/>
         <line num="26" count="0" type="stmt"/>
-        <line num="29" count="0" type="stmt"/>
-        <line num="30" count="0" type="stmt"/>
-        <line num="31" count="0" type="stmt"/>
+        <line num="29" count="1" type="stmt"/>
+        <line num="30" count="1" type="stmt"/>
+        <line num="31" count="1" type="stmt"/>
         <line num="42" count="0" type="stmt"/>
         <line num="44" count="0" type="stmt"/>
         <line num="45" count="0" type="stmt"/>
         <line num="46" count="0" type="stmt"/>
-        <line num="48" count="0" type="stmt"/>
-        <line num="52" count="0" type="stmt"/>
+        <line num="48" count="1" type="stmt"/>
+        <line num="52" count="1" type="stmt"/>
         <line num="56" count="0" type="stmt"/>
         <line num="57" count="0" type="stmt"/>
       </file>

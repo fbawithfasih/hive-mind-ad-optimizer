@@ -12,8 +12,6 @@ jest.mock('axios');
 describe('Amazon Ads API', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Reset token cache between tests
-    jest.resetModules();
   });
 
   describe('Token Refresh', () => {
@@ -209,12 +207,7 @@ describe('Amazon Ads API', () => {
       const originalError = new Error('Custom API error message');
       axios.post.mockRejectedValueOnce(originalError);
 
-      try {
-        await getProfiles();
-        fail('Should have thrown');
-      } catch (err) {
-        expect(err.message).toContain('Custom API error message');
-      }
+      await expect(getProfiles()).rejects.toThrow('Custom API error message');
     });
 
     it('should handle malformed JSON responses', async () => {

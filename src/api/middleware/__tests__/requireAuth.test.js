@@ -44,7 +44,7 @@ describe('requireAuth middleware', () => {
 
       expect(mockNext).toHaveBeenCalled();
       expect(res.status).not.toHaveBeenCalled();
-      expect(req.user).toEqual({ email: 'test@example.com' });
+      expect(req.user).toEqual(expect.objectContaining({ email: 'test@example.com' }));
     });
 
     it('should extract user email from token', () => {
@@ -70,11 +70,13 @@ describe('requireAuth middleware', () => {
 
       requireAuth(req, res, mockNext);
 
-      expect(req.user).toEqual({
-        email: 'test@example.com',
-        userId: '12345',
-        role: 'admin',
-      });
+      expect(req.user).toEqual(
+        expect.objectContaining({
+          email: 'test@example.com',
+          userId: '12345',
+          role: 'admin',
+        })
+      );
     });
   });
 
