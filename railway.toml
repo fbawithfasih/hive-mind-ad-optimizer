@@ -1,5 +1,5 @@
 [deploy]
-startCommand = "npx prisma migrate deploy && node src/server.js"
+startCommand = "npx prisma migrate deploy && node --experimental-strip-types src/server.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
