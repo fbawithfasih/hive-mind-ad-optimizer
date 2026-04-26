@@ -16,7 +16,7 @@ import express from 'express';
 import axios from 'axios';
 import { randomBytes } from 'crypto';
 import dotenv from 'dotenv';
-import { saveOrgCredential } from '../../services/credentials.js';
+import { saveOrgCredential, updateOrgAdsToken } from '../../services/credentials.js';
 import { createLogger } from '../utils/logger.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { withTenant } from '../middleware/withTenant.js';
@@ -26,8 +26,8 @@ dotenv.config({ override: true });
 const router = express.Router();
 const logger = createLogger('SP_OAUTH');
 
-// Set SP_OAUTH_REDIRECT_URI in .env to your ngrok URL when doing OAuth setup
-const REDIRECT_URI = process.env.SP_OAUTH_REDIRECT_URI || 'http://localhost:3000/api/sp-oauth/callback';
+const REDIRECT_URI     = process.env.SP_OAUTH_REDIRECT_URI     || 'http://localhost:3000/api/sp-oauth/callback';
+const ADS_REDIRECT_URI = process.env.ADS_OAUTH_REDIRECT_URI    || 'http://localhost:3000/api/sp-oauth/ads-callback';
 
 function cfg() {
   return {
@@ -162,6 +162,85 @@ router.get('/callback', async (req, res) => {
       'Token Exchange Failed',
       'The authorization code was received but could not be exchanged for tokens. ' +
       'Common causes: redirect URI mismatch, wrong CLIENT_ID/CLIENT_SECRET, or code already used.',
+      detail
+    ));
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/sp-oauth/ads-start — redirect to Amazon LWA for Ads API consent
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/ads-start', requireAuth, withTenant, (req, res) => {
+  const clientId = process.env.AMAZON_ADS_CLIENT_ID;
+  if (!clientId) return res.status(500).send('AMAZON_ADS_CLIENT_ID not set in .env');
+
+  const orgId = req.tenant?.orgId;
+  if (!orgId) return res.status(400).json({ error: 'No organization context.' });
+
+  const state = randomBytes(16).toString('hex');
+  storeState(state, orgId);
+
+  const url = new URL('https://www.amazon.com/ap/oa');
+  url.searchParams.set('client_id',     clientId);
+  url.searchParams.set('scope',         'advertising::campaign_management');
+  url.searchParams.set('response_type', 'code');
+  url.searchParams.set('redirect_uri',  ADS_REDIRECT_URI);
+  url.searchParams.set('state',         state);
+
+  logger.info(`Ads OAuth: org ${orgId} starting consent flow`);
+  res.redirect(url.toString());
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/sp-oauth/ads-callback — Amazon redirects here after Ads consent
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/ads-callback', async (req, res) => {
+  const { code, state, error } = req.query;
+
+  if (error || !code) {
+    return res.status(400).send(errorPage(
+      'Ads Authorization Failed',
+      error ?? 'No authorization code received from Amazon.',
+      req.query
+    ));
+  }
+
+  const orgId = consumeState(state);
+  if (!orgId) {
+    return res.status(400).send(errorPage(
+      'Invalid or expired state',
+      'Please start the Ads connection flow again.',
+      req.query
+    ));
+  }
+
+  const clientId     = process.env.AMAZON_ADS_CLIENT_ID;
+  const clientSecret = process.env.AMAZON_ADS_CLIENT_SECRET;
+
+  try {
+    const tokenRes = await axios.post(
+      'https://api.amazon.com/auth/o2/token',
+      new URLSearchParams({
+        grant_type:    'authorization_code',
+        code,
+        client_id:     clientId,
+        client_secret: clientSecret,
+        redirect_uri:  ADS_REDIRECT_URI,
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+
+    const { refresh_token } = tokenRes.data;
+    await updateOrgAdsToken(orgId, refresh_token);
+    logger.info(`Ads refresh token saved for org ${orgId}`);
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}?connected=ads`);
+  } catch (err) {
+    const detail = err.response?.data ?? err.message;
+    logger.error(`Ads token exchange failed for org ${orgId}`, err);
+    res.status(500).send(errorPage('Ads Token Exchange Failed',
+      'The authorization code could not be exchanged for tokens.',
       detail
     ));
   }

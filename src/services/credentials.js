@@ -115,7 +115,7 @@ export async function loadOrgCredential(orgId) {
 
   // Decrypt supplementary fields
   let sellerId = process.env.SP_API_SELLER_ID ?? null;
-  let adsRefreshToken = spRefreshToken; // default: same token
+  let adsRefreshToken = null; // null until seller completes Ads OAuth separately
 
   if (cred.encryptedData) {
     try {
@@ -141,12 +141,41 @@ export async function loadOrgCredential(orgId) {
     spClientSecret: process.env.SP_API_CLIENT_SECRET ?? '',
     spRefreshToken,
     sellerId,
-    // Ads API: the refresh token came from the SP-API LWA app OAuth grant,
-    // so always use SP_API client credentials to exchange it — not a separate Ads app.
-    adsClientId:     process.env.SP_API_CLIENT_ID     ?? '',
-    adsClientSecret: process.env.SP_API_CLIENT_SECRET ?? '',
+    // Ads API uses its own LWA app (AMAZON_ADS_CLIENT_ID).
+    // adsRefreshToken is null when the seller hasn't completed Ads OAuth yet —
+    // withAmazonCredentials falls back to defaultAdsClient in that case.
+    adsClientId:     adsRefreshToken ? (process.env.AMAZON_ADS_CLIENT_ID ?? '') : '',
+    adsClientSecret: adsRefreshToken ? (process.env.AMAZON_ADS_CLIENT_SECRET ?? '') : '',
     adsRefreshToken,
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Update Ads token only (separate Ads OAuth flow)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Patch an existing org credential to add/replace the Ads API refresh token.
+ * Used when the seller completes the Ads OAuth flow after the SP-API OAuth flow.
+ */
+export async function updateOrgAdsToken(orgId, adsRefreshToken, marketplaceId = 'ATVPDKIKX0DER') {
+  const cred = await prisma.amazonCredential.findFirst({
+    where: { orgId, marketplaceId, status: 'ACTIVE' },
+  });
+  if (!cred) throw new Error('No active SP-API credential found for org. Complete SP-API OAuth first.');
+
+  let extra = {};
+  if (cred.encryptedData) {
+    try { extra = JSON.parse(decrypt(cred.encryptedData)); } catch {}
+  }
+  extra.adsRefreshToken = adsRefreshToken;
+
+  await prisma.amazonCredential.update({
+    where: { id: cred.id },
+    data:  { encryptedData: encrypt(JSON.stringify(extra)), lastUsed: new Date() },
+  });
+
+  invalidateTokenManager(`ads:${orgId}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
