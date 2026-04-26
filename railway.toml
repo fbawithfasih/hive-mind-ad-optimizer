@@ -1,5 +1,5 @@
 [build]
-builder = "DOCKERFILE"
+buildCommand = "npm install && cd frontend && npm install && npm run build && cd .."
 
 [deploy]
 startCommand = "node src/server.js"
