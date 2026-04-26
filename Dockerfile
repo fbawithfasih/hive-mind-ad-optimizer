@@ -34,6 +34,7 @@ RUN apk add --no-cache dumb-init
 
 ENV NODE_ENV=production
 ENV PORT=8080
+ENV BUILD_VERSION=2
 
 WORKDIR /app
 
@@ -51,4 +52,4 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 EXPOSE 8080
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["sh", "-c", "npx prisma migrate deploy && node src/server.js"]
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy; node src/server.js"]
