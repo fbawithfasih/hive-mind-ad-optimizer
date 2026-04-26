@@ -1,5 +1,5 @@
 [build]
-buildCommand = "npm install && cd frontend && npm install && npm run build && cd .."
+builder = "DOCKERFILE"
 
 [deploy]
 startCommand = "node_modules/.bin/prisma migrate deploy; node src/server.js"
