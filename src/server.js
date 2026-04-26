@@ -1,3 +1,4 @@
+console.log('[STARTUP] server.js loading, node:', process.version, 'pid:', process.pid);
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
