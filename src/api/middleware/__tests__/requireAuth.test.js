@@ -1,5 +1,5 @@
 // Mock Prisma before importing requireAuth (which imports prisma.ts)
-jest.mock('../../../db/prisma.ts', () => ({
+jest.mock('../../../db/prisma.js', () => ({
   prisma: {
     user: { findUnique: jest.fn() },
   },
@@ -7,7 +7,7 @@ jest.mock('../../../db/prisma.ts', () => ({
 
 import jwt from 'jsonwebtoken';
 import { requireAuth } from '../requireAuth.js';
-import { prisma }      from '../../../db/prisma.ts';
+import { prisma }      from '../../../db/prisma.js';
 
 // Default: user exists in DB
 beforeEach(() => {

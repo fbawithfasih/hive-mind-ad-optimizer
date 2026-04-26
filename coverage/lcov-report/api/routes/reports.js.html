@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/35</span>
+                <span class='fraction'>0/39</span>
             </div>
         
             
@@ -39,14 +39,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>0/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/31</span>
+                <span class='fraction'>0/34</span>
             </div>
         
             
@@ -132,7 +132,18 @@
 <a name='L67'></a><a href='#L67'>67</a>
 <a name='L68'></a><a href='#L68'>68</a>
 <a name='L69'></a><a href='#L69'>69</a>
-<a name='L70'></a><a href='#L70'>70</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -157,6 +168,20 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -181,13 +206,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -202,7 +224,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import express from 'express';
-import { getCampaigns, startCampaignMetricsReport, checkReportStatus } from '../../services/amazon-ads.js';
+import { prisma } from '../../db/prisma.ts';
 &nbsp;
 const router = <span class="cstat-no" title="statement not covered" >express.Router();</span>
 &nbsp;
@@ -221,14 +243,28 @@ function <span class="fstat-no" title="function not covered" >validateDates(</sp
 }
 &nbsp;
 /**
+ * Resolve profileId:
+ *   1. Query param ?profileId=
+ *   2. Org's default (or any) SellerProfile in DB
+ *   3. AMAZON_DEFAULT_PROFILE_ID env var
+ */
+async function <span class="fstat-no" title="function not covered" >resolveProfileId(</span>req) {
+<span class="cstat-no" title="statement not covered" >  if (req.query.profileId) <span class="cstat-no" title="statement not covered" >return req.query.profileId;</span></span>
+&nbsp;
+  const profile = <span class="cstat-no" title="statement not covered" >await prisma.sellerProfile.findFirst({</span>
+    where: { orgId: req.tenant.orgId },
+    orderBy: { isDefault: 'desc' },
+  });
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return profile?.profileId ?? process.env.AMAZON_DEFAULT_PROFILE_ID;</span>
+}
+&nbsp;
+/**
  * GET /api/reports/start
- *
- * Creates a campaign metrics report and returns immediately with { reportId, campaigns, startDate, endDate }.
- * Poll GET /api/reports/status?reportId=&amp;profileId= until status === 'COMPLETED'.
  */
 <span class="cstat-no" title="statement not covered" >router.get('/start', <span class="fstat-no" title="function not covered" >as</span>ync (req, res) =&gt; {</span>
-  const profileId = <span class="cstat-no" title="statement not covered" >req.query.profileId || process.env.AMAZON_DEFAULT_PROFILE_ID;</span>
-<span class="cstat-no" title="statement not covered" >  if (!profileId) <span class="cstat-no" title="statement not covered" >return res.status(400).json({ error: 'profileId required' });</span></span>
+  const profileId = <span class="cstat-no" title="statement not covered" >await resolveProfileId(req);</span>
+<span class="cstat-no" title="statement not covered" >  if (!profileId) <span class="cstat-no" title="statement not covered" >return res.status(400).json({ error: 'profileId required — no profile configured for this organization.' });</span></span>
 &nbsp;
   const endDate   = <span class="cstat-no" title="statement not covered" >req.query.endDate   || new Date().toISOString().slice(0, 10);</span>
   const startDate = <span class="cstat-no" title="statement not covered" >req.query.startDate || new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);</span>
@@ -237,8 +273,8 @@ function <span class="fstat-no" title="function not covered" >validateDates(</sp
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  try {</span>
     const [campaigns, reportId] = <span class="cstat-no" title="statement not covered" >await Promise.all([</span>
-      getCampaigns(profileId),
-      startCampaignMetricsReport(profileId, startDate, endDate),
+      req.adsClient.getCampaigns(profileId),
+      req.adsClient.startCampaignMetricsReport(profileId, startDate, endDate),
     ]);
 <span class="cstat-no" title="statement not covered" >    res.json({ reportId, campaigns, startDate, endDate });</span>
   } catch (err) {
@@ -249,19 +285,16 @@ function <span class="fstat-no" title="function not covered" >validateDates(</sp
 &nbsp;
 /**
  * GET /api/reports/status?reportId=&amp;profileId=
- *
- * Single poll tick. Returns:
- *   { status: 'PENDING' | 'PROCESSING' }  — still in progress
- *   { status: 'COMPLETED', data: [] }      — raw metrics records
  */
 <span class="cstat-no" title="statement not covered" >router.get('/status', <span class="fstat-no" title="function not covered" >as</span>ync (req, res) =&gt; {</span>
   const { reportId } = <span class="cstat-no" title="statement not covered" >req.query;</span>
-  const profileId = <span class="cstat-no" title="statement not covered" >req.query.profileId || process.env.AMAZON_DEFAULT_PROFILE_ID;</span>
-<span class="cstat-no" title="statement not covered" >  if (!reportId)  <span class="cstat-no" title="statement not covered" >return res.status(400).json({ error: 'reportId required' });</span></span>
-<span class="cstat-no" title="statement not covered" >  if (!profileId) <span class="cstat-no" title="statement not covered" >return res.status(400).json({ error: 'profileId required' });</span></span>
+<span class="cstat-no" title="statement not covered" >  if (!reportId) <span class="cstat-no" title="statement not covered" >return res.status(400).json({ error: 'reportId required' });</span></span>
+&nbsp;
+  const profileId = <span class="cstat-no" title="statement not covered" >await resolveProfileId(req);</span>
+<span class="cstat-no" title="statement not covered" >  if (!profileId) <span class="cstat-no" title="statement not covered" >return res.status(400).json({ error: 'profileId required — no profile configured for this organization.' });</span></span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  try {</span>
-    const result = <span class="cstat-no" title="statement not covered" >await checkReportStatus(profileId, reportId);</span>
+    const result = <span class="cstat-no" title="statement not covered" >await req.adsClient.checkReportStatus(profileId, reportId);</span>
 <span class="cstat-no" title="statement not covered" >    res.json(result);</span>
   } catch (err) {
 <span class="cstat-no" title="statement not covered" >    console.error('Reports status error:', err.message);</span>
@@ -277,7 +310,7 @@ export default router;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-13T19:51:09.986Z
+                at 2026-04-26T19:12:44.162Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

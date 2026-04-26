@@ -1,4 +1,4 @@
-// Shared Prisma mock — importable via jest.mock('../../db/prisma.ts', ...)
+// Shared Prisma mock — importable via jest.mock('../../db/prisma.js', ...)
 // Each test file gets its own fresh mock so tests are isolated.
 
 export const prismaMock = {

@@ -1,7 +1,7 @@
 import express from 'express';
 import { randomUUID } from 'crypto';
 import { optimizeListing } from '../../services/claude-mcp.js';
-import { prisma } from '../../db/prisma.ts';
+import { prisma } from '../../db/prisma.js';
 import { bulkListingQueue } from '../../services/queue.js';
 import { trackUsage } from '../../services/razorpay.js';
 import { requireRole } from '../middleware/requireRole.js';

@@ -14,8 +14,8 @@
  * grant), pass adsRefreshToken separately.
  */
 
-import { prisma } from '../db/prisma.ts';
-import { encrypt, decrypt } from '../db/encryption.ts';
+import { prisma } from '../db/prisma.js';
+import { encrypt, decrypt } from '../db/encryption.js';
 import { invalidateTokenManager } from './auth-utils.js';
 
 // ─────────────────────────────────────────────────────────────────────────────

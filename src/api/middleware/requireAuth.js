@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { prisma } from '../../db/prisma.ts';
+import { prisma } from '../../db/prisma.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('AUTH');

@@ -1,4 +1,4 @@
-import { prisma } from '../../db/prisma.ts';
+import { prisma } from '../../db/prisma.js';
 
 /**
  * Rejects the request with 402 if the org has no active subscription.

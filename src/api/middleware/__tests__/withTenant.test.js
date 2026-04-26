@@ -1,6 +1,6 @@
 import { withTenant } from '../withTenant.js';
 
-jest.mock('../../../db/prisma.ts', () => ({
+jest.mock('../../../db/prisma.js', () => ({
   prisma: {
     orgMember: {
       findFirst: jest.fn(),
@@ -8,7 +8,7 @@ jest.mock('../../../db/prisma.ts', () => ({
   },
 }));
 
-import { prisma } from '../../../db/prisma.ts';
+import { prisma } from '../../../db/prisma.js';
 
 function makeRes() {
   const res = { status: jest.fn(), json: jest.fn() };

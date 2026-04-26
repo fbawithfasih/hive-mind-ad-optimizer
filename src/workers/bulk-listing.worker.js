@@ -11,7 +11,7 @@
  *   4. Marks the batch COMPLETED when all items have been processed
  */
 
-import { prisma }             from '../db/prisma.ts';
+import { prisma }             from '../db/prisma.js';
 import { optimizeListing }    from '../services/claude-mcp.js';
 import { createLogger }       from '../api/utils/logger.js';
 

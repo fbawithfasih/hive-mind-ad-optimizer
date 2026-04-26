@@ -1,4 +1,4 @@
-jest.mock('../../db/prisma.ts', () => ({
+jest.mock('../../db/prisma.js', () => ({
   prisma: {
     amazonCredential: {
       upsert:    jest.fn(),
@@ -14,7 +14,7 @@ jest.mock('../auth-utils.js', () => ({
 }));
 
 import { saveOrgCredential, loadOrgCredential, revokeOrgCredential } from '../credentials.js';
-import { prisma } from '../../db/prisma.ts';
+import { prisma } from '../../db/prisma.js';
 import { invalidateTokenManager } from '../auth-utils.js';
 
 const { amazonCredential } = prisma;
@@ -68,7 +68,7 @@ describe('saveOrgCredential', () => {
 
     const { create } = amazonCredential.upsert.mock.calls[0][0];
     // encryptedData should only contain sellerId, not adsRefreshToken
-    const { decrypt } = await import('../../db/encryption.ts');
+    const { decrypt } = await import('../../db/encryption.js');
     const extra = JSON.parse(decrypt(create.encryptedData));
     expect(extra.adsRefreshToken).toBeUndefined();
   });
@@ -79,7 +79,7 @@ describe('saveOrgCredential', () => {
     });
 
     const { create } = amazonCredential.upsert.mock.calls[0][0];
-    const { decrypt } = await import('../../db/encryption.ts');
+    const { decrypt } = await import('../../db/encryption.js');
     const extra = JSON.parse(decrypt(create.encryptedData));
     expect(extra.adsRefreshToken).toBe(ADS_TOKEN);
   });
@@ -105,7 +105,7 @@ describe('loadOrgCredential', () => {
   let encryptedToken, encryptedData;
 
   beforeEach(async () => {
-    const { encrypt } = await import('../../db/encryption.ts');
+    const { encrypt } = await import('../../db/encryption.js');
     encryptedToken = encrypt(SP_TOKEN);
     encryptedData  = encrypt(JSON.stringify({ sellerId: SELLER_ID }));
 
@@ -138,7 +138,7 @@ describe('loadOrgCredential', () => {
   });
 
   it('returns a separate adsRefreshToken when stored', async () => {
-    const { encrypt } = await import('../../db/encryption.ts');
+    const { encrypt } = await import('../../db/encryption.js');
     amazonCredential.findFirst.mockResolvedValue({
       id: 'cred-1', marketplaceId: 'ATVPDKIKX0DER',
       refreshToken:  encryptedToken,
@@ -159,7 +159,7 @@ describe('loadOrgCredential', () => {
   });
 
   it('continues with defaults when encryptedData cannot be decrypted', async () => {
-    const { encrypt } = await import('../../db/encryption.ts');
+    const { encrypt } = await import('../../db/encryption.js');
     amazonCredential.findFirst.mockResolvedValue({
       id: 'cred-1', marketplaceId: 'ATVPDKIKX0DER',
       refreshToken:  encrypt(SP_TOKEN),

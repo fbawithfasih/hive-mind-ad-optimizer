@@ -1,5 +1,5 @@
 // jest.mock is hoisted — factory must not reference out-of-scope variables
-jest.mock('../../../db/prisma.ts', () => ({
+jest.mock('../../../db/prisma.js', () => ({
   prisma: {
     subscription: { findFirst: jest.fn(), update: jest.fn(), upsert: jest.fn() },
     invoice:      { upsert: jest.fn() },

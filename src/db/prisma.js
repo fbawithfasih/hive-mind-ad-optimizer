@@ -1,10 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 
-/**
- * Instantiate Prisma Client as a singleton to prevent multiple connections
- * in serverless/edge computing environments
- */
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+const globalForPrisma = globalThis;
 
 export const prisma =
   globalForPrisma.prisma ||

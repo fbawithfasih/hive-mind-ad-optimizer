@@ -1,10 +1,5 @@
 import crypto from 'crypto';
 
-/**
- * Encryption utilities for sensitive data at rest (e.g., Amazon refresh tokens)
- * Uses AES-256-GCM with Node's crypto module for authenticated encryption
- */
-
 const ALGORITHM = 'aes-256-gcm';
 const SALT_LENGTH = 16;
 const IV_LENGTH = 16;
@@ -12,21 +7,11 @@ const TAG_LENGTH = 16;
 const TAG_POSITION = IV_LENGTH + SALT_LENGTH;
 const ENCRYPTED_DATA_POSITION = TAG_POSITION + TAG_LENGTH;
 
-/**
- * Derive encryption key from master key using PBKDF2
- */
-function deriveKey(masterKey: string, salt: Buffer): Buffer {
+function deriveKey(masterKey, salt) {
   return crypto.pbkdf2Sync(masterKey, salt, 100000, 32, 'sha256');
 }
 
-/**
- * Encrypt sensitive data using AES-256-GCM
- * Returns: base64(iv + salt + authTag + encryptedData)
- *
- * @param plaintext - Data to encrypt
- * @returns Encrypted string in base64 format
- */
-export function encrypt(plaintext: string): string {
+export function encrypt(plaintext) {
   if (!process.env.ENCRYPTION_KEY) {
     throw new Error('ENCRYPTION_KEY environment variable is not set');
   }
@@ -43,7 +28,6 @@ export function encrypt(plaintext: string): string {
 
   const authTag = cipher.getAuthTag();
 
-  // Combine: IV (16) + Salt (16) + AuthTag (16) + EncryptedData
   const combined = Buffer.concat([
     iv,
     salt,
@@ -54,13 +38,7 @@ export function encrypt(plaintext: string): string {
   return combined.toString('base64');
 }
 
-/**
- * Decrypt previously encrypted data
- *
- * @param encryptedBase64 - Base64 encoded encrypted data
- * @returns Decrypted plaintext
- */
-export function decrypt(encryptedBase64: string): string {
+export function decrypt(encryptedBase64) {
   if (!process.env.ENCRYPTION_KEY) {
     throw new Error('ENCRYPTION_KEY environment variable is not set');
   }
@@ -84,13 +62,8 @@ export function decrypt(encryptedBase64: string): string {
   return decrypted;
 }
 
-/**
- * Verify encrypted data integrity without decrypting
- * Useful for checking if encryption key is correct
- */
-export function canDecrypt(encryptedBase64: string): boolean {
+export function canDecrypt(encryptedBase64) {
   try {
-    // Attempt decryption with minimal overhead
     if (!process.env.ENCRYPTION_KEY) return false;
 
     const masterKey = process.env.ENCRYPTION_KEY;
@@ -109,7 +82,6 @@ export function canDecrypt(encryptedBase64: string): boolean {
     const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(authTag);
 
-    // Attempt to decrypt (will throw if auth fails)
     decipher.update(encrypted);
     decipher.final();
 

@@ -1,4 +1,4 @@
-import { encrypt, decrypt, canDecrypt } from '../encryption.ts';
+import { encrypt, decrypt, canDecrypt } from '../encryption.js';
 
 const KEY = 'test-encryption-key-32-chars-ok!';
 

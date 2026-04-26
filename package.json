@@ -5,7 +5,7 @@
   "description": "Amazon Multi-tenant AI Optimizer Platform - Multi-tenant SaaS for Amazon sellers",
   "main": "index.js",
   "scripts": {
-    "start": "node --experimental-strip-types src/server.js",
+    "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "build": "cd frontend && npm install && npm run build",
     "test": "jest --coverage",

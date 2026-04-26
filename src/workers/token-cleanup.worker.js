@@ -1,4 +1,4 @@
-import { prisma } from '../db/prisma.ts';
+import { prisma } from '../db/prisma.js';
 import { createLogger } from '../api/utils/logger.js';
 
 const logger = createLogger('TOKEN-CLEANUP');

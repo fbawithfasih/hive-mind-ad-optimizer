@@ -5,7 +5,7 @@
  */
 
 import express from 'express';
-import { prisma } from '../../db/prisma.ts';
+import { prisma } from '../../db/prisma.js';
 import { revokeOrgCredential } from '../../services/credentials.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { createLogger } from '../utils/logger.js';

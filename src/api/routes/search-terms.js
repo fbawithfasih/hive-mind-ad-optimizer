@@ -1,7 +1,7 @@
 import express from 'express';
 import { classifySearchTerms } from '../../services/search-term-classifier.js';
 import { isValidDateRange, isValidString } from '../utils/validation.js';
-import { prisma } from '../../db/prisma.ts';
+import { prisma } from '../../db/prisma.js';
 
 const router = express.Router();
 

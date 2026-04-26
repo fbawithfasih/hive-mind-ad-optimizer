@@ -1,5 +1,5 @@
 // jest.mock is hoisted — factory must not reference out-of-scope variables
-jest.mock('../../db/prisma.ts', () => ({
+jest.mock('../../db/prisma.js', () => ({
   prisma: {
     bulkListingBatch:   { update: jest.fn(), findUnique: jest.fn() },
     listingOptimization: { create: jest.fn() },
@@ -12,7 +12,7 @@ jest.mock('../../services/claude-mcp.js', () => ({
 
 import { bulkListingProcessor } from '../bulk-listing.worker.js';
 import { optimizeListing }      from '../../services/claude-mcp.js';
-import { prisma }               from '../../db/prisma.ts';
+import { prisma }               from '../../db/prisma.js';
 
 const { bulkListingBatch, listingOptimization } = prisma;
 

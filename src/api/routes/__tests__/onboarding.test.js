@@ -2,7 +2,7 @@ import express from 'express';
 import request from 'supertest';
 import onboardingRouter from '../onboarding.js';
 
-jest.mock('../../../db/prisma.ts', () => ({
+jest.mock('../../../db/prisma.js', () => ({
   prisma: {
     user:                 { findUnique: jest.fn() },
     amazonCredential:     { count: jest.fn() },
@@ -12,7 +12,7 @@ jest.mock('../../../db/prisma.ts', () => ({
   },
 }));
 
-import { prisma } from '../../../db/prisma.ts';
+import { prisma } from '../../../db/prisma.js';
 
 function makeApp(tenant = { orgId: 'org-1' }, user = { userId: 'user-1' }) {
   const app = express();

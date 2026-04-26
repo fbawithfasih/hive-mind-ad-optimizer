@@ -14,7 +14,7 @@
  *   impressions → impressions
  */
 
-import { prisma } from '../db/prisma.ts';
+import { prisma } from '../db/prisma.js';
 
 const METRIC_FIELD = {
   acos:        'acosClicks14d',

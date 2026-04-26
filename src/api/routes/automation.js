@@ -1,5 +1,5 @@
 import express from 'express';
-import { prisma } from '../../db/prisma.ts';
+import { prisma } from '../../db/prisma.js';
 import { executeRule, executeAllRules } from '../../services/rule-engine.js';
 import { createLogger } from '../utils/logger.js';
 

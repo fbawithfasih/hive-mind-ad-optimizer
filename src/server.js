@@ -8,7 +8,7 @@ import { existsSync } from 'fs';
 import routes from './api/routes/index.js';
 import { razorpayWebhookHandler } from './api/routes/billing.js';
 import { correlationIdMiddleware, createLogger } from './api/utils/logger.js';
-import { prisma } from './db/prisma.ts';
+import { prisma } from './db/prisma.js';
 import { createReportingWorker, createBulkListingWorker, createTokenCleanupWorker, tokenCleanupQueue, closeQueue } from './services/queue.js';
 import { reportingProcessor }    from './workers/reporting.worker.js';
 import { bulkListingProcessor }  from './workers/bulk-listing.worker.js';

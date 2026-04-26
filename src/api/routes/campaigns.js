@@ -1,5 +1,5 @@
 import express from 'express';
-import { prisma } from '../../db/prisma.ts';
+import { prisma } from '../../db/prisma.js';
 import mockCampaigns from '../../data/mock-campaigns.js';
 
 const router = express.Router();

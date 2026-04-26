@@ -15,7 +15,7 @@
  * reflect the real status.
  */
 
-import { prisma }           from '../db/prisma.ts';
+import { prisma }           from '../db/prisma.js';
 import { loadOrgCredential } from '../services/credentials.js';
 import { createAdsClient, default as defaultAdsClient } from '../services/amazon-ads.js';
 import { classifySearchTerms } from '../services/search-term-classifier.js';

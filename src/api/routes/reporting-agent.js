@@ -1,6 +1,6 @@
 import express from 'express';
 import { randomUUID } from 'crypto';
-import { prisma } from '../../db/prisma.ts';
+import { prisma } from '../../db/prisma.js';
 import { reportingQueue } from '../../services/queue.js';
 import { trackUsage } from '../../services/razorpay.js';
 import { createLogger } from '../utils/logger.js';
