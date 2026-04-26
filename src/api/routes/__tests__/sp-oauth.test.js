@@ -8,6 +8,16 @@ jest.mock('../../../services/credentials.js', () => ({
   saveOrgCredential: jest.fn(),
 }));
 
+// Mock auth middleware — this test covers sp-oauth route logic, not the auth layer.
+// requireAuth and withTenant are tested separately; here we pass-through so that
+// the pre-set req.user / req.tenant values are respected.
+jest.mock('../../middleware/requireAuth.js', () => ({
+  requireAuth: (_req, _res, next) => next(),
+}));
+jest.mock('../../middleware/withTenant.js', () => ({
+  withTenant: (_req, _res, next) => next(),
+}));
+
 import axios from 'axios';
 import { saveOrgCredential } from '../../../services/credentials.js';
 
