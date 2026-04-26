@@ -1,3 +1,6 @@
+[build]
+buildCommand = "npm install && cd frontend && npm install && npm run build && cd .."
+
 [deploy]
 startCommand = "npx prisma migrate deploy && node --experimental-strip-types src/server.js"
 healthcheckPath = "/health"
