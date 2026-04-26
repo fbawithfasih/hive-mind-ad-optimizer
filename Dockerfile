@@ -30,16 +30,12 @@ RUN npx prisma generate
 # ============================================================================
 FROM node:22-alpine AS runner
 
-# Install dumb-init for proper signal handling in containers
 RUN apk add --no-cache dumb-init
 
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=8080
 
 WORKDIR /app
-
-# Non-root user for least privilege
-RUN addgroup -S amaiop && adduser -S amaiop -G amaiop
 
 # Copy backend prod deps + generated prisma client
 COPY --from=backend-deps /app/node_modules ./node_modules
@@ -49,16 +45,10 @@ COPY --from=backend-deps /app/prisma ./prisma
 COPY src/ ./src/
 COPY package.json ./
 
-# Copy built frontend (served as static files in production)
+# Copy built frontend
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
-# Drop to non-root
-USER amaiop
-
-EXPOSE 3000
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-  CMD wget -qO- http://localhost:3000/health || exit 1
+EXPOSE 8080
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "src/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node src/server.js"]
