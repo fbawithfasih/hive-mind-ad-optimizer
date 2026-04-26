@@ -141,10 +141,10 @@ export async function loadOrgCredential(orgId) {
     spClientSecret: process.env.SP_API_CLIENT_SECRET ?? '',
     spRefreshToken,
     sellerId,
-    // Amazon Ads API — prefer dedicated AMAZON_ADS_* vars; fall back to SP_API credentials
-    // (in the SPN model the same LWA app covers both APIs with the same refresh token)
-    adsClientId:     process.env.AMAZON_ADS_CLIENT_ID     ?? process.env.SP_API_CLIENT_ID     ?? '',
-    adsClientSecret: process.env.AMAZON_ADS_CLIENT_SECRET ?? process.env.SP_API_CLIENT_SECRET ?? '',
+    // Ads API: the refresh token came from the SP-API LWA app OAuth grant,
+    // so always use SP_API client credentials to exchange it — not a separate Ads app.
+    adsClientId:     process.env.SP_API_CLIENT_ID     ?? '',
+    adsClientSecret: process.env.SP_API_CLIENT_SECRET ?? '',
     adsRefreshToken,
   };
 }
