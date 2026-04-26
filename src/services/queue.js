@@ -1,0 +1,179 @@
+/**
+ * BullMQ queue and connection setup
+ *
+ * Provides:
+ *   - reportingQueue        — add reporting jobs from API routes
+ *   - bulkListingQueue      — add per-item bulk listing jobs from API routes
+ *   - createReportingWorker(processor)  — start the reporting worker (called in server.js)
+ *   - createBulkListingWorker(processor) — start the bulk listing worker (called in server.js)
+ *   - closeQueue() — graceful shutdown for all queues
+ *
+ * BullMQ requires a separate IORedis connection per Queue / Worker / QueueEvents,
+ * so makeRedisConnection() is called once per primitive.
+ *
+ * REDIS_URL defaults to redis://localhost:6379
+ */
+
+import { Queue, Worker } from 'bullmq';
+import IORedis from 'ioredis';
+import { createLogger } from '../api/utils/logger.js';
+
+const logger = createLogger('QUEUE');
+
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const QUEUE_NAME         = 'reporting';
+const BULK_QUEUE_NAME    = 'bulk-listing';
+const CLEANUP_QUEUE_NAME = 'token-cleanup';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Redis connection factory
+// BullMQ requires a separate IORedis connection per Queue / Worker / QueueEvents
+// ─────────────────────────────────────────────────────────────────────────────
+
+function makeRedisConnection() {
+  const conn = new IORedis(REDIS_URL, {
+    maxRetriesPerRequest: null, // Required by BullMQ
+    enableReadyCheck:     false,
+    lazyConnect:          false,
+  });
+
+  conn.on('connect', () => logger.info(`Redis connected (${REDIS_URL})`));
+  conn.on('error',   (err) => logger.error(`Redis error: ${err.message}`));
+
+  return conn;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Queue (used by API routes to enqueue jobs)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const reportingQueue = new Queue(QUEUE_NAME, {
+  connection: makeRedisConnection(),
+  defaultJobOptions: {
+    attempts:    3,          // Retry failed jobs up to 3 times
+    backoff: {
+      type:  'exponential',
+      delay: 5000,           // 5s → 25s → 125s between retries
+    },
+    removeOnComplete: { count: 100 },  // Keep last 100 completed jobs in Redis
+    removeOnFail:     { count: 50  },  // Keep last 50 failed jobs for debugging
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Worker factory (called once in server.js)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @param {Function} processor  - async (job) => void
+ * @returns {Worker}
+ */
+export function createReportingWorker(processor) {
+  const worker = new Worker(QUEUE_NAME, processor, {
+    connection:  makeRedisConnection(),
+    concurrency: 2,   // Max 2 reports running simultaneously per server instance
+  });
+
+  worker.on('completed', (job) => {
+    logger.info(`Job ${job.id} completed (${job.data.reportType})`);
+  });
+
+  worker.on('failed', (job, err) => {
+    logger.error(`Job ${job?.id} failed (attempt ${job?.attemptsMade}): ${err.message}`);
+  });
+
+  worker.on('stalled', (jobId) => {
+    logger.warn(`Job ${jobId} stalled — will be retried`);
+  });
+
+  logger.info(`Reporting worker started (concurrency=2)`);
+  return worker;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bulk listing queue (per-item jobs from POST /api/listings/bulk-optimize)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const bulkListingQueue = new Queue(BULK_QUEUE_NAME, {
+  connection: makeRedisConnection(),
+  defaultJobOptions: {
+    attempts:    2,
+    backoff: { type: 'exponential', delay: 3000 },
+    removeOnComplete: { count: 200 },
+    removeOnFail:     { count: 100 },
+  },
+});
+
+/**
+ * @param {Function} processor  - async (job) => void
+ * @returns {Worker}
+ */
+export function createBulkListingWorker(processor) {
+  const worker = new Worker(BULK_QUEUE_NAME, processor, {
+    connection:  makeRedisConnection(),
+    concurrency: 3,  // 3 concurrent listing optimizations
+  });
+
+  worker.on('completed', (job) => {
+    logger.info(`Bulk item ${job.id} completed (batch ${job.data.batchRef})`);
+  });
+
+  worker.on('failed', (job, err) => {
+    logger.error(`Bulk item ${job?.id} failed (batch ${job?.data?.batchRef}, attempt ${job?.attemptsMade}): ${err.message}`);
+  });
+
+  worker.on('stalled', (jobId) => {
+    logger.warn(`Bulk item ${jobId} stalled — will be retried`);
+  });
+
+  logger.info(`Bulk listing worker started (concurrency=3)`);
+  return worker;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Token cleanup queue — repeatable nightly job (runs via scheduler in server.js)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const tokenCleanupQueue = new Queue(CLEANUP_QUEUE_NAME, {
+  connection: makeRedisConnection(),
+  defaultJobOptions: {
+    attempts:         2,
+    backoff:          { type: 'exponential', delay: 60_000 },
+    removeOnComplete: { count: 10 },
+    removeOnFail:     { count: 10 },
+  },
+});
+
+/**
+ * @param {Function} processor  - async (job) => void
+ * @returns {Worker}
+ */
+export function createTokenCleanupWorker(processor) {
+  const worker = new Worker(CLEANUP_QUEUE_NAME, processor, {
+    connection:  makeRedisConnection(),
+    concurrency: 1,
+  });
+
+  worker.on('completed', (job) => {
+    logger.info(`Token cleanup job ${job.id} completed`);
+  });
+
+  worker.on('failed', (job, err) => {
+    logger.error(`Token cleanup job ${job?.id} failed: ${err.message}`);
+  });
+
+  logger.info('Token cleanup worker started');
+  return worker;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Graceful shutdown
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function closeQueue() {
+  await Promise.all([
+    reportingQueue.close(),
+    bulkListingQueue.close(),
+    tokenCleanupQueue.close(),
+  ]);
+}

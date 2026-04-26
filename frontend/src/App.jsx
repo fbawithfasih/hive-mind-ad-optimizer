@@ -1,31 +1,105 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import './index.css';
-import Dashboard from './pages/Dashboard';
-import LoginPage from './pages/LoginPage';
-import { getMeApi } from './services/api.js';
+import { getMeApi, getOnboardingStatus } from './services/api.js';
+import Dashboard        from './pages/Dashboard.jsx';
+import LoginPage        from './pages/LoginPage.jsx';
+import SignupPage       from './pages/SignupPage.jsx';
+import VerifyEmailPage  from './pages/VerifyEmailPage.jsx';
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
+import ResetPasswordPage  from './pages/ResetPasswordPage.jsx';
+import OnboardingPage   from './pages/OnboardingPage.jsx';
+import BillingPage      from './pages/BillingPage.jsx';
+
+function Spinner() {
+  return (
+    <div style={{ minHeight: '100vh', background: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ color: '#475569', fontSize: 14 }}>Loading…</div>
+    </div>
+  );
+}
+
+function RequireAuth({ user, children }) {
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+
+// Wraps the dashboard root ("/") — redirects to onboarding when incomplete.
+// Sub-paths like /billing are never blocked so navigation stays free.
+function ProtectedDashboard({ user, onboarded, onLogout, setUser }) {
+  const location = useLocation();
+  if (onboarded === false && location.pathname === '/') {
+    return <Navigate to="/onboarding" replace />;
+  }
+  return <Dashboard user={user} onboarded={onboarded} onLogout={onLogout} setUser={setUser} />;
+}
 
 export default function App() {
-  const [user, setUser]       = useState(null);   // null = not checked yet
-  const [checked, setChecked] = useState(false);  // true once /me resolves
+  const [user, setUser]         = useState(null);
+  const [checked, setChecked]   = useState(false);
+  const [onboarded, setOnboarded] = useState(null); // null = still checking
 
-  // On mount: check if there's an active session
-  useEffect(() => {
-    getMeApi()
-      .then(u => setUser(u))
-      .catch(() => setUser(false))
-      .finally(() => setChecked(true));
-  }, []);
-
-  if (!checked) {
-    // Tiny loading state while session check runs
-    return (
-      <div style={{ minHeight: '100vh', background: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: '#475569', fontSize: 14 }}>Loading…</div>
-      </div>
-    );
+  async function loadUser() {
+    try {
+      const u = await getMeApi();
+      setUser(u);
+      // Only check onboarding when the user belongs to at least one org;
+      // without an org the endpoint returns 400.
+      if (u?.organizations?.length > 0) {
+        try {
+          const status = await getOnboardingStatus();
+          setOnboarded(status.complete);
+        } catch {
+          setOnboarded(true); // don't block on failure
+        }
+      } else {
+        setOnboarded(false); // no org → onboarding definitely not done
+      }
+    } catch {
+      setUser(false);
+      setOnboarded(true);
+    } finally {
+      setChecked(true);
+    }
   }
 
-  if (!user) return <LoginPage onLogin={setUser} />;
+  useEffect(() => { loadUser(); }, []);
 
-  return <Dashboard user={user} onLogout={() => setUser(false)} />;
+  if (!checked) return <Spinner />;
+
+  const loggedIn = !!user;
+
+  return (
+    <Routes>
+      {/* ── Public auth routes ─────────────────────────────────────── */}
+      <Route path="/login"
+        element={loggedIn ? <Navigate to="/" replace /> : <LoginPage onLogin={u => { setUser(u); setOnboarded(null); loadUser(); }} />}
+      />
+      <Route path="/signup"
+        element={loggedIn ? <Navigate to="/" replace /> : <SignupPage onSignup={u => { setUser(u); setOnboarded(false); }} />}
+      />
+      <Route path="/verify-email"  element={<VerifyEmailPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password"  element={<ResetPasswordPage />} />
+
+      {/* ── Protected routes ───────────────────────────────────────── */}
+      <Route path="/onboarding" element={
+        <RequireAuth user={user}>
+          <OnboardingPage user={user} onComplete={() => setOnboarded(true)} />
+        </RequireAuth>
+      } />
+      <Route path="/billing" element={
+        <RequireAuth user={user}>
+          <BillingPage user={user} onLogout={() => setUser(false)} />
+        </RequireAuth>
+      } />
+
+      {/* ── Dashboard (default) ────────────────────────────────────── */}
+      <Route path="/*" element={
+        loggedIn
+          ? <ProtectedDashboard user={user} onboarded={onboarded} onLogout={() => setUser(false)} setUser={setUser} />
+          : <Navigate to="/login" replace />
+      } />
+    </Routes>
+  );
 }

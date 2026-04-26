@@ -6,8 +6,8 @@
 import axios from 'axios';
 
 /**
- * Create a token manager for an Amazon API service
- * Handles token refresh with caching and expiry
+ * Create a token manager for an Amazon API service.
+ * Handles token refresh with in-memory caching and expiry.
  */
 export function createTokenManager(clientId, clientSecret, refreshToken, logPrefix = 'API') {
   let cachedToken = null;
@@ -57,4 +57,43 @@ export function createTokenManager(clientId, clientSecret, refreshToken, logPref
       tokenExpiry = null;
     },
   };
+}
+
+/**
+ * Module-level registry of token managers keyed by a stable cache key.
+ * Allows per-org token managers to be reused across requests without
+ * creating a new HTTP round-trip on every call.
+ *
+ * Key format: "<apiType>:<clientId>:<refreshTokenSuffix>"
+ */
+const tokenManagerRegistry = new Map();
+
+/**
+ * Get or create a cached token manager for the given credentials.
+ *
+ * @param {string} cacheKey   - Unique, stable key (e.g. "ads:orgId:abc123")
+ * @param {string} clientId
+ * @param {string} clientSecret
+ * @param {string} refreshToken
+ * @param {string} [logPrefix]
+ */
+export function getOrCreateTokenManager(cacheKey, clientId, clientSecret, refreshToken, logPrefix = 'API') {
+  if (!tokenManagerRegistry.has(cacheKey)) {
+    tokenManagerRegistry.set(
+      cacheKey,
+      createTokenManager(clientId, clientSecret, refreshToken, logPrefix)
+    );
+  }
+  return tokenManagerRegistry.get(cacheKey);
+}
+
+/**
+ * Invalidate a cached token manager (e.g. after credential rotation).
+ */
+export function invalidateTokenManager(cacheKey) {
+  const manager = tokenManagerRegistry.get(cacheKey);
+  if (manager) {
+    manager.invalidate();
+    tokenManagerRegistry.delete(cacheKey);
+  }
 }

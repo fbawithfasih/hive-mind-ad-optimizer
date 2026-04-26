@@ -5,6 +5,7 @@
 
 import axios from 'axios';
 import { getProfiles, getCampaigns } from '../amazon-ads.js';
+import { invalidateTokenManager } from '../auth-utils.js';
 
 // Mock axios to avoid real API calls
 jest.mock('axios');
@@ -12,6 +13,9 @@ jest.mock('axios');
 describe('Amazon Ads API', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Clear the cached token so each test starts with a fresh token fetch.
+    // The default client uses cacheKey 'ads:default' in the module-level registry.
+    invalidateTokenManager('ads:default');
   });
 
   describe('Token Refresh', () => {

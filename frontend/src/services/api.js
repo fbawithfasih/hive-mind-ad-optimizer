@@ -84,24 +84,149 @@ export async function getMeApi() {
   return res.data;
 }
 
-/**
- * Log in with email and password
- * @param {string} email - User email address
- * @param {string} password - User password
- * @returns {Promise<{token: string, user: {email: string, role: string}}>} Authentication result
- * @throws {Error} If credentials are invalid
- */
 export async function loginApi(email, password) {
   const res = await api.post('/auth/login', { email, password });
   return res.data;
 }
 
-/**
- * Log out current user
- * @returns {Promise<void>}
- */
+export async function signupApi(email, password, firstName = '', lastName = '') {
+  const res = await api.post('/auth/signup', { email, password, firstName, lastName });
+  return res.data;
+}
+
 export async function logoutApi() {
   await api.post('/auth/logout');
+}
+
+export async function forgotPasswordApi(email) {
+  const res = await api.post('/auth/forgot-password', { email });
+  return res.data;
+}
+
+export async function resetPasswordApi(token, password) {
+  const res = await api.post('/auth/reset-password', { token, password });
+  return res.data;
+}
+
+export async function verifyEmailApi(token) {
+  const res = await api.get('/auth/verify-email', { params: { token } });
+  return res.data;
+}
+
+export async function switchOrgApi(orgId) {
+  const { data } = await api.post('/auth/switch-org', { orgId });
+  return data;
+}
+
+export async function resendVerificationApi() {
+  const res = await api.post('/auth/resend-verification');
+  return res.data;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Amazon connection (SP-API OAuth)
+// ────────────────────────────────────────────────────────────────────────────
+
+export async function getAmazonStatus() {
+  const res = await api.get('/credentials/status');
+  return res.data;
+}
+
+export async function disconnectAmazonApi(credentialId) {
+  const res = await api.delete(`/credentials/${credentialId}`);
+  return res.data;
+}
+
+export async function getOnboardingStatus() {
+  const res = await api.get('/onboarding/status');
+  return res.data;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Profiles API
+// ────────────────────────────────────────────────────────────────────────────
+
+export async function getStoredProfilesApi() {
+  const res = await api.get('/profiles');
+  return res.data;
+}
+
+export async function syncProfilesApi() {
+  const res = await api.post('/profiles/sync');
+  return res.data;
+}
+
+export async function setDefaultProfileApi(profileId) {
+  const res = await api.put(`/profiles/${profileId}/default`);
+  return res.data;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Team / Org Members API
+// ────────────────────────────────────────────────────────────────────────────
+
+export async function getOrgMembersApi(orgId) {
+  const res = await api.get(`/orgs/${orgId}/members`);
+  return res.data;
+}
+
+export async function addOrgMemberApi(orgId, email, role) {
+  const res = await api.post(`/orgs/${orgId}/members`, { email, role });
+  return res.data;
+}
+
+export async function updateOrgMemberRoleApi(orgId, userId, role) {
+  const res = await api.put(`/orgs/${orgId}/members/${userId}`, { role });
+  return res.data;
+}
+
+export async function removeOrgMemberApi(orgId, userId) {
+  const res = await api.delete(`/orgs/${orgId}/members/${userId}`);
+  return res.data;
+}
+
+export async function getBillingStatus() {
+  const res = await api.get('/billing/status');
+  return res.data;
+}
+
+export async function createCheckoutSession(tier) {
+  const res = await api.post('/billing/checkout', { tier });
+  return res.data; // { subscriptionId, keyId }
+}
+
+export async function verifyPaymentApi(paymentId, subscriptionId, signature) {
+  const res = await api.post('/billing/verify', {
+    razorpay_payment_id:       paymentId,
+    razorpay_subscription_id:  subscriptionId,
+    razorpay_signature:        signature,
+  });
+  return res.data;
+}
+
+export async function cancelSubscriptionApi() {
+  const res = await api.post('/billing/cancel');
+  return res.data;
+}
+
+export async function bulkOptimizeApi(items, model = 'gemini') {
+  const res = await api.post('/listings/bulk-optimize', { items, model });
+  return res.data;
+}
+
+export async function getBulkStatusApi(batchId) {
+  const res = await api.get(`/listings/bulk-status/${batchId}`);
+  return res.data;
+}
+
+export async function getListingHealth(asin) {
+  const res = await api.get('/listings/health', { params: { asin } });
+  return res.data;
+}
+
+export async function getKeywordRecommendations(params = {}) {
+  const res = await api.get('/keywords/recommendations', { params });
+  return res.data;
 }
 
 // ────────────────────────────────────────────────────────────────────────────

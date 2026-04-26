@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCampaigns, startCampaignMetricsReport, checkReportStatus } from '../../services/amazon-ads.js';
+import { prisma } from '../../db/prisma.ts';
 
 const router = express.Router();
 
@@ -18,14 +18,28 @@ function validateDates(startDate, endDate, res) {
 }
 
 /**
+ * Resolve profileId:
+ *   1. Query param ?profileId=
+ *   2. Org's default (or any) SellerProfile in DB
+ *   3. AMAZON_DEFAULT_PROFILE_ID env var
+ */
+async function resolveProfileId(req) {
+  if (req.query.profileId) return req.query.profileId;
+
+  const profile = await prisma.sellerProfile.findFirst({
+    where: { orgId: req.tenant.orgId },
+    orderBy: { isDefault: 'desc' },
+  });
+
+  return profile?.profileId ?? process.env.AMAZON_DEFAULT_PROFILE_ID;
+}
+
+/**
  * GET /api/reports/start
- *
- * Creates a campaign metrics report and returns immediately with { reportId, campaigns, startDate, endDate }.
- * Poll GET /api/reports/status?reportId=&profileId= until status === 'COMPLETED'.
  */
 router.get('/start', async (req, res) => {
-  const profileId = req.query.profileId || process.env.AMAZON_DEFAULT_PROFILE_ID;
-  if (!profileId) return res.status(400).json({ error: 'profileId required' });
+  const profileId = await resolveProfileId(req);
+  if (!profileId) return res.status(400).json({ error: 'profileId required — no profile configured for this organization.' });
 
   const endDate   = req.query.endDate   || new Date().toISOString().slice(0, 10);
   const startDate = req.query.startDate || new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
@@ -34,8 +48,8 @@ router.get('/start', async (req, res) => {
 
   try {
     const [campaigns, reportId] = await Promise.all([
-      getCampaigns(profileId),
-      startCampaignMetricsReport(profileId, startDate, endDate),
+      req.adsClient.getCampaigns(profileId),
+      req.adsClient.startCampaignMetricsReport(profileId, startDate, endDate),
     ]);
     res.json({ reportId, campaigns, startDate, endDate });
   } catch (err) {
@@ -46,19 +60,16 @@ router.get('/start', async (req, res) => {
 
 /**
  * GET /api/reports/status?reportId=&profileId=
- *
- * Single poll tick. Returns:
- *   { status: 'PENDING' | 'PROCESSING' }  — still in progress
- *   { status: 'COMPLETED', data: [] }      — raw metrics records
  */
 router.get('/status', async (req, res) => {
   const { reportId } = req.query;
-  const profileId = req.query.profileId || process.env.AMAZON_DEFAULT_PROFILE_ID;
-  if (!reportId)  return res.status(400).json({ error: 'reportId required' });
-  if (!profileId) return res.status(400).json({ error: 'profileId required' });
+  if (!reportId) return res.status(400).json({ error: 'reportId required' });
+
+  const profileId = await resolveProfileId(req);
+  if (!profileId) return res.status(400).json({ error: 'profileId required — no profile configured for this organization.' });
 
   try {
-    const result = await checkReportStatus(profileId, reportId);
+    const result = await req.adsClient.checkReportStatus(profileId, reportId);
     res.json(result);
   } catch (err) {
     console.error('Reports status error:', err.message);

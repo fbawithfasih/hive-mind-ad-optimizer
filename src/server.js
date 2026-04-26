@@ -6,7 +6,13 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { existsSync } from 'fs';
 import routes from './api/routes/index.js';
+import { razorpayWebhookHandler } from './api/routes/billing.js';
 import { correlationIdMiddleware, createLogger } from './api/utils/logger.js';
+import { prisma } from './db/prisma.ts';
+import { createReportingWorker, createBulkListingWorker, createTokenCleanupWorker, tokenCleanupQueue, closeQueue } from './services/queue.js';
+import { reportingProcessor }    from './workers/reporting.worker.js';
+import { bulkListingProcessor }  from './workers/bulk-listing.worker.js';
+import { tokenCleanupProcessor } from './workers/token-cleanup.worker.js';
 
 dotenv.config({ override: true });
 
@@ -32,6 +38,11 @@ if (isProd && !process.env.FRONTEND_URL) {
 
 app.use(cors(corsOptions));
 app.use(cookieParser());
+
+// Razorpay webhook MUST receive the raw body before express.json() parses it.
+// Mounted here so it bypasses JSON middleware.
+app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), razorpayWebhookHandler);
+
 app.use(express.json());
 app.use(correlationIdMiddleware); // Add correlation ID to all requests
 
@@ -74,6 +85,40 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   logger.info('Server started', { port: PORT, nodeEnv: process.env.NODE_ENV });
 });
+
+// Start BullMQ workers
+const reportingWorker    = createReportingWorker(reportingProcessor);
+const bulkListingWorker  = createBulkListingWorker(bulkListingProcessor);
+const tokenCleanupWorker = createTokenCleanupWorker(tokenCleanupProcessor);
+
+// Schedule nightly token cleanup at 02:00 UTC (repeatable, deduplicated by jobId)
+tokenCleanupQueue.add(
+  'nightly-cleanup',
+  {},
+  {
+    repeat:   { pattern: '0 2 * * *' },
+    jobId:    'nightly-token-cleanup',
+  },
+).catch((err) => logger.warn(`Could not schedule token cleanup (Redis unavailable?): ${err.message}`));
+
+// Graceful shutdown — finish in-progress jobs before exiting
+async function shutdown(signal) {
+  logger.info(`${signal} received — shutting down gracefully`);
+  server.close(async () => {
+    await reportingWorker.close();
+    await bulkListingWorker.close();
+    await tokenCleanupWorker.close();
+    await closeQueue();
+    await prisma.$disconnect();
+    logger.info('Shutdown complete');
+    process.exit(0);
+  });
+  // Force exit after 30s if graceful shutdown hangs
+  setTimeout(() => process.exit(1), 30_000).unref();
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT',  () => shutdown('SIGINT'));

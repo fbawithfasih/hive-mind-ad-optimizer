@@ -1,0 +1,67 @@
+# ============================================================================
+# AMAIOP — production compose override
+#
+# Usage:
+#   DOMAIN=app.yourdomain.com \
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Prerequisites:
+#   1. Populate .env from .env.example with production values
+#   2. Open ports 80 and 443 on the server (Caddy handles TLS automatically)
+#   3. Point your domain's A record to the server IP
+# ============================================================================
+
+services:
+  app:
+    image: amaiop:latest
+    container_name: amaiop-app
+    restart: unless-stopped
+    # No direct port exposure — traffic flows through Caddy only
+    expose:
+      - "3000"
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/amaiop_prod
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: amaiop-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3 (QUIC)
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data          # TLS certificates (persist across restarts)
+      - caddy_config:/config
+    environment:
+      DOMAIN: ${DOMAIN}
+    depends_on:
+      app:
+        condition: service_healthy
+
+  # Override dev postgres to use production DB name and a separate volume
+  postgres:
+    environment:
+      POSTGRES_DB: amaiop_prod
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_prod_data:
+  caddy_data:
+  caddy_config:

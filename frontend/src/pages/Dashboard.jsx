@@ -1,11 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import CampaignTable from '../components/CampaignTable';
 import CommandInput from '../components/CommandInput';
 import ResultsDisplay from '../components/ResultsDisplay';
 import SearchTermPanel from '../components/SearchTermPanel.jsx';
 import ListingOptimizerPanel from '../components/ListingOptimizerPanel.jsx';
 import ReportingAgentPanel from '../components/ReportingAgentPanel.jsx';
-import { logoutApi } from '../services/api.js';
+import BulkOptimizerPanel from '../components/BulkOptimizerPanel.jsx';
+import ListingHealthPanel from '../components/ListingHealthPanel.jsx';
+import KeywordRecommendationsPanel from '../components/KeywordRecommendationsPanel.jsx';
+import AmazonConnectPanel from '../components/AmazonConnectPanel.jsx';
+import ProfilesPanel from '../components/ProfilesPanel.jsx';
+import TeamPanel from '../components/TeamPanel.jsx';
+import { logoutApi, resendVerificationApi, switchOrgApi } from '../services/api.js';
 import { getTodayISO, getDaysAgoISO } from '../utils/date-helpers.js';
 import { useProfileState } from '../hooks/useProfileState.js';
 import { useDateRangeState } from '../hooks/useDateRangeState.js';
@@ -28,7 +35,7 @@ function StatCard({ label, value, sub, gradient, icon }) {
   );
 }
 
-export default function Dashboard({ user, onLogout }) {
+export default function Dashboard({ user, onboarded, onLogout }) {
   // Custom hooks for state management
   const { profiles, selectedProfileId, setSelectedProfileId, selectedProfile } = useProfileState();
   const { dateFrom, dateTo, today, thirtyDaysAgo, handleDateFromChange, handleDateToChange } = useDateRangeState();
@@ -38,7 +45,40 @@ export default function Dashboard({ user, onLogout }) {
 
   const sixtyDaysAgo = getDaysAgoISO(60);
   const [activeTab, setActiveTab] = useState('campaigns');
+
+  // Switch to the Amazon tab when redirected back from the SP-API OAuth flow
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('connected') === 'amazon') {
+      setActiveTab('amazon');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
   const [loadedSearchTerms, setLoadedSearchTerms] = useState([]);
+  const [verifyBannerDismissed, setVerifyBannerDismissed] = useState(false);
+  const [resentVerify, setResentVerify] = useState(false);
+  const [switchingOrg, setSwitchingOrg] = useState(false);
+
+  const organizations = user?.organizations ?? [];
+  const activeOrgId   = user?.currentOrg?.id ?? '';
+
+  async function handleSwitchOrg(orgId) {
+    if (orgId === activeOrgId || switchingOrg) return;
+    setSwitchingOrg(true);
+    try {
+      await switchOrgApi(orgId);
+      // Re-fetch user (new JWT cookie is set) then reload so all data refreshes
+      window.location.reload();
+    } catch {
+      setSwitchingOrg(false);
+    }
+  }
+
+  const showVerifyBanner = !verifyBannerDismissed && user?.user && !user.user?.emailVerified;
+
+  async function handleResendVerify() {
+    try { await resendVerificationApi(); setResentVerify(true); } catch {}
+  }
 
   // Consolidate errors: prioritize metrics error, then campaign error, then AI error
   const error = metricsError || campaignError || aiError;
@@ -58,6 +98,19 @@ export default function Dashboard({ user, onLogout }) {
         </div>
 
         <div className="flex items-center gap-3">
+          {organizations.length > 1 && (
+            <select
+              value={activeOrgId}
+              onChange={e => handleSwitchOrg(e.target.value)}
+              disabled={switchingOrg}
+              className="text-sm rounded-lg px-3 py-2 focus:outline-none"
+              style={{ background: '#263348', border: '1px solid #334155', color: switchingOrg ? '#64748B' : '#F1F5F9', maxWidth: 180 }}
+            >
+              {organizations.map(o => (
+                <option key={o.id} value={o.id}>{o.name}</option>
+              ))}
+            </select>
+          )}
           {profiles.length > 0 && (
             <select
               value={selectedProfileId}
@@ -87,6 +140,9 @@ export default function Dashboard({ user, onLogout }) {
                 {user.email}
               </span>
             )}
+            <Link to="/billing" style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #334155', background: 'transparent', color: '#94A3B8', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+              Billing
+            </Link>
             <button
               onClick={async () => { await logoutApi(); onLogout(); }}
               style={{
@@ -99,6 +155,32 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </div>
       </header>
+
+      {/* ── Onboarding progress banner ── */}
+      {onboarded === false && (
+        <div style={{ background: '#3B82F618', borderBottom: '1px solid #3B82F640', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 13, color: '#93C5FD' }}>
+            Setup incomplete — connect your Amazon account and complete onboarding to unlock all features.
+          </span>
+          <a href="/onboarding" style={{ fontSize: 12, fontWeight: 700, color: '#3B82F6', textDecoration: 'none', whiteSpace: 'nowrap', padding: '4px 12px', border: '1px solid #3B82F640', borderRadius: 6 }}>
+            Continue setup →
+          </a>
+        </div>
+      )}
+
+      {/* ── Email verification banner ── */}
+      {showVerifyBanner && (
+        <div style={{ background: '#F59E0B18', borderBottom: '1px solid #F59E0B40', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 13, color: '#FCD34D' }}>
+            ✉️ Please verify your email address to unlock all features.
+            {resentVerify
+              ? <span style={{ marginLeft: 8, color: '#10B981' }}>Verification email sent!</span>
+              : <button onClick={handleResendVerify} style={{ marginLeft: 8, background: 'none', border: 'none', color: '#F59E0B', fontWeight: 700, fontSize: 13, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Resend email</button>
+            }
+          </span>
+          <button onClick={() => setVerifyBannerDismissed(true)} style={{ background: 'none', border: 'none', color: '#92400E', fontSize: 16, cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}>×</button>
+        </div>
+      )}
 
       <main className="flex-1 p-6 flex flex-col gap-6 w-full max-w-screen-xl mx-auto">
 
@@ -140,12 +222,18 @@ export default function Dashboard({ user, onLogout }) {
         )}
 
         {/* ── Tab bar ── */}
-        <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid #334155' }}>
+        <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid #334155', flexWrap: 'wrap' }}>
           {[
             { id: 'campaigns',    label: 'Campaigns' },
             { id: 'search-terms', label: 'Search Terms' },
             { id: 'listings',     label: 'Listing Optimizer' },
+            { id: 'bulk',         label: 'Bulk Optimizer' },
+            { id: 'health',       label: 'Listing Health' },
+            { id: 'keywords',     label: 'Keywords' },
             { id: 'reports',      label: 'Reporting Agent' },
+            { id: 'amazon',       label: 'Amazon Account' },
+            { id: 'profiles',     label: 'Profiles' },
+            { id: 'team',         label: 'Team' },
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
               padding: '10px 20px', fontSize: 13, fontWeight: 600,
@@ -211,10 +299,39 @@ export default function Dashboard({ user, onLogout }) {
           />
         )}
 
+        {activeTab === 'bulk' && (
+          <BulkOptimizerPanel aiModel={aiModel} />
+        )}
+
+        {activeTab === 'health' && (
+          <ListingHealthPanel />
+        )}
+
+        {activeTab === 'keywords' && (
+          <KeywordRecommendationsPanel profileId={selectedProfileId} />
+        )}
+
         {activeTab === 'reports' && (
           <ReportingAgentPanel
             profileId={selectedProfileId}
             aiModel={aiModel}
+          />
+        )}
+
+        {/* ── Amazon Account tab ── */}
+        {activeTab === 'amazon' && <AmazonConnectPanel />}
+
+        {/* ── Profiles tab ── */}
+        {activeTab === 'profiles' && (
+          <ProfilesPanel isAdmin={user?.currentOrg?.role === 'ADMIN'} />
+        )}
+
+        {/* ── Team tab ── */}
+        {activeTab === 'team' && (
+          <TeamPanel
+            orgId={user?.currentOrg?.id}
+            currentUserId={user?.user?.id}
+            isAdmin={user?.currentOrg?.role === 'ADMIN'}
           />
         )}
 

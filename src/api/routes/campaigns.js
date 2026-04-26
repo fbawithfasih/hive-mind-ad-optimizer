@@ -1,19 +1,37 @@
 import express from 'express';
-import { getCampaigns as getAmazonCampaigns } from '../../services/amazon-ads.js';
+import { prisma } from '../../db/prisma.ts';
 import mockCampaigns from '../../data/mock-campaigns.js';
 
 const router = express.Router();
 
-// GET /api/campaigns - Fetch campaigns (live or mock)
+/**
+ * Resolve profileId for this request:
+ *   1. Query param ?profileId=
+ *   2. Org's default SellerProfile in DB
+ *   3. Any SellerProfile stored for the org
+ *   4. AMAZON_DEFAULT_PROFILE_ID env var (legacy fallback)
+ */
+async function resolveProfileId(req) {
+  if (req.query.profileId) return req.query.profileId;
+
+  const profile = await prisma.sellerProfile.findFirst({
+    where: { orgId: req.tenant.orgId },
+    orderBy: { isDefault: 'desc' },
+  });
+
+  return profile?.profileId ?? process.env.AMAZON_DEFAULT_PROFILE_ID;
+}
+
+// GET /api/campaigns
 router.get('/', async (req, res) => {
-  const profileId = req.query.profileId || process.env.AMAZON_DEFAULT_PROFILE_ID;
-
   try {
-    if (profileId) {
-      console.log(`Fetching live campaigns for profile ${profileId}...`);
-      const campaigns = await getAmazonCampaigns(profileId);
+    const profileId = await resolveProfileId(req);
 
-      const formatted = campaigns.map(c => ({
+    if (profileId) {
+      console.log(`Fetching live campaigns for profile ${profileId} (org ${req.tenant.orgId})…`);
+      const campaigns = await req.adsClient.getCampaigns(profileId);
+
+      const formatted = campaigns.map((c) => ({
         id: c.campaignId.toString(),
         name: c.name,
         status: c.state.toLowerCase(),
@@ -21,7 +39,6 @@ router.get('/', async (req, res) => {
         campaignType: c.campaignType,
         targetingType: c.targetingType,
         startDate: c.startDate,
-        // Metrics require a separate reports API call
         spend: null,
         impressions: null,
         clicks: null,
@@ -34,27 +51,18 @@ router.get('/', async (req, res) => {
       return res.json(formatted);
     }
 
-    // Fall back to mock data only if no profile configured
-    console.log('No profile ID configured — returning mock campaign data');
+    console.log('No profile configured for org — returning mock campaign data');
     res.json(mockCampaigns);
-    
   } catch (error) {
     console.error('Campaigns route error:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch campaigns',
-      message: error.message 
-    });
+    res.status(500).json({ error: 'Failed to fetch campaigns', message: error.message });
   }
 });
 
-// GET /api/campaigns/:id - Get specific campaign
+// GET /api/campaigns/:id
 router.get('/:id', (req, res) => {
-  const campaign = mockCampaigns.find(c => c.id === req.params.id);
-  
-  if (!campaign) {
-    return res.status(404).json({ error: 'Campaign not found' });
-  }
-  
+  const campaign = mockCampaigns.find((c) => c.id === req.params.id);
+  if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
   res.json(campaign);
 });
 

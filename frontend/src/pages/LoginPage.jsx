@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { loginApi } from '../services/api.js';
 
 export default function LoginPage({ onLogin }) {
@@ -105,9 +106,17 @@ export default function LoginPage({ onLogin }) {
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: 24, fontSize: 12, color: '#334155' }}>
-          Hive Mind Nestor · Amazon Ads Partner
-        </p>
+        <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+          <Link to="/forgot-password" style={{ fontSize: 13, color: '#3B82F6', textDecoration: 'none' }}>
+            Forgot your password?
+          </Link>
+          <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>
+            No account?{' '}
+            <Link to="/signup" style={{ color: '#3B82F6', textDecoration: 'none', fontWeight: 600 }}>
+              Sign up
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

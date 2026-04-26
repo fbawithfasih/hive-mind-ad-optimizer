@@ -1,0 +1,35 @@
+# Caddy reverse proxy for AMAIOP
+#
+# Set the DOMAIN environment variable before starting:
+#   DOMAIN=app.yourdomain.com docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Caddy automatically obtains and renews TLS certificates from Let's Encrypt.
+# Port 80 and 443 must be open on the server.
+
+{$DOMAIN} {
+    # Proxy all traffic to the Node.js app
+    reverse_proxy app:3000
+
+    # Compress responses
+    encode zstd gzip
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    # Health check endpoint — skip access logs to reduce noise
+    @health path /health
+    log @health {
+        output discard
+    }
+
+    log {
+        output stdout
+        format json
+    }
+}

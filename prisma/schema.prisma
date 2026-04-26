@@ -1,0 +1,414 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// MULTI-TENANT CORE MODELS
+// ============================================================================
+
+model User {
+  id                String      @id @default(cuid())
+  email             String      @unique
+  passwordHash      String
+  firstName         String?
+  lastName          String?
+  avatar            String?
+  emailVerified     Boolean     @default(false)
+  emailVerifiedAt   DateTime?
+  lastLogin         DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Relations
+  orgMembers              OrgMember[]
+  auditLogs               AuditLog[]
+  apiKeys                 ApiKey[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+
+  @@index([email])
+  @@index([createdAt])
+}
+
+model Organization {
+  id                String      @id @default(cuid())
+  name              String
+  slug              String      @unique
+  description       String?
+  logoUrl           String?
+  billingEmail      String?
+  tier              SubscriptionTier @default(BASIC)
+  billingStatus     BillingStatus @default(ACTIVE)
+  trialEndsAt       DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Relations
+  members           OrgMember[]
+  amazonCredentials AmazonCredential[]
+  sellerProfiles    SellerProfile[]
+  auditLogs         AuditLog[]
+  subscriptions     Subscription[]
+  usageMetrics      UsageMetric[]
+  listingOptimizations ListingOptimization[]
+  bulkListingBatches   BulkListingBatch[]
+  reportJobs        ReportJob[]
+
+  @@index([slug])
+  @@index([billingStatus])
+  @@index([createdAt])
+}
+
+model OrgMember {
+  id                String      @id @default(cuid())
+  orgId             String
+  userId            String
+  role              OrgRole     @default(MEMBER)
+  joinedAt          DateTime    @default(now())
+  invitedAt         DateTime?
+  invitedBy         String?
+
+  // Relations
+  org               Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+  @@index([orgId])
+  @@index([userId])
+}
+
+// ============================================================================
+// AMAZON INTEGRATION MODELS
+// ============================================================================
+
+model AmazonCredential {
+  id                String      @id @default(cuid())
+  orgId             String
+  refreshToken      String      // Encrypted at rest
+  marketplaceId     String      @default("ATVPDKIKX0DER")
+  region            String      @default("NA")
+  connectedAt       DateTime    @default(now())
+  expiresAt         DateTime?
+  lastUsed          DateTime?
+  status            CredentialStatus @default(ACTIVE)
+  encryptedData     String?     // JSON blob for additional encrypted fields
+
+  // Relations
+  org               Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, marketplaceId])
+  @@index([orgId])
+  @@index([status])
+}
+
+model SellerProfile {
+  id                String      @id @default(cuid())
+  orgId             String
+  profileId         String
+  profileName       String
+  countryCode       String
+  primaryCountry    String
+  merchantToken     String?     // Encrypted
+  isDefault         Boolean     @default(false)
+  lastSyncedAt      DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Relations
+  org               Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, profileId])
+  @@index([orgId])
+  @@index([isDefault])
+}
+
+// ============================================================================
+// LISTING OPTIMIZATION MODELS
+// ============================================================================
+
+model ListingOptimization {
+  id                String      @id @default(cuid())
+  orgId             String
+  batchId           String?     // Links to BulkListingBatch when created via bulk endpoint
+  asin              String
+  sku               String
+  originalTitle     String
+  optimizedTitle    String?
+  originalBullets   String[]
+  optimizedBullets  String[]
+  originalDescription String
+  optimizedDescription String?
+  keywords          String[]
+  aiModel           String      @default("claude")
+  status            OptimizationStatus @default(PENDING)
+  errorMessage      String?
+  publishedAt       DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Relations
+  org               Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  batch             BulkListingBatch? @relation(fields: [batchId], references: [id])
+
+  @@index([orgId])
+  @@index([batchId])
+  @@index([asin])
+  @@index([sku])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model BulkListingBatch {
+  id          String      @id @default(cuid())
+  orgId       String
+  batchRef    String      @unique  // Client-facing UUID (jobId equivalent)
+  total       Int
+  completed   Int         @default(0)
+  failed      Int         @default(0)
+  status      JobStatus   @default(PENDING)
+  model       String      @default("gemini")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  org         Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  items       ListingOptimization[]
+
+  @@index([orgId])
+  @@index([batchRef])
+  @@index([status])
+}
+
+// ============================================================================
+// REPORTING & ANALYTICS MODELS
+// ============================================================================
+
+model ReportJob {
+  id                String      @id @default(cuid())
+  orgId             String
+  jobId             String      @unique
+  type              ReportType
+  status            JobStatus   @default(PENDING)
+  profileId         String?
+  dateFrom          DateTime
+  dateTo            DateTime
+  result            Json?       // Report data
+  errorMessage      String?
+  createdAt         DateTime    @default(now())
+  completedAt       DateTime?
+
+  // Relations
+  org               Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// BILLING & SUBSCRIPTION MODELS
+// ============================================================================
+
+model Subscription {
+  id                String      @id @default(cuid())
+  orgId             String      @unique
+  subscriptionId    String?     // Razorpay subscription ID (sub_xxx)
+  tier              SubscriptionTier
+  status            SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart DateTime
+  currentPeriodEnd  DateTime
+  renewalDate       DateTime
+  cancelledAt       DateTime?
+  cancelReason      String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Relations
+  org               Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  invoices          Invoice[]
+
+  @@index([orgId])
+  @@index([status])
+  @@index([subscriptionId])
+}
+
+model Invoice {
+  id                String      @id @default(cuid())
+  subscriptionId    String
+  externalInvoiceId String      @unique  // Razorpay payment ID (pay_xxx)
+  amount            Int         // in paise (smallest INR unit)
+  currency          String      @default("INR")
+  status            InvoiceStatus @default(DRAFT)
+  paidAt            DateTime?
+  dueDate           DateTime
+  createdAt         DateTime    @default(now())
+
+  // Relations
+  subscription      Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([status])
+}
+
+model UsageMetric {
+  id                String      @id @default(cuid())
+  orgId             String
+  month             DateTime    // First day of month
+  listingsOptimized Int         @default(0)
+  apiCalls          Int         @default(0)
+  reportsGenerated  Int         @default(0)
+  bulkOperations    Int         @default(0)
+
+  // Relations
+  org               Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, month])
+  @@index([orgId])
+}
+
+// ============================================================================
+// AUDIT & SECURITY MODELS
+// ============================================================================
+
+model AuditLog {
+  id                String      @id @default(cuid())
+  orgId             String
+  userId            String
+  action            String      // e.g., "listing_optimized", "credentials_updated"
+  resource          String      // e.g., "listing", "amazon_credential"
+  resourceId        String?
+  changes           Json?       // Before/after values
+  ipAddress         String?
+  userAgent         String?
+  createdAt         DateTime    @default(now())
+
+  // Relations
+  org               Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model ApiKey {
+  id                String      @id @default(cuid())
+  userId            String
+  name              String
+  keyHash           String      @unique
+  lastUsed          DateTime?
+  revokedAt         DateTime?
+  createdAt         DateTime    @default(now())
+
+  // Relations
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([keyHash])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum OrgRole {
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum SubscriptionTier {
+  BASIC
+  PRO
+  ENTERPRISE
+  CUSTOM
+}
+
+enum BillingStatus {
+  ACTIVE
+  PAUSED
+  SUSPENDED
+  CANCELLED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum CredentialStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+  INVALID
+}
+
+enum OptimizationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  PUBLISHED
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ReportType {
+  CAMPAIGN_PERFORMANCE
+  SEARCH_TERMS
+  KEYWORD_ANALYSIS
+  LISTING_HEALTH
+  REVENUE_SUMMARY
+}
