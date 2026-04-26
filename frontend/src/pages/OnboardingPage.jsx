@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { getOnboardingStatus, resendVerificationApi, syncProfilesApi } from '../services/api.js';
+import { getOnboardingStatus, resendVerificationApi, syncProfilesApi, createOrgApi } from '../services/api.js';
 
 const STEPS = [
   { key: 'emailVerified',        actionKey: 'verify_email',     icon: '✉️',  title: 'Verify your email',          desc: 'Click the link we sent to activate your account.' },
@@ -18,13 +18,75 @@ const ACTIONS = {
   generate_report:   { label: 'Go to dashboard', href: '/' },
 };
 
-export default function OnboardingPage({ user, onComplete }) {
+function CreateOrgGate({ onCreated }) {
+  const [name, setName]       = useState('');
+  const [creating, setCreating] = useState(false);
+  const [error, setError]       = useState('');
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setCreating(true);
+    setError('');
+    try {
+      await createOrgApi(name.trim());
+      onCreated();
+    } catch (err) {
+      setError(err.response?.data?.error ?? 'Failed to create organization.');
+      setCreating(false);
+    }
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#0F172A', display: 'flex', flexDirection: 'column' }}>
+      <header style={{ background: '#1E293B', borderBottom: '1px solid #334155', padding: '16px 24px' }}>
+        <span style={{ fontWeight: 700, fontSize: 16, color: '#F1F5F9' }}>AMAIOP Setup</span>
+      </header>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 16px' }}>
+        <div style={{ width: '100%', maxWidth: 480 }}>
+          <h1 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 700, color: '#F1F5F9', textAlign: 'center' }}>
+            Create your organization
+          </h1>
+          <p style={{ margin: '0 0 32px', fontSize: 14, color: '#94A3B8', textAlign: 'center' }}>
+            An organization groups your Amazon accounts and team members.
+          </p>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#94A3B8', marginBottom: 6 }}>
+                Organization name
+              </label>
+              <input
+                type="text" value={name} onChange={e => setName(e.target.value)} required autoFocus
+                placeholder="Acme Sellers"
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 8, border: '1px solid #334155', background: '#1E293B', color: '#F1F5F9', fontSize: 14, outline: 'none' }}
+              />
+            </div>
+            {error && <p style={{ margin: 0, fontSize: 13, color: '#F43F5E' }}>{error}</p>}
+            <button type="submit" disabled={creating || !name.trim()} style={{
+              padding: '11px 0', borderRadius: 8, border: 'none', fontSize: 14, fontWeight: 600,
+              background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff',
+              cursor: creating ? 'not-allowed' : 'pointer', opacity: creating ? 0.7 : 1,
+            }}>
+              {creating ? 'Creating…' : 'Create organization →'}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
   const navigate = useNavigate();
   const [status, setStatus]     = useState(null);
   const [loading, setLoading]   = useState(true);
   const [resendMsg, setResendMsg] = useState('');
   const [syncMsg, setSyncMsg]     = useState('');
   const [syncing, setSyncing]     = useState(false);
+
+  if (user?.organizations?.length === 0) {
+    return <CreateOrgGate onCreated={onOrgCreated ?? (() => window.location.reload())} />;
+  }
 
   useEffect(() => {
     getOnboardingStatus()

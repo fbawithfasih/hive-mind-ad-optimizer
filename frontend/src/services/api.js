@@ -165,6 +165,11 @@ export async function setDefaultProfileApi(profileId) {
 // Team / Org Members API
 // ────────────────────────────────────────────────────────────────────────────
 
+export async function createOrgApi(name) {
+  const res = await api.post('/orgs', { name });
+  return res.data;
+}
+
 export async function getOrgMembersApi(orgId) {
   const res = await api.get(`/orgs/${orgId}/members`);
   return res.data;

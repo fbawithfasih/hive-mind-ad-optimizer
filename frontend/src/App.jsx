@@ -85,7 +85,7 @@ export default function App() {
       {/* ── Protected routes ───────────────────────────────────────── */}
       <Route path="/onboarding" element={
         <RequireAuth user={user}>
-          <OnboardingPage user={user} onComplete={() => setOnboarded(true)} />
+          <OnboardingPage user={user} onComplete={() => setOnboarded(true)} onOrgCreated={loadUser} />
         </RequireAuth>
       } />
       <Route path="/billing" element={
