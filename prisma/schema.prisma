@@ -61,6 +61,7 @@ model Organization {
   listingOptimizations ListingOptimization[]
   bulkListingBatches   BulkListingBatch[]
   reportJobs        ReportJob[]
+  campaignRules     CampaignRule[]
 
   @@index([slug])
   @@index([billingStatus])
@@ -272,6 +273,52 @@ model UsageMetric {
 
   @@unique([orgId, month])
   @@index([orgId])
+}
+
+// ============================================================================
+// CAMPAIGN AUTOMATION MODELS
+// ============================================================================
+
+model CampaignRule {
+  id           String    @id @default(cuid())
+  orgId        String
+  name         String
+  profileId    String
+  // Condition
+  metric       String    // acos | roas | ctr | spend | clicks | impressions
+  condition    String    // gt | lt | gte | lte
+  threshold    Float
+  // Action
+  action       String    // increase_budget | decrease_budget | pause | enable
+  adjustment   Float     @default(10) // % for budget changes; ignored for pause/enable
+  lookbackDays Int       @default(14)
+  isActive     Boolean   @default(true)
+  lastRunAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  org          Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  executions   RuleExecution[]
+
+  @@index([orgId])
+  @@index([isActive])
+}
+
+model RuleExecution {
+  id            String   @id @default(cuid())
+  ruleId        String
+  orgId         String
+  status        String   // success | partial | failed | skipped
+  affectedCount Int      @default(0)
+  changes       Json?    // [{ campaignId, name, field, oldValue, newValue }]
+  error         String?
+  executedAt    DateTime @default(now())
+
+  rule          CampaignRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([orgId])
+  @@index([executedAt])
 }
 
 // ============================================================================

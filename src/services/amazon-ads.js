@@ -272,6 +272,31 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     throw new Error('Search term report timed out after 3 minutes');
   }
 
+  /**
+   * Batch-update campaign state and/or dailyBudget.
+   *
+   * @param {string} profileId
+   * @param {Array<{campaignId: string|number, state?: string, dailyBudget?: number}>} updates
+   * @returns {Promise<Array<{campaignId, code, description}>>}
+   */
+  async function updateCampaigns(profileId, updates) {
+    const token = await getAccessToken();
+    const body = updates.map(u => {
+      const patch = { campaignId: Number(u.campaignId) };
+      if (u.state !== undefined)       patch.state = u.state;
+      if (u.dailyBudget !== undefined) patch.dailyBudget = u.dailyBudget;
+      return patch;
+    });
+
+    const res = await axios.put(
+      'https://advertising-api.amazon.com/v2/campaigns',
+      body,
+      { headers: adsHeaders(token, profileId) }
+    );
+    console.log(`✅ Updated ${updates.length} campaigns for profile ${profileId}`);
+    return res.data;
+  }
+
   return {
     getProfiles,
     getCampaigns,
@@ -280,6 +305,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     checkReportStatus,
     getCampaignMetrics,
     getSearchTermReport,
+    updateCampaigns,
   };
 }
 
@@ -301,5 +327,6 @@ export const startCampaignMetricsReport  = _defaultClient.startCampaignMetricsRe
 export const checkReportStatus           = _defaultClient.checkReportStatus;
 export const getCampaignMetrics          = _defaultClient.getCampaignMetrics;
 export const getSearchTermReport         = _defaultClient.getSearchTermReport;
+export const updateCampaigns             = _defaultClient.updateCampaigns;
 
 export default _defaultClient;

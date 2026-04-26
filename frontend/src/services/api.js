@@ -512,4 +512,14 @@ export async function executeCommand(command, history = [], model = 'gemini') {
   }
 }
 
+// ─── Campaign Automation ────────────────────────────────────────────────────
+
+export const listRulesApi        = ()         => api.get('/automation/rules').then(r => r.data);
+export const createRuleApi       = (data)     => api.post('/automation/rules', data).then(r => r.data);
+export const updateRuleApi       = (id, data) => api.patch(`/automation/rules/${id}`, data).then(r => r.data);
+export const deleteRuleApi       = (id)       => api.delete(`/automation/rules/${id}`).then(r => r.data);
+export const runRuleApi          = (id)       => api.post(`/automation/rules/${id}/run`).then(r => r.data);
+export const runAllRulesApi      = ()         => api.post('/automation/run-all').then(r => r.data);
+export const getRuleHistoryApi   = (id)       => api.get(`/automation/rules/${id}/history`).then(r => r.data);
+
 export default api;

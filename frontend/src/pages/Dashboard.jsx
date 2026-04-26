@@ -12,6 +12,7 @@ import KeywordRecommendationsPanel from '../components/KeywordRecommendationsPan
 import AmazonConnectPanel from '../components/AmazonConnectPanel.jsx';
 import ProfilesPanel from '../components/ProfilesPanel.jsx';
 import TeamPanel from '../components/TeamPanel.jsx';
+import AutomationPanel from '../components/AutomationPanel.jsx';
 import { logoutApi, resendVerificationApi, switchOrgApi } from '../services/api.js';
 import { getTodayISO, getDaysAgoISO } from '../utils/date-helpers.js';
 import { useProfileState } from '../hooks/useProfileState.js';
@@ -231,6 +232,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             { id: 'health',       label: 'Listing Health' },
             { id: 'keywords',     label: 'Keywords' },
             { id: 'reports',      label: 'Reporting Agent' },
+            { id: 'automation',   label: 'Automation' },
             { id: 'amazon',       label: 'Amazon Account' },
             { id: 'profiles',     label: 'Profiles' },
             { id: 'team',         label: 'Team' },
@@ -319,6 +321,10 @@ export default function Dashboard({ user, onboarded, onLogout }) {
         )}
 
         {/* ── Amazon Account tab ── */}
+        {activeTab === 'automation' && (
+          <AutomationPanel profileId={selectedProfileId} />
+        )}
+
         {activeTab === 'amazon' && <AmazonConnectPanel />}
 
         {/* ── Profiles tab ── */}
