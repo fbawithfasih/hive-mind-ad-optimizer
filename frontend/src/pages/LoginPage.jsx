@@ -1,6 +1,12 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { loginApi } from '../services/api.js';
+
+const GOOGLE_ERRORS = {
+  google_denied:   'Google sign-in was cancelled.',
+  state_mismatch:  'Security check failed. Please try again.',
+  google_failed:   'Google sign-in failed. Please try again or use email/password.',
+};
 
 export default function LoginPage({ onLogin }) {
   const [email, setEmail]       = useState('');
@@ -8,6 +14,12 @@ export default function LoginPage({ onLogin }) {
   const [showPass, setShowPass] = useState(false);
   const [error, setError]       = useState(null);
   const [loading, setLoading]   = useState(false);
+  const [searchParams]          = useSearchParams();
+
+  useEffect(() => {
+    const errKey = searchParams.get('error');
+    if (errKey && GOOGLE_ERRORS[errKey]) setError(GOOGLE_ERRORS[errKey]);
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -54,7 +66,7 @@ export default function LoginPage({ onLogin }) {
             }}
             onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
             onMouseLeave={e => e.currentTarget.style.background = '#fff'}
-            onClick={() => alert('Google SSO coming soon')}
+            onClick={() => { window.location.href = '/api/auth/google'; }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

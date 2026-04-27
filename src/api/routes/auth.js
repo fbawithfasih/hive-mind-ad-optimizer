@@ -9,6 +9,7 @@ import { requireAuth } from '../middleware/requireAuth.js';
 import { authLimiter, strictLimiter } from '../middleware/rateLimiter.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../services/email.js';
 import { createLogger } from '../utils/logger.js';
+import { consumeClaimToken } from './billing.js';
 
 const router = express.Router();
 const logger = createLogger('AUTH');
@@ -36,7 +37,7 @@ if (!JWT_SECRET) {
  */
 router.post('/signup', authLimiter, async (req, res) => {
   try {
-    const { email, password, firstName = '', lastName = '' } = req.body;
+    const { email, password, firstName = '', lastName = '', claimToken } = req.body;
 
     // Validation
     if (!email || !password) {
@@ -76,13 +77,47 @@ router.post('/signup', authLimiter, async (req, res) => {
 
     logger.info(`User created: ${user.id} (${email})`);
 
+    // If a claim token from the marketing site was provided, consume it and
+    // create the org + subscription in one shot so the user lands fully activated.
+    if (claimToken) {
+      const claim = await consumeClaimToken(claimToken);
+      if (claim?.tier) {
+        try {
+          // Create org named after user
+          const orgName = [firstName, lastName].filter(Boolean).join(' ') || email.split('@')[0];
+          const slug = orgName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50)
+            + '-' + randomBytes(3).toString('hex');
+          const org = await prisma.organization.create({
+            data: { name: orgName, slug },
+          });
+          await prisma.orgMember.create({
+            data: { userId: user.id, orgId: org.id, role: 'ADMIN' },
+          });
+          await prisma.subscription.create({
+            data: {
+              orgId:              org.id,
+              tier:               claim.tier,
+              status:             'ACTIVE',
+              currentPeriodStart: new Date(),
+              currentPeriodEnd:   new Date(Date.now() + 30 * 86400000),
+              renewalDate:        new Date(Date.now() + 30 * 86400000),
+            },
+          });
+          logger.info(`Claim redeemed: org ${org.id} created with ${claim.tier} plan (payment ${claim.paymentId})`);
+        } catch (claimErr) {
+          // Don't fail signup if claim processing errors — user can set up org manually
+          logger.error(`Claim token processing failed: ${claimErr.message}`);
+        }
+      }
+    }
+
     // Send verification email (fire-and-forget — don't block signup on email failure)
     const verifyToken = randomBytes(32).toString('hex');
     await prisma.emailVerificationToken.create({
       data: {
         userId:    user.id,
         token:     verifyToken,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       },
     }).catch(() => {});
     sendVerificationEmail(email, verifyToken).catch((err) =>
@@ -139,6 +174,11 @@ router.post('/login', authLimiter, async (req, res) => {
     if (!user) {
       logger.warn(`Login attempt failed: user not found (${email})`);
       return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Google-only accounts have no password set
+    if (!user.passwordHash) {
+      return res.status(401).json({ error: 'This account uses Google Sign-In. Please use the "Log in with Google" button.' });
     }
 
     // Verify password
@@ -442,6 +482,135 @@ router.post('/reset-password', strictLimiter, async (req, res) => {
 
   logger.info(`Password reset for user ${record.userId}`);
   res.json({ ok: true, message: 'Password updated successfully. You can now log in.' });
+});
+
+// ── Google OAuth ──────────────────────────────────────────────────────────────
+
+const GOOGLE_CLIENT_ID     = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const FRONTEND_URL         = process.env.FRONTEND_URL || 'https://optimizer.hivemindnestor.com';
+
+const getGoogleCallbackUri = (req) => {
+  const base = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+  return `${base}/api/auth/google/callback`;
+};
+
+/**
+ * GET /api/auth/google
+ * Kicks off the Google OAuth2 flow — redirect the browser here (not fetch).
+ */
+router.get('/google', (req, res) => {
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    return res.status(503).json({ error: 'Google SSO is not configured on this server.' });
+  }
+
+  const state  = randomBytes(16).toString('hex');
+  const isProd = process.env.NODE_ENV === 'production';
+  res.cookie('oauth_state', state, {
+    httpOnly: true, sameSite: 'lax', secure: isProd,
+    maxAge: 10 * 60 * 1000,
+  });
+
+  const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+  url.searchParams.set('client_id',     GOOGLE_CLIENT_ID);
+  url.searchParams.set('redirect_uri',  getGoogleCallbackUri(req));
+  url.searchParams.set('response_type', 'code');
+  url.searchParams.set('scope',         'openid email profile');
+  url.searchParams.set('state',         state);
+  url.searchParams.set('access_type',   'offline');
+  url.searchParams.set('prompt',        'select_account');
+
+  res.redirect(url.toString());
+});
+
+/**
+ * GET /api/auth/google/callback
+ * Google posts code + state here after user consents.
+ */
+router.get('/google/callback', async (req, res) => {
+  const { code, state, error } = req.query;
+
+  if (error) {
+    logger.warn(`Google OAuth denied by user: ${error}`);
+    return res.redirect(`${FRONTEND_URL}/login?error=google_denied`);
+  }
+
+  // CSRF check
+  const savedState = req.cookies?.oauth_state;
+  res.clearCookie('oauth_state');
+  if (!state || state !== savedState) {
+    logger.warn('Google OAuth state mismatch — possible CSRF attempt');
+    return res.redirect(`${FRONTEND_URL}/login?error=state_mismatch`);
+  }
+
+  try {
+    // 1. Exchange authorization code → tokens
+    const tokenRes = await axios.post('https://oauth2.googleapis.com/token', {
+      code,
+      client_id:     GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      redirect_uri:  getGoogleCallbackUri(req),
+      grant_type:    'authorization_code',
+    });
+    const { access_token } = tokenRes.data;
+
+    // 2. Fetch Google profile
+    const profileRes = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
+    const {
+      id:          googleId,
+      email,
+      given_name:  firstName = '',
+      family_name: lastName  = '',
+      picture:     avatar    = null,
+    } = profileRes.data;
+
+    if (!email) throw new Error('Google did not return an email address');
+
+    // 3. Find or create user — match on googleId first, fall back to email
+    let user = await prisma.user.findFirst({
+      where: { OR: [{ googleId }, { email }] },
+    });
+
+    if (user) {
+      const updates = { lastLogin: new Date() };
+      if (!user.googleId)       updates.googleId      = googleId;
+      if (!user.emailVerified)  updates.emailVerified = true;
+      if (avatar && !user.avatar) updates.avatar      = avatar;
+      user = await prisma.user.update({ where: { id: user.id }, data: updates });
+      logger.info(`Google login: existing user ${user.id} (${email})`);
+    } else {
+      user = await prisma.user.create({
+        data: {
+          id: uuidv4(), email, googleId,
+          passwordHash: null, firstName, lastName, avatar,
+          emailVerified: true, lastLogin: new Date(),
+        },
+      });
+      logger.info(`Google login: new user created ${user.id} (${email})`);
+    }
+
+    // 4. Pick active org
+    const firstMembership = await prisma.orgMember.findFirst({
+      where: { userId: user.id },
+      orderBy: { joinedAt: 'asc' },
+    });
+
+    // 5. Issue JWT + cookie
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, activeOrgId: firstMembership?.orgId ?? null },
+      JWT_SECRET,
+      { expiresIn: '8h' }
+    );
+    const isProd = process.env.NODE_ENV === 'production';
+    res.cookie(COOKIE_NAME, token, { ...COOKIE_OPTS, secure: isProd });
+
+    res.redirect(`${FRONTEND_URL}/`);
+  } catch (err) {
+    logger.error(`Google OAuth callback error: ${err.message}`);
+    res.redirect(`${FRONTEND_URL}/login?error=google_failed`);
+  }
 });
 
 // ── Amazon Ads OAuth (existing — used for initial token setup) ────────────────

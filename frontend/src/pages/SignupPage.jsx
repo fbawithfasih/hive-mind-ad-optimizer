@@ -1,6 +1,12 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { signupApi } from '../services/api.js';
+
+const PLAN_LABELS = {
+  STARTER: 'Starter', BASIC: 'Starter',
+  GROWTH: 'Growth',   PRO: 'Growth',
+  SCALE: 'Scale',     ENTERPRISE: 'Scale',
+};
 
 const S = {
   page: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#0F172A 0%,#1E293B 100%)' },
@@ -9,6 +15,10 @@ const S = {
   logoIcon: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 52, borderRadius: 14, marginBottom: 12, background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)' },
   h1: { margin: 0, fontSize: 20, fontWeight: 700, color: '#F1F5F9' },
   sub: { margin: '4px 0 0', fontSize: 13, color: '#64748B' },
+  planBadge: { display: 'flex', alignItems: 'center', gap: 8, background: '#1E3A5F', border: '1px solid #2563EB55', borderRadius: 8, padding: '10px 14px', marginBottom: 4, fontSize: 13 },
+  planBadgeIcon: { fontSize: 16 },
+  planBadgeText: { color: '#93C5FD', flex: 1 },
+  planBadgeName: { color: '#F1F5F9', fontWeight: 700 },
   form: { display: 'flex', flexDirection: 'column', gap: 14 },
   row: { display: 'flex', gap: 10 },
   label: { display: 'block', fontSize: 12, fontWeight: 600, color: '#94A3B8', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' },
@@ -22,6 +32,12 @@ const S = {
 
 export default function SignupPage({ onSignup }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const claimToken = searchParams.get('claim') ?? null;
+  const planParam  = (searchParams.get('plan') ?? '').toUpperCase();
+  const planLabel  = PLAN_LABELS[planParam] ?? null;
+
   const [form, setForm]   = useState({ email: '', password: '', firstName: '', lastName: '' });
   const [error, setError]  = useState(null);
   const [loading, setLoading] = useState(false);
@@ -36,7 +52,7 @@ export default function SignupPage({ onSignup }) {
     if (form.password.length < 8) { setError('Password must be at least 8 characters'); return; }
     setLoading(true); setError(null);
     try {
-      const data = await signupApi(form.email, form.password, form.firstName, form.lastName);
+      const data = await signupApi(form.email, form.password, form.firstName, form.lastName, claimToken);
       setDone(true);
       if (onSignup) onSignup(data.user ?? data);
     } catch (err) {
@@ -71,6 +87,44 @@ export default function SignupPage({ onSignup }) {
           </div>
           <h1 style={S.h1}>Create your account</h1>
           <p style={S.sub}>AMAIOP · Amazon Ads Optimizer</p>
+        </div>
+
+        {planLabel && claimToken && (
+          <div style={S.planBadge}>
+            <span style={S.planBadgeIcon}>✓</span>
+            <span style={S.planBadgeText}>
+              You've selected the <span style={S.planBadgeName}>{planLabel} plan</span> — your subscription will activate automatically.
+            </span>
+          </div>
+        )}
+
+        {/* Google SSO */}
+        <button
+          type="button"
+          onClick={() => { window.location.href = '/api/auth/google'; }}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            width: '100%', padding: '12px 16px', borderRadius: 8, marginBottom: 16,
+            border: '1px solid #334155', background: '#0F172A',
+            fontSize: 14, fontWeight: 500, color: '#F1F5F9', cursor: 'pointer',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = '#1E293B'}
+          onMouseLeave={e => e.currentTarget.style.background = '#0F172A'}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Continue with Google
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <div style={{ flex: 1, height: 1, background: '#334155' }} />
+          <span style={{ fontSize: 12, color: '#475569' }}>or sign up with email</span>
+          <div style={{ flex: 1, height: 1, background: '#334155' }} />
         </div>
 
         <form onSubmit={handleSubmit} style={S.form}>
