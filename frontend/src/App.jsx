@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import './index.css';
 import { getMeApi, getOnboardingStatus } from './services/api.js';
 import Dashboard        from './pages/Dashboard.jsx';
+import HubPage          from './pages/HubPage.jsx';
 import LoginPage        from './pages/LoginPage.jsx';
 import SignupPage       from './pages/SignupPage.jsx';
 import VerifyEmailPage  from './pages/VerifyEmailPage.jsx';
@@ -24,14 +25,18 @@ function RequireAuth({ user, children }) {
   return children;
 }
 
-// Wraps the dashboard — only redirects to onboarding when user has no org yet.
-// Once an org exists, the dashboard is always accessible regardless of onboarding progress.
 function ProtectedDashboard({ user, onboarded, onLogout, setUser }) {
   const hasOrg = user?.organizations?.length > 0;
   if (!hasOrg && onboarded === false) {
     return <Navigate to="/onboarding" replace />;
   }
   return <Dashboard user={user} onboarded={onboarded} onLogout={onLogout} setUser={setUser} />;
+}
+
+function ProtectedHub({ user, onLogout }) {
+  const hasOrg = user?.organizations?.length > 0;
+  if (!hasOrg) return <Navigate to="/onboarding" replace />;
+  return <HubPage user={user} onLogout={onLogout} />;
 }
 
 export default function App() {
@@ -94,12 +99,22 @@ export default function App() {
         </RequireAuth>
       } />
 
-      {/* ── Dashboard (default) ────────────────────────────────────── */}
-      <Route path="/*" element={
+      {/* ── Hub (home) ─────────────────────────────────────────────── */}
+      <Route path="/" element={
+        loggedIn
+          ? <ProtectedHub user={user} onLogout={() => setUser(false)} />
+          : <Navigate to="/login" replace />
+      } />
+
+      {/* ── Dashboard ──────────────────────────────────────────────── */}
+      <Route path="/app/*" element={
         loggedIn
           ? <ProtectedDashboard user={user} onboarded={onboarded} onLogout={() => setUser(false)} setUser={setUser} />
           : <Navigate to="/login" replace />
       } />
+
+      {/* Catch-all → hub or login */}
+      <Route path="*" element={<Navigate to={loggedIn ? '/' : '/login'} replace />} />
     </Routes>
   );
 }

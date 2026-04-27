@@ -92,6 +92,21 @@ export default function Dashboard({ user, onboarded, onLogout }) {
       <header className="flex items-center justify-between px-6 py-4 shrink-0"
               style={{ background: '#1E293B', borderBottom: '1px solid #334155' }}>
         <div className="flex items-center gap-3">
+          <Link to="/" style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '5px 10px', borderRadius: 7, marginRight: 2,
+            border: '1px solid #334155', background: 'rgba(51,65,85,0.3)',
+            color: '#64748B', fontSize: 12, fontWeight: 600, textDecoration: 'none',
+            transition: 'all 0.15s',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#94A3B8'; e.currentTarget.style.background = 'rgba(51,65,85,0.6)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#64748B'; e.currentTarget.style.background = 'rgba(51,65,85,0.3)'; }}
+          >
+            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+            </svg>
+            Hub
+          </Link>
           <img src="/HMN-APP-ICON.png" alt="Hive Mind Nestor" style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'contain' }} />
           <div>
             <p className="font-bold text-base leading-none" style={{ color: '#F1F5F9' }}>Hive Mind Nestor</p>
@@ -299,6 +314,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
           <ListingOptimizerPanel
             searchTerms={loadedSearchTerms}
             aiModel={aiModel}
+            profileId={selectedProfileId}
           />
         )}
 
