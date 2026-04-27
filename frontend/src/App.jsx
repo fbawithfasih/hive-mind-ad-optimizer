@@ -24,11 +24,11 @@ function RequireAuth({ user, children }) {
   return children;
 }
 
-// Wraps the dashboard root ("/") — redirects to onboarding when incomplete.
-// Sub-paths like /billing are never blocked so navigation stays free.
+// Wraps the dashboard — only redirects to onboarding when user has no org yet.
+// Once an org exists, the dashboard is always accessible regardless of onboarding progress.
 function ProtectedDashboard({ user, onboarded, onLogout, setUser }) {
-  const location = useLocation();
-  if (onboarded === false && location.pathname === '/') {
+  const hasOrg = user?.organizations?.length > 0;
+  if (!hasOrg && onboarded === false) {
     return <Navigate to="/onboarding" replace />;
   }
   return <Dashboard user={user} onboarded={onboarded} onLogout={onLogout} setUser={setUser} />;
@@ -50,10 +50,10 @@ export default function App() {
           const status = await getOnboardingStatus();
           setOnboarded(status.complete);
         } catch {
-          setOnboarded(true); // don't block on failure
+          setOnboarded(true);
         }
       } else {
-        setOnboarded(false); // no org → onboarding definitely not done
+        setOnboarded(false); // no org → must create one before accessing dashboard
       }
     } catch {
       setUser(false);
