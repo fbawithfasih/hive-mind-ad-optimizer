@@ -14,8 +14,8 @@ const ACTIONS = {
   verify_email:      { label: 'Resend verification email', action: 'resend' },
   connect_amazon:    { label: 'Connect Amazon account', href: '/api/sp-oauth/start' },
   sync_profile:      { label: 'Sync seller profiles', action: 'sync_profiles' },
-  optimize_listing:  { label: 'Go to dashboard', href: '/' },
-  generate_report:   { label: 'Go to dashboard', href: '/' },
+  optimize_listing:  { label: 'Go to Listing Optimizer', href: '/?tab=listings' },
+  generate_report:   { label: 'Go to Reports', href: '/?tab=reports' },
 };
 
 function CreateOrgGate({ onCreated }) {

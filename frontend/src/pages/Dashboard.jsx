@@ -47,11 +47,12 @@ export default function Dashboard({ user, onboarded, onLogout }) {
   const sixtyDaysAgo = getDaysAgoISO(60);
   const [activeTab, setActiveTab] = useState('campaigns');
 
-  // Switch to the Amazon tab when redirected back from the SP-API OAuth flow
+  // Read ?tab= and ?connected= from URL on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('connected') === 'amazon') {
-      setActiveTab('amazon');
+    if (params.get('connected') === 'amazon') setActiveTab('amazon');
+    else if (params.get('tab')) setActiveTab(params.get('tab'));
+    if (params.get('connected') || params.get('tab')) {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
