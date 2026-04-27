@@ -85,6 +85,24 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Apply Google SSO schema changes if not already present (idempotent)
+async function applyGoogleSsoMigration() {
+  try {
+    await prisma.$executeRaw`ALTER TABLE "User" ALTER COLUMN "passwordHash" DROP NOT NULL`;
+    logger.info('Migration: passwordHash made nullable');
+  } catch { /* already nullable — no-op */ }
+  try {
+    await prisma.$executeRaw`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "googleId" TEXT`;
+    logger.info('Migration: googleId column added');
+  } catch { /* already exists — no-op */ }
+  try {
+    await prisma.$executeRaw`CREATE UNIQUE INDEX IF NOT EXISTS "User_googleId_key" ON "User"("googleId")`;
+    logger.info('Migration: googleId unique index created');
+  } catch { /* already exists — no-op */ }
+}
+
+applyGoogleSsoMigration().catch(err => logger.error('Google SSO migration error', err.message));
+
 const server = app.listen(PORT, () => {
   logger.info('Server started', { port: PORT, nodeEnv: process.env.NODE_ENV });
 });

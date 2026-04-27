@@ -2,7 +2,7 @@
 buildCommand = "npm install && cd frontend && npm install && npm run build && cd .."
 
 [deploy]
-startCommand = "npx prisma migrate deploy && node src/server.js"
+startCommand = "node src/server.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
