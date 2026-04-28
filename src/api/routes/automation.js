@@ -9,9 +9,10 @@ const logger = createLogger('AUTOMATION');
 const VALID_METRICS    = ['acos', 'roas', 'ctr', 'spend', 'clicks', 'impressions'];
 const VALID_CONDITIONS = ['gt', 'lt', 'gte', 'lte'];
 const VALID_ACTIONS    = ['increase_budget', 'decrease_budget', 'pause', 'enable'];
+const VALID_SCHEDULES  = [null, 'daily', 'twice_daily', 'weekly'];
 
 function validateRule(body) {
-  const { name, profileId, metric, condition, threshold, action, adjustment, lookbackDays } = body;
+  const { name, profileId, metric, condition, threshold, action, adjustment, lookbackDays, schedule } = body;
   if (!name)                             return 'name is required';
   if (!profileId)                        return 'profileId is required';
   if (!VALID_METRICS.includes(metric))   return `metric must be one of: ${VALID_METRICS.join(', ')}`;
@@ -25,6 +26,9 @@ function validateRule(body) {
   if (lookbackDays !== undefined && (isNaN(lookbackDays) || lookbackDays < 1 || lookbackDays > 60)) {
     return 'lookbackDays must be 1–60';
   }
+  if (schedule !== undefined && !VALID_SCHEDULES.includes(schedule ?? null)) {
+    return `schedule must be one of: ${VALID_SCHEDULES.filter(Boolean).join(', ')} (or omit for manual)`;
+  }
   return null;
 }
 
@@ -35,7 +39,7 @@ router.post('/rules', async (req, res) => {
   const err = validateRule(req.body);
   if (err) return res.status(400).json({ error: err });
 
-  const { name, profileId, metric, condition, threshold, action, adjustment = 10, lookbackDays = 14 } = req.body;
+  const { name, profileId, metric, condition, threshold, action, adjustment = 10, lookbackDays = 14, schedule } = req.body;
 
   try {
     const rule = await prisma.campaignRule.create({
@@ -49,6 +53,7 @@ router.post('/rules', async (req, res) => {
         action,
         adjustment:  Number(adjustment),
         lookbackDays: Number(lookbackDays),
+        schedule:    schedule ?? null,
       },
     });
     logger.info(`Rule "${name}" created for org ${req.tenant.orgId}`);
@@ -86,13 +91,17 @@ router.patch('/rules/:id', async (req, res) => {
   });
   if (!rule) return res.status(404).json({ error: 'Rule not found' });
 
-  const allowed = ['name', 'metric', 'condition', 'threshold', 'action', 'adjustment', 'lookbackDays', 'isActive'];
+  const allowed = ['name', 'metric', 'condition', 'threshold', 'action', 'adjustment', 'lookbackDays', 'isActive', 'schedule'];
   const updates = {};
   for (const key of allowed) {
     if (req.body[key] !== undefined) {
-      updates[key] = ['threshold', 'adjustment', 'lookbackDays'].includes(key)
-        ? Number(req.body[key])
-        : req.body[key];
+      if (['threshold', 'adjustment', 'lookbackDays'].includes(key)) {
+        updates[key] = Number(req.body[key]);
+      } else if (key === 'schedule') {
+        updates[key] = req.body[key] ?? null;
+      } else {
+        updates[key] = req.body[key];
+      }
     }
   }
 

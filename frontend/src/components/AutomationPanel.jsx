@@ -27,6 +27,13 @@ const ACTIONS = [
   { value: 'enable',          label: 'Enable Campaign',  needsAdj: false },
 ];
 
+const SCHEDULES = [
+  { value: '',            label: 'Manual only',                  badge: null },
+  { value: 'daily',       label: 'Daily — 8 AM UTC',             badge: 'Daily'        },
+  { value: 'twice_daily', label: 'Twice daily — 8 AM & 8 PM UTC',badge: '2× Daily'     },
+  { value: 'weekly',      label: 'Weekly — Monday 8 AM UTC',     badge: 'Weekly Mon'   },
+];
+
 const STATUS_COLOR = {
   success: '#10B981',
   partial: '#F59E0B',
@@ -53,6 +60,7 @@ function RuleForm({ profileId, initialValues, ruleId, onSave, onCancel }) {
     action:      initialValues?.action      ?? 'decrease_budget',
     adjustment:  initialValues?.adjustment  ?? 10,
     lookbackDays: initialValues?.lookbackDays ?? 14,
+    schedule:    initialValues?.schedule    ?? '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
@@ -65,7 +73,7 @@ function RuleForm({ profileId, initialValues, ruleId, onSave, onCancel }) {
     e.preventDefault();
     setSaving(true); setError('');
     try {
-      const payload = { ...form, threshold: Number(form.threshold) };
+      const payload = { ...form, threshold: Number(form.threshold), schedule: form.schedule || null };
       const rule = isEdit
         ? await updateRuleApi(ruleId, payload)
         : await createRuleApi(payload);
@@ -129,6 +137,13 @@ function RuleForm({ profileId, initialValues, ruleId, onSave, onCancel }) {
         </div>
       </div>
 
+      <div>
+        <p style={S.label}>Auto-run Schedule</p>
+        <select style={S.input} value={form.schedule} onChange={e => set('schedule', e.target.value)}>
+          {SCHEDULES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+        </select>
+      </div>
+
       {error && <p style={{ color: '#EF4444', fontSize: 13 }}>{error}</p>}
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -181,11 +196,17 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
     <div style={S.card}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 600, fontSize: 14, color: '#F1F5F9' }}>{rule.name}</span>
             <span style={S.badge(rule.isActive ? '#10B981' : '#64748B')}>
               {rule.isActive ? 'Active' : 'Paused'}
             </span>
+            {rule.schedule && (() => {
+              const s = SCHEDULES.find(x => x.value === rule.schedule);
+              return s?.badge ? (
+                <span style={S.badge('#8B5CF6')}>⏱ {s.badge}</span>
+              ) : null;
+            })()}
           </div>
           <p style={{ fontSize: 12, color: '#94A3B8', marginBottom: 8 }}>
             If <b style={{ color: '#F1F5F9' }}>{metricLabel}</b>{' '}
@@ -201,6 +222,12 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
               {' '}· {lastExec.affectedCount} campaigns
               {' '}· {new Date(lastExec.executedAt).toLocaleDateString()}
             </p>
+          )}
+          {rule.schedule && !lastExec && (
+            <p style={{ fontSize: 11, color: '#8B5CF6' }}>Scheduled — will run automatically</p>
+          )}
+          {!rule.schedule && (
+            <p style={{ fontSize: 11, color: '#334155' }}>Manual only — use Run to execute</p>
           )}
         </div>
 

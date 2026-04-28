@@ -9,10 +9,11 @@ import routes from './api/routes/index.js';
 import { razorpayWebhookHandler } from './api/routes/billing.js';
 import { correlationIdMiddleware, createLogger } from './api/utils/logger.js';
 import { prisma } from './db/prisma.js';
-import { createReportingWorker, createBulkListingWorker, createTokenCleanupWorker, tokenCleanupQueue, closeQueue } from './services/queue.js';
+import { createReportingWorker, createBulkListingWorker, createTokenCleanupWorker, createAutomationWorker, tokenCleanupQueue, automationQueue, closeQueue } from './services/queue.js';
 import { reportingProcessor }    from './workers/reporting.worker.js';
 import { bulkListingProcessor }  from './workers/bulk-listing.worker.js';
 import { tokenCleanupProcessor } from './workers/token-cleanup.worker.js';
+import { automationProcessor }   from './workers/automation.worker.js';
 
 dotenv.config({ override: true });
 
@@ -119,6 +120,14 @@ async function applySellerProfileMigration() {
 }
 applySellerProfileMigration().catch(err => logger.error('SellerProfile migration error', err.message));
 
+async function applyAutomationScheduleMigration() {
+  try {
+    await prisma.$executeRaw`ALTER TABLE "CampaignRule" ADD COLUMN IF NOT EXISTS "schedule" TEXT`;
+    logger.info('Migration: CampaignRule.schedule added');
+  } catch { /* already exists */ }
+}
+applyAutomationScheduleMigration().catch(err => logger.error('Automation schedule migration error', err.message));
+
 const server = app.listen(PORT, () => {
   logger.info('Server started', { port: PORT, nodeEnv: process.env.NODE_ENV });
 });
@@ -127,6 +136,18 @@ const server = app.listen(PORT, () => {
 const reportingWorker    = createReportingWorker(reportingProcessor);
 const bulkListingWorker  = createBulkListingWorker(bulkListingProcessor);
 const tokenCleanupWorker = createTokenCleanupWorker(tokenCleanupProcessor);
+const automationWorker   = createAutomationWorker(automationProcessor);
+
+// Schedule automation rule sweeps (idempotent — BullMQ deduplicates by jobId)
+automationQueue.add('auto-morning', { slot: 'morning' }, {
+  repeat:  { pattern: '0 8 * * *' },
+  jobId:   'auto:morning',
+}).catch(err => logger.warn(`Could not schedule automation morning sweep: ${err.message}`));
+
+automationQueue.add('auto-evening', { slot: 'evening' }, {
+  repeat:  { pattern: '0 20 * * *' },
+  jobId:   'auto:evening',
+}).catch(err => logger.warn(`Could not schedule automation evening sweep: ${err.message}`));
 
 // Schedule nightly token cleanup at 02:00 UTC (repeatable, deduplicated by jobId)
 tokenCleanupQueue.add(
@@ -145,6 +166,7 @@ async function shutdown(signal) {
     await reportingWorker.close();
     await bulkListingWorker.close();
     await tokenCleanupWorker.close();
+    await automationWorker.close();
     await closeQueue();
     await prisma.$disconnect();
     logger.info('Shutdown complete');

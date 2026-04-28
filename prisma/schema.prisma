@@ -295,6 +295,7 @@ model CampaignRule {
   adjustment   Float     @default(10) // % for budget changes; ignored for pause/enable
   lookbackDays Int       @default(14)
   isActive     Boolean   @default(true)
+  schedule     String?   // null=manual | 'daily' | 'twice_daily' | 'weekly'
   lastRunAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -304,6 +305,7 @@ model CampaignRule {
 
   @@index([orgId])
   @@index([isActive])
+  @@index([schedule])
 }
 
 model RuleExecution {

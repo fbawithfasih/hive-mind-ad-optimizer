@@ -167,6 +167,44 @@ export function createTokenCleanupWorker(processor) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Automation rules queue — scheduled rule execution
+// ─────────────────────────────────────────────────────────────────────────────
+
+const AUTOMATION_QUEUE_NAME = 'automation-rules';
+
+export const automationQueue = new Queue(AUTOMATION_QUEUE_NAME, {
+  connection: makeRedisConnection(),
+  defaultJobOptions: {
+    attempts:         2,
+    backoff:          { type: 'exponential', delay: 30_000 },
+    removeOnComplete: { count: 20 },
+    removeOnFail:     { count: 20 },
+  },
+});
+
+/**
+ * @param {Function} processor  - async (job) => void
+ * @returns {Worker}
+ */
+export function createAutomationWorker(processor) {
+  const worker = new Worker(AUTOMATION_QUEUE_NAME, processor, {
+    connection:  makeRedisConnection(),
+    concurrency: 1,
+  });
+
+  worker.on('completed', (job) => {
+    logger.info(`Automation run ${job.id} (${job.data.slot}) completed`);
+  });
+
+  worker.on('failed', (job, err) => {
+    logger.error(`Automation run ${job?.id} failed: ${err.message}`);
+  });
+
+  logger.info('Automation worker started');
+  return worker;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Graceful shutdown
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -175,5 +213,6 @@ export async function closeQueue() {
     reportingQueue.close(),
     bulkListingQueue.close(),
     tokenCleanupQueue.close(),
+    automationQueue.close(),
   ]);
 }
