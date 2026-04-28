@@ -4,6 +4,35 @@ import { getOrCreateTokenManager } from './auth-utils.js';
 
 dotenv.config({ override: true });
 
+// EU marketplaces → sellingpartnerapi-eu; FE → sellingpartnerapi-fe; else NA
+const EU_MARKETPLACES = new Set([
+  'A1F83G8C2ARO7P', // UK
+  'A1PA6795UKMFR9', // DE
+  'A13V1IB3VIYZZH', // FR
+  'APJ6JRA9NG5V4',  // IT
+  'A1RKKUPIHCS9HS', // ES
+  'A1805IZSGTT6HS', // NL
+  'A2NODRKZP88ZB9', // SE
+  'A1C3SOZHARKG6S', // PL
+  'AMEN7PMS3EDWL',  // BE
+  'A2VIGQ35RCS4UG', // AE
+  'A17E79C6D8DWNP', // SA
+  'A33AVAJ2PDY3EV', // TR
+  'ARBP9OOSHTCHU',  // EG
+  'A21TJRUUN4KGV',  // IN
+]);
+const FE_MARKETPLACES = new Set([
+  'A1VC38T7YXB528', // JP
+  'A39IBJ37TRP1C6', // AU
+  'A19VAU5U5O7RUS', // SG
+]);
+
+function spBaseForMarketplace(marketplaceId) {
+  if (EU_MARKETPLACES.has(marketplaceId)) return 'https://sellingpartnerapi-eu.amazon.com';
+  if (FE_MARKETPLACES.has(marketplaceId)) return 'https://sellingpartnerapi-fe.amazon.com';
+  return 'https://sellingpartnerapi-na.amazon.com';
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Client factory
 // ─────────────────────────────────────────────────────────────────────────────
@@ -25,9 +54,11 @@ export function createSpApiClient({
   refreshToken,
   sellerId,
   marketplaceId = 'ATVPDKIKX0DER',
+  languageTag   = 'en_US',
   cacheKey,
 }) {
-  const SP_BASE = 'https://sellingpartnerapi-na.amazon.com';
+  // SP-API endpoint varies by marketplace region
+  const SP_BASE = spBaseForMarketplace(marketplaceId);
   const key = cacheKey ?? `sp:${clientId}:${(refreshToken ?? '').slice(-8)}`;
 
   async function getSPToken() {
@@ -74,6 +105,35 @@ export function createSpApiClient({
       finalAsin: extractedAsin,
     });
 
+    // Extract images from attributes (Listings Items API)
+    const IMAGE_ATTR_KEYS = [
+      'main_product_image_locator',
+      'other_product_image_locator_1', 'other_product_image_locator_2',
+      'other_product_image_locator_3', 'other_product_image_locator_4',
+      'other_product_image_locator_5', 'other_product_image_locator_6',
+      'other_product_image_locator_7', 'other_product_image_locator_8',
+    ];
+    const attrImages = IMAGE_ATTR_KEYS
+      .flatMap(k => attrs[k] ?? [])
+      .map(img => img.media_location)
+      .filter(Boolean);
+
+    // Catalog Items API returns data.images = [{ variant, link, height, width }]
+    const catalogImages = (data.images ?? [])
+      .sort((a, b) => (b.height ?? 0) - (a.height ?? 0))
+      .map(img => img.link)
+      .filter(Boolean);
+
+    // Summaries may have a mainImage link
+    const summaryImage = data.summaries?.[0]?.mainImage?.link ?? null;
+
+    const images = attrImages.length > 0 ? attrImages
+      : catalogImages.length > 0        ? catalogImages
+      : summaryImage                    ? [summaryImage]
+      : [];
+
+    const mainImage = images[0] ?? null;
+
     return {
       asin:        extractedAsin,
       sku:         data.sku ?? null,
@@ -85,6 +145,8 @@ export function createSpApiClient({
       title,
       bullets:     bullets.slice(0, 5),
       description,
+      mainImage,
+      images,
     };
   }
 
@@ -150,7 +212,7 @@ export function createSpApiClient({
       const res = await axios.get(
         `${SP_BASE}/catalog/2022-04-01/items/${asin}`,
         {
-          params:  { marketplaceIds: marketplaceId, includedData: 'attributes,summaries' },
+          params:  { marketplaceIds: marketplaceId, includedData: 'attributes,summaries,images' },
           headers: spHeaders(token),
         }
       );
@@ -173,15 +235,37 @@ export function createSpApiClient({
     if (!productType) throw new Error('productType is required — re-fetch the listing to obtain it');
     const token = await getSPToken();
 
-    const attributes = {};
-    if (title)           attributes.item_name           = [{ value: title, language_tag: 'en_US', marketplace_id: marketplaceId }];
-    if (bullets?.length) attributes.bullet_point        = bullets.filter(Boolean).map(b => ({ value: b, language_tag: 'en_US', marketplace_id: marketplaceId }));
-    if (description)     attributes.product_description = [{ value: description, language_tag: 'en_US', marketplace_id: marketplaceId }];
+    // Build JSON Patch operations — PATCH only touches the fields we provide,
+    // avoiding Amazon's "missing required attribute" errors that a full PUT triggers.
+    const patches = [];
+    if (title) {
+      patches.push({
+        op: 'replace',
+        path: '/attributes/item_name',
+        value: [{ value: title, language_tag: languageTag, marketplace_id: marketplaceId }],
+      });
+    }
+    if (bullets?.length) {
+      patches.push({
+        op: 'replace',
+        path: '/attributes/bullet_point',
+        value: bullets.filter(Boolean).map(b => ({ value: b, language_tag: languageTag, marketplace_id: marketplaceId })),
+      });
+    }
+    if (description) {
+      patches.push({
+        op: 'replace',
+        path: '/attributes/product_description',
+        value: [{ value: description, language_tag: languageTag, marketplace_id: marketplaceId }],
+      });
+    }
 
-    console.log(`Updating listing SKU ${sku} with productType ${productType}…`);
-    const res = await axios.put(
+    if (!patches.length) throw new Error('Nothing to update — title, bullets, and description are all empty');
+
+    console.log(`PATCH listing SKU ${sku} (productType: ${productType}, ${patches.length} fields)…`);
+    const res = await axios.patch(
       `${SP_BASE}/listings/2021-08-01/items/${sellerId}/${encodeURIComponent(sku)}`,
-      { productType, attributes },
+      { productType, patches },
       {
         params:  { marketplaceIds: marketplaceId },
         headers: spHeaders(token),
@@ -193,7 +277,7 @@ export function createSpApiClient({
       const msg = issues?.map(i => i.message).join('; ') ?? 'Unknown validation error';
       throw new Error(`Amazon rejected the update: ${msg}`);
     }
-    console.log(`✅ Listing update accepted for SKU ${sku}`);
+    console.log(`✅ Listing PATCH accepted for SKU ${sku} — status: ${status}`);
     return { status, issues: issues ?? [] };
   }
 

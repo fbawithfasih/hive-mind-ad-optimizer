@@ -88,7 +88,7 @@ router.post('/signup', authLimiter, async (req, res) => {
           const slug = orgName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50)
             + '-' + randomBytes(3).toString('hex');
           const org = await prisma.organization.create({
-            data: { name: orgName, slug },
+            data: { name: orgName, slug, trialEndsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) },
           });
           await prisma.orgMember.create({
             data: { userId: user.id, orgId: org.id, role: 'ADMIN' },
@@ -276,12 +276,26 @@ router.get('/me', requireAuth, async (req, res) => {
         role: om.role,
         tier: om.org.tier,
       })),
-      currentOrg: currentOrgMember ? {
-        id: currentOrgMember.org.id,
-        name: currentOrgMember.org.name,
-        tier: currentOrgMember.org.tier,
-        role: currentOrgMember.role,
-      } : null,
+      currentOrg: currentOrgMember ? (() => {
+        const org = currentOrgMember.org;
+        const trialEndsAt = org.trialEndsAt ? new Date(org.trialEndsAt) : null;
+        const now = Date.now();
+        const isOnTrial = !!trialEndsAt && trialEndsAt.getTime() > now;
+        const trialExpired = !!trialEndsAt && trialEndsAt.getTime() <= now;
+        const trialDaysLeft = isOnTrial
+          ? Math.ceil((trialEndsAt.getTime() - now) / 86400000)
+          : 0;
+        return {
+          id:            org.id,
+          name:          org.name,
+          tier:          org.tier,
+          role:          currentOrgMember.role,
+          trialEndsAt:   trialEndsAt?.toISOString() ?? null,
+          isOnTrial,
+          trialExpired,
+          trialDaysLeft,
+        };
+      })() : null,
     });
   } catch (err) {
     logger.error('Get user error:', err.message);
@@ -490,8 +504,10 @@ const GOOGLE_CLIENT_ID     = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const FRONTEND_URL         = process.env.FRONTEND_URL || 'https://optimizer.hivemindnestor.com';
 
-const getGoogleCallbackUri = (req) => {
-  const base = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+const getGoogleCallbackUri = () => {
+  const base = process.env.BASE_URL
+    || process.env.FRONTEND_URL
+    || 'https://optimizer.hivemindnestor.com';
   return `${base}/api/auth/google/callback`;
 };
 

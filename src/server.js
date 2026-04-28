@@ -103,6 +103,19 @@ async function applyGoogleSsoMigration() {
 
 applyGoogleSsoMigration().catch(err => logger.error('Google SSO migration error', err.message));
 
+// Add accountId/accountName to SellerProfile for multi-account grouping (idempotent)
+async function applySellerProfileMigration() {
+  try {
+    await prisma.$executeRaw`ALTER TABLE "SellerProfile" ADD COLUMN IF NOT EXISTS "accountId" TEXT`;
+    logger.info('Migration: SellerProfile.accountId added');
+  } catch { /* already exists */ }
+  try {
+    await prisma.$executeRaw`ALTER TABLE "SellerProfile" ADD COLUMN IF NOT EXISTS "accountName" TEXT`;
+    logger.info('Migration: SellerProfile.accountName added');
+  } catch { /* already exists */ }
+}
+applySellerProfileMigration().catch(err => logger.error('SellerProfile migration error', err.message));
+
 const server = app.listen(PORT, () => {
   logger.info('Server started', { port: PORT, nodeEnv: process.env.NODE_ENV });
 });

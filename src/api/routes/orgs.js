@@ -67,6 +67,7 @@ router.post('/', async (req, res) => {
           name: name.trim(),
           slug,
           description: description?.trim() || null,
+          trialEndsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3-day trial
         },
       });
 

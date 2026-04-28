@@ -29,7 +29,15 @@
  * @returns {Array<Object>} Classified search terms with recommendations
  * @returns {string} records[].recommendation - AI recommendation (SCALE_UP, ADD_NEGATIVE, ADD_EXACT, WATCH)
  */
-export function classifySearchTerms(records) {
+export function classifySearchTerms(records, thresholds = {}) {
+  const {
+    scaleUpAcos       = 25,
+    addNegativeClicks = 10,
+    addNegativeSpend  = 5,
+    addExactAcosMin   = 25,
+    addExactAcosMax   = 40,
+  } = thresholds;
+
   return records.map(r => {
     const purchases = r.purchases14d ?? 0;
     const clicks    = r.clicks       ?? 0;
@@ -37,11 +45,11 @@ export function classifySearchTerms(records) {
     const acos      = r.acosClicks14d != null ? +Number(r.acosClicks14d).toFixed(2) : null;
 
     let recommendation;
-    if (purchases >= 1 && acos != null && acos < 25) {
+    if (purchases >= 1 && acos != null && acos < scaleUpAcos) {
       recommendation = 'SCALE_UP';
-    } else if (clicks >= 10 && purchases === 0 && cost > 5) {
+    } else if (clicks >= addNegativeClicks && purchases === 0 && cost > addNegativeSpend) {
       recommendation = 'ADD_NEGATIVE';
-    } else if (purchases >= 1 && acos != null && acos >= 25 && acos < 40) {
+    } else if (purchases >= 1 && acos != null && acos >= addExactAcosMin && acos < addExactAcosMax) {
       recommendation = 'ADD_EXACT';
     } else {
       recommendation = 'WATCH';

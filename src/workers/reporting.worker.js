@@ -20,6 +20,7 @@ import { loadOrgCredential } from '../services/credentials.js';
 import { createAdsClient, default as defaultAdsClient } from '../services/amazon-ads.js';
 import { classifySearchTerms } from '../services/search-term-classifier.js';
 import { generateAmazonReport }  from '../services/claude-mcp.js';
+import { getBrandAnalyticsContext } from '../services/brand-analytics/loader.js';
 import { createLogger }     from '../api/utils/logger.js';
 
 const logger = createLogger('WORKER');
@@ -117,7 +118,14 @@ export async function reportingProcessor(job) {
   const enrichedCampaigns = mergeMetrics(campaigns, rawMetrics);
   const classifiedTerms   = classifySearchTerms(rawSearchTerms);
 
-  // 4. AI synthesis
+  // 4. Load brand analytics context (best-effort — don't fail report if BA not configured)
+  const brandName = job.data.brandName ?? null;
+  const brandContext = await getBrandAnalyticsContext(orgId, brandName ?? 'Unknown');
+  if (brandContext) {
+    logger.info(`Job ${jobId}: brand analytics context loaded (${brandContext.length} chars)`);
+  }
+
+  // 5. AI synthesis
   await job.updateProgress(75);
   const report = await generateAmazonReport({
     reportType,
@@ -126,12 +134,13 @@ export async function reportingProcessor(job) {
     campaigns:   enrichedCampaigns,
     searchTerms: classifiedTerms,
     model,
+    brandContext,
   });
 
-  // 5. Persist result
+  // 6. Persist result
   await patch(dbJobId, {
     status:      'COMPLETED',
-    result:      report,
+    result:      { content: report, brandEnriched: brandContext !== null, brandName: brandName ?? null },
     completedAt: new Date(),
   });
 

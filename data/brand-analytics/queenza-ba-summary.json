@@ -1,0 +1,164 @@
+{
+  "reportingPeriod": "Q1 2026",
+  "totalSearchQueries": 3000,
+  "totalProducts": 56,
+  "totalImpressions": 399697,
+  "totalClicks": 8603,
+  "totalPurchases": 472,
+  "overallCTR": "2.15%",
+  "overallConversionRate": "5.49%",
+  "avgBrandPrice": "$93.61",
+  "avgMarketPrice": "$22.06",
+  "pricePremium": "324.4%",
+  "topProducts": [
+    {
+      "asin": "B0926QF71K",
+      "title": "Queenza White Marble Salt Cellar with Lid and Brass Knob, 3 Inch Salt Box",
+      "impressions": 180675,
+      "clicks": 3255,
+      "purchases": 141
+    },
+    {
+      "asin": "B08N1B3W2G",
+      "title": "Queenza White Marble Salt Cellar with Lid - 3 Inch Salt and Pepper Bowls, Ramekins, Kosher Salt Holder",
+      "impressions": 113482,
+      "clicks": 1755,
+      "purchases": 81
+    },
+    {
+      "asin": "B095WLBYPZ",
+      "title": "Queenza Green Marble Salt Cellar with Lid & Brass Knob - Natural Marble Spice Container for Kitchen Countertop, Gourmet Salt Holder, Small Decorative Storage Box, Gift for Home Chef",
+      "impressions": 95247,
+      "clicks": 1605,
+      "purchases": 31
+    },
+    {
+      "asin": "B09Z28W5CN",
+      "title": "Queenza Salt Cellar with Lid & Brass Knob - 3 Inch White Makrana Marble Salt Bowl, Salt Dish for Kitchen and Dining - Multipurpose Small Box with Lid",
+      "impressions": 88302,
+      "clicks": 1375,
+      "purchases": 81
+    },
+    {
+      "asin": "B092B3JWPR",
+      "title": "Queenza Marble Salt Cellar with Lid and Brass Knob (Brown)",
+      "impressions": 87858,
+      "clicks": 1494,
+      "purchases": 63
+    }
+  ],
+  "dominantQueries": [
+    {
+      "query": "salt cellar large",
+      "volume": 369,
+      "purchaseShare": "100.0%"
+    },
+    {
+      "query": "saleros de marmol",
+      "volume": 262,
+      "purchaseShare": "100.0%"
+    },
+    {
+      "query": "small stone box with lid",
+      "volume": 192,
+      "purchaseShare": "100.0%"
+    },
+    {
+      "query": "marble jewelry dish with lid",
+      "volume": 109,
+      "purchaseShare": "100.0%"
+    },
+    {
+      "query": "3 oz salt cellar",
+      "volume": 92,
+      "purchaseShare": "100.0%"
+    },
+    {
+      "query": "marble coffee and sugar container",
+      "volume": 92,
+      "purchaseShare": "100.0%"
+    },
+    {
+      "query": "luxury coasters elegant",
+      "volume": 78,
+      "purchaseShare": "100.0%"
+    },
+    {
+      "query": "salt cellar brass",
+      "volume": 64,
+      "purchaseShare": "100.0%"
+    },
+    {
+      "query": "salt cellar with large knob lid",
+      "volume": 53,
+      "purchaseShare": "100.0%"
+    },
+    {
+      "query": "counter tray with handles",
+      "volume": 49,
+      "purchaseShare": "100.0%"
+    }
+  ],
+  "opportunityQueries": [
+    {
+      "query": "salt holder with lid",
+      "volume": 13150,
+      "impressionShare": "1.2%",
+      "purchaseShare": "0.37%"
+    },
+    {
+      "query": "flaky salt container",
+      "volume": 6560,
+      "impressionShare": "1.2%",
+      "purchaseShare": "0.52%"
+    },
+    {
+      "query": "marble box with lid",
+      "volume": 4860,
+      "impressionShare": "1.4%",
+      "purchaseShare": "0.00%"
+    },
+    {
+      "query": "marble jar",
+      "volume": 4224,
+      "impressionShare": "1.1%",
+      "purchaseShare": "0.00%"
+    },
+    {
+      "query": "marble salt and pepper bowls",
+      "volume": 2216,
+      "impressionShare": "2.5%",
+      "purchaseShare": "0.00%"
+    },
+    {
+      "query": "sea salt holder",
+      "volume": 1824,
+      "impressionShare": "1.3%",
+      "purchaseShare": "0.79%"
+    },
+    {
+      "query": "marble jar with lid",
+      "volume": 1695,
+      "impressionShare": "2.6%",
+      "purchaseShare": "0.00%"
+    },
+    {
+      "query": "salt holder for counter",
+      "volume": 1621,
+      "impressionShare": "1.4%",
+      "purchaseShare": "0.00%"
+    },
+    {
+      "query": "mother of pearl coasters",
+      "volume": 1553,
+      "impressionShare": "1.5%",
+      "purchaseShare": "0.00%"
+    },
+    {
+      "query": "marble salt and pepper cellar",
+      "volume": 1499,
+      "impressionShare": "2.0%",
+      "purchaseShare": "0.00%"
+    }
+  ]
+}

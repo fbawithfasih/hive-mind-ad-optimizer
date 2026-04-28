@@ -185,42 +185,36 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     throw new Error('Report timed out after 3 minutes');
   }
 
-  async function getSearchTermReport(profileId, startDate, endDate, campaignIds = []) {
+  async function createSearchTermReport(profileId, startDate, endDate) {
     const token = await getAccessToken();
     const h = adsHeaders(token, profileId);
 
-    const campaignLabel = campaignIds.length ? ` [${campaignIds.length} campaigns]` : '';
-    console.log(`Creating SP search term report for profile ${profileId} (${startDate} → ${endDate})${campaignLabel}…`);
+    console.log(`Creating SP search term report for profile ${profileId} (${startDate} → ${endDate})…`);
 
+    // spSearchTerm only supports primitive metric columns.
+    // clickThroughRate, costPerClick, acosClicks14d, roasClicks14d are NOT valid here
+    // (they're computed columns only available for spCampaigns). We derive them after download.
     const reportConfig = {
       adProduct: 'SPONSORED_PRODUCTS',
       groupBy: ['searchTerm'],
       columns: [
         'campaignId', 'campaignName',
-        'targeting', 'matchType', 'searchTerm',
-        'impressions', 'clicks', 'clickThroughRate',
-        'cost', 'costPerClick',
+        'adGroupId', 'adGroupName',
+        'matchType', 'searchTerm', 'targeting',
+        'impressions', 'clicks',
+        'cost',
         'purchases14d', 'sales14d',
-        'acosClicks14d', 'roasClicks14d',
       ],
       reportTypeId: 'spSearchTerm',
       timeUnit: 'SUMMARY',
       format: 'GZIP_JSON',
     };
-    if (campaignIds.length > 0) {
-      reportConfig.filters = [{ field: 'campaignId', values: campaignIds }];
-    }
 
     let createRes;
     try {
       createRes = await axios.post(
         'https://advertising-api.amazon.com/reporting/reports',
-        {
-          name: `SP Search Term Report ${Date.now()}`,
-          startDate,
-          endDate,
-          configuration: reportConfig,
-        },
+        { name: `SP Search Term Report ${Date.now()}`, startDate, endDate, configuration: reportConfig },
         {
           headers: {
             ...h,
@@ -235,41 +229,56 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
         const match  = detail.match(/([0-9a-f-]{36})/i);
         if (match) {
           console.log(`↩️  Duplicate search term report — reusing ${match[1]}`);
-          createRes = { data: { reportId: match[1] } };
-        } else {
-          throw new Error(`Search term report 425 (no reportId): ${detail}`);
+          return match[1];
         }
-      } else {
-        console.error('❌ Search term report create error:', e.response?.status, JSON.stringify(e.response?.data));
-        throw new Error(`Search term report create failed ${e.response?.status}: ${JSON.stringify(e.response?.data)}`);
+        throw new Error(`Search term report 425 (no reportId): ${detail}`);
       }
+      console.error('❌ Search term report create error:', e.response?.status, JSON.stringify(e.response?.data));
+      throw new Error(`Search term report create failed ${e.response?.status}: ${JSON.stringify(e.response?.data)}`);
     }
 
     const reportId = createRes.data.reportId;
-    console.log(`Search term report ${reportId} created — polling…`);
+    console.log(`Search term report created: ${reportId}`);
+    return reportId;
+  }
 
-    for (let i = 0; i < 36; i++) {
-      await new Promise(r => setTimeout(r, 5000));
-      let poll;
-      try {
-        poll = await axios.get(`https://advertising-api.amazon.com/reporting/reports/${reportId}`, { headers: h });
-      } catch (e) {
-        throw new Error(`Search term poll failed ${e.response?.status}: ${JSON.stringify(e.response?.data)}`);
-      }
-      const { status, url } = poll.data;
-      console.log(`  ST Poll ${i + 1}: ${status}`);
+  async function pollSearchTermReport(profileId, reportId, campaignIds = []) {
+    const token = await getAccessToken();
+    const h = adsHeaders(token, profileId);
 
-      if (status === 'COMPLETED') {
-        const dlRes = await axios.get(url, { responseType: 'arraybuffer' });
-        const records = JSON.parse(gunzipSync(Buffer.from(dlRes.data)).toString());
-        console.log(`✅ Search term report downloaded — ${records.length} records`);
-        return records;
-      }
-      if (status === 'FAILED')  throw new Error(`Search term report ${reportId} failed: ${poll.data.failureReason ?? 'unknown'}`);
-      if (status === 'EXPIRED') throw new Error(`Search term report ${reportId} expired`);
+    let poll;
+    try {
+      poll = await axios.get(`https://advertising-api.amazon.com/reporting/reports/${reportId}`, { headers: h });
+    } catch (e) {
+      throw new Error(`Search term poll failed ${e.response?.status}: ${JSON.stringify(e.response?.data)}`);
     }
 
-    throw new Error('Search term report timed out after 3 minutes');
+    const { status, url } = poll.data;
+    console.log(`ST report ${reportId} status: ${status}`);
+
+    if (status === 'COMPLETED') {
+      const dlRes = await axios.get(url, { responseType: 'arraybuffer' });
+      let records = JSON.parse(gunzipSync(Buffer.from(dlRes.data)).toString());
+      console.log(`✅ Search term report downloaded — ${records.length} records`);
+      if (campaignIds.length > 0) {
+        const idSet = new Set(campaignIds.map(String));
+        records = records.filter(r => idSet.has(String(r.campaignId)));
+        console.log(`  Filtered to ${records.length} records for ${campaignIds.length} campaigns`);
+      }
+      // Derive computed metrics — these columns are not available for spSearchTerm
+      records = records.map(r => ({
+        ...r,
+        clickThroughRate: r.impressions > 0 ? r.clicks / r.impressions : 0,
+        costPerClick:     r.clicks > 0 ? r.cost / r.clicks : 0,
+        acosClicks14d:    r.sales14d > 0 ? (r.cost / r.sales14d) * 100 : null,
+        roasClicks14d:    r.cost > 0 ? r.sales14d / r.cost : null,
+      }));
+      return { status: 'COMPLETED', data: records };
+    }
+
+    if (status === 'FAILED')  return { status: 'FAILED',  error: poll.data.failureReason ?? 'Report failed' };
+    if (status === 'EXPIRED') return { status: 'FAILED',  error: 'Report expired' };
+    return { status: 'PENDING' };
   }
 
   /**
@@ -297,6 +306,53 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     return res.data;
   }
 
+  /**
+   * Add negative keywords at the ad-group level.
+   * items: [{ campaignId, adGroupId, keywordText, matchType? }]
+   * matchType defaults to 'negativePhrase'.
+   */
+  async function addNegativeKeywords(profileId, items) {
+    const token = await getAccessToken();
+    const body = items.map(k => ({
+      campaignId:  Number(k.campaignId),
+      adGroupId:   Number(k.adGroupId),
+      state:       'enabled',
+      keywordText: k.keywordText,
+      matchType:   k.matchType ?? 'negativePhrase',
+    }));
+    const res = await axios.post(
+      'https://advertising-api.amazon.com/v2/sp/negativeKeywords',
+      body,
+      { headers: adsHeaders(token, profileId) }
+    );
+    console.log(`✅ Submitted ${items.length} negative keywords for profile ${profileId}`);
+    return Array.isArray(res.data) ? res.data : [];
+  }
+
+  /**
+   * Add positive keywords (exact/phrase/broad) at the ad-group level.
+   * items: [{ campaignId, adGroupId, keywordText, matchType?, bid? }]
+   * matchType defaults to 'exact'. bid defaults to 0.75.
+   */
+  async function addKeywords(profileId, items) {
+    const token = await getAccessToken();
+    const body = items.map(k => ({
+      campaignId:  Number(k.campaignId),
+      adGroupId:   Number(k.adGroupId),
+      state:       'enabled',
+      keywordText: k.keywordText,
+      matchType:   k.matchType ?? 'exact',
+      bid:         k.bid ?? 0.75,
+    }));
+    const res = await axios.post(
+      'https://advertising-api.amazon.com/v2/sp/keywords',
+      body,
+      { headers: adsHeaders(token, profileId) }
+    );
+    console.log(`✅ Submitted ${items.length} keywords for profile ${profileId}`);
+    return Array.isArray(res.data) ? res.data : [];
+  }
+
   return {
     getProfiles,
     getCampaigns,
@@ -304,8 +360,11 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     startCampaignMetricsReport,
     checkReportStatus,
     getCampaignMetrics,
-    getSearchTermReport,
+    createSearchTermReport,
+    pollSearchTermReport,
     updateCampaigns,
+    addNegativeKeywords,
+    addKeywords,
   };
 }
 
@@ -326,7 +385,10 @@ export const getProductAdCampaigns       = _defaultClient.getProductAdCampaigns;
 export const startCampaignMetricsReport  = _defaultClient.startCampaignMetricsReport;
 export const checkReportStatus           = _defaultClient.checkReportStatus;
 export const getCampaignMetrics          = _defaultClient.getCampaignMetrics;
-export const getSearchTermReport         = _defaultClient.getSearchTermReport;
+export const createSearchTermReport      = _defaultClient.createSearchTermReport;
+export const pollSearchTermReport        = _defaultClient.pollSearchTermReport;
 export const updateCampaigns             = _defaultClient.updateCampaigns;
+export const addNegativeKeywords         = _defaultClient.addNegativeKeywords;
+export const addKeywords                 = _defaultClient.addKeywords;
 
 export default _defaultClient;

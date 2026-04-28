@@ -107,11 +107,16 @@ async function callClaude(userCommand, conversationHistory = [], systemPrompt = 
 
 /**
  * Execute a natural-language command against campaign/search-term data.
+ * @param {string} [brandContext] - Optional brand analytics text block from buildAIContext()
  */
-export async function executeMCPCommand(userCommand, conversationHistory = [], model = 'gemini') {
+export async function executeMCPCommand(userCommand, conversationHistory = [], model = 'gemini', brandContext = null) {
+  const enrichedCommand = brandContext
+    ? `${userCommand}\n\n---\n\n${brandContext}`
+    : userCommand;
+
   const summary = model === 'claude'
-    ? await callClaude(userCommand, conversationHistory)
-    : await callGemini(userCommand, conversationHistory);
+    ? await callClaude(enrichedCommand, conversationHistory)
+    : await callGemini(enrichedCommand, conversationHistory);
 
   const updatedHistory = [
     ...conversationHistory,
@@ -198,8 +203,9 @@ const REPORT_SECTIONS = {
 
 /**
  * Generate a professional Amazon advertising report from campaign + search term data.
+ * @param {string} [brandContext] - Optional brand analytics text block from buildAIContext()
  */
-export async function generateAmazonReport({ reportType, startDate, endDate, campaigns, searchTerms, model = 'claude' }) {
+export async function generateAmazonReport({ reportType, startDate, endDate, campaigns, searchTerms, model = 'claude', brandContext = null }) {
   // Pre-compute aggregates
   const totalSpend      = campaigns.reduce((s, c) => s + (c.spend || 0), 0);
   const totalSales      = campaigns.reduce((s, c) => s + (c.sales || 0), 0);
@@ -299,7 +305,7 @@ ${JSON.stringify(topNeg.map(t => ({ term: t.searchTerm, wastedSpend: t.cost?.toF
 Generate the complete report following EXACTLY this section structure:
 ${sections}
 
-Write the full report now. Use the real numbers from the data above. Be specific.`;
+Write the full report now. Use the real numbers from the data above. Be specific.${brandContext ? `\n\n---\n\n${brandContext}\n\nUse the brand analytics intelligence above to enrich insights — reference brand visibility gaps, dominant keywords to defend, weak keywords to fix, and top competitor ASINs where relevant.` : ''}`;
 
   const raw = model === 'claude'
     ? await callClaude(userPrompt, [], REPORT_SYSTEM_PROMPT)

@@ -33,7 +33,8 @@ router.get('/lookup', async (req, res) => {
       }
     }
 
-    res.json(product);
+    const score = scoreListing(product);
+    res.json({ ...product, ...score });
   } catch (err) {
     console.error('Listings lookup error:', err.message);
     res.status(500).json({ error: err.message });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { startReportJob, pollReportJob } from '../services/api.js';
+import { startReportJob, pollReportJob, getReportHistory } from '../services/api.js';
 
 // ── Report type definitions ───────────────────────────────────────────────────
 
@@ -113,18 +113,27 @@ export default function ReportingAgentPanel({ profileId, aiModel = 'claude' }) {
   const [dateFrom,     setDateFrom]     = useState(dateOffset(30));
   const [dateTo,       setDateTo]       = useState(today);
   const [model,        setModel]        = useState(aiModel);
+  const [brand,        setBrand]        = useState(() => localStorage.getItem('amaiop_brand') ?? '');
   const [jobId,        setJobId]        = useState(null);
   const [jobStatus,    setJobStatus]    = useState(null); // running|done|error
   const [jobStep,      setJobStep]      = useState('');
   const [jobProgress,  setJobProgress]  = useState('');
-  const [report,       setReport]       = useState(null);
-  const [error,        setError]        = useState(null);
-  const [elapsed,      setElapsed]      = useState(0);
+  const [report,         setReport]         = useState(null);
+  const [brandEnriched,  setBrandEnriched]  = useState(false);
+  const [reportBrandName,setReportBrandName]= useState(null);
+  const [error,          setError]          = useState(null);
+  const [elapsed,        setElapsed]        = useState(0);
   const [startedAt,    setStartedAt]    = useState(null);
   const [copied,       setCopied]       = useState(false);
+  const [history,      setHistory]      = useState([]);
   const reportRef  = useRef(null);
   const pollRef    = useRef(null);
   const timerRef   = useRef(null);
+
+  // Load history on mount
+  useEffect(() => {
+    getReportHistory().then(setHistory).catch(() => {});
+  }, []);
 
   // Auto-set date range when report type changes
   useEffect(() => {
@@ -146,7 +155,10 @@ export default function ReportingAgentPanel({ profileId, aiModel = 'claude' }) {
         if (res.status === 'done') {
           setJobStatus('done');
           setReport(res.report);
+          setBrandEnriched(res.brandEnriched ?? false);
+          setReportBrandName(res.brandName ?? null);
           clearInterval(pollRef.current);
+          getReportHistory().then(setHistory).catch(() => {});
           clearInterval(timerRef.current);
         } else if (res.status === 'error') {
           setJobStatus('error');
@@ -179,6 +191,8 @@ export default function ReportingAgentPanel({ profileId, aiModel = 'claude' }) {
     if (!reportType) return;
     setError(null);
     setReport(null);
+    setBrandEnriched(false);
+    setReportBrandName(null);
     setJobId(null);
     setJobStatus('running');
     setJobStep('starting');
@@ -193,6 +207,7 @@ export default function ReportingAgentPanel({ profileId, aiModel = 'claude' }) {
         startDate: dateFrom,
         endDate:   dateTo,
         model,
+        brand:     brand.trim() || undefined,
       });
       setJobId(id);
     } catch (err) {
@@ -209,6 +224,8 @@ export default function ReportingAgentPanel({ profileId, aiModel = 'claude' }) {
     setJobStep('');
     setJobProgress('');
     setReport(null);
+    setBrandEnriched(false);
+    setReportBrandName(null);
     setError(null);
     setElapsed(0);
     setStartedAt(null);
@@ -449,6 +466,19 @@ export default function ReportingAgentPanel({ profileId, aiModel = 'claude' }) {
                   ))}
                 </div>
 
+                {/* Brand name (for brand analytics enrichment) */}
+                <input
+                  value={brand}
+                  onChange={e => { setBrand(e.target.value); localStorage.setItem('amaiop_brand', e.target.value); }}
+                  placeholder="Brand name (optional)"
+                  style={{
+                    background: '#263348', border: '1px solid #334155', color: '#F1F5F9',
+                    borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none',
+                    width: 160,
+                  }}
+                  title="Enter your brand name to enrich the report with Brand Analytics data (if CSVs have been uploaded)"
+                />
+
                 {/* Generate button */}
                 <button onClick={handleGenerate}
                   style={{
@@ -590,9 +620,29 @@ export default function ReportingAgentPanel({ profileId, aiModel = 'claude' }) {
                 <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#F1F5F9' }}>
                   {selectedType?.label}
                 </p>
-                <p style={{ margin: 0, fontSize: 11, color: '#64748B' }}>
-                  {dateFrom} → {dateTo} · generated in {fmtElapsed(elapsed)} · {model === 'claude' ? 'Claude Sonnet' : 'Gemini 2.5 Flash'}
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <p style={{ margin: 0, fontSize: 11, color: '#64748B' }}>
+                    {dateFrom} → {dateTo} · generated in {fmtElapsed(elapsed)} · {model === 'claude' ? 'Claude Sonnet' : 'Gemini 2.5 Flash'}
+                  </p>
+                  {brandEnriched && reportBrandName && (
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999,
+                      background: 'rgba(16,185,129,0.12)', color: '#34D399',
+                      border: '1px solid rgba(16,185,129,0.25)', whiteSpace: 'nowrap',
+                    }}>
+                      📡 Brand Analytics · {reportBrandName}
+                    </span>
+                  )}
+                  {!brandEnriched && brand.trim() && (
+                    <span style={{
+                      fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 999,
+                      background: 'rgba(100,116,139,0.1)', color: '#64748B',
+                      border: '1px solid rgba(100,116,139,0.2)', whiteSpace: 'nowrap',
+                    }}>
+                      No brand data — upload CSVs in Brand Analytics
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -631,6 +681,63 @@ export default function ReportingAgentPanel({ profileId, aiModel = 'claude' }) {
             <div className="ra-report">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{report}</ReactMarkdown>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Past Reports ── */}
+      {history.length > 0 && !jobStatus && (
+        <div style={{ borderRadius: 12, border: '1px solid #334155', overflow: 'hidden' }}>
+          <div style={{ padding: '10px 18px', background: '#1E293B', borderBottom: '1px solid #334155' }}>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+              letterSpacing: '0.07em', color: '#64748B' }}>
+              Past Reports
+            </p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {history.map((h, i) => {
+              const DB_TYPE_LABELS = {
+                CAMPAIGN_PERFORMANCE: 'Campaign Performance',
+                SEARCH_TERMS: 'Search Terms',
+                KEYWORD_ANALYSIS: 'Keyword Analysis',
+                LISTING_HEALTH: 'Listing Health',
+                REVENUE_SUMMARY: 'Revenue Summary',
+              };
+              const typeLabel = DB_TYPE_LABELS[h.type] ?? h.type?.replace(/_/g, ' ') ?? 'Report';
+              const from = h.dateFrom ? new Date(h.dateFrom).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+              const to   = h.dateTo   ? new Date(h.dateTo).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+              const created = h.createdAt ? new Date(h.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+              const statusColor = h.status === 'COMPLETED' ? '#34D399' : h.status === 'FAILED' ? '#F87171' : '#64748B';
+
+              return (
+                <div key={h.jobId} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px',
+                  borderBottom: i < history.length - 1 ? '1px solid #1E293B' : 'none',
+                  background: 'transparent',
+                }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: statusColor, flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#F1F5F9' }}>{typeLabel}</span>
+                      <span style={{ fontSize: 11, color: '#475569' }}>{from} → {to}</span>
+                      {h.brandEnriched && h.brandName && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 999,
+                          background: 'rgba(16,185,129,0.12)', color: '#34D399',
+                          border: '1px solid rgba(16,185,129,0.25)',
+                        }}>
+                          📡 {h.brandName}
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: 10, color: '#334155' }}>{created}</span>
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: statusColor, flexShrink: 0 }}>
+                    {h.status === 'COMPLETED' ? 'Done' : h.status === 'FAILED' ? 'Failed' : h.status}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

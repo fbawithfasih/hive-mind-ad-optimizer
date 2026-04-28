@@ -13,6 +13,8 @@
  */
 
 import express from 'express';
+import { randomBytes } from 'crypto';
+import IORedis from 'ioredis';
 import { prisma } from '../../db/prisma.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { requireRole } from '../middleware/requireRole.js';
@@ -27,6 +29,23 @@ import {
   syncPaymentFromRazorpay,
 } from '../../services/razorpay.js';
 
+// Short-lived Redis client for claim tokens (separate from BullMQ connections)
+const claimRedis = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
+  maxRetriesPerRequest: 3,
+  lazyConnect: true,
+});
+const CLAIM_TTL_SECONDS = 30 * 60; // 30 minutes
+
+// Marketing site plan name → AMAIOP SubscriptionTier
+const PLAN_TIER_MAP = {
+  STARTER: 'BASIC',
+  BASIC:   'BASIC',
+  GROWTH:  'PRO',
+  PRO:     'PRO',
+  SCALE:   'ENTERPRISE',
+  ENTERPRISE: 'ENTERPRISE',
+};
+
 const router = express.Router();
 const logger = createLogger('BILLING');
 
@@ -35,6 +54,61 @@ function razorpayRequired(req, res, next) {
     return res.status(503).json({ error: 'Billing is not configured on this server.' });
   }
   next();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/billing/claim-payment  — PUBLIC (no auth)
+//
+// Called server-to-server from the marketing site's verify-payment endpoint
+// after a successful Razorpay order payment.  Stores a short-lived claim token
+// in Redis so the AMAIOP signup flow can attribute the purchase to the new account.
+//
+// Body:  { paymentId, orderId, planName, amount, currency, secret }
+// Returns: { claimToken }
+// ─────────────────────────────────────────────────────────────────────────────
+
+router.post('/claim-payment', async (req, res) => {
+  const { paymentId, orderId, planName, amount, currency, secret } = req.body;
+
+  // Shared secret prevents arbitrary claim creation
+  const expected = process.env.MARKETING_CLAIM_SECRET;
+  if (!expected || secret !== expected) {
+    return res.status(401).json({ error: 'Invalid claim secret' });
+  }
+
+  if (!paymentId || !planName) {
+    return res.status(400).json({ error: 'paymentId and planName are required' });
+  }
+
+  const tier = PLAN_TIER_MAP[planName?.toUpperCase()];
+  if (!tier) {
+    return res.status(400).json({ error: `Unknown plan: ${planName}. Valid values: ${Object.keys(PLAN_TIER_MAP).join(', ')}` });
+  }
+
+  const claimToken = randomBytes(24).toString('hex');
+  const payload = JSON.stringify({ paymentId, orderId, tier, amount, currency, createdAt: Date.now() });
+
+  try {
+    await claimRedis.set(`claim:${claimToken}`, payload, 'EX', CLAIM_TTL_SECONDS);
+  } catch (err) {
+    logger.error(`Redis claim-payment error: ${err.message}`);
+    return res.status(500).json({ error: 'Failed to store claim token' });
+  }
+
+  logger.info(`Claim token issued: plan=${planName} tier=${tier} payment=${paymentId}`);
+  res.json({ claimToken, tier });
+});
+
+// Exported so auth signup can consume claim tokens
+export async function consumeClaimToken(claimToken) {
+  try {
+    const raw = await claimRedis.get(`claim:${claimToken}`);
+    if (!raw) return null;
+    await claimRedis.del(`claim:${claimToken}`);
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -60,6 +134,16 @@ router.get('/status', requireAuth, async (req, res) => {
     }),
   ]);
 
+  const org = await prisma.organization.findUnique({
+    where:  { id: orgId },
+    select: { trialEndsAt: true },
+  });
+  const trialEndsAt   = org?.trialEndsAt ? new Date(org.trialEndsAt) : null;
+  const now           = Date.now();
+  const isOnTrial     = !!trialEndsAt && trialEndsAt.getTime() > now;
+  const trialExpired  = !!trialEndsAt && trialEndsAt.getTime() <= now;
+  const trialDaysLeft = isOnTrial ? Math.ceil((trialEndsAt.getTime() - now) / 86400000) : 0;
+
   res.json({
     subscription: subscription ?? null,
     currentMonthUsage: usage ?? {
@@ -68,10 +152,16 @@ router.get('/status', requireAuth, async (req, res) => {
       reportsGenerated:  0,
       bulkOperations:    0,
     },
+    trial: {
+      trialEndsAt:  trialEndsAt?.toISOString() ?? null,
+      isOnTrial,
+      trialExpired,
+      trialDaysLeft,
+    },
     availablePlans: [
-      { tier: 'BASIC',      planId: PLAN_IDS.BASIC,      name: 'Basic' },
-      { tier: 'PRO',        planId: PLAN_IDS.PRO,        name: 'Pro' },
-      { tier: 'ENTERPRISE', planId: PLAN_IDS.ENTERPRISE, name: 'Enterprise' },
+      { tier: 'BASIC',      planId: PLAN_IDS.BASIC,      name: 'Starter',    price: '$49/mo'  },
+      { tier: 'PRO',        planId: PLAN_IDS.PRO,        name: 'Growth',     price: '$149/mo' },
+      { tier: 'ENTERPRISE', planId: PLAN_IDS.ENTERPRISE, name: 'Scale',      price: '$349/mo' },
     ].filter(p => p.planId),
   });
 });

@@ -56,6 +56,8 @@ router.post('/sync', requireRole('ADMIN'), async (req, res) => {
             orgId: req.tenant.orgId,
             profileId,
             profileName: p.accountInfo?.name ?? p.name ?? profileId,
+            accountId:   p.accountInfo?.id   ?? null,
+            accountName: p.accountInfo?.name ?? p.name ?? null,
             countryCode: p.countryCode ?? '',
             primaryCountry: p.countryCode ?? '',
             isDefault,
@@ -63,6 +65,8 @@ router.post('/sync', requireRole('ADMIN'), async (req, res) => {
           },
           update: {
             profileName: p.accountInfo?.name ?? p.name ?? profileId,
+            accountId:   p.accountInfo?.id   ?? null,
+            accountName: p.accountInfo?.name ?? p.name ?? null,
             countryCode: p.countryCode ?? '',
             primaryCountry: p.countryCode ?? '',
             lastSyncedAt: new Date(),
@@ -71,8 +75,23 @@ router.post('/sync', requireRole('ADMIN'), async (req, res) => {
       })
     );
 
+    // Remove profiles that Amazon's API no longer returns for this org's credentials.
+    // This cleans up stale entries from a previous agency-level sync that stored
+    // multiple clients' profiles under this org.
+    const returnedIds = raw.map(p => String(p.profileId ?? p.id));
+    const { count: removed } = await prisma.sellerProfile.deleteMany({
+      where: {
+        orgId: req.tenant.orgId,
+        profileId: { notIn: returnedIds },
+      },
+    });
+
+    if (removed > 0) {
+      logger.info(`Removed ${removed} stale profiles for org ${req.tenant.orgId}`);
+    }
+
     logger.info(`Synced ${upserted.length} profiles for org ${req.tenant.orgId}`);
-    res.json({ synced: upserted.length, profiles: upserted });
+    res.json({ synced: upserted.length, removed, profiles: upserted });
   } catch (err) {
     const detail = err.response?.data ?? err.message;
     logger.error(`Sync profiles error: ${err.message}`, { detail, status: err.response?.status });

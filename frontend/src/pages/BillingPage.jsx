@@ -151,11 +151,15 @@ export default function BillingPage({ user, onLogout }) {
     }
   }
 
-  const sub           = data?.subscription;
-  const usage         = data?.currentMonthUsage;
+  const sub            = data?.subscription;
+  const usage          = data?.currentMonthUsage;
+  const trial          = data?.trial ?? {};
   const availableTiers = new Set((data?.availablePlans ?? []).map(p => p.tier));
   const visiblePlans   = PLAN_DETAILS.filter(p => availableTiers.size === 0 || availableTiers.has(p.tier));
   const canCancel      = isAdmin && sub?.status === 'ACTIVE' && sub?.subscriptionId;
+  const trialExpired   = user?.currentOrg?.trialExpired || trial.trialExpired;
+  const isOnTrial      = user?.currentOrg?.isOnTrial    || trial.isOnTrial;
+  const trialDaysLeft  = user?.currentOrg?.trialDaysLeft ?? trial.trialDaysLeft ?? 0;
 
   return (
     <div style={{ minHeight: '100vh', background: '#0F172A', color: '#F1F5F9' }}>
@@ -187,6 +191,49 @@ export default function BillingPage({ user, onLogout }) {
 
         {error && (
           <div style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#F87171' }}>{error}</div>
+        )}
+
+        {/* ── Trial expired wall ── */}
+        {trialExpired && !sub && (
+          <div style={{
+            borderRadius: 16, overflow: 'hidden',
+            border: '1px solid rgba(239,68,68,0.4)',
+            background: 'linear-gradient(135deg, rgba(239,68,68,0.12), rgba(220,38,38,0.06))',
+          }}>
+            <div style={{ padding: '28px 28px 20px', textAlign: 'center' }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
+              <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 900, color: '#FCA5A5' }}>
+                Your free trial has ended
+              </h2>
+              <p style={{ margin: '0 0 20px', fontSize: 14, color: '#94A3B8', lineHeight: 1.6 }}>
+                Your 3-day trial has expired. Choose a plan below to restore full access to
+                Hive Mind Ad Optimizer 360 — campaigns, AI tools, and everything else.
+              </p>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 20px', borderRadius: 99, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', fontSize: 13, color: '#FCA5A5', fontWeight: 600 }}>
+                🚨 Access suspended — subscribe to continue
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Active trial badge ── */}
+        {isOnTrial && !sub && (
+          <div style={{
+            borderRadius: 12, padding: '14px 20px',
+            background: 'linear-gradient(90deg, rgba(245,158,11,0.12), rgba(245,158,11,0.06))',
+            border: '1px solid rgba(245,158,11,0.3)',
+            display: 'flex', alignItems: 'center', gap: 12,
+          }}>
+            <span style={{ fontSize: 20 }}>⏳</span>
+            <div>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#FCD34D' }}>
+                Free trial active — {trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''} remaining
+              </p>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: '#92400E' }}>
+                Subscribe now and your plan activates immediately — no gap in service.
+              </p>
+            </div>
+          </div>
         )}
 
         {!isAdmin && (

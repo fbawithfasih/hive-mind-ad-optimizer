@@ -78,22 +78,21 @@ function CreateOrgGate({ onCreated }) {
 
 export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
   const navigate = useNavigate();
-  const [status, setStatus]     = useState(null);
-  const [loading, setLoading]   = useState(true);
+  const [status, setStatus]       = useState(null);
+  const [loading, setLoading]     = useState(true);
   const [resendMsg, setResendMsg] = useState('');
   const [syncMsg, setSyncMsg]     = useState('');
   const [syncing, setSyncing]     = useState(false);
 
-  if (user?.organizations?.length === 0) {
-    return <CreateOrgGate onCreated={onOrgCreated ?? (() => window.location.reload())} />;
-  }
+  const hasOrg = user?.organizations?.length > 0;
 
   useEffect(() => {
+    if (!hasOrg) return;
     getOnboardingStatus()
       .then(setStatus)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [hasOrg]);
 
   useEffect(() => {
     if (status?.complete) {
@@ -101,6 +100,10 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
       setTimeout(() => navigate('/'), 1500);
     }
   }, [status, navigate, onComplete]);
+
+  if (!hasOrg) {
+    return <CreateOrgGate onCreated={onOrgCreated ?? (() => window.location.reload())} />;
+  }
 
   async function handleSyncProfiles() {
     setSyncing(true);

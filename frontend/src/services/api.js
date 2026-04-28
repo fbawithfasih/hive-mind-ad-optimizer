@@ -89,8 +89,10 @@ export async function loginApi(email, password) {
   return res.data;
 }
 
-export async function signupApi(email, password, firstName = '', lastName = '') {
-  const res = await api.post('/auth/signup', { email, password, firstName, lastName });
+export async function signupApi(email, password, firstName = '', lastName = '', claimToken = null) {
+  const body = { email, password, firstName, lastName };
+  if (claimToken) body.claimToken = claimToken;
+  const res = await api.post('/auth/signup', body);
   return res.data;
 }
 
@@ -348,11 +350,12 @@ export async function getReports(profileId, startDate, endDate) {
  * @returns {Promise<{sku: string, asin: string, title: string, productType: string, bullets: string[]}>}
  * @throws {Error} If product not found or API call fails
  */
-export async function lookupProduct(asin, sku) {
+export async function lookupProduct(asin, sku, profileId) {
   try {
     const params = {};
-    if (asin) params.asin = asin;
-    if (sku)  params.sku  = sku;
+    if (asin)      params.asin      = asin;
+    if (sku)       params.sku       = sku;
+    if (profileId) params.profileId = profileId;
     const response = await api.get('/listings/lookup', { params });
     return response.data;
   } catch (error) {
@@ -395,15 +398,39 @@ export async function optimizeListingApi(payload) {
  * @returns {Promise<SearchTerm[]>} Array of search term records with recommendations
  * @throws {Error} If API call fails
  */
-export async function getSearchTerms(profileId, startDate, endDate) {
+export async function startSearchTermReport(profileId, startDate, endDate, campaignIds = []) {
+  const body = { startDate, endDate, campaignIds: Array.isArray(campaignIds) ? campaignIds : [] };
+  if (profileId) body.profileId = profileId;
+  const response = await api.post('/search-terms/start', body);
+  return response.data; // { reportId, profileId, startDate, endDate, campaignIds }
+}
+
+export async function pollSearchTermStatus(profileId, reportId, campaignIds = []) {
+  const params = { reportId };
+  if (profileId) params.profileId = profileId;
+  if (campaignIds.length) params.campaignIds = campaignIds.join(',');
+  const response = await api.get('/search-terms/status', { params });
+  return response.data; // { status, searchTerms? }
+}
+
+export async function bulkApplySearchTermActions(profileId, actions) {
+  const body = { actions };
+  if (profileId) body.profileId = profileId;
+  const response = await api.post('/search-terms/bulk-actions', body);
+  return response.data; // { added, duplicates, failed, results }
+}
+
+// Legacy kept for product/SKU/ASIN lookup callers
+export async function getSearchTerms(profileId, startDate, endDate, campaignIds = []) {
   try {
-    // Cache search terms with 5min TTL - same date ranges are often requested repeatedly
-    const cacheKey = `search-terms:${profileId || 'all'}:${startDate || ''}:${endDate || ''}`;
+    const campaignIdsStr = Array.isArray(campaignIds) ? campaignIds.join(',') : '';
+    const cacheKey = `search-terms:${profileId || 'all'}:${startDate || ''}:${endDate || ''}:${campaignIdsStr}`;
     return await searchTermsCache.getOrFetch(cacheKey, async () => {
       const params = {};
-      if (profileId) params.profileId = profileId;
-      if (startDate) params.startDate = startDate;
-      if (endDate)   params.endDate   = endDate;
+      if (profileId)      params.profileId  = profileId;
+      if (startDate)      params.startDate  = startDate;
+      if (endDate)        params.endDate    = endDate;
+      if (campaignIdsStr) params.campaignIds = campaignIdsStr;
       const response = await api.get('/search-terms', { params });
       return response.data;
     });
@@ -456,8 +483,8 @@ export async function getSearchTermsForProduct({ profileId, sku, asin, startDate
  * @returns {Promise<{success: boolean, sku: string}>} Update result
  * @throws {Error} If publish fails
  */
-export async function publishListing({ sku, productType, title, bullets, description }) {
-  const response = await api.put('/listings/update', { sku, productType, title, bullets, description });
+export async function publishListing({ sku, productType, title, bullets, description, profileId }) {
+  const response = await api.put('/listings/update', { sku, productType, title, bullets, description, profileId });
   return response.data;
 }
 
@@ -477,8 +504,13 @@ export async function publishListing({ sku, productType, title, bullets, descrip
  * @returns {Promise<{jobId: string, startDate: string, endDate: string}>} Job info
  * @throws {Error} If job creation fails
  */
-export async function startReportJob({ reportType, profileId, startDate, endDate, model = 'claude' }) {
-  const response = await api.post('/reporting-agent/start', { reportType, profileId, startDate, endDate, model });
+export async function startReportJob({ reportType, profileId, startDate, endDate, model = 'claude', brand }) {
+  const response = await api.post('/reporting-agent/start', { reportType, profileId, startDate, endDate, model, brand });
+  return response.data;
+}
+
+export async function getReportHistory() {
+  const response = await api.get('/reporting-agent/history');
   return response.data;
 }
 
@@ -515,6 +547,25 @@ export async function executeCommand(command, history = [], model = 'gemini') {
     console.error('Error executing command:', error);
     throw error;
   }
+}
+
+// ─── Campaign Automation ────────────────────────────────────────────────────
+
+// ─── Brand Analytics API ────────────────────────────────────────────────────
+
+export const getBrandSummary         = (brand)         => api.get('/brand-analytics/summary',          { params: { brand } }).then(r => r.data);
+export const getBrandCompetitors     = (brand, limit)  => api.get('/brand-analytics/competitors',      { params: { brand, limit } }).then(r => r.data);
+export const getBrandOpportunities   = (brand, limit)  => api.get('/brand-analytics/opportunities',    { params: { brand, limit } }).then(r => r.data);
+export const getBrandDominantKw      = (brand, limit)  => api.get('/brand-analytics/dominant-keywords',{ params: { brand, limit } }).then(r => r.data);
+export const getBrandWeakKw          = (brand, limit)  => api.get('/brand-analytics/weak-keywords',    { params: { brand, limit } }).then(r => r.data);
+export const refreshBrandAnalytics   = (brand)         => api.post('/brand-analytics/refresh', null,   { params: { brand } }).then(r => r.data);
+
+export async function uploadBrandAnalyticsCsv(type, file, onProgress) {
+  const res = await api.post(`/brand-analytics/upload?type=${type}`, file, {
+    headers: { 'Content-Type': 'text/csv' },
+    onUploadProgress: e => onProgress?.(Math.round((e.loaded / e.total) * 100)),
+  });
+  return res.data;
 }
 
 // ─── Campaign Automation ────────────────────────────────────────────────────

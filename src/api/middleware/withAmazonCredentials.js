@@ -18,20 +18,50 @@ import { loadOrgCredential } from '../../services/credentials.js';
 import { createAdsClient, default as defaultAdsClient } from '../../services/amazon-ads.js';
 import { createSpApiClient, default as defaultSpClient } from '../../services/amazon-sp-api.js';
 import { createLogger } from '../utils/logger.js';
+import { marketplaceIdForCountry, languageTagForCountry } from '../utils/marketplaces.js';
+import { prisma } from '../../db/prisma.js';
 
 const logger = createLogger('CREDS_MW');
+
+/**
+ * Resolve the marketplace ID for the current request.
+ *
+ * Priority:
+ *   1. profileId query param / body → look up SellerProfile.countryCode in DB
+ *   2. Org-level credential.marketplaceId
+ *   3. Hard-coded US fallback
+ */
+async function resolveMarketplaceContext(req, orgId, credMarketplaceId) {
+  const profileId = req.query?.profileId || req.body?.profileId;
+  if (profileId) {
+    try {
+      const profile = await prisma.sellerProfile.findUnique({
+        where: { orgId_profileId: { orgId, profileId: String(profileId) } },
+        select: { countryCode: true },
+      });
+      if (profile?.countryCode) {
+        const mid = marketplaceIdForCountry(profile.countryCode);
+        const lng = languageTagForCountry(profile.countryCode);
+        logger.debug(`Marketplace resolved from profile ${profileId} (${profile.countryCode}): ${mid}`);
+        return { marketplaceId: mid, languageTag: lng };
+      }
+    } catch (e) {
+      logger.warn(`Could not resolve marketplace for profileId ${profileId}: ${e.message}`);
+    }
+  }
+  return { marketplaceId: credMarketplaceId ?? 'ATVPDKIKX0DER', languageTag: 'en_US' };
+}
 
 export async function withAmazonCredentials(req, res, next) {
   try {
     const orgId = req.tenant?.orgId;
-    if (!orgId) return next(); // No tenant context — skip (shouldn't happen in normal flow)
+    if (!orgId) return next();
 
     const cred = await loadOrgCredential(orgId);
 
     if (cred) {
-      // Build per-org SP client using the org's own SP-API refresh token.
-      // For Ads API, only build a per-org client if we have Ads credentials;
-      // otherwise fall back to the global env-var client.
+      const { marketplaceId, languageTag } = await resolveMarketplaceContext(req, orgId, cred.marketplaceId);
+
       req.adsClient = cred.adsClientId
         ? createAdsClient({
             clientId:     cred.adsClientId,
@@ -42,27 +72,25 @@ export async function withAmazonCredentials(req, res, next) {
         : defaultAdsClient;
 
       req.spClient = createSpApiClient({
-        clientId:     cred.spClientId,
-        clientSecret: cred.spClientSecret,
-        refreshToken: cred.spRefreshToken,
-        sellerId:     cred.sellerId,
-        marketplaceId: cred.marketplaceId,
-        cacheKey:     `sp:${orgId}`,
+        clientId:      cred.spClientId,
+        clientSecret:  cred.spClientSecret,
+        refreshToken:  cred.spRefreshToken,
+        sellerId:      cred.sellerId,
+        marketplaceId,
+        languageTag,
+        cacheKey:      `sp:${orgId}:${marketplaceId}`,
       });
 
-      logger.debug(`Loaded per-org Amazon credentials for org ${orgId}`);
+      logger.debug(`Loaded per-org Amazon credentials for org ${orgId}, marketplace ${marketplaceId}`);
     } else {
-      // No credential stored — fall back to global env-var clients
       req.adsClient = defaultAdsClient;
       req.spClient  = defaultSpClient;
-
       logger.debug(`No credentials for org ${orgId} — using env-var defaults`);
     }
 
     next();
   } catch (err) {
     logger.error(`withAmazonCredentials error: ${err.message}`);
-    // Don't block the request — attach defaults and continue
     req.adsClient = defaultAdsClient;
     req.spClient  = defaultSpClient;
     next();

@@ -2,6 +2,7 @@ import express from 'express';
 import { executeMCPCommand } from '../../services/claude-mcp.js';
 import campaigns from '../../data/mock-campaigns.js';
 import { rateLimitMiddleware } from '../utils/rateLimit.js';
+import { getBrandAnalyticsContext } from '../../services/brand-analytics/loader.js';
 
 const router = express.Router();
 
@@ -29,7 +30,11 @@ router.post('/execute', mcpRateLimit, async (req, res) => {
   }
 
   try {
-    const result = await executeMCPCommand(command, history || [], model || 'gemini');
+    const brand        = req.body.brand ?? req.tenant?.org?.brandName ?? null;
+    const orgId        = req.tenant?.orgId ?? null;
+    const brandContext = orgId ? await getBrandAnalyticsContext(orgId, brand ?? 'Unknown') : null;
+
+    const result = await executeMCPCommand(command, history || [], model || 'gemini', brandContext);
     return res.json(result);
   } catch (err) {
     console.error('MCP route error:', err.message);

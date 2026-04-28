@@ -152,8 +152,11 @@ router.get('/callback', async (req, res) => {
     });
     logger.info(`Credentials saved to DB for org ${orgId}`);
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    res.redirect(`${frontendUrl}?connected=amazon`);
+    // Chain to Ads OAuth — browser still has session cookie so requireAuth will pass
+    const baseUrl = process.env.BASE_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
+    // Strip trailing slash and use the backend URL so requireAuth middleware works
+    const backendBase = baseUrl.replace(/\/$/, '');
+    res.redirect(`${backendBase}/api/sp-oauth/ads-start`);
 
   } catch (err) {
     const detail = err.response?.data ?? err.message;
@@ -235,7 +238,7 @@ router.get('/ads-callback', async (req, res) => {
     logger.info(`Ads refresh token saved for org ${orgId}`);
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    res.redirect(`${frontendUrl}?connected=ads`);
+    res.redirect(`${frontendUrl}?connected=both`);
   } catch (err) {
     const detail = err.response?.data ?? err.message;
     logger.error(`Ads token exchange failed for org ${orgId}`, err);

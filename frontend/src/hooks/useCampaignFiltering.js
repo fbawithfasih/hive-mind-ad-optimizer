@@ -63,7 +63,9 @@ export function useCampaignFiltering(selectedProfileId) {
     const enabled = campaigns.filter(c => ['enabled', 'active'].includes(c.status)).length;
     const paused = campaigns.filter(c => c.status === 'paused').length;
     const archived = campaigns.filter(c => ['ended', 'archived'].includes(c.status)).length;
-    const budget = campaigns.reduce((s, c) => s + (c.budget ?? 0), 0);
+    const budget = campaigns
+      .filter(c => ['enabled', 'active'].includes(c.status))
+      .reduce((s, c) => s + (c.budget ?? 0), 0);
     return { total: campaigns.length, enabled, paused, archived, budget };
   }, [campaigns]);
 

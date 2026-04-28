@@ -43,22 +43,32 @@ const S = {
   badge:  (color) => ({ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: color + '22', color, border: `1px solid ${color}44` }),
 };
 
-function RuleForm({ profileId, onSave, onCancel }) {
+function RuleForm({ profileId, initialValues, ruleId, onSave, onCancel }) {
   const [form, setForm] = useState({
-    name: '', profileId: profileId ?? '', metric: 'acos', condition: 'gt',
-    threshold: '', action: 'decrease_budget', adjustment: 10, lookbackDays: 14,
+    name:        initialValues?.name        ?? '',
+    profileId:   initialValues?.profileId   ?? profileId ?? '',
+    metric:      initialValues?.metric      ?? 'acos',
+    condition:   initialValues?.condition   ?? 'gt',
+    threshold:   initialValues?.threshold   ?? '',
+    action:      initialValues?.action      ?? 'decrease_budget',
+    adjustment:  initialValues?.adjustment  ?? 10,
+    lookbackDays: initialValues?.lookbackDays ?? 14,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const needsAdj = ACTIONS.find(a => a.value === form.action)?.needsAdj ?? false;
+  const isEdit = Boolean(ruleId);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setSaving(true); setError('');
     try {
-      const rule = await createRuleApi({ ...form, threshold: Number(form.threshold) });
+      const payload = { ...form, threshold: Number(form.threshold) };
+      const rule = isEdit
+        ? await updateRuleApi(ruleId, payload)
+        : await createRuleApi(payload);
       onSave(rule);
     } catch (err) {
       setError(err.response?.data?.error ?? err.message);
@@ -124,7 +134,7 @@ function RuleForm({ profileId, onSave, onCancel }) {
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button type="button" style={S.ghost} onClick={onCancel}>Cancel</button>
         <button type="submit" style={S.btn()} disabled={saving}>
-          {saving ? 'Creating…' : 'Create Rule'}
+          {saving ? (isEdit ? 'Saving…' : 'Creating…') : (isEdit ? 'Save Changes' : 'Create Rule')}
         </button>
       </div>
     </form>
@@ -132,8 +142,10 @@ function RuleForm({ profileId, onSave, onCancel }) {
 }
 
 function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
-  const [running, setRunning] = useState(false);
-  const [result,  setResult]  = useState(null);
+  const [running,       setRunning]       = useState(false);
+  const [result,        setResult]        = useState(null);
+  const [isEditing,     setIsEditing]     = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const metricLabel = METRICS.find(m => m.value === rule.metric)?.label ?? rule.metric;
   const condLabel   = CONDITIONS.find(c => c.value === rule.condition)?.label ?? rule.condition;
@@ -149,6 +161,20 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
     } finally {
       setRunning(false);
     }
+  }
+
+  if (isEditing) {
+    return (
+      <div style={{ ...S.card, borderColor: '#3B82F644' }}>
+        <p style={{ fontWeight: 600, fontSize: 14, color: '#F1F5F9', marginBottom: 16 }}>Edit Rule</p>
+        <RuleForm
+          initialValues={rule}
+          ruleId={rule.id}
+          onSave={() => { setIsEditing(false); onRun(); }}
+          onCancel={() => setIsEditing(false)}
+        />
+      </div>
+    );
   }
 
   return (
@@ -178,17 +204,26 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <button style={S.btn(running ? '#475569' : '#10B981')} disabled={running} onClick={handleRun}>
             {running ? '…' : 'Run'}
           </button>
           <button style={S.ghost} onClick={() => onViewHistory(rule)}>History</button>
+          <button style={S.ghost} onClick={() => setIsEditing(true)}>Edit</button>
           <button style={S.ghost} onClick={() => onToggle(rule)}>
             {rule.isActive ? 'Pause' : 'Enable'}
           </button>
-          <button style={{ ...S.ghost, color: '#EF4444', borderColor: '#EF444444' }} onClick={() => onDelete(rule)}>
-            Delete
-          </button>
+          {deleteConfirm ? (
+            <>
+              <span style={{ fontSize: 12, color: '#EF4444', display: 'flex', alignItems: 'center', padding: '0 4px' }}>Delete?</span>
+              <button style={S.btn('#EF4444')} onClick={() => { onDelete(rule); setDeleteConfirm(false); }}>Yes</button>
+              <button style={S.ghost} onClick={() => setDeleteConfirm(false)}>No</button>
+            </>
+          ) : (
+            <button style={{ ...S.ghost, color: '#EF4444', borderColor: '#EF444444' }} onClick={() => setDeleteConfirm(true)}>
+              Delete
+            </button>
+          )}
         </div>
       </div>
 
@@ -245,11 +280,11 @@ function HistoryModal({ rule, onClose }) {
 }
 
 export default function AutomationPanel({ profileId }) {
-  const [rules,       setRules]       = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [showForm,    setShowForm]    = useState(false);
-  const [historyRule, setHistoryRule] = useState(null);
-  const [runningAll,  setRunningAll]  = useState(false);
+  const [rules,        setRules]        = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [showForm,     setShowForm]     = useState(false);
+  const [historyRule,  setHistoryRule]  = useState(null);
+  const [runningAll,   setRunningAll]   = useState(false);
   const [runAllResult, setRunAllResult] = useState(null);
 
   const load = useCallback(() => {
@@ -265,7 +300,6 @@ export default function AutomationPanel({ profileId }) {
   }
 
   async function handleDelete(rule) {
-    if (!confirm(`Delete rule "${rule.name}"?`)) return;
     await deleteRuleApi(rule.id);
     load();
   }

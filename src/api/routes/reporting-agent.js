@@ -36,7 +36,7 @@ const TYPE_MAP = {
 // Enqueues a reporting job; returns jobId immediately.
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/start', async (req, res) => {
-  const { reportType, profileId: bodyProfileId, startDate, endDate, model = 'claude' } = req.body;
+  const { reportType, profileId: bodyProfileId, startDate, endDate, model = 'claude', brand } = req.body;
 
   if (!reportType) return res.status(400).json({ error: 'reportType is required' });
 
@@ -76,6 +76,7 @@ router.post('/start', async (req, res) => {
       endDate:    end,
       reportType,
       model,
+      brandName: brand ?? req.tenant?.org?.brandName ?? null,
     },
     { jobId } // use our UUID as the BullMQ job ID for easier correlation
   );
@@ -115,14 +116,22 @@ router.get('/poll', async (req, res) => {
     CANCELLED:  'error',
   };
 
+  // result may be the new { content, brandEnriched, brandName } shape or a legacy plain string
+  const raw = job.result;
+  const report        = raw?.content ?? (typeof raw === 'string' ? raw : null);
+  const brandEnriched = raw?.brandEnriched ?? false;
+  const brandName     = raw?.brandName     ?? null;
+
   res.json({
     status:   statusMap[job.status] ?? 'running',
     step:     stepMap[job.status]   ?? 'starting',
     progress: job.status === 'COMPLETED' ? 'Report ready'
             : job.status === 'FAILED'    ? job.errorMessage
             : 'Working…',
-    report:   job.result        ?? null,
-    error:    job.errorMessage  ?? null,
+    report,
+    brandEnriched,
+    brandName,
+    error:    job.errorMessage ?? null,
   });
 });
 
@@ -142,10 +151,19 @@ router.get('/history', async (req, res) => {
       dateTo:      true,
       createdAt:   true,
       completedAt: true,
+      result:      true,
     },
   });
 
-  res.json(jobs);
+  res.json(jobs.map(j => {
+    const raw = j.result;
+    return {
+      ...j,
+      result:       undefined,
+      brandEnriched: raw?.brandEnriched ?? false,
+      brandName:     raw?.brandName     ?? null,
+    };
+  }));
 });
 
 export default router;

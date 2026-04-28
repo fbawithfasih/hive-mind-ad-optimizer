@@ -25,6 +25,18 @@ function RequireAuth({ user, children }) {
   return children;
 }
 
+// Redirect to /billing when the trial has expired and no subscription exists.
+// Billing page itself is always reachable so the user can subscribe.
+function RequireAccess({ user, children }) {
+  const location = useLocation();
+  if (!user) return <Navigate to="/login" replace />;
+  const trialExpired = user?.currentOrg?.trialExpired;
+  if (trialExpired && location.pathname !== '/billing') {
+    return <Navigate to="/billing" replace />;
+  }
+  return children;
+}
+
 function ProtectedDashboard({ user, onboarded, onLogout, setUser }) {
   const hasOrg = user?.organizations?.length > 0;
   if (!hasOrg && onboarded === false) {
@@ -42,14 +54,12 @@ function ProtectedHub({ user, onLogout }) {
 export default function App() {
   const [user, setUser]         = useState(null);
   const [checked, setChecked]   = useState(false);
-  const [onboarded, setOnboarded] = useState(null); // null = still checking
+  const [onboarded, setOnboarded] = useState(null);
 
   async function loadUser() {
     try {
       const u = await getMeApi();
       setUser(u);
-      // Only check onboarding when the user belongs to at least one org;
-      // without an org the endpoint returns 400.
       if (u?.organizations?.length > 0) {
         try {
           const status = await getOnboardingStatus();
@@ -58,7 +68,7 @@ export default function App() {
           setOnboarded(true);
         }
       } else {
-        setOnboarded(false); // no org → must create one before accessing dashboard
+        setOnboarded(false);
       }
     } catch {
       setUser(false);
@@ -99,21 +109,20 @@ export default function App() {
         </RequireAuth>
       } />
 
-      {/* ── Hub (home) ─────────────────────────────────────────────── */}
+      {/* ── Hub (home) — trial-gated ───────────────────────────────── */}
       <Route path="/" element={
         loggedIn
-          ? <ProtectedHub user={user} onLogout={() => setUser(false)} />
+          ? <RequireAccess user={user}><ProtectedHub user={user} onLogout={() => setUser(false)} /></RequireAccess>
           : <Navigate to="/login" replace />
       } />
 
-      {/* ── Dashboard ──────────────────────────────────────────────── */}
+      {/* ── Dashboard — trial-gated ────────────────────────────────── */}
       <Route path="/app/*" element={
         loggedIn
-          ? <ProtectedDashboard user={user} onboarded={onboarded} onLogout={() => setUser(false)} setUser={setUser} />
+          ? <RequireAccess user={user}><ProtectedDashboard user={user} onboarded={onboarded} onLogout={() => setUser(false)} setUser={setUser} /></RequireAccess>
           : <Navigate to="/login" replace />
       } />
 
-      {/* Catch-all → hub or login */}
       <Route path="*" element={<Navigate to={loggedIn ? '/' : '/login'} replace />} />
     </Routes>
   );

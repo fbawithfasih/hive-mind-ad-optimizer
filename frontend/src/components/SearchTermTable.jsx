@@ -13,6 +13,10 @@ const dash = <span style={{ color: '#475569' }}>—</span>;
 const fmtN = (v, dec = 2) => v == null ? dash : Number(v).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 const pct  = (v, dec = 2) => v == null ? dash : `${Number(v).toFixed(dec)}%`;
 
+export function termKey(t) {
+  return `${t.searchTerm}::${t.adGroupId}::${t.campaignId}`;
+}
+
 const COLS = [
   { key: 'searchTerm',   label: 'Search Term',  align: 'left'  },
   { key: 'campaignName', label: 'Campaign',      align: 'left'  },
@@ -30,9 +34,11 @@ const COLS = [
   { key: 'recommendation', label: 'Recommendation', align: 'center' },
 ];
 
-export default function SearchTermTable({ searchTerms = [], isLoading = false }) {
+export default function SearchTermTable({ searchTerms = [], isLoading = false, selected, onSelectionChange }) {
   const [sortCol, setSortCol] = useState('recommendation');
   const [sortDir, setSortDir] = useState('asc');
+
+  const selectable = Boolean(onSelectionChange);
 
   function toggleSort(key) {
     if (sortCol === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -53,6 +59,31 @@ export default function SearchTermTable({ searchTerms = [], isLoading = false })
       return sortDir === 'asc' ? (av < bv ? -1 : av > bv ? 1 : 0) : (av > bv ? -1 : av < bv ? 1 : 0);
     });
   }, [searchTerms, sortCol, sortDir]);
+
+  const allKeys    = useMemo(() => sorted.map(termKey), [sorted]);
+  const allChecked = selectable && allKeys.length > 0 && allKeys.every(k => selected?.has(k));
+  const someChecked = selectable && !allChecked && allKeys.some(k => selected?.has(k));
+
+  function toggleAll() {
+    if (!onSelectionChange) return;
+    if (allChecked) {
+      const next = new Set(selected);
+      allKeys.forEach(k => next.delete(k));
+      onSelectionChange(next);
+    } else {
+      const next = new Set(selected);
+      allKeys.forEach(k => next.add(k));
+      onSelectionChange(next);
+    }
+  }
+
+  function toggleRow(t) {
+    if (!onSelectionChange) return;
+    const k = termKey(t);
+    const next = new Set(selected);
+    next.has(k) ? next.delete(k) : next.add(k);
+    onSelectionChange(next, t);
+  }
 
   if (isLoading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 64, gap: 10, color: '#94A3B8' }}>
@@ -80,12 +111,24 @@ export default function SearchTermTable({ searchTerms = [], isLoading = false })
     background: '#263348', borderBottom: '1px solid #334155', whiteSpace: 'nowrap',
     cursor: 'pointer', userSelect: 'none',
   };
+  const thCheck = { ...thBase, width: 36, cursor: 'default', padding: '10px 8px 10px 16px' };
 
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
         <thead>
           <tr>
+            {selectable && (
+              <th style={thCheck} onClick={e => e.stopPropagation()}>
+                <input
+                  type="checkbox"
+                  checked={allChecked}
+                  ref={el => { if (el) el.indeterminate = someChecked; }}
+                  onChange={toggleAll}
+                  style={{ accentColor: '#6366F1', width: 14, height: 14, cursor: 'pointer' }}
+                />
+              </th>
+            )}
             {COLS.map(col => (
               <th key={col.key}
                 style={{ ...thBase, textAlign: col.align }}
@@ -103,14 +146,26 @@ export default function SearchTermTable({ searchTerms = [], isLoading = false })
             const rec = REC_STYLE[t.recommendation] ?? REC_STYLE.WATCH;
             const acosColor = t.acos == null ? '#94A3B8' : t.acos < 20 ? '#10B981' : t.acos <= 30 ? '#F59E0B' : '#F43F5E';
             const rowBg = i % 2 === 0 ? 'transparent' : '#1a2535';
-            const td  = { padding: '10px 12px', borderBottom: '1px solid #1E293B', color: '#F1F5F9', background: rowBg, verticalAlign: 'middle' };
+            const isSelected = selectable && selected?.has(termKey(t));
+            const bg = isSelected ? 'rgba(99,102,241,0.12)' : rowBg;
+            const td  = { padding: '10px 12px', borderBottom: '1px solid #1E293B', color: '#F1F5F9', background: bg, verticalAlign: 'middle' };
             const tdR = { ...td, textAlign: 'right', fontFamily: 'monospace', fontSize: 11 };
             const tdC = { ...td, textAlign: 'center' };
 
             return (
               <tr key={i}
-                onMouseEnter={e => Array.from(e.currentTarget.cells).forEach(x => x.style.background = '#263348')}
-                onMouseLeave={e => Array.from(e.currentTarget.cells).forEach(x => x.style.background = rowBg)}>
+                onMouseEnter={e => { if (!isSelected) Array.from(e.currentTarget.cells).forEach(x => x.style.background = '#263348'); }}
+                onMouseLeave={e => { if (!isSelected) Array.from(e.currentTarget.cells).forEach(x => x.style.background = bg); }}>
+                {selectable && (
+                  <td style={{ ...td, padding: '10px 8px 10px 16px', width: 36 }} onClick={() => toggleRow(t)}>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleRow(t)}
+                      style={{ accentColor: '#6366F1', width: 14, height: 14, cursor: 'pointer' }}
+                    />
+                  </td>
+                )}
                 <td style={{ ...td, maxWidth: 200 }}>
                   <p style={{ margin: 0, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#F1F5F9' }}>{t.searchTerm || '—'}</p>
                 </td>

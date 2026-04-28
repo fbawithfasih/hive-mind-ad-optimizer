@@ -1,76 +1,66 @@
 /**
  * Custom hook for managing metrics polling and performance report generation
  * Orchestrates: report creation → campaign fetch → async polling → metrics merge
- * Polls up to 40 times (160 seconds max) for Amazon report completion
+ *
+ * Polling strategy (adaptive backoff):
+ *   0–60s   → poll every 5s  (12 polls)
+ *   60–180s → poll every 8s  (15 polls)
+ *   180s+   → poll every 12s (25 polls)
+ *   Total ceiling: ~8 minutes (handles large Amazon date-range reports)
  */
 import { useState } from 'react';
 import { startReports, pollReportStatus } from '../services/api.js';
 
-/**
- * @typedef {Object} MetricsDateRange
- * @property {string} start - Report start date (ISO 8601)
- * @property {string} end - Report end date (ISO 8601)
- */
-
-/**
- * @typedef {Object} MetricsPollingState
- * @property {boolean} isLoadingMetrics - Whether metrics are currently loading
- * @property {string} metricsStatus - Current polling status message
- * @property {MetricsDateRange} metricsDateRange - Date range of loaded metrics
- * @property {string|null} error - Error message if loading failed
- * @property {Function} setError - Update error state
- * @property {Function} handleLoadMetrics - Start metrics loading process
- */
-
-/**
- * Manage metrics report generation and polling
- * Coordinates Amazon Ads async report flow with client-side polling
- * Updates campaign data with real metrics when report completes
- *
- * @param {string|number} selectedProfileId - Amazon Ads profile ID
- * @param {string} dateFrom - Start date (ISO 8601: YYYY-MM-DD)
- * @param {string} dateTo - End date (ISO 8601: YYYY-MM-DD)
- * @param {Function} setCampaigns - Callback to update campaigns with metrics
- * @returns {MetricsPollingState} Polling state and control function
- */
 export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampaigns) {
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
-  const [metricsStatus, setMetricsStatus] = useState('');  // polling status message
+  const [metricsStatus, setMetricsStatus]       = useState('');
   const [metricsDateRange, setMetricsDateRange] = useState({ start: '', end: '' });
   const [error, setError] = useState(null);
 
-  /**
-   * Load metrics for selected date range
-   * Step 1: Create report request (fast, ~2s)
-   * Step 2: Poll report status every 4 seconds (max 40 attempts, 160s total)
-   * Step 3: Merge metrics into campaign data when complete
-   */
   async function handleLoadMetrics() {
     setIsLoadingMetrics(true);
     setMetricsStatus('Creating report…');
     setError(null);
+
     try {
       const profileId = selectedProfileId || undefined;
-      // Step 1: create report + fetch campaigns list (fast, ~2s)
-      const { reportId, campaigns: rawCampaigns, startDate, endDate } = await startReports(profileId, dateFrom, dateTo);
+
+      // Step 1: create report + fetch campaign list in parallel (~2s)
+      const { reportId, campaigns: rawCampaigns, startDate, endDate } =
+        await startReports(profileId, dateFrom, dateTo);
       setCampaigns(Array.isArray(rawCampaigns) ? rawCampaigns : []);
 
-      // Step 2: poll until Amazon finishes the async report
-      let attempts = 0;
-      while (attempts < 40) {
-        await new Promise(r => setTimeout(r, 4000));
-        attempts++;
-        setMetricsStatus(`Waiting for Amazon report… (${attempts * 4}s)`);
+      // Step 2: adaptive-backoff poll until Amazon finishes the async report
+      // Amazon SP reports for 30-day ranges typically take 1–5 minutes.
+      const schedule = [
+        ...Array(12).fill(5000),   // 0–60s:   every 5s
+        ...Array(15).fill(8000),   // 60–180s: every 8s
+        ...Array(25).fill(12000),  // 180s+:   every 12s
+      ]; // total ceiling: ~8 min
+
+      let elapsed = 0;
+      for (const delay of schedule) {
+        await new Promise(r => setTimeout(r, delay));
+        elapsed += delay;
+
+        const mins = Math.floor(elapsed / 60000);
+        const secs = Math.round((elapsed % 60000) / 1000);
+        const timeLabel = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+        setMetricsStatus(`Waiting for Amazon report… (${timeLabel})`);
+
         const result = await pollReportStatus(profileId, reportId);
+
         if (result.status === 'COMPLETED') {
-          // Merge metrics into campaigns
+          // Merge metrics into campaign rows
           const metricsMap = {};
           for (const m of result.data) metricsMap[m.campaignId] = m;
+
           setCampaigns(prev => prev.map(c => {
             const m = metricsMap[c.campaignId] ?? metricsMap[c.id] ?? {};
             return {
               ...c,
-              status:          (m.campaignStatus ?? c.status ?? '').toLowerCase().replace('campaign_status_', '').replace('campaign_', ''),
+              status:          (m.campaignStatus ?? c.status ?? '').toLowerCase()
+                                 .replace('campaign_status_', '').replace('campaign_', ''),
               biddingStrategy: m.campaignBiddingStrategy ?? c.biddingStrategy,
               impressions:     m.impressions    ?? c.impressions,
               clicks:          m.clicks         ?? c.clicks,
@@ -84,12 +74,19 @@ export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampai
               topOfSearch:     m.topOfSearchImpressionShare ?? c.topOfSearch,
             };
           }));
+
           setMetricsDateRange({ start: startDate, end: endDate });
           setMetricsStatus('');
           return;
         }
+
+        if (result.status === 'FAILED') {
+          throw new Error(result.error ?? 'Amazon report generation failed.');
+        }
       }
-      setError('Metrics timed out — Amazon report took too long. Try again.');
+
+      // Exhausted all attempts
+      setError('Amazon report is taking unusually long (>8 min). Try a shorter date range or try again later.');
     } catch (err) {
       setError('Metrics failed: ' + (err.response?.data?.error || err.message || 'Unknown error'));
     } finally {
