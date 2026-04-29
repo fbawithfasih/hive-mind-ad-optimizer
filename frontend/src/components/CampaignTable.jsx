@@ -21,7 +21,13 @@ const fmtDate = s => s?.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') ?? '';
 
 const pct = (v, dec = 2) => v == null ? dash : `${Number(v).toFixed(dec)}%`;
 
-export default function CampaignTable({ campaigns = [], isLoading = false }) {
+export default function CampaignTable({
+  campaigns = [],
+  isLoading = false,
+  selectedIds = null,     // Set<id> | null — null means "no selection UI"
+  onToggleSelect = null,  // (id) => void
+  onToggleAll = null,     // (allIds) => void
+}) {
   if (isLoading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 64, gap: 10, color: '#94A3B8' }}>
       <svg style={{ width: 20, height: 20, animation: 'spin 1s linear infinite' }} fill="none" viewBox="0 0 24 24">
@@ -42,7 +48,12 @@ export default function CampaignTable({ campaigns = [], isLoading = false }) {
     </div>
   );
 
-  const hasMetrics = campaigns.some(c => c.impressions != null);
+  const hasMetrics   = campaigns.some(c => c.impressions != null);
+  const showCheckbox = selectedIds !== null && onToggleSelect !== null;
+
+  const allIds       = campaigns.map(c => c.id ?? c.campaignId);
+  const allChecked   = showCheckbox && allIds.length > 0 && allIds.every(id => selectedIds.has(id));
+  const someChecked  = showCheckbox && allIds.some(id => selectedIds.has(id));
 
   const thStyle = {
     padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600,
@@ -50,12 +61,28 @@ export default function CampaignTable({ campaigns = [], isLoading = false }) {
     background: '#263348', borderBottom: '1px solid #334155', whiteSpace: 'nowrap',
   };
   const thR = { ...thStyle, textAlign: 'right' };
+  const thC = { ...thStyle, padding: '10px 10px', width: 36, textAlign: 'center' };
+
+  const checkboxStyle = {
+    width: 14, height: 14, accentColor: '#3B82F6', cursor: 'pointer',
+  };
 
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
         <thead>
           <tr>
+            {showCheckbox && (
+              <th style={thC}>
+                <input
+                  type="checkbox"
+                  style={checkboxStyle}
+                  checked={allChecked}
+                  ref={el => { if (el) el.indeterminate = someChecked && !allChecked; }}
+                  onChange={() => onToggleAll(allIds)}
+                />
+              </th>
+            )}
             <th style={thStyle}>Campaign</th>
             <th style={thStyle}>Type</th>
             <th style={thStyle}>Status</th>
@@ -76,22 +103,49 @@ export default function CampaignTable({ campaigns = [], isLoading = false }) {
         </thead>
         <tbody>
           {campaigns.map((c, i) => {
-            const st = STATUS_STYLE[c.status] ?? { label: c.status, bg: '#94A3B818', color: '#94A3B8', border: '#94A3B840' };
+            const rowId    = c.id ?? c.campaignId;
+            const isSelected = showCheckbox && selectedIds.has(rowId);
+            const st       = STATUS_STYLE[c.status] ?? { label: c.status, bg: '#94A3B818', color: '#94A3B8', border: '#94A3B840' };
             const typeColor = TYPE_COLOR[c.campaignType] ?? '#94A3B8';
-            const acos = c.acos;
+            const acos     = c.acos;
             const acosColor = acos == null ? '#94A3B8' : acos < 20 ? '#10B981' : acos <= 30 ? '#F59E0B' : '#F43F5E';
-            const rowBg = i % 2 === 0 ? 'transparent' : '#1a2535';
+            const rowBg    = isSelected
+              ? 'rgba(59,130,246,0.10)'
+              : i % 2 === 0 ? 'transparent' : '#1a2535';
 
             const td  = { padding: '11px 12px', borderBottom: '1px solid #1E293B', color: '#F1F5F9', background: rowBg, verticalAlign: 'middle' };
             const tdR = { ...td, textAlign: 'right', fontFamily: 'monospace', fontSize: 11 };
+            const tdC = { ...td, padding: '11px 10px', textAlign: 'center' };
 
             return (
-              <tr key={c.id ?? i}
-                onMouseEnter={e => Array.from(e.currentTarget.cells).forEach(x => x.style.background = '#263348')}
+              <tr key={rowId ?? i}
+                onMouseEnter={e => Array.from(e.currentTarget.cells).forEach(x => x.style.background = isSelected ? 'rgba(59,130,246,0.18)' : '#263348')}
                 onMouseLeave={e => Array.from(e.currentTarget.cells).forEach(x => x.style.background = rowBg)}>
 
+                {showCheckbox && (
+                  <td style={tdC}>
+                    <input
+                      type="checkbox"
+                      style={checkboxStyle}
+                      checked={isSelected}
+                      onChange={() => onToggleSelect(rowId)}
+                    />
+                  </td>
+                )}
+
                 <td style={{ ...td, maxWidth: 260 }}>
-                  <p style={{ margin: 0, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</p>
+                  <p style={{
+                    margin: 0,
+                    fontWeight: 700,
+                    fontSize: 12,
+                    color: '#FFFFFF',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    letterSpacing: '0.01em',
+                  }}>
+                    {c.name}
+                  </p>
                   <div style={{ display: 'flex', gap: 8, marginTop: 2, flexWrap: 'wrap' }}>
                     {c.startDate && <span style={{ fontSize: 10, color: '#64748B' }}>Start {fmtDate(c.startDate)}</span>}
                     {c.biddingStrategy && <span style={{ fontSize: 10, color: '#64748B' }}>{c.biddingStrategy}</span>}

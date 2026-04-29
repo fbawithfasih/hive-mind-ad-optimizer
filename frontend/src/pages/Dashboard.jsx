@@ -249,15 +249,37 @@ export default function Dashboard({ user, onboarded, onLogout }) {
     handleLoadMetrics(from, today);
   }
 
+  const [selectedCampaignIds, setSelectedCampaignIds] = useState(new Set());
+
+  function handleToggleSelect(id) {
+    setSelectedCampaignIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function handleToggleAll(allIds) {
+    setSelectedCampaignIds(prev => {
+      const allSelected = allIds.every(id => prev.has(id));
+      return allSelected ? new Set() : new Set(allIds);
+    });
+  }
+
   const metricsSummary = useMemo(() => {
-    const totalRevenue = campaigns.reduce((s, c) => s + (c.sales ?? 0), 0);
-    const totalSpend   = campaigns.reduce((s, c) => s + (c.spend  ?? 0), 0);
-    const hasMetrics   = campaigns.some(c => c.sales != null || c.spend != null);
+    // If specific campaigns are selected, compute from those only; else all
+    const base = selectedCampaignIds.size > 0
+      ? campaigns.filter(c => selectedCampaignIds.has(c.id ?? c.campaignId))
+      : campaigns;
+    const totalRevenue = base.reduce((s, c) => s + (c.sales ?? 0), 0);
+    const totalSpend   = base.reduce((s, c) => s + (c.spend  ?? 0), 0);
+    const hasMetrics   = base.some(c => c.sales != null || c.spend != null);
     const roas  = totalSpend > 0 ? totalRevenue / totalSpend : null;
     const acos  = totalRevenue > 0 ? (totalSpend / totalRevenue) * 100 : null;
     const tacos = acos; // same source until SP-API total-order revenue is wired in
-    return { totalRevenue, totalSpend, roas, acos, tacos, hasMetrics };
-  }, [campaigns]);
+    const selectionLabel = selectedCampaignIds.size > 0 ? ` · ${selectedCampaignIds.size} selected` : '';
+    return { totalRevenue, totalSpend, roas, acos, tacos, hasMetrics, selectionLabel };
+  }, [campaigns, selectedCampaignIds]);
 
   async function handleLoadMetrics(overrideFrom, overrideTo) {
     await _handleLoadMetrics(overrideFrom, overrideTo);
@@ -575,7 +597,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                 ? `$${metricsSummary.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 : '—'}
               sub={metricsSummary.hasMetrics
-                ? (metricsDateRange.start ? `${metricsDateRange.start} → ${metricsDateRange.end}` : 'From loaded metrics')
+                ? (metricsDateRange.start ? `${metricsDateRange.start} → ${metricsDateRange.end}${metricsSummary.selectionLabel}` : `From loaded metrics${metricsSummary.selectionLabel}`)
                 : 'Load metrics to see revenue'}
               gradient="linear-gradient(135deg, #10B981, #0D9488)"
               glow="rgba(16,185,129,0.5)"
@@ -588,7 +610,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                 ? `$${metricsSummary.totalSpend.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 : '—'}
               sub={metricsSummary.hasMetrics
-                ? (metricsSummary.roas != null ? `ROAS ${metricsSummary.roas.toFixed(2)}×` : 'From loaded metrics')
+                ? `${metricsSummary.roas != null ? `ROAS ${metricsSummary.roas.toFixed(2)}×` : 'From loaded metrics'}${metricsSummary.selectionLabel}`
                 : 'Load metrics to see spend'}
               gradient="linear-gradient(135deg, #F97316, #EF4444)"
               glow="rgba(249,115,22,0.5)"
@@ -598,7 +620,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             <VibrantStatCard
               label="ACoS"
               value={metricsSummary.hasMetrics && metricsSummary.acos != null ? `${metricsSummary.acos.toFixed(1)}%` : '—'}
-              sub={metricsSummary.hasMetrics ? 'Ad Spend ÷ Ad Revenue' : 'Load metrics to see ACoS'}
+              sub={metricsSummary.hasMetrics ? `Ad Spend ÷ Ad Revenue${metricsSummary.selectionLabel}` : 'Load metrics to see ACoS'}
               gradient="linear-gradient(135deg, #6366F1, #4F46E5)"
               glow="rgba(99,102,241,0.5)"
               accentColor="#6366F1"
@@ -607,7 +629,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             <VibrantStatCard
               label="TACoS"
               value={metricsSummary.hasMetrics && metricsSummary.tacos != null ? `${metricsSummary.tacos.toFixed(1)}%` : '—'}
-              sub={metricsSummary.hasMetrics ? 'Ad spend vs total ad-attributed revenue' : 'Load metrics to see TACoS'}
+              sub={metricsSummary.hasMetrics ? `Ad spend vs total ad-attributed revenue${metricsSummary.selectionLabel}` : 'Load metrics to see TACoS'}
               gradient="linear-gradient(135deg, #F59E0B, #D97706)"
               glow="rgba(245,158,11,0.5)"
               accentColor="#F59E0B"
@@ -616,7 +638,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             <VibrantStatCard
               label="ROAS"
               value={metricsSummary.hasMetrics && metricsSummary.roas != null ? `${metricsSummary.roas.toFixed(2)}×` : '—'}
-              sub={metricsSummary.hasMetrics ? 'Ad Revenue ÷ Ad Spend' : 'Load metrics to see ROAS'}
+              sub={metricsSummary.hasMetrics ? `Ad Revenue ÷ Ad Spend${metricsSummary.selectionLabel}` : 'Load metrics to see ROAS'}
               gradient="linear-gradient(135deg, #0EA5E9, #0284C7)"
               glow="rgba(14,165,233,0.5)"
               accentColor="#0EA5E9"
@@ -843,7 +865,13 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               </div>
             </div>
 
-            <CampaignTable campaigns={filtered} isLoading={isLoading} />
+            <CampaignTable
+              campaigns={filtered}
+              isLoading={isLoading}
+              selectedIds={selectedCampaignIds}
+              onToggleSelect={handleToggleSelect}
+              onToggleAll={handleToggleAll}
+            />
           </div>
 
         </>)}
