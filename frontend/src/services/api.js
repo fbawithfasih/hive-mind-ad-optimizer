@@ -353,6 +353,20 @@ export async function getReports(profileId, startDate, endDate) {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// SP-API Sales & Traffic (organic + ads total revenue)
+// ────────────────────────────────────────────────────────────────────────────
+
+export async function startSalesReport(startDate, endDate) {
+  const res = await api.get('/sales/start', { params: { startDate, endDate } });
+  return res.data;
+}
+
+export async function pollSalesReport(reportId) {
+  const res = await api.get('/sales/status', { params: { reportId } });
+  return res.data;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Listings API (Product Management & Optimization)
 // ────────────────────────────────────────────────────────────────────────────
 

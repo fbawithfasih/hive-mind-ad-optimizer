@@ -1,5 +1,6 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { gunzipSync } from 'zlib';
 import { getOrCreateTokenManager } from './auth-utils.js';
 
 dotenv.config({ override: true });
@@ -309,7 +310,101 @@ export function createSpApiClient({
     }
   }
 
-  return { getProductBySku, getProductByAsin, updateListingBySku, getProductTypeByAsin };
+  /**
+   * Kick off a SALES_AND_TRAFFIC report covering [startDate, endDate].
+   * Returns the SP-API reportId — caller polls with pollSalesAndTrafficReport.
+   */
+  async function startSalesAndTrafficReport(startDate, endDate) {
+    const token = await getSPToken();
+    const body = {
+      reportType:    'GET_SALES_AND_TRAFFIC_REPORT',
+      marketplaceIds: [marketplaceId],
+      dataStartTime: `${startDate}T00:00:00Z`,
+      dataEndTime:   `${endDate}T23:59:59Z`,
+      reportOptions: { dateGranularity: 'DAY', asinGranularity: 'PARENT' },
+    };
+
+    try {
+      const res = await axios.post(`${SP_BASE}/reports/2021-06-30/reports`, body, {
+        headers: spHeaders(token),
+      });
+      console.log(`✅ Sales & Traffic report created: ${res.data.reportId} (${startDate} → ${endDate})`);
+      return res.data.reportId;
+    } catch (e) {
+      const msg = e.response?.data?.errors?.[0]?.message ?? e.message;
+      console.error(`❌ Sales & Traffic report create failed [${e.response?.status}]: ${msg}`);
+      throw new Error(`Sales report create failed: ${msg}`);
+    }
+  }
+
+  /**
+   * Poll a Sales & Traffic report. Returns:
+   *   - { status: 'PENDING' }
+   *   - { status: 'FAILED', error }
+   *   - { status: 'COMPLETED', totalSales, currency, days }
+   */
+  async function pollSalesAndTrafficReport(reportId) {
+    const token = await getSPToken();
+
+    let report;
+    try {
+      const r = await axios.get(`${SP_BASE}/reports/2021-06-30/reports/${reportId}`, {
+        headers: spHeaders(token),
+      });
+      report = r.data;
+    } catch (e) {
+      const msg = e.response?.data?.errors?.[0]?.message ?? e.message;
+      throw new Error(`Sales report poll failed: ${msg}`);
+    }
+
+    const ps = report.processingStatus;
+    if (ps === 'IN_QUEUE' || ps === 'IN_PROGRESS') return { status: 'PENDING' };
+    if (ps === 'CANCELLED' || ps === 'FATAL')      return { status: 'FAILED', error: `Sales report ${ps}` };
+    if (ps !== 'DONE')                              return { status: 'PENDING' };
+
+    // DONE — fetch the document
+    let doc;
+    try {
+      const d = await axios.get(`${SP_BASE}/reports/2021-06-30/documents/${report.reportDocumentId}`, {
+        headers: spHeaders(token),
+      });
+      doc = d.data;
+    } catch (e) {
+      const msg = e.response?.data?.errors?.[0]?.message ?? e.message;
+      throw new Error(`Sales report doc fetch failed: ${msg}`);
+    }
+
+    let payload;
+    try {
+      const dl = await axios.get(doc.url, { responseType: 'arraybuffer' });
+      const buf = Buffer.from(dl.data);
+      const text = doc.compressionAlgorithm === 'GZIP' ? gunzipSync(buf).toString() : buf.toString();
+      payload = JSON.parse(text);
+    } catch (e) {
+      throw new Error(`Sales report download/parse failed: ${e.message}`);
+    }
+
+    const rows = payload.salesAndTrafficByDate ?? [];
+    let totalSales = 0;
+    let currency  = null;
+    for (const r of rows) {
+      const amt = r.salesByDate?.orderedProductSales?.amount ?? 0;
+      totalSales += Number(amt) || 0;
+      currency = currency ?? r.salesByDate?.orderedProductSales?.currencyCode ?? null;
+    }
+
+    console.log(`✅ Sales & Traffic report ${reportId} parsed — ${rows.length} days, total ${currency ?? ''} ${totalSales.toFixed(2)}`);
+    return { status: 'COMPLETED', totalSales, currency, days: rows.length };
+  }
+
+  return {
+    getProductBySku,
+    getProductByAsin,
+    updateListingBySku,
+    getProductTypeByAsin,
+    startSalesAndTrafficReport,
+    pollSalesAndTrafficReport,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

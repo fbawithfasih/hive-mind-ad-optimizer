@@ -24,6 +24,7 @@ import { useProfileState } from '../hooks/useProfileState.js';
 import { useDateRangeState } from '../hooks/useDateRangeState.js';
 import { useCampaignFiltering } from '../hooks/useCampaignFiltering.js';
 import { useMetricsPolling } from '../hooks/useMetricsPolling.js';
+import { useSalesPolling } from '../hooks/useSalesPolling.js';
 import { useAICommandExecution } from '../hooks/useAICommandExecution.js';
 
 const MODULE_LABELS = {
@@ -225,6 +226,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
   const { dateFrom, dateTo, today, handleDateFromChange, handleDateToChange, setDateFromRaw, setDateToRaw } = useDateRangeState();
   const { campaigns, setCampaigns, search, setSearch, statusFilter, setStatusFilter, filtered, stats, isLoading, error: campaignError } = useCampaignFiltering(selectedProfileId);
   const { isLoadingMetrics, metricsStatus, metricsProgress, metricsDateRange, error: metricsError, pendingReport, handleLoadMetrics: _handleLoadMetrics, handleCheckAgain: _handleCheckAgain } = useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampaigns);
+  const { totalSales, salesCurrency, loadingSales, salesStatus, salesError, loadSales } = useSalesPolling();
   const { isExecuting, result, error: aiError, aiModel, setAiModel, handleCommandSubmit } = useAICommandExecution(filtered, campaigns);
 
   const [alertUnread,    setAlertUnread]    = useState(0);
@@ -303,17 +305,25 @@ export default function Dashboard({ user, onboarded, onLogout }) {
     const base = selectedCampaignIds.size > 0
       ? campaigns.filter(c => selectedCampaignIds.has(c.id ?? c.campaignId))
       : campaigns;
-    const totalRevenue = base.reduce((s, c) => s + (c.sales ?? 0), 0);
-    const totalSpend   = base.reduce((s, c) => s + (c.spend  ?? 0), 0);
-    const hasMetrics   = base.some(c => c.sales != null || c.spend != null);
-    const roas  = totalSpend > 0 ? totalRevenue / totalSpend : null;
-    const acos  = totalRevenue > 0 ? (totalSpend / totalRevenue) * 100 : null;
-    const tacos = acos; // same source until SP-API total-order revenue is wired in
+    const totalAdsRevenue = base.reduce((s, c) => s + (c.sales ?? 0), 0);
+    const totalSpend      = base.reduce((s, c) => s + (c.spend ?? 0), 0);
+    const hasMetrics      = base.some(c => c.sales != null || c.spend != null);
+    const roas  = totalSpend > 0 ? totalAdsRevenue / totalSpend : null;
+    const acos  = totalAdsRevenue > 0 ? (totalSpend / totalAdsRevenue) * 100 : null;
+    // True TACoS uses org-wide ordered product sales (organic + ads) from SP-API.
+    // Only meaningful for the full account view — selecting specific campaigns
+    // narrows ad spend but not organic revenue, so we suppress TACoS in that mode.
+    const tacos = (selectedCampaignIds.size === 0 && totalSales != null && totalSales > 0)
+      ? (totalSpend / totalSales) * 100
+      : null;
     const selectionLabel = selectedCampaignIds.size > 0 ? ` · ${selectedCampaignIds.size} selected` : '';
-    return { totalRevenue, totalSpend, roas, acos, tacos, hasMetrics, selectionLabel };
-  }, [campaigns, selectedCampaignIds]);
+    return { totalRevenue: totalAdsRevenue, totalSpend, roas, acos, tacos, totalSales, hasMetrics, selectionLabel };
+  }, [campaigns, selectedCampaignIds, totalSales]);
 
   async function handleLoadMetrics(overrideFrom, overrideTo) {
+    // Kick off SP-API total-sales fetch in parallel — it lights up
+    // Total Revenue + TACoS once Amazon returns the report.
+    loadSales(overrideFrom ?? dateFrom, overrideTo ?? dateTo);
     await _handleLoadMetrics(overrideFrom, overrideTo);
     // After metrics merge into campaigns state, give React one tick then evaluate
     setTimeout(async () => {
@@ -620,8 +630,12 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             />
             <VibrantStatCard
               label="Total Revenue"
-              value="—"
-              sub="Organic sales not yet connected"
+              value={totalSales != null
+                ? `${salesCurrency === 'USD' || !salesCurrency ? '$' : ''}${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${salesCurrency && salesCurrency !== 'USD' ? ` ${salesCurrency}` : ''}`
+                : '—'}
+              sub={totalSales != null
+                ? 'Organic + Ads (SP-API)'
+                : (loadingSales ? (salesStatus || 'Fetching SP-API sales…') : (salesError ? 'SP-API sales unavailable' : 'Load metrics to fetch'))}
               gradient="linear-gradient(135deg, #14B8A6, #0F766E)"
               glow="rgba(20,184,166,0.5)"
               accentColor="#14B8A6"
@@ -683,7 +697,12 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             <VibrantStatCard
               label="TACoS"
               value={metricsSummary.hasMetrics && metricsSummary.tacos != null ? `${metricsSummary.tacos.toFixed(2)}%` : '—'}
-              sub={metricsSummary.hasMetrics ? `Ad spend vs total ad-attributed revenue${metricsSummary.selectionLabel}` : 'Load metrics to see TACoS'}
+              sub={
+                !metricsSummary.hasMetrics ? 'Load metrics to see TACoS'
+                  : selectedCampaignIds.size > 0 ? 'Account-wide only — clear selection'
+                  : metricsSummary.tacos != null ? 'Ad Spend ÷ Total Revenue (organic + ads)'
+                  : (loadingSales ? 'Waiting for SP-API sales…' : 'SP-API sales required')
+              }
               gradient="linear-gradient(135deg, #F59E0B, #D97706)"
               glow="rgba(245,158,11,0.5)"
               accentColor="#F59E0B"
