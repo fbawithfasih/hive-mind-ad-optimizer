@@ -253,8 +253,10 @@ export default function Dashboard({ user, onboarded, onLogout }) {
     const totalRevenue = campaigns.reduce((s, c) => s + (c.sales ?? 0), 0);
     const totalSpend   = campaigns.reduce((s, c) => s + (c.spend  ?? 0), 0);
     const hasMetrics   = campaigns.some(c => c.sales != null || c.spend != null);
-    const roas         = totalSpend > 0 ? totalRevenue / totalSpend : null;
-    return { totalRevenue, totalSpend, roas, hasMetrics };
+    const roas  = totalSpend > 0 ? totalRevenue / totalSpend : null;
+    const acos  = totalRevenue > 0 ? (totalSpend / totalRevenue) * 100 : null;
+    const tacos = acos; // same source until SP-API total-order revenue is wired in
+    return { totalRevenue, totalSpend, roas, acos, tacos, hasMetrics };
   }, [campaigns]);
 
   async function handleLoadMetrics(overrideFrom, overrideTo) {
@@ -592,6 +594,33 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               glow="rgba(249,115,22,0.5)"
               accentColor="#F97316"
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>}
+            />
+            <VibrantStatCard
+              label="ACoS"
+              value={metricsSummary.hasMetrics && metricsSummary.acos != null ? `${metricsSummary.acos.toFixed(1)}%` : '—'}
+              sub={metricsSummary.hasMetrics ? 'Ad Spend ÷ Ad Revenue' : 'Load metrics to see ACoS'}
+              gradient="linear-gradient(135deg, #6366F1, #4F46E5)"
+              glow="rgba(99,102,241,0.5)"
+              accentColor="#6366F1"
+              icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>}
+            />
+            <VibrantStatCard
+              label="TACoS"
+              value={metricsSummary.hasMetrics && metricsSummary.tacos != null ? `${metricsSummary.tacos.toFixed(1)}%` : '—'}
+              sub={metricsSummary.hasMetrics ? 'Ad spend vs total ad-attributed revenue' : 'Load metrics to see TACoS'}
+              gradient="linear-gradient(135deg, #F59E0B, #D97706)"
+              glow="rgba(245,158,11,0.5)"
+              accentColor="#F59E0B"
+              icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>}
+            />
+            <VibrantStatCard
+              label="ROAS"
+              value={metricsSummary.hasMetrics && metricsSummary.roas != null ? `${metricsSummary.roas.toFixed(2)}×` : '—'}
+              sub={metricsSummary.hasMetrics ? 'Ad Revenue ÷ Ad Spend' : 'Load metrics to see ROAS'}
+              gradient="linear-gradient(135deg, #0EA5E9, #0284C7)"
+              glow="rgba(14,165,233,0.5)"
+              accentColor="#0EA5E9"
+              icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>}
             />
           </div>
 
