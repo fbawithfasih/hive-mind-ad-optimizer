@@ -238,16 +238,20 @@ export default function Dashboard({ user, onboarded, onLogout }) {
   function applyPreset(preset) {
     const t = new Date();
     const iso = d => d.toISOString().slice(0, 10);
-    const today = iso(t);
+    const todayISO = iso(t);
+    // Amazon retains ~60 days of data — clamp all presets to that window
+    const earliest = iso(new Date(t - 59 * 86400000));
     let from;
-    if (preset === 'YTD')  from = iso(new Date(t.getFullYear(), 0, 1));
+    if (preset === 'YTD')       from = iso(new Date(t.getFullYear(), 0, 1));
     else if (preset === 'MTD')  from = iso(new Date(t.getFullYear(), t.getMonth(), 1));
     else if (preset === 'L7')   from = iso(new Date(t - 7  * 86400000));
     else                         from = iso(new Date(t - 30 * 86400000));
-    setDateFromRaw(from);
-    setDateToRaw(today);
+    // Clamp to Amazon's data retention window
+    const clampedFrom = from < earliest ? earliest : from;
+    setDateFromRaw(clampedFrom);
+    setDateToRaw(todayISO);
     setActivePreset(preset);
-    handleLoadMetrics(from, today);
+    handleLoadMetrics(clampedFrom, todayISO);
   }
 
   const [selectedCampaignIds, setSelectedCampaignIds] = useState(new Set());

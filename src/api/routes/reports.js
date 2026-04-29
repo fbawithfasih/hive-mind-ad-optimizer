@@ -4,14 +4,9 @@ import { prisma } from '../../db/prisma.js';
 const router = express.Router();
 
 function validateDates(startDate, endDate, res) {
-  const diffDays = (new Date(endDate) - new Date(startDate)) / 86400000;
-  if (diffDays > 31) {
-    res.status(400).json({ error: `Date range too large (${Math.round(diffDays)} days). Maximum is 31 days.` });
-    return false;
-  }
   const sixtyDaysAgo = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
   if (startDate < sixtyDaysAgo) {
-    res.status(400).json({ error: `Start date ${startDate} is too far in the past. Amazon retains data for ~60 days.` });
+    res.status(400).json({ error: `Start date ${startDate} is outside Amazon's ~60-day data retention window. Please select a more recent start date.` });
     return false;
   }
   return true;
