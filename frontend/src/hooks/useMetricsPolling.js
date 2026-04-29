@@ -21,7 +21,7 @@ export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampai
   const [metricsDateRange, setMetricsDateRange] = useState({ start: '', end: '' });
   const [error, setError] = useState(null);
 
-  async function handleLoadMetrics() {
+  async function handleLoadMetrics(overrideFrom, overrideTo) {
     setIsLoadingMetrics(true);
     setMetricsProgress(2);
     setMetricsStatus('Creating report…');
@@ -29,10 +29,12 @@ export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampai
 
     try {
       const profileId = selectedProfileId || undefined;
+      const from = overrideFrom ?? dateFrom;
+      const to   = overrideTo   ?? dateTo;
 
       // Step 1: create report + fetch campaign list in parallel (~2s)
       const { reportId, campaigns: rawCampaigns, startDate, endDate } =
-        await startReports(profileId, dateFrom, dateTo);
+        await startReports(profileId, from, to);
       setCampaigns(Array.isArray(rawCampaigns) ? rawCampaigns : []);
       setMetricsProgress(5);
 

@@ -220,7 +220,7 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
 export default function Dashboard({ user, onboarded, onLogout }) {
   const orgName = user?.currentOrg?.name ?? '';
   const { profiles, primaryAccountGroups, selectedProfileId, setSelectedProfileId, selectedProfile, nameMatchFailed } = useProfileState(orgName);
-  const { dateFrom, dateTo, today, handleDateFromChange, handleDateToChange } = useDateRangeState();
+  const { dateFrom, dateTo, today, handleDateFromChange, handleDateToChange, setDateFromRaw, setDateToRaw } = useDateRangeState();
   const { campaigns, setCampaigns, search, setSearch, statusFilter, setStatusFilter, filtered, stats, isLoading, error: campaignError } = useCampaignFiltering(selectedProfileId);
   const { isLoadingMetrics, metricsStatus, metricsProgress, metricsDateRange, error: metricsError, handleLoadMetrics: _handleLoadMetrics } = useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampaigns);
   const { isExecuting, result, error: aiError, aiModel, setAiModel, handleCommandSubmit } = useAICommandExecution(filtered, campaigns);
@@ -232,8 +232,33 @@ export default function Dashboard({ user, onboarded, onLogout }) {
     getUnreadCountApi().then(d => setAlertUnread(d.count ?? 0)).catch(() => {});
   }, []);
 
-  async function handleLoadMetrics() {
-    await _handleLoadMetrics();
+  const [activePreset, setActivePreset] = useState(null);
+
+  function applyPreset(preset) {
+    const t = new Date();
+    const iso = d => d.toISOString().slice(0, 10);
+    const today = iso(t);
+    let from;
+    if (preset === 'YTD')  from = iso(new Date(t.getFullYear(), 0, 1));
+    else if (preset === 'MTD')  from = iso(new Date(t.getFullYear(), t.getMonth(), 1));
+    else if (preset === 'L7')   from = iso(new Date(t - 7  * 86400000));
+    else                         from = iso(new Date(t - 30 * 86400000));
+    setDateFromRaw(from);
+    setDateToRaw(today);
+    setActivePreset(preset);
+    handleLoadMetrics(from, today);
+  }
+
+  const metricsSummary = useMemo(() => {
+    const totalRevenue = campaigns.reduce((s, c) => s + (c.sales ?? 0), 0);
+    const totalSpend   = campaigns.reduce((s, c) => s + (c.spend  ?? 0), 0);
+    const hasMetrics   = campaigns.some(c => c.sales != null || c.spend != null);
+    const roas         = totalSpend > 0 ? totalRevenue / totalSpend : null;
+    return { totalRevenue, totalSpend, roas, hasMetrics };
+  }, [campaigns]);
+
+  async function handleLoadMetrics(overrideFrom, overrideTo) {
+    await _handleLoadMetrics(overrideFrom, overrideTo);
     // After metrics merge into campaigns state, give React one tick then evaluate
     setTimeout(async () => {
       try {
@@ -542,6 +567,32 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               accentColor="#8B5CF6"
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>}
             />
+            <VibrantStatCard
+              label="Total Revenue"
+              value={metricsSummary.hasMetrics
+                ? `$${metricsSummary.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                : '—'}
+              sub={metricsSummary.hasMetrics
+                ? (metricsDateRange.start ? `${metricsDateRange.start} → ${metricsDateRange.end}` : 'From loaded metrics')
+                : 'Load metrics to see revenue'}
+              gradient="linear-gradient(135deg, #10B981, #0D9488)"
+              glow="rgba(16,185,129,0.5)"
+              accentColor="#10B981"
+              icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>}
+            />
+            <VibrantStatCard
+              label="Total Ads Spend"
+              value={metricsSummary.hasMetrics
+                ? `$${metricsSummary.totalSpend.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                : '—'}
+              sub={metricsSummary.hasMetrics
+                ? (metricsSummary.roas != null ? `ROAS ${metricsSummary.roas.toFixed(2)}×` : 'From loaded metrics')
+                : 'Load metrics to see spend'}
+              gradient="linear-gradient(135deg, #F97316, #EF4444)"
+              glow="rgba(249,115,22,0.5)"
+              accentColor="#F97316"
+              icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>}
+            />
           </div>
 
           {/* ── Charts row ── */}
@@ -658,11 +709,32 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                   </p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <input type="date" value={dateFrom} onChange={e => handleDateFromChange(e.target.value)}
+                  {/* Quick preset pills */}
+                  {[['YTD','Year to date'],['MTD','Month to date'],['L7','Last 7 days'],['L30','Last 30 days']].map(([key, label]) => (
+                    <button key={key} onClick={() => applyPreset(key)} disabled={isLoadingMetrics}
+                      title={label}
+                      style={{
+                        padding: '5px 10px', borderRadius: 6, border: 'none', fontSize: 11, fontWeight: 700,
+                        cursor: isLoadingMetrics ? 'not-allowed' : 'pointer',
+                        background: activePreset === key
+                          ? 'linear-gradient(135deg, #10B981, #3B82F6)'
+                          : 'rgba(255,255,255,0.06)',
+                        color: activePreset === key ? '#fff' : '#64748B',
+                        boxShadow: activePreset === key ? '0 2px 8px rgba(16,185,129,0.3)' : 'none',
+                        transition: 'all 0.15s',
+                        whiteSpace: 'nowrap',
+                      }}>
+                      {key === 'L7' ? '7d' : key === 'L30' ? '30d' : key}
+                    </button>
+                  ))}
+                  <span style={{ color: 'rgba(255,255,255,0.1)', fontSize: 14 }}>|</span>
+                  <input type="date" value={dateFrom}
+                    onChange={e => { handleDateFromChange(e.target.value); setActivePreset(null); }}
                     min={sixtyDaysAgo} max={dateTo}
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#94A3B8', borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none' }} />
                   <span style={{ color: '#334155', fontSize: 12 }}>→</span>
-                  <input type="date" value={dateTo} onChange={e => handleDateToChange(e.target.value)}
+                  <input type="date" value={dateTo}
+                    onChange={e => { handleDateToChange(e.target.value); setActivePreset(null); }}
                     min={dateFrom} max={today}
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#94A3B8', borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none' }} />
                   <button onClick={handleLoadMetrics} disabled={isLoadingMetrics} style={{

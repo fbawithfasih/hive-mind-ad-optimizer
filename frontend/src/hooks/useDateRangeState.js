@@ -58,5 +58,7 @@ export function useDateRangeState() {
     thirtyDaysAgo,
     handleDateFromChange,
     handleDateToChange,
+    setDateFromRaw: setDateFrom,
+    setDateToRaw:   setDateTo,
   };
 }
