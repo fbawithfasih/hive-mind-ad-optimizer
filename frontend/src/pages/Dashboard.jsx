@@ -240,19 +240,16 @@ export default function Dashboard({ user, onboarded, onLogout }) {
     const t = new Date();
     const iso = d => d.toISOString().slice(0, 10);
     const todayISO = iso(t);
-    // Amazon spCampaigns summary reports cap at a 31-day range
-    const earliest = iso(new Date(t - 30 * 86400000));
     let from;
     if (preset === 'YTD')       from = iso(new Date(t.getFullYear(), 0, 1));
     else if (preset === 'MTD')  from = iso(new Date(t.getFullYear(), t.getMonth(), 1));
     else if (preset === 'L7')   from = iso(new Date(t - 7  * 86400000));
     else                         from = iso(new Date(t - 30 * 86400000));
-    // Clamp to Amazon's data retention window
-    const clampedFrom = from < earliest ? earliest : from;
-    setDateFromRaw(clampedFrom);
+    // Long ranges are split into ≤31-day windows server-side and merged.
+    setDateFromRaw(from);
     setDateToRaw(todayISO);
     setActivePreset(preset);
-    handleLoadMetrics(clampedFrom, todayISO);
+    handleLoadMetrics(from, todayISO);
   }
 
   const [selectedCampaignIds, setSelectedCampaignIds] = useState(new Set());

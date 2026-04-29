@@ -338,8 +338,9 @@ export async function startReports(profileId, startDate, endDate) {
  *   - error: Error message (when FAILED)
  * @throws {Error} If API call fails
  */
-export async function pollReportStatus(profileId, reportId) {
-  const response = await api.get('/reports/status', { params: { profileId, reportId } });
+export async function pollReportStatus(profileId, reportIds) {
+  const ids = Array.isArray(reportIds) ? reportIds.join(',') : reportIds;
+  const response = await api.get('/reports/status', { params: { profileId, reportIds: ids } });
   return response.data;
 }
 

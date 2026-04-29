@@ -63,7 +63,7 @@ export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampai
   // Preserved after a timeout so the user can resume without a new report
   const [pendingReport,    setPendingReport]    = useState(null); // { reportId, profileId, startDate, endDate }
 
-  async function pollLoop(profileId, reportId, startDate, endDate) {
+  async function pollLoop(profileId, reportIds, startDate, endDate) {
     let elapsed = 0;
     for (const delay of SCHEDULE) {
       await new Promise(r => setTimeout(r, delay));
@@ -74,7 +74,7 @@ export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampai
       setMetricsStatus(`Waiting for Amazon… (${mins > 0 ? `${mins}m ${secs}s` : `${secs}s`})`);
       setMetricsProgress(Math.min(95, 5 + Math.round((elapsed / POLL_CEILING_MS) * 90)));
 
-      const result = await pollReportStatus(profileId, reportId);
+      const result = await pollReportStatus(profileId, reportIds);
 
       if (result.status === 'COMPLETED') {
         setMetricsProgress(100);
@@ -103,14 +103,15 @@ export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampai
       const from = overrideFrom ?? dateFrom;
       const to   = overrideTo   ?? dateTo;
 
-      const { reportId, campaigns: rawCampaigns, startDate, endDate } =
+      const { reportIds, reportId, campaigns: rawCampaigns, startDate, endDate } =
         await startReports(profileId, from, to);
+      const ids = reportIds ?? (reportId ? [reportId] : []);
       setCampaigns(Array.isArray(rawCampaigns) ? rawCampaigns : []);
       setMetricsProgress(5);
 
-      const done = await pollLoop(profileId, reportId, startDate, endDate);
+      const done = await pollLoop(profileId, ids, startDate, endDate);
       if (!done) {
-        setPendingReport({ reportId, profileId, startDate, endDate });
+        setPendingReport({ reportIds: ids, profileId, startDate, endDate });
         setError('Report is still processing on Amazon — click "Check Again" to resume without starting over.');
       }
     } catch (err) {
@@ -130,9 +131,10 @@ export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampai
     setMetricsStatus('Resuming…');
     setError(null);
 
-    const { reportId, profileId, startDate, endDate } = pendingReport;
+    const { reportIds, reportId, profileId, startDate, endDate } = pendingReport;
+    const ids = reportIds ?? (reportId ? [reportId] : []);
     try {
-      const done = await pollLoop(profileId, reportId, startDate, endDate);
+      const done = await pollLoop(profileId, ids, startDate, endDate);
       if (!done) {
         setError('Report is still processing — try again in a few minutes.');
       } else {
