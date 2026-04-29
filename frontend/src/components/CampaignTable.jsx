@@ -23,12 +23,19 @@ const pct = (v, dec = 2) => v == null ? dash : `${Number(v).toFixed(dec)}%`;
 const money = v => (v == null || Number.isNaN(Number(v))) ? dash : `$${fmt2(v)}`;
 
 export default function CampaignTable({
-  campaigns = [],
+  campaigns: incoming = [],
   isLoading = false,
   selectedIds = null,     // Set<id> | null — null means "no selection UI"
   onToggleSelect = null,  // (id) => void
   onToggleAll = null,     // (allIds) => void
 }) {
+  // Sort by startDate (newest → oldest). Amazon returns startDate as
+  // 'YYYYMMDD' or 'YYYY-MM-DD'; either compares correctly as a string.
+  const campaigns = [...incoming].sort((a, b) => {
+    const ad = (a.startDate ?? '').replace(/-/g, '');
+    const bd = (b.startDate ?? '').replace(/-/g, '');
+    return bd.localeCompare(ad);
+  });
   if (isLoading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 64, gap: 10, color: '#94A3B8' }}>
       <svg style={{ width: 20, height: 20, animation: 'spin 1s linear infinite' }} fill="none" viewBox="0 0 24 24">
