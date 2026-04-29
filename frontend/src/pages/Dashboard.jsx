@@ -16,6 +16,7 @@ import AutomationPanel from '../components/AutomationPanel.jsx';
 import AlertsPanel from '../components/AlertsPanel.jsx';
 import ListingHistoryPanel from '../components/ListingHistoryPanel.jsx';
 import BulkActionBar from '../components/BulkActionBar.jsx';
+import AdsNotConnectedBanner from '../components/AdsNotConnectedBanner.jsx';
 import { BrandAnalyticsPanel } from '../components/BrandAnalytics/index.js';
 import { logoutApi, resendVerificationApi, switchOrgApi, evaluateAlertsApi, getUnreadCountApi, markFiresReadApi, bulkUpdateCampaigns } from '../services/api.js';
 import { getDaysAgoISO } from '../utils/date-helpers.js';
@@ -483,6 +484,8 @@ export default function Dashboard({ user, onboarded, onLogout }) {
           </div>
         </div>
       </header>
+
+      <AdsNotConnectedBanner />
 
       {/* ── Trial countdown banner ── */}
       {user?.currentOrg?.isOnTrial && (

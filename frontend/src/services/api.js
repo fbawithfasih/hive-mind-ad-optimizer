@@ -6,6 +6,18 @@ const api = axios.create({
   withCredentials: true,  // send session cookie on every request
 });
 
+// When the backend signals the org hasn't completed Ads OAuth, surface it
+// globally so any page can show a "Connect Amazon Ads" prompt.
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err?.response?.status === 412 && err.response.data?.code === 'ADS_NOT_CONNECTED') {
+      window.dispatchEvent(new CustomEvent('ads-not-connected', { detail: err.response.data }));
+    }
+    return Promise.reject(err);
+  }
+);
+
 // ────────────────────────────────────────────────────────────────────────────
 // Type Definitions (JSDoc typedefs for IDE support)
 // ────────────────────────────────────────────────────────────────────────────
