@@ -133,7 +133,7 @@ describe('GET /callback', () => {
     });
 
     expect(res.status).toBe(302);
-    expect(res.headers.location).toBe('http://localhost:5173?connected=amazon');
+    expect(res.headers.location).toMatch(/\/api\/sp-oauth\/ads-start$/);
     expect(saveOrgCredential).toHaveBeenCalledWith('org-1', {
       spRefreshToken: 'rt-abc123',
       sellerId: 'A1B2C3D4',

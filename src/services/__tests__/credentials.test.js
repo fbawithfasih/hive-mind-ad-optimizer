@@ -132,9 +132,9 @@ describe('loadOrgCredential', () => {
     expect(cred.sellerId).toBe(SELLER_ID);
   });
 
-  it('defaults adsRefreshToken to spRefreshToken when not stored separately', async () => {
+  it('returns null for adsRefreshToken when Ads OAuth not yet completed', async () => {
     const cred = await loadOrgCredential(ORG_ID);
-    expect(cred.adsRefreshToken).toBe(SP_TOKEN);
+    expect(cred.adsRefreshToken).toBeNull();
   });
 
   it('returns a separate adsRefreshToken when stored', async () => {
