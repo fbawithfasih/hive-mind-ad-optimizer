@@ -128,6 +128,52 @@ async function applyAutomationScheduleMigration() {
 }
 applyAutomationScheduleMigration().catch(err => logger.error('Automation schedule migration error', err.message));
 
+async function applyAlertsMigration() {
+  try {
+    await prisma.$executeRaw`
+      CREATE TABLE IF NOT EXISTS "CampaignAlert" (
+        "id"        TEXT NOT NULL PRIMARY KEY,
+        "orgId"     TEXT NOT NULL,
+        "name"      TEXT NOT NULL,
+        "metric"    TEXT NOT NULL,
+        "condition" TEXT NOT NULL,
+        "threshold" DOUBLE PRECISION NOT NULL,
+        "isActive"  BOOLEAN NOT NULL DEFAULT true,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "CampaignAlert_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE
+      )`;
+    logger.info('Migration: CampaignAlert table created');
+  } catch { /* already exists */ }
+  try {
+    await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "CampaignAlert_orgId_idx"    ON "CampaignAlert"("orgId")`;
+    await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "CampaignAlert_isActive_idx" ON "CampaignAlert"("isActive")`;
+  } catch { /* already exists */ }
+
+  try {
+    await prisma.$executeRaw`
+      CREATE TABLE IF NOT EXISTS "AlertFire" (
+        "id"           TEXT NOT NULL PRIMARY KEY,
+        "alertId"      TEXT NOT NULL,
+        "orgId"        TEXT NOT NULL,
+        "campaignId"   TEXT NOT NULL,
+        "campaignName" TEXT NOT NULL,
+        "metricValue"  DOUBLE PRECISION NOT NULL,
+        "isRead"       BOOLEAN NOT NULL DEFAULT false,
+        "triggeredAt"  TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "AlertFire_alertId_fkey" FOREIGN KEY ("alertId") REFERENCES "CampaignAlert"("id") ON DELETE CASCADE
+      )`;
+    logger.info('Migration: AlertFire table created');
+  } catch { /* already exists */ }
+  try {
+    await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "AlertFire_orgId_idx"      ON "AlertFire"("orgId")`;
+    await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "AlertFire_alertId_idx"    ON "AlertFire"("alertId")`;
+    await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "AlertFire_isRead_idx"     ON "AlertFire"("isRead")`;
+    await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "AlertFire_triggeredAt_idx" ON "AlertFire"("triggeredAt")`;
+  } catch { /* already exists */ }
+}
+applyAlertsMigration().catch(err => logger.error('Alerts migration error', err.message));
+
 const server = app.listen(PORT, () => {
   logger.info('Server started', { port: PORT, nodeEnv: process.env.NODE_ENV });
 });

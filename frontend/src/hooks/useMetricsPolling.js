@@ -11,14 +11,19 @@
 import { useState } from 'react';
 import { startReports, pollReportStatus } from '../services/api.js';
 
+// Total polling ceiling in ms — used to derive completion percentage
+const POLL_CEILING_MS = 12 * 5000 + 15 * 8000 + 25 * 12000; // 480 000 ms (~8 min)
+
 export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampaigns) {
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
-  const [metricsStatus, setMetricsStatus]       = useState('');
+  const [metricsStatus,    setMetricsStatus]    = useState('');
+  const [metricsProgress,  setMetricsProgress]  = useState(0);   // 0–100
   const [metricsDateRange, setMetricsDateRange] = useState({ start: '', end: '' });
   const [error, setError] = useState(null);
 
   async function handleLoadMetrics() {
     setIsLoadingMetrics(true);
+    setMetricsProgress(2);
     setMetricsStatus('Creating report…');
     setError(null);
 
@@ -29,6 +34,7 @@ export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampai
       const { reportId, campaigns: rawCampaigns, startDate, endDate } =
         await startReports(profileId, dateFrom, dateTo);
       setCampaigns(Array.isArray(rawCampaigns) ? rawCampaigns : []);
+      setMetricsProgress(5);
 
       // Step 2: adaptive-backoff poll until Amazon finishes the async report
       // Amazon SP reports for 30-day ranges typically take 1–5 minutes.
@@ -46,11 +52,16 @@ export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampai
         const mins = Math.floor(elapsed / 60000);
         const secs = Math.round((elapsed % 60000) / 1000);
         const timeLabel = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-        setMetricsStatus(`Waiting for Amazon report… (${timeLabel})`);
+        setMetricsStatus(`Waiting for Amazon… (${timeLabel})`);
+        // Reserve 5% head-start + 90% for polling progress; cap at 95 until confirmed done
+        setMetricsProgress(Math.min(95, 5 + Math.round((elapsed / POLL_CEILING_MS) * 90)));
 
         const result = await pollReportStatus(profileId, reportId);
 
         if (result.status === 'COMPLETED') {
+          setMetricsProgress(100);
+          setMetricsStatus('Merging data…');
+
           // Merge metrics into campaign rows
           const metricsMap = {};
           for (const m of result.data) metricsMap[m.campaignId] = m;
@@ -92,12 +103,15 @@ export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampai
     } finally {
       setIsLoadingMetrics(false);
       setMetricsStatus('');
+      // Keep 100% visible briefly on success, then reset
+      setTimeout(() => setMetricsProgress(0), 600);
     }
   }
 
   return {
     isLoadingMetrics,
     metricsStatus,
+    metricsProgress,
     metricsDateRange,
     error,
     setError,

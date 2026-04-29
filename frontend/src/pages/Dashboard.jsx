@@ -13,8 +13,10 @@ import AmazonConnectPanel from '../components/AmazonConnectPanel.jsx';
 import ProfilesPanel from '../components/ProfilesPanel.jsx';
 import TeamPanel from '../components/TeamPanel.jsx';
 import AutomationPanel from '../components/AutomationPanel.jsx';
+import AlertsPanel from '../components/AlertsPanel.jsx';
+import ListingHistoryPanel from '../components/ListingHistoryPanel.jsx';
 import { BrandAnalyticsPanel } from '../components/BrandAnalytics/index.js';
-import { logoutApi, resendVerificationApi, switchOrgApi } from '../services/api.js';
+import { logoutApi, resendVerificationApi, switchOrgApi, evaluateAlertsApi, getUnreadCountApi, markFiresReadApi } from '../services/api.js';
 import { getDaysAgoISO } from '../utils/date-helpers.js';
 import { useProfileState } from '../hooks/useProfileState.js';
 import { useDateRangeState } from '../hooks/useDateRangeState.js';
@@ -26,12 +28,14 @@ const MODULE_LABELS = {
   campaigns:        '📊 Campaigns',
   'search-terms':   '🔍 Search Terms',
   listings:         '✏️ Listing Optimizer',
+  'listing-history':'🕓 Optimization History',
   bulk:             '⚡ Bulk Optimizer',
   health:           '🩺 Listing Health',
   keywords:         '🎯 Keyword Intelligence',
   reports:          '📈 Reporting Agent',
   'brand-analytics':'📡 Brand Analytics',
   automation:       '🤖 Automation Rules',
+  alerts:           '🔔 Campaign Alerts',
   amazon:           '🔗 Amazon Account',
   profiles:         '👤 Profiles',
   team:             '👥 Team & Roles',
@@ -218,8 +222,36 @@ export default function Dashboard({ user, onboarded, onLogout }) {
   const { profiles, primaryAccountGroups, selectedProfileId, setSelectedProfileId, selectedProfile, nameMatchFailed } = useProfileState(orgName);
   const { dateFrom, dateTo, today, handleDateFromChange, handleDateToChange } = useDateRangeState();
   const { campaigns, setCampaigns, search, setSearch, statusFilter, setStatusFilter, filtered, stats, isLoading, error: campaignError } = useCampaignFiltering(selectedProfileId);
-  const { isLoadingMetrics, metricsStatus, metricsDateRange, error: metricsError, handleLoadMetrics } = useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampaigns);
+  const { isLoadingMetrics, metricsStatus, metricsProgress, metricsDateRange, error: metricsError, handleLoadMetrics: _handleLoadMetrics } = useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampaigns);
   const { isExecuting, result, error: aiError, aiModel, setAiModel, handleCommandSubmit } = useAICommandExecution(filtered, campaigns);
+
+  const [alertUnread,    setAlertUnread]    = useState(0);
+  const [alertBanner,    setAlertBanner]    = useState(null); // { count, fires[] }
+
+  useEffect(() => {
+    getUnreadCountApi().then(d => setAlertUnread(d.count ?? 0)).catch(() => {});
+  }, []);
+
+  async function handleLoadMetrics() {
+    await _handleLoadMetrics();
+    // After metrics merge into campaigns state, give React one tick then evaluate
+    setTimeout(async () => {
+      try {
+        setCampaigns(current => {
+          const metriced = current.filter(c => c.acos != null || c.spend != null);
+          if (!metriced.length) return current;
+          evaluateAlertsApi(metriced).then(({ fired, totalFired }) => {
+            if (totalFired > 0) {
+              setAlertUnread(n => n + totalFired);
+              setAlertBanner({ count: totalFired, fires: fired });
+              setTimeout(() => setAlertBanner(null), 12000);
+            }
+          }).catch(() => {});
+          return current;
+        });
+      } catch { /* silent */ }
+    }, 200);
+  }
 
   const sixtyDaysAgo = getDaysAgoISO(60);
   const [activeTab, setActiveTab] = useState('campaigns');
@@ -331,6 +363,13 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                 {user.email}
               </span>
             )}
+            <button onClick={() => { setActiveTab('alerts'); setAlertUnread(0); markFiresReadApi().catch(() => {}); }}
+              style={{ position: 'relative', padding: '5px 12px', borderRadius: 7, border: `1px solid ${alertUnread > 0 ? 'rgba(244,63,94,0.35)' : 'rgba(255,255,255,0.08)'}`, background: alertUnread > 0 ? 'rgba(244,63,94,0.08)' : 'rgba(255,255,255,0.04)', color: alertUnread > 0 ? '#F87171' : '#94A3B8', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+              🔔
+              {alertUnread > 0 && (
+                <span style={{ background: '#F43F5E', color: '#fff', fontSize: 10, fontWeight: 800, borderRadius: 99, padding: '1px 5px', minWidth: 16, textAlign: 'center' }}>{alertUnread}</span>
+              )}
+            </button>
             <Link to="/billing" style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94A3B8', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
               Billing
             </Link>
@@ -397,6 +436,25 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               : <button onClick={handleResendVerify} style={{ marginLeft: 8, background: 'none', border: 'none', color: '#F59E0B', fontWeight: 700, fontSize: 13, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Resend</button>}
           </span>
           <button onClick={() => setVerifyBannerDismissed(true)} style={{ background: 'none', border: 'none', color: '#92400E', fontSize: 18, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
+        </div>
+      )}
+
+      {/* ── Alert fired banner ── */}
+      {alertBanner && (
+        <div style={{ background: 'rgba(244,63,94,0.1)', borderBottom: '1px solid rgba(244,63,94,0.3)', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <span style={{ fontSize: 13, color: '#F87171', display: 'flex', alignItems: 'center', gap: 8 }}>
+            🔔 <strong>{alertBanner.count} alert{alertBanner.count !== 1 ? 's' : ''} fired</strong>
+            {alertBanner.fires.slice(0, 2).map((f, i) => (
+              <span key={i} style={{ fontSize: 11, color: '#FDA4AF', background: 'rgba(244,63,94,0.12)', padding: '2px 8px', borderRadius: 99, border: '1px solid rgba(244,63,94,0.2)' }}>
+                {f.alertName} · {f.campaignName}
+              </span>
+            ))}
+            {alertBanner.count > 2 && <span style={{ fontSize: 11, color: '#475569' }}>+{alertBanner.count - 2} more</span>}
+          </span>
+          <button onClick={() => { setActiveTab('alerts'); setAlertBanner(null); setAlertUnread(0); markFiresReadApi().catch(() => {}); }}
+            style={{ fontSize: 12, fontWeight: 700, color: '#F43F5E', background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', flexShrink: 0 }}>
+            View alerts →
+          </button>
         </div>
       )}
 
@@ -608,23 +666,57 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                     min={dateFrom} max={today}
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#94A3B8', borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none' }} />
                   <button onClick={handleLoadMetrics} disabled={isLoadingMetrics} style={{
-                    display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 8, border: 'none',
+                    position: 'relative', overflow: 'hidden',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '7px 16px', borderRadius: 8, border: 'none',
                     cursor: isLoadingMetrics ? 'not-allowed' : 'pointer',
-                    background: isLoadingMetrics ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #10B981, #3B82F6)',
-                    color: isLoadingMetrics ? '#475569' : '#fff', fontWeight: 700, fontSize: 12,
-                    opacity: isLoadingMetrics ? 0.7 : 1, whiteSpace: 'nowrap',
-                    boxShadow: isLoadingMetrics ? 'none' : '0 4px 16px rgba(16,185,129,0.35)',
+                    background: isLoadingMetrics ? '#0F172A' : 'linear-gradient(135deg, #10B981, #3B82F6)',
+                    color: '#fff', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap',
+                    boxShadow: isLoadingMetrics ? '0 0 0 1px rgba(255,255,255,0.08)' : '0 4px 16px rgba(16,185,129,0.35)',
+                    minWidth: 180,
                   }}>
-                    {isLoadingMetrics ? (
-                      <><svg style={{ width: 13, height: 13, animation: 'spin 1s linear infinite' }} fill="none" viewBox="0 0 24 24">
-                        <circle style={{ opacity: .25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                        <path style={{ opacity: .75 }} fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                      </svg>{metricsStatus || 'Loading…'}</>
-                    ) : (
-                      <><svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                      </svg>Load Performance Metrics</>
+                    {/* progress fill */}
+                    {isLoadingMetrics && (
+                      <span style={{
+                        position: 'absolute', inset: 0, width: `${metricsProgress}%`,
+                        background: metricsProgress < 33
+                          ? 'linear-gradient(90deg, #059669, #10B981)'
+                          : metricsProgress < 66
+                          ? 'linear-gradient(90deg, #10B981, #3B82F6)'
+                          : 'linear-gradient(90deg, #3B82F6, #8B5CF6)',
+                        transition: 'width 0.6s ease, background 0.8s ease',
+                        borderRadius: 8,
+                      }}/>
                     )}
+                    {/* shimmer sweep */}
+                    {isLoadingMetrics && (
+                      <span style={{
+                        position: 'absolute', inset: 0,
+                        background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%)',
+                        animation: 'shimmer 1.6s ease-in-out infinite',
+                        borderRadius: 8,
+                      }}/>
+                    )}
+                    {/* content */}
+                    <span style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {isLoadingMetrics ? (
+                        <>
+                          <span style={{ fontVariantNumeric: 'tabular-nums', minWidth: 30, textAlign: 'right' }}>
+                            {metricsProgress}%
+                          </span>
+                          <span style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 400 }}>
+                            {metricsStatus || 'Loading…'}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                          </svg>
+                          Load Performance Metrics
+                        </>
+                      )}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -662,11 +754,13 @@ export default function Dashboard({ user, onboarded, onLogout }) {
         {activeTab === 'listings' && (
           <ListingOptimizerPanel searchTerms={loadedSearchTerms} aiModel={aiModel} profileId={selectedProfileId} />
         )}
+        {activeTab === 'listing-history' && <ListingHistoryPanel />}
         {activeTab === 'bulk' && <BulkOptimizerPanel aiModel={aiModel} />}
         {activeTab === 'health' && <ListingHealthPanel />}
         {activeTab === 'keywords' && <KeywordRecommendationsPanel profileId={selectedProfileId} />}
         {activeTab === 'reports' && <ReportingAgentPanel profileId={selectedProfileId} aiModel={aiModel} />}
         {activeTab === 'automation' && <AutomationPanel profileId={selectedProfileId} />}
+        {activeTab === 'alerts' && <AlertsPanel />}
         {activeTab === 'brand-analytics' && <BrandAnalyticsPanel />}
         {activeTab === 'amazon' && <AmazonConnectPanel />}
         {activeTab === 'profiles' && <ProfilesPanel isAdmin={user?.currentOrg?.role === 'ADMIN'} />}
@@ -676,7 +770,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
 
       </main>
 
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}`}</style>
     </div>
   );
 }

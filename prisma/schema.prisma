@@ -64,6 +64,7 @@ model Organization {
   bulkListingBatches   BulkListingBatch[]
   reportJobs        ReportJob[]
   campaignRules     CampaignRule[]
+  campaignAlerts    CampaignAlert[]
 
   @@index([slug])
   @@index([billingStatus])
@@ -323,6 +324,46 @@ model RuleExecution {
   @@index([ruleId])
   @@index([orgId])
   @@index([executedAt])
+}
+
+// ============================================================================
+// CAMPAIGN ALERT MODELS
+// ============================================================================
+
+model CampaignAlert {
+  id          String   @id @default(cuid())
+  orgId       String
+  name        String
+  metric      String   // acos | spend | roas | ctr | clicks | impressions
+  condition   String   // gt | lt | gte | lte
+  threshold   Float
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  org   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  fires AlertFire[]
+
+  @@index([orgId])
+  @@index([isActive])
+}
+
+model AlertFire {
+  id           String   @id @default(cuid())
+  alertId      String
+  orgId        String
+  campaignId   String
+  campaignName String
+  metricValue  Float
+  isRead       Boolean  @default(false)
+  triggeredAt  DateTime @default(now())
+
+  alert CampaignAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([alertId])
+  @@index([isRead])
+  @@index([triggeredAt])
 }
 
 // ============================================================================

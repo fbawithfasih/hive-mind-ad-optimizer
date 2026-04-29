@@ -570,6 +570,28 @@ export async function uploadBrandAnalyticsCsv(type, file, onProgress) {
 
 // ─── Campaign Automation ────────────────────────────────────────────────────
 
+// ─── Listing History ────────────────────────────────────────────────────────
+
+export async function getListingsHistory({ asin, sku, limit } = {}) {
+  const params = {};
+  if (asin)  params.asin  = asin;
+  if (sku)   params.sku   = sku;
+  if (limit) params.limit = limit;
+  const response = await api.get('/listings/history', { params });
+  return response.data;
+}
+
+// ─── Campaign Alerts ─────────────────────────────────────────────────────────
+
+export const listAlertsApi       = ()         => api.get('/alerts/rules').then(r => r.data);
+export const createAlertApi      = (data)     => api.post('/alerts/rules', data).then(r => r.data);
+export const updateAlertApi      = (id, data) => api.patch(`/alerts/rules/${id}`, data).then(r => r.data);
+export const deleteAlertApi      = (id)       => api.delete(`/alerts/rules/${id}`).then(r => r.data);
+export const getAlertFiresApi    = ()         => api.get('/alerts/fires').then(r => r.data);
+export const getUnreadCountApi   = ()         => api.get('/alerts/unread-count').then(r => r.data);
+export const markFiresReadApi    = (ids)      => api.post('/alerts/fires/mark-read', ids ? { ids } : {}).then(r => r.data);
+export const evaluateAlertsApi   = (campaigns) => api.post('/alerts/evaluate', { campaigns }).then(r => r.data);
+
 export const listRulesApi        = ()         => api.get('/automation/rules').then(r => r.data);
 export const createRuleApi       = (data)     => api.post('/automation/rules', data).then(r => r.data);
 export const updateRuleApi       = (id, data) => api.patch(`/automation/rules/${id}`, data).then(r => r.data);

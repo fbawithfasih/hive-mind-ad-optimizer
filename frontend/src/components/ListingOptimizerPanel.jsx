@@ -138,6 +138,99 @@ function Pill({ text, color }) {
   );
 }
 
+// ── Publish helpers ───────────────────────────────────────────────────────────
+
+function mapIssuesToFields(issues = []) {
+  const result = {};
+  for (const issue of issues) {
+    const attrs = issue.attributeNames ?? [];
+    let key = 'General';
+    if (attrs.some(a => a === 'item_name'))           key = 'Title';
+    else if (attrs.some(a => a === 'bullet_point'))   key = 'Bullet Points';
+    else if (attrs.some(a => a === 'product_description')) key = 'Description';
+    (result[key] ??= []).push(issue.message ?? issue.code ?? 'Validation error');
+  }
+  return result;
+}
+
+function DiffField({ label, current, proposed, limit, isOver }) {
+  const len = (proposed ?? '').length;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+      <div>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+          {label} · Current
+        </div>
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 10px', fontSize: 11, color: '#64748B', maxHeight: 80, overflow: 'auto', lineHeight: 1.5 }}>
+          {current || <em style={{ opacity: 0.5 }}>empty</em>}
+        </div>
+      </div>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: isOver ? '#F87171' : '#A78BFA', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            {label} · Proposed
+          </span>
+          {limit != null && (
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: isOver ? 'rgba(244,63,94,0.15)' : 'rgba(255,255,255,0.05)', color: isOver ? '#F87171' : '#475569', border: `1px solid ${isOver ? 'rgba(244,63,94,0.3)' : 'transparent'}` }}>
+              {len}/{limit}{isOver ? ' ✕' : ''}
+            </span>
+          )}
+        </div>
+        <div style={{ background: isOver ? 'rgba(244,63,94,0.06)' : 'rgba(139,92,246,0.05)', border: `1px solid ${isOver ? 'rgba(244,63,94,0.25)' : 'rgba(139,92,246,0.15)'}`, borderRadius: 8, padding: '8px 10px', fontSize: 11, color: isOver ? '#F87171' : '#C4B5FD', maxHeight: 80, overflow: 'auto', lineHeight: 1.5 }}>
+          {proposed || <em style={{ opacity: 0.5 }}>empty</em>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PublishDiffPanel({ current, optimized, sku, overLimit, hasOverLimit, isPublishing, onConfirm, onCancel }) {
+  const overCount = [overLimit.title, ...(overLimit.bullets ?? []), overLimit.description].filter(Boolean).length;
+  return (
+    <div style={{ ...glass, padding: '20px 24px', borderColor: hasOverLimit ? 'rgba(244,63,94,0.3)' : 'rgba(139,92,246,0.25)', boxShadow: '0 4px 40px rgba(0,0,0,0.3)' }}>
+      <GradientBar top={hasOverLimit ? 'linear-gradient(90deg,#EF4444,#F59E0B)' : 'linear-gradient(90deg,#8B5CF6,#10B981)'} />
+      <div style={{ position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#F1F5F9' }}>Pre-publish Review</p>
+            <p style={{ margin: '2px 0 0', fontSize: 11, color: '#475569' }}>
+              SKU: <strong style={{ color: '#94A3B8' }}>{sku}</strong> · Confirm the changes below before pushing to Amazon
+            </p>
+          </div>
+          {hasOverLimit && (
+            <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: '#F87171', fontWeight: 600 }}>
+              ⚠ {overCount} field{overCount !== 1 ? 's' : ''} over limit
+            </div>
+          )}
+        </div>
+
+        <DiffField label="Title" current={current.title} proposed={optimized.title} limit={CHAR_LIMIT.title} isOver={overLimit.title} />
+        {(optimized.bullets ?? []).map((b, i) => (
+          <DiffField key={i} label={`Bullet ${i + 1}`} current={current.bullets?.[i] ?? ''} proposed={b} limit={CHAR_LIMIT.bullet} isOver={overLimit.bullets?.[i] ?? false} />
+        ))}
+        <DiffField label="Description" current={current.description} proposed={optimized.description} limit={CHAR_LIMIT.description} isOver={overLimit.description} />
+
+        {hasOverLimit && (
+          <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.2)', borderRadius: 10, padding: '10px 14px', marginBottom: 14, fontSize: 12, color: '#F87171' }}>
+            Fix the {overCount} over-limit field{overCount !== 1 ? 's' : ''} before publishing — Amazon will reject the listing if any field exceeds its character limit.
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button onClick={onCancel}
+            style={{ padding: '9px 20px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748B', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            Cancel
+          </button>
+          <button onClick={onConfirm} disabled={hasOverLimit || isPublishing}
+            style={{ padding: '9px 24px', borderRadius: 9, border: 'none', background: (hasOverLimit || isPublishing) ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg,#10B981,#059669)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: (hasOverLimit || isPublishing) ? 'not-allowed' : 'pointer', opacity: (hasOverLimit || isPublishing) ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 7, boxShadow: (!hasOverLimit && !isPublishing) ? '0 4px 18px rgba(16,185,129,0.4)' : 'none' }}>
+            {isPublishing ? <><Spinner /> Publishing…</> : '✓ Confirm & Publish'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiModel = 'gemini' }) {
@@ -310,6 +403,16 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
   const keywordSpark  = useMemo(() =>
     relevantTerms.slice(0, 10).map((_, i) => 10 - i).concat(Array(Math.max(0, 10 - relevantTerms.length)).fill(1)),
     [relevantTerms]);
+
+  const overLimit = useMemo(() => {
+    if (!optimized) return { title: false, bullets: [], description: false };
+    return {
+      title:       (optimized.title ?? '').length > CHAR_LIMIT.title,
+      bullets:     (optimized.bullets ?? []).map(b => (b ?? '').length > CHAR_LIMIT.bullet),
+      description: (optimized.description ?? '').length > CHAR_LIMIT.description,
+    };
+  }, [optimized]);
+  const hasOverLimit = overLimit.title || overLimit.bullets.some(Boolean) || overLimit.description;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -667,47 +770,24 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                           onBlur={e => e.target.style.borderColor = fetchedProductType ? 'rgba(255,255,255,0.08)' : 'rgba(245,158,11,0.4)'} />
                       </div>
 
-                      <button onClick={() => setConfirmPublish(true)} disabled={isPublishing || !fetchedProductType}
+                      {hasOverLimit && (
+                        <div style={{ marginBottom: 8, background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#F87171', display: 'flex', gap: 6, alignItems: 'center' }}>
+                          ⚠ {[overLimit.title, ...(overLimit.bullets ?? []), overLimit.description].filter(Boolean).length} field(s) exceed character limits
+                        </div>
+                      )}
+
+                      <button onClick={() => setConfirmPublish(true)} disabled={isPublishing || !fetchedProductType || hasOverLimit}
                         style={{
                           width: '100%', padding: '10px', borderRadius: 10, border: 'none',
-                          cursor: (isPublishing || !fetchedProductType) ? 'not-allowed' : 'pointer',
-                          background: (isPublishing || !fetchedProductType) ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg,#10B981,#059669)',
+                          cursor: (isPublishing || !fetchedProductType || hasOverLimit) ? 'not-allowed' : 'pointer',
+                          background: (isPublishing || !fetchedProductType || hasOverLimit) ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg,#10B981,#059669)',
                           color: '#fff', fontWeight: 700, fontSize: 13,
-                          boxShadow: (!isPublishing && fetchedProductType) ? '0 4px 18px rgba(16,185,129,0.4)' : 'none',
-                          opacity: (isPublishing || !fetchedProductType) ? 0.5 : 1,
+                          boxShadow: (!isPublishing && fetchedProductType && !hasOverLimit) ? '0 4px 18px rgba(16,185,129,0.4)' : 'none',
+                          opacity: (isPublishing || !fetchedProductType || hasOverLimit) ? 0.5 : 1,
                           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
                         }}>
-                        {isPublishing ? <><Spinner /> Publishing…</> : '↑ Publish to Amazon'}
+                        {isPublishing ? <><Spinner /> Publishing…</> : '↑ Review & Publish'}
                       </button>
-
-                      {confirmPublish && (
-                        <div style={{ marginTop: 10, background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#FCD34D' }}>
-                          <p style={{ margin: '0 0 10px', fontWeight: 600 }}>
-                            This will overwrite the live listing for SKU: <strong>{sku.trim() || fetchedSku}</strong>
-                          </p>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <button onClick={() => { setConfirmPublish(false); handlePublish(); }}
-                              style={{ padding: '6px 16px', borderRadius: 7, border: 'none', background: '#10B981', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
-                              Yes, publish
-                            </button>
-                            <button onClick={() => setConfirmPublish(false)}
-                              style={{ padding: '6px 16px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748B', cursor: 'pointer', fontSize: 12 }}>
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {publishResult?.ok && (
-                        <div style={{ marginTop: 10, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#34D399' }}>
-                          ✓ Listing published successfully.
-                          {publishResult.issues.length > 0 && (
-                            <span style={{ color: '#FCD34D', display: 'block', marginTop: 4 }}>
-                              Warnings: {publishResult.issues.map(i => i.message).join('; ')}
-                            </span>
-                          )}
-                        </div>
-                      )}
                     </div>
                   )}
                 </>
@@ -723,6 +803,38 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ══ PRE-PUBLISH DIFF PANEL ══ */}
+      {confirmPublish && optimized && (
+        <PublishDiffPanel
+          current={{ title, bullets, description }}
+          optimized={optimized}
+          sku={sku.trim() || fetchedSku}
+          overLimit={overLimit}
+          hasOverLimit={hasOverLimit}
+          isPublishing={isPublishing}
+          onConfirm={() => { setConfirmPublish(false); handlePublish(); }}
+          onCancel={() => setConfirmPublish(false)}
+        />
+      )}
+
+      {/* ══ PUBLISH RESULT ══ */}
+      {publishResult?.ok && (
+        <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 12, padding: '14px 18px' }}>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#34D399' }}>✓ Listing published to Amazon</p>
+          {(publishResult.issues ?? []).length > 0 && (
+            <div style={{ marginTop: 10 }}>
+              <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: '#FCD34D' }}>⚠ Amazon returned warnings:</p>
+              {Object.entries(mapIssuesToFields(publishResult.issues)).map(([field, messages]) => (
+                <div key={field} style={{ marginBottom: 4 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#FCD34D' }}>{field}: </span>
+                  <span style={{ fontSize: 11, color: '#D4A017' }}>{messages.join(' · ')}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

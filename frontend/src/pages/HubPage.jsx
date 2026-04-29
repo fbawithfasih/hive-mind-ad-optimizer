@@ -50,6 +50,16 @@ const TOOLS = [
     icon: <Icon d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" size={22} />,
   },
   {
+    tab: 'listing-history', name: 'Optimization History', badge: 'DATA',
+    desc: 'Browse every past AI optimization run — see before/after content, published status, and keywords used.',
+    gradient: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+    glow: 'rgba(99,102,241,0.40)',
+    bg: 'rgba(99,102,241,0.10)',
+    border: 'rgba(99,102,241,0.32)',
+    color: '#A5B4FC',
+    icon: <Icon d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" size={22} />,
+  },
+  {
     tab: 'bulk', name: 'Bulk Optimizer', badge: 'POWER',
     desc: 'Optimise bids and budgets across hundreds of campaigns simultaneously. Scale without the grind.',
     gradient: 'linear-gradient(135deg, #00C9FF, #00B4D8)',
@@ -88,6 +98,16 @@ const TOOLS = [
     border: 'rgba(249,83,198,0.32)',
     color: '#F472B6',
     icon: <Icon d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" size={22} />,
+  },
+  {
+    tab: 'alerts', name: 'Campaign Alerts', badge: 'NEW',
+    desc: 'Set ACoS, spend, ROAS and other thresholds — get notified the moment any campaign crosses a limit.',
+    gradient: 'linear-gradient(135deg, #F43F5E, #EF4444)',
+    glow: 'rgba(244,63,94,0.40)',
+    bg: 'rgba(244,63,94,0.10)',
+    border: 'rgba(244,63,94,0.32)',
+    color: '#F87171',
+    icon: <Icon d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" size={22} />,
   },
   {
     tab: 'automation', name: 'Automation Rules', badge: 'PRO',
