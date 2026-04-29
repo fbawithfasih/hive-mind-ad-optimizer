@@ -9,6 +9,15 @@
  * @param {number} decimals - Number of decimal places (default: 1)
  * @returns {string} Formatted number (e.g., "1.2K", "3M")
  */
+/**
+ * Format a number with fixed 2 decimal places and thousands separators.
+ * Returns '—' for null/undefined.
+ */
+export function fmt2(num) {
+  if (num === null || num === undefined || Number.isNaN(num)) return '—';
+  return Number(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export function fmtN(num, decimals = 1) {
   if (num === null || num === undefined) return '—';
   if (num >= 1000000000) {

@@ -619,13 +619,13 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9V3z"/></svg>}
             />
             <VibrantStatCard
-              label="Active Rate"
-              value={stats.enabled}
-              sub={`of ${stats.total} campaigns running`}
-              gradient="linear-gradient(135deg, #10B981, #059669)"
-              glow="rgba(16,185,129,0.5)"
-              accentColor="#10B981"
-              ringPct={activePct}
+              label="Total Revenue"
+              value="—"
+              sub="Organic sales not yet connected"
+              gradient="linear-gradient(135deg, #14B8A6, #0F766E)"
+              glow="rgba(20,184,166,0.5)"
+              accentColor="#14B8A6"
+              icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>}
             />
             <VibrantStatCard
               label="Paused"
@@ -638,7 +638,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             />
             <VibrantStatCard
               label="Daily Budget"
-              value={`$${stats.budget.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+              value={`$${stats.budget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               sub="Active campaigns only"
               gradient="linear-gradient(135deg, #8B5CF6, #7C3AED)"
               glow="rgba(139,92,246,0.5)"
@@ -646,13 +646,13 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>}
             />
             <VibrantStatCard
-              label="Total Revenue"
+              label="Total Ads Revenue"
               value={metricsSummary.hasMetrics
                 ? `$${metricsSummary.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 : '—'}
               sub={metricsSummary.hasMetrics
                 ? (metricsDateRange.start ? `${metricsDateRange.start} → ${metricsDateRange.end}${metricsSummary.selectionLabel}` : `From loaded metrics${metricsSummary.selectionLabel}`)
-                : 'Load metrics to see revenue'}
+                : 'Load metrics to see ad revenue'}
               gradient="linear-gradient(135deg, #10B981, #0D9488)"
               glow="rgba(16,185,129,0.5)"
               accentColor="#10B981"
@@ -673,7 +673,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             />
             <VibrantStatCard
               label="ACoS"
-              value={metricsSummary.hasMetrics && metricsSummary.acos != null ? `${metricsSummary.acos.toFixed(1)}%` : '—'}
+              value={metricsSummary.hasMetrics && metricsSummary.acos != null ? `${metricsSummary.acos.toFixed(2)}%` : '—'}
               sub={metricsSummary.hasMetrics ? `Ad Spend ÷ Ad Revenue${metricsSummary.selectionLabel}` : 'Load metrics to see ACoS'}
               gradient="linear-gradient(135deg, #6366F1, #4F46E5)"
               glow="rgba(99,102,241,0.5)"
@@ -682,7 +682,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             />
             <VibrantStatCard
               label="TACoS"
-              value={metricsSummary.hasMetrics && metricsSummary.tacos != null ? `${metricsSummary.tacos.toFixed(1)}%` : '—'}
+              value={metricsSummary.hasMetrics && metricsSummary.tacos != null ? `${metricsSummary.tacos.toFixed(2)}%` : '—'}
               sub={metricsSummary.hasMetrics ? `Ad spend vs total ad-attributed revenue${metricsSummary.selectionLabel}` : 'Load metrics to see TACoS'}
               gradient="linear-gradient(135deg, #F59E0B, #D97706)"
               glow="rgba(245,158,11,0.5)"

@@ -1,5 +1,5 @@
 import React from 'react';
-import { fmtN, fmtPercent } from '../utils/formatting.js';
+import { fmtN, fmt2 } from '../utils/formatting.js';
 
 const STATUS_STYLE = {
   enabled:  { label: 'Active',    bg: '#10B98118', color: '#10B981', border: '#10B98140' },
@@ -20,6 +20,7 @@ const dash = <span style={{ color: '#475569' }}>—</span>;
 const fmtDate = s => s?.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') ?? '';
 
 const pct = (v, dec = 2) => v == null ? dash : `${Number(v).toFixed(dec)}%`;
+const money = v => (v == null || Number.isNaN(Number(v))) ? dash : `$${fmt2(v)}`;
 
 export default function CampaignTable({
   campaigns = [],
@@ -97,7 +98,6 @@ export default function CampaignTable({
               <th style={thR}>Sales</th>
               <th style={thR}>ACoS</th>
               <th style={thR}>ROAS</th>
-              <th style={thR}>TOS%</th>
             </>}
           </tr>
         </thead>
@@ -168,19 +168,18 @@ export default function CampaignTable({
                   </span>
                 </td>
 
-                <td style={tdR}>{fmtN(c.budget, 2) === dash ? dash : `$${fmtN(c.budget, 2)}`}</td>
+                <td style={tdR}>{c.budget == null || c.budget === 0 ? dash : money(c.budget)}</td>
 
                 {hasMetrics && <>
                   <td style={tdR}>{c.impressions == null ? dash : c.impressions.toLocaleString()}</td>
                   <td style={tdR}>{c.clicks == null ? dash : c.clicks.toLocaleString()}</td>
-                  <td style={tdR}>{pct(c.ctr)}</td>
-                  <td style={tdR}>{c.spend == null ? dash : `$${fmtN(c.spend)}`}</td>
-                  <td style={tdR}>{c.cpc == null ? dash : `$${fmtN(c.cpc)}`}</td>
+                  <td style={tdR}>{c.ctr == null ? dash : `${(Number(c.ctr) * 100).toFixed(2)}%`}</td>
+                  <td style={tdR}>{money(c.spend)}</td>
+                  <td style={tdR}>{money(c.cpc)}</td>
                   <td style={tdR}>{c.purchases == null ? dash : c.purchases.toLocaleString()}</td>
-                  <td style={tdR}>{c.sales == null ? dash : `$${fmtN(c.sales)}`}</td>
-                  <td style={{ ...tdR, color: acosColor, fontWeight: 700 }}>{pct(acos)}</td>
-                  <td style={tdR}>{c.roas == null ? dash : fmtN(c.roas)}</td>
-                  <td style={tdR}>{c.topOfSearch == null ? dash : pct(c.topOfSearch * 100, 1)}</td>
+                  <td style={tdR}>{money(c.sales)}</td>
+                  <td style={{ ...tdR, color: acosColor, fontWeight: 700 }}>{pct(acos, 2)}</td>
+                  <td style={tdR}>{c.roas == null ? dash : fmt2(c.roas)}</td>
                 </>}
               </tr>
             );

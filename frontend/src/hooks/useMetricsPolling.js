@@ -36,6 +36,7 @@ function mergeCampaignMetrics(prev, result, startDate, endDate, setMetricsDateRa
       status:          (m.campaignStatus ?? c.status ?? '').toLowerCase()
                          .replace('campaign_status_', '').replace('campaign_', ''),
       biddingStrategy: m.campaignBiddingStrategy ?? c.biddingStrategy,
+      budget:          m.campaignBudgetAmount ?? c.budget,
       impressions:     m.impressions    ?? c.impressions,
       clicks:          m.clicks         ?? c.clicks,
       ctr:             m.clickThroughRate != null ? +Number(m.clickThroughRate).toFixed(4) : c.ctr,
