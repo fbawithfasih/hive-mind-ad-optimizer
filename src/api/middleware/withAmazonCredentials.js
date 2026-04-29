@@ -62,11 +62,18 @@ export async function withAmazonCredentials(req, res, next) {
     if (cred) {
       const { marketplaceId, languageTag } = await resolveMarketplaceContext(req, orgId, cred.marketplaceId);
 
-      req.adsClient = cred.adsClientId
+      // When a dedicated Ads OAuth hasn't been completed yet, fall back to the
+      // SP refresh token — Amazon's LWA issues a single token covering both
+      // SP-API and Ads API scopes when the app requests them together.
+      const adsRefreshToken = cred.adsRefreshToken ?? cred.spRefreshToken;
+      const adsClientId     = cred.adsClientId     || process.env.AMAZON_ADS_CLIENT_ID     || '';
+      const adsClientSecret = cred.adsClientSecret || process.env.AMAZON_ADS_CLIENT_SECRET || '';
+
+      req.adsClient = adsRefreshToken
         ? createAdsClient({
-            clientId:     cred.adsClientId,
-            clientSecret: cred.adsClientSecret,
-            refreshToken: cred.adsRefreshToken,
+            clientId:     adsClientId,
+            clientSecret: adsClientSecret,
+            refreshToken: adsRefreshToken,
             cacheKey:     `ads:${orgId}`,
           })
         : defaultAdsClient;
