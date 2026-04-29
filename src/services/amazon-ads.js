@@ -114,7 +114,6 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
               'cost', 'costPerClick',
               'purchases14d', 'sales14d',
               'acosClicks14d', 'roasClicks14d',
-              'topOfSearchImpressionShare',
               'campaignBudgetAmount', 'campaignBiddingStrategy',
             ],
             reportTypeId: 'spCampaigns',

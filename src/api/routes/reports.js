@@ -3,13 +3,15 @@ import { prisma } from '../../db/prisma.js';
 
 const router = express.Router();
 
-function validateDates(startDate, endDate, res) {
-  const sixtyDaysAgo = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
-  if (startDate < sixtyDaysAgo) {
-    res.status(400).json({ error: `Start date ${startDate} is outside Amazon's ~60-day data retention window. Please select a more recent start date.` });
-    return false;
-  }
-  return true;
+// Clamp dates to Amazon's ~60-day data retention window.
+// Returns { startDate, endDate } safe to pass to the Ads API.
+function clampDates(startDate, endDate) {
+  const earliest = new Date(Date.now() - 59 * 86400000).toISOString().slice(0, 10);
+  const today    = new Date().toISOString().slice(0, 10);
+  return {
+    startDate: startDate < earliest ? earliest : startDate,
+    endDate:   endDate   > today    ? today    : endDate,
+  };
 }
 
 /**
@@ -36,10 +38,9 @@ router.get('/start', async (req, res) => {
   const profileId = await resolveProfileId(req);
   if (!profileId) return res.status(400).json({ error: 'profileId required — no profile configured for this organization.' });
 
-  const endDate   = req.query.endDate   || new Date().toISOString().slice(0, 10);
-  const startDate = req.query.startDate || new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-
-  if (!validateDates(startDate, endDate, res)) return;
+  const rawEnd   = req.query.endDate   || new Date().toISOString().slice(0, 10);
+  const rawStart = req.query.startDate || new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const { startDate, endDate } = clampDates(rawStart, rawEnd);
 
   try {
     const [campaigns, reportId] = await Promise.all([
