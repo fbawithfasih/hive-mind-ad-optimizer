@@ -15,8 +15,9 @@ import TeamPanel from '../components/TeamPanel.jsx';
 import AutomationPanel from '../components/AutomationPanel.jsx';
 import AlertsPanel from '../components/AlertsPanel.jsx';
 import ListingHistoryPanel from '../components/ListingHistoryPanel.jsx';
+import BulkActionBar from '../components/BulkActionBar.jsx';
 import { BrandAnalyticsPanel } from '../components/BrandAnalytics/index.js';
-import { logoutApi, resendVerificationApi, switchOrgApi, evaluateAlertsApi, getUnreadCountApi, markFiresReadApi } from '../services/api.js';
+import { logoutApi, resendVerificationApi, switchOrgApi, evaluateAlertsApi, getUnreadCountApi, markFiresReadApi, bulkUpdateCampaigns } from '../services/api.js';
 import { getDaysAgoISO } from '../utils/date-helpers.js';
 import { useProfileState } from '../hooks/useProfileState.js';
 import { useDateRangeState } from '../hooks/useDateRangeState.js';
@@ -250,6 +251,35 @@ export default function Dashboard({ user, onboarded, onLogout }) {
   }
 
   const [selectedCampaignIds, setSelectedCampaignIds] = useState(new Set());
+  const [bulkExecuting, setBulkExecuting] = useState(false);
+  const [bulkResult,    setBulkResult]    = useState(null);
+
+  async function handleBulkAction(action, value, currentBudgets) {
+    setBulkExecuting(true);
+    setBulkResult(null);
+    try {
+      const campaignIds = [...selectedCampaignIds];
+      const result = await bulkUpdateCampaigns({ action, campaignIds, value, currentBudgets });
+      setBulkResult(result);
+      // Optimistically update local state so the table reflects the change
+      setCampaigns(prev => prev.map(c => {
+        const id = c.id ?? c.campaignId;
+        if (!selectedCampaignIds.has(id)) return c;
+        if (action === 'enable') return { ...c, status: 'enabled' };
+        if (action === 'pause')  return { ...c, status: 'paused' };
+        if (action === 'set-budget')    return { ...c, budget: parseFloat(value) };
+        if (action === 'adjust-budget') return { ...c, budget: currentBudgets[id] != null ? Math.max(1, +(currentBudgets[id] * (1 + parseFloat(value) / 100)).toFixed(2)) : c.budget };
+        return c;
+      }));
+      // Auto-clear result feedback after 4s
+      setTimeout(() => setBulkResult(null), 4000);
+    } catch (err) {
+      setBulkResult({ succeeded: 0, failed: [...selectedCampaignIds].map(id => ({ campaignId: id, code: 'ERROR' })), error: err.response?.data?.error || err.message });
+      setTimeout(() => setBulkResult(null), 6000);
+    } finally {
+      setBulkExecuting(false);
+    }
+  }
 
   function handleToggleSelect(id) {
     setSelectedCampaignIds(prev => {
@@ -865,6 +895,15 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               </div>
             </div>
 
+            <BulkActionBar
+              count={selectedCampaignIds.size}
+              campaigns={campaigns}
+              selectedIds={selectedCampaignIds}
+              onAction={handleBulkAction}
+              onClearSelection={() => setSelectedCampaignIds(new Set())}
+              isExecuting={bulkExecuting}
+              lastResult={bulkResult}
+            />
             <CampaignTable
               campaigns={filtered}
               isLoading={isLoading}

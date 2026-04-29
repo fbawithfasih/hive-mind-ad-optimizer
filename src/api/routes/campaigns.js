@@ -59,6 +59,47 @@ router.get('/', async (req, res) => {
   }
 });
 
+// PUT /api/campaigns/bulk — batch enable/pause/set-budget/adjust-budget
+router.put('/bulk', async (req, res) => {
+  try {
+    const { action, campaignIds, value, currentBudgets } = req.body;
+    const profileId = await resolveProfileId(req);
+    if (!profileId) return res.status(400).json({ error: 'No Amazon profile configured for this account.' });
+    if (!Array.isArray(campaignIds) || campaignIds.length === 0)
+      return res.status(400).json({ error: 'campaignIds must be a non-empty array.' });
+
+    let updates;
+    if (action === 'enable') {
+      updates = campaignIds.map(id => ({ campaignId: id, state: 'enabled' }));
+    } else if (action === 'pause') {
+      updates = campaignIds.map(id => ({ campaignId: id, state: 'paused' }));
+    } else if (action === 'set-budget') {
+      const budget = parseFloat(value);
+      if (isNaN(budget) || budget < 1) return res.status(400).json({ error: 'Budget must be ≥ $1.' });
+      updates = campaignIds.map(id => ({ campaignId: id, dailyBudget: budget }));
+    } else if (action === 'adjust-budget') {
+      const pct = parseFloat(value);
+      if (isNaN(pct) || pct === 0) return res.status(400).json({ error: 'Percentage must be a non-zero number.' });
+      if (!currentBudgets || typeof currentBudgets !== 'object')
+        return res.status(400).json({ error: 'currentBudgets map required for adjust-budget.' });
+      updates = campaignIds.map(id => ({
+        campaignId: id,
+        dailyBudget: Math.max(1, +((currentBudgets[id] ?? 10) * (1 + pct / 100)).toFixed(2)),
+      }));
+    } else {
+      return res.status(400).json({ error: `Unknown action: ${action}` });
+    }
+
+    const results = await req.adsClient.updateCampaigns(profileId, updates);
+    const succeeded = results.filter(r => r.code === 'SUCCESS').length;
+    const failed    = results.filter(r => r.code !== 'SUCCESS');
+    res.json({ results, succeeded, failed, total: updates.length });
+  } catch (err) {
+    console.error('Bulk campaign update error:', err);
+    res.status(500).json({ error: 'Bulk update failed', message: err.message });
+  }
+});
+
 // GET /api/campaigns/:id
 router.get('/:id', (req, res) => {
   const campaign = mockCampaigns.find((c) => c.id === req.params.id);

@@ -583,6 +583,8 @@ export async function getListingsHistory({ asin, sku, limit } = {}) {
 
 // ─── Campaign Alerts ─────────────────────────────────────────────────────────
 
+export const bulkUpdateCampaigns = (payload)  => api.put('/campaigns/bulk', payload).then(r => r.data);
+
 export const listAlertsApi       = ()         => api.get('/alerts/rules').then(r => r.data);
 export const createAlertApi      = (data)     => api.post('/alerts/rules', data).then(r => r.data);
 export const updateAlertApi      = (id, data) => api.patch(`/alerts/rules/${id}`, data).then(r => r.data);
