@@ -3,15 +3,17 @@ import { prisma } from '../../db/prisma.js';
 
 const router = express.Router();
 
-// Clamp dates to Amazon's ~60-day data retention window.
-// Returns { startDate, endDate } safe to pass to the Ads API.
+// Amazon spCampaigns summary reports cap at a 31-day range. Clamp the
+// requested window to the most recent 31 days ending no later than today.
 function clampDates(startDate, endDate) {
-  const earliest = new Date(Date.now() - 59 * 86400000).toISOString().slice(0, 10);
-  const today    = new Date().toISOString().slice(0, 10);
-  return {
-    startDate: startDate < earliest ? earliest : startDate,
-    endDate:   endDate   > today    ? today    : endDate,
-  };
+  const today = new Date().toISOString().slice(0, 10);
+  let end = endDate > today ? today : endDate;
+
+  const endMs = new Date(end).getTime();
+  const earliestStart = new Date(endMs - 30 * 86400000).toISOString().slice(0, 10);
+  let start = startDate < earliestStart ? earliestStart : startDate;
+
+  return { startDate: start, endDate: end };
 }
 
 /**
