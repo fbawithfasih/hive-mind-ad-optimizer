@@ -23,6 +23,23 @@ import { prisma } from '../../db/prisma.js';
 
 const logger = createLogger('CREDS_MW');
 
+// Paths that require an Ads API client — middleware short-circuits with 412
+// when the org hasn't completed Ads OAuth.
+const ADS_REQUIRED_PREFIXES = [
+  '/api/campaigns',
+  '/api/reports',
+  '/api/search-terms',
+  '/api/keywords',
+  '/api/automation',
+  '/api/alerts',
+  '/api/profiles',
+];
+
+function pathRequiresAds(req) {
+  const url = req.originalUrl || req.url || '';
+  return ADS_REQUIRED_PREFIXES.some(p => url.startsWith(p));
+}
+
 /**
  * Resolve the marketplace ID for the current request.
  *
@@ -62,21 +79,28 @@ export async function withAmazonCredentials(req, res, next) {
     if (cred) {
       const { marketplaceId, languageTag } = await resolveMarketplaceContext(req, orgId, cred.marketplaceId);
 
-      // When a dedicated Ads OAuth hasn't been completed yet, fall back to the
-      // SP refresh token — Amazon's LWA issues a single token covering both
-      // SP-API and Ads API scopes when the app requests them together.
-      const adsRefreshToken = cred.adsRefreshToken ?? cred.spRefreshToken;
+      // Ads API uses a separate LWA app from SP-API — its refresh token must
+      // come from a dedicated Ads OAuth flow. If the org hasn't completed it,
+      // attach a stub that fails fast with a clear message.
       const adsClientId     = cred.adsClientId     || process.env.AMAZON_ADS_CLIENT_ID     || '';
       const adsClientSecret = cred.adsClientSecret || process.env.AMAZON_ADS_CLIENT_SECRET || '';
 
-      req.adsClient = adsRefreshToken
-        ? createAdsClient({
-            clientId:     adsClientId,
-            clientSecret: adsClientSecret,
-            refreshToken: adsRefreshToken,
-            cacheKey:     `ads:${orgId}`,
-          })
-        : defaultAdsClient;
+      if (cred.adsRefreshToken) {
+        req.adsClient = createAdsClient({
+          clientId:     adsClientId,
+          clientSecret: adsClientSecret,
+          refreshToken: cred.adsRefreshToken,
+          cacheKey:     `ads:${orgId}`,
+        });
+      } else if (pathRequiresAds(req)) {
+        logger.warn(`Org ${orgId} hit ${req.originalUrl} without Ads OAuth — returning 412`);
+        return res.status(412).json({
+          error: 'Amazon Ads is not connected for this organization.',
+          code: 'ADS_NOT_CONNECTED',
+          action: 'Complete the Amazon Ads OAuth step in Settings.',
+        });
+      }
+      // else: route doesn't need adsClient, leave it unset
 
       req.spClient = createSpApiClient({
         clientId:      cred.spClientId,
