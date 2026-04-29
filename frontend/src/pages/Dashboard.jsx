@@ -223,7 +223,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
   const { profiles, primaryAccountGroups, selectedProfileId, setSelectedProfileId, selectedProfile, nameMatchFailed } = useProfileState(orgName);
   const { dateFrom, dateTo, today, handleDateFromChange, handleDateToChange, setDateFromRaw, setDateToRaw } = useDateRangeState();
   const { campaigns, setCampaigns, search, setSearch, statusFilter, setStatusFilter, filtered, stats, isLoading, error: campaignError } = useCampaignFiltering(selectedProfileId);
-  const { isLoadingMetrics, metricsStatus, metricsProgress, metricsDateRange, error: metricsError, handleLoadMetrics: _handleLoadMetrics } = useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampaigns);
+  const { isLoadingMetrics, metricsStatus, metricsProgress, metricsDateRange, error: metricsError, pendingReport, handleLoadMetrics: _handleLoadMetrics, handleCheckAgain: _handleCheckAgain } = useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampaigns);
   const { isExecuting, result, error: aiError, aiModel, setAiModel, handleCommandSubmit } = useAICommandExecution(filtered, campaigns);
 
   const [alertUnread,    setAlertUnread]    = useState(0);
@@ -318,6 +318,26 @@ export default function Dashboard({ user, onboarded, onLogout }) {
   async function handleLoadMetrics(overrideFrom, overrideTo) {
     await _handleLoadMetrics(overrideFrom, overrideTo);
     // After metrics merge into campaigns state, give React one tick then evaluate
+    setTimeout(async () => {
+      try {
+        setCampaigns(current => {
+          const metriced = current.filter(c => c.acos != null || c.spend != null);
+          if (!metriced.length) return current;
+          evaluateAlertsApi(metriced).then(({ fired, totalFired }) => {
+            if (totalFired > 0) {
+              setAlertUnread(n => n + totalFired);
+              setAlertBanner({ count: totalFired, fires: fired });
+              setTimeout(() => setAlertBanner(null), 12000);
+            }
+          }).catch(() => {});
+          return current;
+        });
+      } catch { /* silent */ }
+    }, 200);
+  }
+
+  async function handleCheckAgain() {
+    await _handleCheckAgain();
     setTimeout(async () => {
       try {
         setCampaigns(current => {
@@ -875,6 +895,20 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                       )}
                     </span>
                   </button>
+                  {/* Check Again — shown when polling timed out with a pending report */}
+                  {pendingReport && !isLoadingMetrics && (
+                    <button onClick={handleCheckAgain} style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(251,191,36,0.4)',
+                      background: 'rgba(251,191,36,0.1)', color: '#FCD34D',
+                      fontWeight: 700, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap',
+                    }}>
+                      <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                      </svg>
+                      Check Again
+                    </button>
+                  )}
                 </div>
               </div>
 
