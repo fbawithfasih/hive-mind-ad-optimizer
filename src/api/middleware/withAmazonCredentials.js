@@ -92,6 +92,7 @@ export async function withAmazonCredentials(req, res, next) {
           refreshToken: cred.adsRefreshToken,
           cacheKey:     `ads:${orgId}`,
         });
+        req.hasOwnAdsCreds = true;
       } else if (pathRequiresAds(req)) {
         logger.warn(`Org ${orgId} hit ${req.originalUrl} without Ads OAuth — returning 412`);
         return res.status(412).json({

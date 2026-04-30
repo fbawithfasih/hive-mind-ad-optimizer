@@ -24,7 +24,9 @@ router.get('/recommendations', async (req, res) => {
     minClicks = '3',
   } = req.query;
 
-  const profileId = qProfileId || req.tenant?.defaultProfileId || process.env.AMAZON_DEFAULT_PROFILE_ID;
+  const profileId = qProfileId
+    || req.tenant?.defaultProfileId
+    || (req.hasOwnAdsCreds ? null : process.env.AMAZON_DEFAULT_PROFILE_ID);
   if (!profileId) {
     return res.status(400).json({ error: 'profileId is required — no profile configured for this organization.' });
   }

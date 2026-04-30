@@ -11,7 +11,10 @@ async function resolveProfileId(req) {
     where: { orgId: req.tenant.orgId },
     orderBy: { isDefault: 'desc' },
   });
-  return profile?.profileId ?? process.env.AMAZON_DEFAULT_PROFILE_ID;
+  if (profile?.profileId) return profile.profileId;
+  // Only fall back to the global env-var profile for orgs without their own
+  // Ads OAuth — using it with another org's refresh token returns 401.
+  return req.hasOwnAdsCreds ? null : process.env.AMAZON_DEFAULT_PROFILE_ID;
 }
 
 function validateDates(startDate, endDate) {

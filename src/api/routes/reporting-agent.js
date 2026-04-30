@@ -20,7 +20,8 @@ async function resolveProfileId(req, bodyProfileId) {
     orderBy: { isDefault: 'desc' },
   });
 
-  return profile?.profileId ?? process.env.AMAZON_DEFAULT_PROFILE_ID;
+  if (profile?.profileId) return profile.profileId;
+  return req.hasOwnAdsCreds ? null : process.env.AMAZON_DEFAULT_PROFILE_ID;
 }
 
 const TYPE_MAP = {
