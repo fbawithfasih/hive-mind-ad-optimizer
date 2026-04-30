@@ -53,7 +53,14 @@ router.post('/start', async (req, res) => {
   } catch (err) {
     console.error('Search terms start error:', err.message);
     if (isProfileAccessDenied(err)) {
-      await pruneInaccessibleProfile(req.tenant?.orgId, profileId);
+      const newDefault = await pruneInaccessibleProfile(req.tenant?.orgId, profileId, req.adsClient);
+      if (newDefault) {
+        return res.status(409).json({
+          error: 'That Amazon profile was no longer accessible. We synced your account and switched to a usable profile — please retry.',
+          code: 'PROFILE_AUTO_RESYNCED',
+          newDefaultProfileId: newDefault,
+        });
+      }
       return res.status(409).json({
         error: 'This Amazon profile is not accessible with your current Ads connection. We removed it from your account — please pick another profile or re-sync from Settings.',
         code: 'PROFILE_ACCESS_DENIED',

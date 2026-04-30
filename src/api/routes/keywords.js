@@ -42,7 +42,7 @@ router.get('/recommendations', async (req, res) => {
   } catch (err) {
     console.error('[keywords/recommendations] Search term fetch failed:', err.message);
     if (isProfileAccessDenied(err)) {
-      await pruneInaccessibleProfile(req.tenant?.orgId, profileId);
+      await pruneInaccessibleProfile(req.tenant?.orgId, profileId, req.adsClient);
       return res.status(409).json({
         error: 'This Amazon profile is not accessible with your current Ads connection.',
         code: 'PROFILE_ACCESS_DENIED',

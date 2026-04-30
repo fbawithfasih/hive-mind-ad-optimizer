@@ -36,7 +36,7 @@ router.get('/', async (req, res) => {
         campaigns = await req.adsClient.getCampaigns(profileId);
       } catch (err) {
         if (isProfileAccessDenied(err)) {
-          await pruneInaccessibleProfile(req.tenant?.orgId, profileId);
+          await pruneInaccessibleProfile(req.tenant?.orgId, profileId, req.adsClient);
         }
         console.warn(`Live campaigns fetch failed for org ${req.tenant.orgId}: ${err.message} — returning empty list`);
         return res.json([]);

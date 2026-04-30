@@ -123,7 +123,7 @@ router.get('/start', async (req, res) => {
     });
   } catch (err) {
     if (isProfileAccessDenied(err)) {
-      await pruneInaccessibleProfile(req.tenant?.orgId, profileId);
+      await pruneInaccessibleProfile(req.tenant?.orgId, profileId, req.adsClient);
     }
     console.warn(`Reports start failed for org ${req.tenant?.orgId}: ${err.message} — returning empty result`);
     res.json({
@@ -171,7 +171,7 @@ router.get('/status', async (req, res) => {
   } catch (err) {
     console.error('Reports status error:', err.message);
     if (isProfileAccessDenied(err)) {
-      await pruneInaccessibleProfile(req.tenant?.orgId, profileId);
+      await pruneInaccessibleProfile(req.tenant?.orgId, profileId, req.adsClient);
       return res.status(409).json({
         error: 'This Amazon profile is not accessible with your current Ads connection.',
         code: 'PROFILE_ACCESS_DENIED',
