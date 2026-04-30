@@ -1,6 +1,6 @@
 {
   "name": "amaiop",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "type": "module",
   "description": "Amazon Multi-tenant AI Optimizer Platform - Multi-tenant SaaS for Amazon sellers",
   "main": "index.js",

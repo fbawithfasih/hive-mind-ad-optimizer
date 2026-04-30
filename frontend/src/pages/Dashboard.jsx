@@ -594,8 +594,8 @@ export default function Dashboard({ user, onboarded, onLogout }) {
           )}
         </div>
 
-        {/* ── Error ── */}
-        {error && (
+        {/* ── Error (campaigns tab only — other tabs have their own UX) ── */}
+        {error && activeTab === 'campaigns' && (
           <div style={{ padding: '12px 16px', borderRadius: 12, background: 'rgba(244,63,94,0.10)', border: '1px solid rgba(244,63,94,0.25)', color: '#F43F5E', fontSize: 13, display: 'flex', gap: 8, alignItems: 'center' }}>
             <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style={{ flexShrink: 0 }}>
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
