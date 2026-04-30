@@ -29,7 +29,13 @@ router.get('/', async (req, res) => {
 
     if (profileId) {
       console.log(`Fetching live campaigns for profile ${profileId} (org ${req.tenant.orgId})…`);
-      const campaigns = await req.adsClient.getCampaigns(profileId);
+      let campaigns;
+      try {
+        campaigns = await req.adsClient.getCampaigns(profileId);
+      } catch (err) {
+        console.warn(`Live campaigns fetch failed for org ${req.tenant.orgId}: ${err.message} — returning empty list`);
+        return res.json([]);
+      }
 
       const formatted = campaigns.map((c) => ({
         id: c.campaignId.toString(),

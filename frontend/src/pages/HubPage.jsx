@@ -271,12 +271,19 @@ function NavItem({ label, icon, to, active, external }) {
     boxShadow: active ? '0 0 20px rgba(167,139,250,0.1)' : 'none',
   };
   const inner = <><span style={{ color: 'inherit', display: 'flex' }}>{icon}</span>{label}</>;
-  if (external) return (
-    <a href={to} target="_blank" rel="noopener noreferrer" style={style}
-      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
-      {inner}
-    </a>
-  );
+  if (external) {
+    const isMail = typeof to === 'string' && to.startsWith('mailto:');
+    return (
+      <a
+        href={to}
+        {...(isMail ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+        style={style}
+        onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      >
+        {inner}
+      </a>
+    );
+  }
   return (
     <Link to={to} style={style}
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
@@ -348,6 +355,8 @@ export default function HubPage({ user, onLogout }) {
   const activeOrgId   = user?.currentOrg?.id ?? '';
   const rawName       = user?.user?.name ?? user?.email?.split('@')[0] ?? 'there';
   const firstName     = rawName.split(' ')[0];
+  const clientName    = user?.currentOrg?.name ?? firstName;
+  const clientInitials = initials(user?.currentOrg?.name, user?.email);
   const plan          = user?.currentOrg?.plan ?? 'GROWTH';
   const planCfg       = PLAN_CONFIG[plan] ?? PLAN_CONFIG.GROWTH;
   const userInitials  = initials(user?.user?.name, user?.email);
@@ -431,11 +440,11 @@ export default function HubPage({ user, onLogout }) {
               fontSize: 14, fontWeight: 800, color: '#fff',
               boxShadow: '0 0 0 2px rgba(124,58,237,0.4), 0 0 16px rgba(124,58,237,0.3)',
             }}>
-              {userInitials}
+              {clientInitials}
             </div>
             <div style={{ minWidth: 0 }}>
               <p style={{ fontSize: 13, fontWeight: 700, color: '#E2E8F0', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {rawName}
+                {clientName}
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 6px #10B981' }} />
@@ -603,7 +612,7 @@ export default function HubPage({ user, onLogout }) {
                 background: 'linear-gradient(135deg, #FFFFFF 0%, #A78BFA 40%, #60A5FA 70%, #F472B6 100%)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               }}>
-                Welcome back,<br />{firstName} 👋
+                Welcome {clientName} 👋
               </h1>
               <p style={{ fontSize: 15, color: '#64748B', lineHeight: 1.7, margin: 0, maxWidth: 500 }}>
                 Your <strong style={{ color: '#A78BFA' }}>Hive Mind Ad Optimizer 360</strong> suite is live and ready.
