@@ -120,8 +120,17 @@ router.get('/start', async (req, res) => {
       reportId: reportIds[0],
     });
   } catch (err) {
-    console.error('Reports start error:', err.message);
-    res.status(500).json({ error: err.message });
+    console.warn(`Reports start failed for org ${req.tenant?.orgId}: ${err.message} — returning empty result`);
+    res.json({
+      reportIds: [],
+      windows,
+      campaigns: [],
+      startDate,
+      endDate,
+      reportId: null,
+      notConnected: true,
+      message: 'Amazon reports are unavailable for this account.',
+    });
   }
 });
 

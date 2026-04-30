@@ -104,11 +104,18 @@ export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampai
       const from = overrideFrom ?? dateFrom;
       const to   = overrideTo   ?? dateTo;
 
-      const { reportIds, reportId, campaigns: rawCampaigns, startDate, endDate } =
+      const { reportIds, reportId, campaigns: rawCampaigns, startDate, endDate, notConnected, message } =
         await startReports(profileId, from, to);
-      const ids = reportIds ?? (reportId ? [reportId] : []);
+      const ids = (reportIds ?? (reportId ? [reportId] : [])).filter(Boolean);
       setCampaigns(Array.isArray(rawCampaigns) ? rawCampaigns : []);
       setMetricsProgress(5);
+
+      if (notConnected || ids.length === 0) {
+        setMetricsDateRange({ start: startDate, end: endDate });
+        setMetricsProgress(100);
+        if (notConnected && message) setError(message);
+        return;
+      }
 
       const done = await pollLoop(profileId, ids, startDate, endDate);
       if (!done) {
