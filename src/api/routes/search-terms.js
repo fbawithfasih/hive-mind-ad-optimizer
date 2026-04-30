@@ -51,6 +51,13 @@ router.post('/start', async (req, res) => {
     res.json({ reportId, profileId, startDate, endDate, campaignIds });
   } catch (err) {
     console.error('Search terms start error:', err.message);
+    if (/\b401\b|Unauthorized|does not have access/i.test(err.message)) {
+      return res.status(409).json({
+        error: 'This Amazon profile is not accessible with your current Ads connection.',
+        code: 'PROFILE_ACCESS_DENIED',
+        action: 'Open Settings → Amazon Profiles and re-sync, or pick a profile your Ads account owns.',
+      });
+    }
     res.status(500).json({ error: err.message });
   }
 });
@@ -80,6 +87,12 @@ router.get('/status', async (req, res) => {
     res.json({ status: result.status, error: result.error });
   } catch (err) {
     console.error('Search terms status error:', err.message);
+    if (/\b401\b|Unauthorized|does not have access/i.test(err.message)) {
+      return res.status(409).json({
+        error: 'This Amazon profile is not accessible with your current Ads connection.',
+        code: 'PROFILE_ACCESS_DENIED',
+      });
+    }
     res.status(500).json({ error: err.message });
   }
 });
