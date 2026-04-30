@@ -27,13 +27,16 @@ export async function syncProfilesForOrg(orgId, adsClient) {
 
   const returnedIds = raw.map(p => String(p.profileId ?? p.id));
 
-  // Remove rows Amazon no longer returns for this org's creds
-  await prisma.sellerProfile.deleteMany({
-    where: {
-      orgId,
-      profileId: returnedIds.length ? { notIn: returnedIds } : undefined,
-    },
-  });
+  // Only prune stored rows when we have a fresh, non-empty list from Amazon.
+  // An empty response (rate limit / transient failure / token blip) must NOT
+  // wipe the org's entire SellerProfile table.
+  if (returnedIds.length > 0) {
+    await prisma.sellerProfile.deleteMany({
+      where: { orgId, profileId: { notIn: returnedIds } },
+    });
+  } else {
+    console.warn(`[syncProfilesForOrg] getProfiles returned empty for org ${orgId} — preserving existing rows`);
+  }
 
   // Upsert what Amazon does return
   const hasDefault = await prisma.sellerProfile.findFirst({
