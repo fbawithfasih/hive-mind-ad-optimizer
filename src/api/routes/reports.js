@@ -1,5 +1,6 @@
 import express from 'express';
 import { prisma } from '../../db/prisma.js';
+import { isProfileAccessDenied, pruneInaccessibleProfile } from '../utils/pruneProfile.js';
 
 const router = express.Router();
 
@@ -121,6 +122,9 @@ router.get('/start', async (req, res) => {
       reportId: reportIds[0],
     });
   } catch (err) {
+    if (isProfileAccessDenied(err)) {
+      await pruneInaccessibleProfile(req.tenant?.orgId, profileId);
+    }
     console.warn(`Reports start failed for org ${req.tenant?.orgId}: ${err.message} — returning empty result`);
     res.json({
       reportIds: [],
@@ -166,6 +170,13 @@ router.get('/status', async (req, res) => {
     res.json({ status: 'PENDING' });
   } catch (err) {
     console.error('Reports status error:', err.message);
+    if (isProfileAccessDenied(err)) {
+      await pruneInaccessibleProfile(req.tenant?.orgId, profileId);
+      return res.status(409).json({
+        error: 'This Amazon profile is not accessible with your current Ads connection.',
+        code: 'PROFILE_ACCESS_DENIED',
+      });
+    }
     res.status(500).json({ error: err.message });
   }
 });

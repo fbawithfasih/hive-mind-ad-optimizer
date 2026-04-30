@@ -1,5 +1,6 @@
 import express from 'express';
 import { classifySearchTerms } from '../../services/search-term-classifier.js';
+import { isProfileAccessDenied, pruneInaccessibleProfile } from '../utils/pruneProfile.js';
 
 const router = express.Router();
 
@@ -40,6 +41,13 @@ router.get('/recommendations', async (req, res) => {
     rawTerms = await req.adsClient.getSearchTermReport(profileId, start, end);
   } catch (err) {
     console.error('[keywords/recommendations] Search term fetch failed:', err.message);
+    if (isProfileAccessDenied(err)) {
+      await pruneInaccessibleProfile(req.tenant?.orgId, profileId);
+      return res.status(409).json({
+        error: 'This Amazon profile is not accessible with your current Ads connection.',
+        code: 'PROFILE_ACCESS_DENIED',
+      });
+    }
     return res.status(500).json({ error: `Failed to fetch search term data: ${err.message}` });
   }
 

@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../../db/prisma.js';
 import mockCampaigns from '../../data/mock-campaigns.js';
+import { isProfileAccessDenied, pruneInaccessibleProfile } from '../utils/pruneProfile.js';
 
 const router = express.Router();
 
@@ -34,6 +35,9 @@ router.get('/', async (req, res) => {
       try {
         campaigns = await req.adsClient.getCampaigns(profileId);
       } catch (err) {
+        if (isProfileAccessDenied(err)) {
+          await pruneInaccessibleProfile(req.tenant?.orgId, profileId);
+        }
         console.warn(`Live campaigns fetch failed for org ${req.tenant.orgId}: ${err.message} — returning empty list`);
         return res.json([]);
       }

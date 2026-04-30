@@ -2,6 +2,7 @@ import express from 'express';
 import { classifySearchTerms } from '../../services/search-term-classifier.js';
 import { isValidDateRange, isValidString } from '../utils/validation.js';
 import { prisma } from '../../db/prisma.js';
+import { isProfileAccessDenied, pruneInaccessibleProfile } from '../utils/pruneProfile.js';
 
 const router = express.Router();
 
@@ -51,9 +52,10 @@ router.post('/start', async (req, res) => {
     res.json({ reportId, profileId, startDate, endDate, campaignIds });
   } catch (err) {
     console.error('Search terms start error:', err.message);
-    if (/\b401\b|Unauthorized|does not have access/i.test(err.message)) {
+    if (isProfileAccessDenied(err)) {
+      await pruneInaccessibleProfile(req.tenant?.orgId, profileId);
       return res.status(409).json({
-        error: 'This Amazon profile is not accessible with your current Ads connection.',
+        error: 'This Amazon profile is not accessible with your current Ads connection. We removed it from your account — please pick another profile or re-sync from Settings.',
         code: 'PROFILE_ACCESS_DENIED',
         action: 'Open Settings → Amazon Profiles and re-sync, or pick a profile your Ads account owns.',
       });
