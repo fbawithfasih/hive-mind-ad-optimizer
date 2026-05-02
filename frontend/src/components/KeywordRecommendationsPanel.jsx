@@ -1,5 +1,118 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getKeywordRecommendations } from '../services/api.js';
+
+// Progress phases the report goes through end-to-end. We animate the bar
+// across these so the board feels alive even though the backend does the
+// whole thing in one request — each phase mirrors a real backend step.
+const PROGRESS_PHASES = [
+  { id: 'campaigns',   label: 'Locating campaigns for this product',     range: [0,  18], color: '#3B82F6', glow: 'rgba(59,130,246,0.35)' },
+  { id: 'search',      label: 'Pulling search term report',              range: [18, 38], color: '#6366F1', glow: 'rgba(99,102,241,0.35)' },
+  { id: 'poll',        label: 'Waiting for Amazon to finish the report', range: [38, 72], color: '#8B5CF6', glow: 'rgba(139,92,246,0.35)' },
+  { id: 'analytics',   label: 'Cross-referencing brand analytics',       range: [72, 88], color: '#A855F7', glow: 'rgba(168,85,247,0.35)' },
+  { id: 'score',       label: 'Scoring listing & campaign candidates',   range: [88, 99], color: '#10B981', glow: 'rgba(16,185,129,0.35)' },
+];
+
+// Easing so progress accelerates fast then slows — keeps the bar from
+// looking stuck near the end while reports actually take ~30–90s.
+function easedProgress(elapsedMs, targetMs = 60000) {
+  const t = Math.min(1, elapsedMs / targetMs);
+  // 1 - (1 - t)^3 — ease-out cubic, capped at 99% so the bar never
+  // claims completion before the response actually lands.
+  return Math.min(99, (1 - Math.pow(1 - t, 3)) * 99);
+}
+
+function ProgressBoard({ pct, elapsedSec }) {
+  const currentPhase = PROGRESS_PHASES.find(p => pct >= p.range[0] && pct < p.range[1]) ?? PROGRESS_PHASES[PROGRESS_PHASES.length - 1];
+  const remainingPct = Math.max(0, 100 - pct);
+  return (
+    <div style={{
+      position: 'relative',
+      borderRadius: 14,
+      padding: '20px 22px',
+      marginBottom: 18,
+      background: 'linear-gradient(135deg, rgba(59,130,246,0.10), rgba(139,92,246,0.10))',
+      border: '1px solid rgba(139,92,246,0.25)',
+      boxShadow: `0 4px 32px ${currentPhase.glow}`,
+      overflow: 'hidden',
+    }}>
+      {/* animated gradient stripe */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+        background: 'linear-gradient(90deg,#3B82F6,#6366F1,#8B5CF6,#A855F7,#10B981)',
+        backgroundSize: '200% 100%',
+        animation: 'kw-progress-shimmer 3s linear infinite',
+      }} />
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12, gap: 12 }}>
+        <div>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#A78BFA', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Analyzing</p>
+          <p style={{ margin: '4px 0 0', fontSize: 14, fontWeight: 700, color: '#F1F5F9' }}>{currentPhase.label}…</p>
+          <p style={{ margin: '2px 0 0', fontSize: 11, color: '#64748B' }}>elapsed {Math.floor(elapsedSec / 60)}m {Math.round(elapsedSec % 60)}s</p>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <p style={{ margin: 0, fontSize: 28, fontWeight: 900, color: currentPhase.color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+            {Math.round(remainingPct)}%
+          </p>
+          <p style={{ margin: '2px 0 0', fontSize: 10, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>remaining</p>
+        </div>
+      </div>
+
+      {/* progress bar */}
+      <div style={{
+        height: 8, borderRadius: 99,
+        background: 'rgba(15,23,42,0.6)',
+        border: '1px solid rgba(255,255,255,0.05)',
+        overflow: 'hidden', position: 'relative',
+      }}>
+        <div style={{
+          width: `${pct}%`, height: '100%',
+          background: 'linear-gradient(90deg,#3B82F6,#8B5CF6,#10B981)',
+          backgroundSize: '200% 100%',
+          animation: 'kw-progress-shimmer 2s linear infinite',
+          transition: 'width 240ms cubic-bezier(.4,0,.2,1)',
+          boxShadow: `0 0 12px ${currentPhase.glow}`,
+        }} />
+      </div>
+
+      {/* phase chips */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 14 }}>
+        {PROGRESS_PHASES.map(p => {
+          const done    = pct >= p.range[1];
+          const active  = pct >= p.range[0] && pct < p.range[1];
+          const idle    = pct < p.range[0];
+          const bg = done ? `${p.color}25` : active ? `${p.color}30` : 'rgba(15,23,42,0.5)';
+          const fg = done ? p.color        : active ? p.color        : '#475569';
+          const border = done || active ? `${p.color}55` : 'rgba(255,255,255,0.06)';
+          return (
+            <span key={p.id} style={{
+              fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 99,
+              background: bg, color: fg, border: `1px solid ${border}`,
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              boxShadow: active ? `0 0 12px ${p.glow}` : 'none',
+              transition: 'all 240ms ease',
+            }}>
+              {done   ? <span style={{ fontSize: 11 }}>✓</span> : null}
+              {active ? <span style={{ width: 6, height: 6, borderRadius: 99, background: p.color, animation: 'kw-progress-pulse 1.2s ease-in-out infinite' }} /> : null}
+              {idle && !done && !active ? <span style={{ width: 6, height: 6, borderRadius: 99, background: '#1E293B', border: '1px solid #334155' }} /> : null}
+              {p.label}
+            </span>
+          );
+        })}
+      </div>
+
+      <style>{`
+        @keyframes kw-progress-shimmer {
+          0%   { background-position:   0% 50%; }
+          100% { background-position: 200% 50%; }
+        }
+        @keyframes kw-progress-pulse {
+          0%, 100% { opacity: 1;   transform: scale(1);   }
+          50%      { opacity: 0.5; transform: scale(1.5); }
+        }
+      `}</style>
+    </div>
+  );
+}
 
 const ACTION_COLOR  = { SCALE_UP: '#10B981', ADD_EXACT: '#3B82F6', ADD_NEGATIVE: '#F43F5E', WATCH: '#F59E0B', NEW: '#8B5CF6' };
 const ACTION_LABEL  = { SCALE_UP: 'Scale Up', ADD_EXACT: 'Add Exact', ADD_NEGATIVE: 'Negative', WATCH: 'Watch', NEW: 'New' };
@@ -85,6 +198,25 @@ export default function KeywordRecommendationsPanel({ profileId }) {
   const [error, setError]         = useState(null);
   const [activeTab, setActiveTab] = useState('LISTING');
   const [campaignBucket, setCampaignBucket] = useState('SCALE_UP');
+  const [progress, setProgress]   = useState(0);
+  const [elapsed, setElapsed]     = useState(0);
+  const startedAtRef = useRef(0);
+
+  // Drive the simulated progress while the request is in flight. The bar
+  // never reaches 100% until the response actually lands — the final tick
+  // happens in handleLoad() below.
+  useEffect(() => {
+    if (!loading) return;
+    startedAtRef.current = Date.now();
+    setProgress(0);
+    setElapsed(0);
+    const interval = setInterval(() => {
+      const ms = Date.now() - startedAtRef.current;
+      setElapsed(ms / 1000);
+      setProgress(easedProgress(ms));
+    }, 240);
+    return () => clearInterval(interval);
+  }, [loading]);
 
   async function handleLoad() {
     setLoading(true); setError(null);
@@ -93,6 +225,7 @@ export default function KeywordRecommendationsPanel({ profileId }) {
       if (asin.trim()) params.asin = asin.trim().toUpperCase();
       if (sku.trim())  params.sku  = sku.trim();
       const res = await getKeywordRecommendations(params);
+      setProgress(100);
       setData(res);
     } catch (err) {
       setError(err.response?.data?.error ?? 'Failed to load recommendations.');
@@ -141,7 +274,9 @@ export default function KeywordRecommendationsPanel({ profileId }) {
         <div style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#F87171', marginBottom: 16 }}>{error}</div>
       )}
 
-      {data && (
+      {loading && <ProgressBoard pct={progress} elapsedSec={elapsed} />}
+
+      {data && !loading && (
         <>
           {/* Source / scope banner */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14, fontSize: 11, color: '#64748B' }}>
