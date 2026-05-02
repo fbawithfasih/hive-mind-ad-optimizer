@@ -11,6 +11,7 @@
 
 const GEMINI_API_KEY    = process.env.GOOGLE_AI_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const OPENAI_API_KEY    = process.env.OPENAI_API_KEY;
 
 // Google has renamed this model twice (preview → GA). Try the current GA
 // name first, then a couple of historical aliases so a future rename
@@ -198,11 +199,92 @@ export async function generateMainImage({ prompt, negativePrompt, referenceImage
 }
 
 /**
- * One-shot pipeline: brief → prompt → image.
+ * Generate an Amazon-compliant main image with OpenAI's gpt-image-1.
+ *
+ * gpt-image-1 has the strongest "preserve product identity from a reference"
+ * behaviour on the market right now. When a reference photo is supplied we
+ * use the /images/edits endpoint (which actually consumes the reference);
+ * without a reference we fall back to /images/generations.
  */
-export async function optimizeMainImage({ details, referenceImageBase64, referenceMimeType }) {
+export async function generateMainImageOpenAI({ prompt, negativePrompt, referenceImageBase64, referenceMimeType }) {
+  if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is not configured');
+  if (!prompt) throw new Error('prompt is required');
+
+  const framingRule = 'CRITICAL FRAMING: the product MUST occupy at least 85% of the frame (bounding box). Centered horizontally and vertically. Square 1:1 output. Pure white #FFFFFF background — nothing else, no shadow on background, no surface, no scene.';
+  const fidelityRule = referenceImageBase64
+    ? 'FIDELITY: this is a re-photograph of the EXACT product in the supplied reference image. Preserve silhouette, proportions, materials, colors, branding, and every visible detail. Do NOT redesign, restyle, recolor, or generate a generic version. Same product, new clean studio shot.'
+    : '';
+  const negativeLine = negativePrompt
+    ? `Do NOT include or change: ${negativePrompt}.`
+    : '';
+  const fullText = [fidelityRule, prompt, framingRule, negativeLine].filter(Boolean).join('\n\n');
+
+  const headers = { Authorization: `Bearer ${OPENAI_API_KEY}` };
+  let res;
+
+  if (referenceImageBase64) {
+    const form = new FormData();
+    form.append('model',  'gpt-image-1');
+    form.append('prompt', fullText);
+    form.append('size',   '1024x1024');
+    form.append('n',      '1');
+    form.append('background', 'opaque');
+    const bytes = Buffer.from(referenceImageBase64, 'base64');
+    const blob  = new Blob([bytes], { type: referenceMimeType || 'image/jpeg' });
+    const ext   = (referenceMimeType || 'image/jpeg').split('/')[1] || 'jpg';
+    form.append('image', blob, `reference.${ext}`);
+    res = await fetch('https://api.openai.com/v1/images/edits', { method: 'POST', headers, body: form });
+  } else {
+    res = await fetch('https://api.openai.com/v1/images/generations', {
+      method:  'POST',
+      headers: { ...headers, 'content-type': 'application/json' },
+      body:    JSON.stringify({
+        model: 'gpt-image-1',
+        prompt: fullText,
+        size: '1024x1024',
+        n: 1,
+        background: 'opaque',
+      }),
+    });
+  }
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`OpenAI image API error ${res.status}: ${err?.error?.message ?? res.statusText}`);
+  }
+  const json = await res.json();
+  const b64  = json.data?.[0]?.b64_json;
+  if (!b64) throw new Error('OpenAI returned no image data');
+  return { imageBase64: b64, mimeType: 'image/png' };
+}
+
+/**
+ * Pick a provider. 'openai' (gpt-image-1) is the default when the key is
+ * configured because it preserves product identity from a reference photo
+ * far better than Gemini. Falls back to Gemini when OpenAI isn't available
+ * or the caller explicitly asks for it.
+ */
+function pickProvider(requested) {
+  if (requested === 'gemini') return 'gemini';
+  if (requested === 'openai') return 'openai';
+  return OPENAI_API_KEY ? 'openai' : 'gemini';
+}
+
+/**
+ * One-shot pipeline: brief → prompt → image.
+ *
+ * @param {{
+ *   details: object,
+ *   referenceImageBase64?: string,
+ *   referenceMimeType?: string,
+ *   provider?: 'openai'|'gemini',
+ * }} args
+ */
+export async function optimizeMainImage({ details, referenceImageBase64, referenceMimeType, provider }) {
+  const chosen = pickProvider(provider);
   const promptSpec = await generateImagePrompt(details, { referenceImageBase64, referenceMimeType });
-  const image = await generateMainImage({
+  const generator = chosen === 'openai' ? generateMainImageOpenAI : generateMainImage;
+  const image = await generator({
     prompt:               promptSpec.prompt,
     negativePrompt:       promptSpec.negativePrompt,
     referenceImageBase64,
@@ -211,5 +293,6 @@ export async function optimizeMainImage({ details, referenceImageBase64, referen
   return {
     image,        // { imageBase64, mimeType }
     promptSpec,   // { prompt, negativePrompt, complianceNotes, style, camera }
+    provider:     chosen,
   };
 }

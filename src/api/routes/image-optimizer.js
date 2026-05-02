@@ -32,7 +32,7 @@ const MAX_BASE64_LEN = 12 * 1024 * 1024; // ~12 MB raw → ~9 MB image
  * }
  */
 router.post('/optimize', requireRole('MEMBER'), async (req, res) => {
-  const { referenceImageBase64, referenceMimeType, details } = req.body ?? {};
+  const { referenceImageBase64, referenceMimeType, details, provider } = req.body ?? {};
 
   if (!details?.productName) {
     return res.status(400).json({ error: 'details.productName is required' });
@@ -46,6 +46,7 @@ router.post('/optimize', requireRole('MEMBER'), async (req, res) => {
       details,
       referenceImageBase64,
       referenceMimeType,
+      provider,
     });
     trackUsage(req.tenant.orgId, 'imagesOptimized').catch(() => {});
     res.json(result);

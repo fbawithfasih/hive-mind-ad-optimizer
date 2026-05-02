@@ -115,6 +115,7 @@ export default function ImageOptimizerPanel() {
   const [result, setResult]                 = useState(null);
   const [progress, setProgress]             = useState(0);
   const [elapsed, setElapsed]               = useState(0);
+  const [provider, setProvider]             = useState('openai');
   const startedAtRef = useRef(0);
   const fileInputRef = useRef(null);
 
@@ -165,7 +166,7 @@ export default function ImageOptimizerPanel() {
         referenceImageBase64 = enc.base64;
         referenceMimeType    = enc.mimeType;
       }
-      const res = await optimizeMainImage({ details, referenceImageBase64, referenceMimeType });
+      const res = await optimizeMainImage({ details, referenceImageBase64, referenceMimeType, provider });
       setProgress(100);
       setResult(res);
     } catch (err) {
@@ -241,6 +242,30 @@ export default function ImageOptimizerPanel() {
               )}
             </div>
           ))}
+
+          {/* Provider toggle */}
+          <div>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+              Image Generation Engine
+            </label>
+            <div style={{ display: 'flex', gap: 4, background: 'rgba(15,23,42,0.6)', borderRadius: 10, padding: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
+              {[
+                { id: 'openai', label: 'OpenAI gpt-image-1', sub: 'Best fidelity', color: '#10B981', glow: 'rgba(16,185,129,0.4)' },
+                { id: 'gemini', label: 'Gemini 2.5 Flash',   sub: 'Faster, cheaper', color: '#8B5CF6', glow: 'rgba(139,92,246,0.4)' },
+              ].map(({ id, label, sub, color, glow }) => (
+                <button key={id} onClick={() => setProvider(id)} style={{
+                  flex: 1, padding: '8px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                  background: provider === id ? color : 'transparent',
+                  color: provider === id ? '#fff' : '#94A3B8',
+                  boxShadow: provider === id ? `0 2px 12px ${glow}` : 'none',
+                  transition: 'all .15s', textAlign: 'left',
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 800 }}>{label}</div>
+                  <div style={{ fontSize: 10, opacity: 0.85 }}>{sub}</div>
+                </button>
+              ))}
+            </div>
+          </div>
 
           <button onClick={handleOptimize} disabled={loading}
             style={{

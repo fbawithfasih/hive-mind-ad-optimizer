@@ -536,7 +536,7 @@ export async function publishListing({ sku, productType, title, bullets, descrip
 export async function optimizeMainImage(payload) {
   // 5 minute timeout — image gen + Claude prompt can take a while.
   const response = await api.post('/image-optimizer/optimize', payload, { timeout: 300000 });
-  return response.data; // { image: { imageBase64, mimeType }, promptSpec: { ... } }
+  return response.data; // { image, promptSpec, provider }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
