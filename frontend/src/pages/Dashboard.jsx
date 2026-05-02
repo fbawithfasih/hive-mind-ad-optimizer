@@ -15,6 +15,7 @@ import TeamPanel from '../components/TeamPanel.jsx';
 import AutomationPanel from '../components/AutomationPanel.jsx';
 import AlertsPanel from '../components/AlertsPanel.jsx';
 import ListingHistoryPanel from '../components/ListingHistoryPanel.jsx';
+import ImageOptimizerPanel from '../components/ImageOptimizerPanel.jsx';
 import BulkActionBar from '../components/BulkActionBar.jsx';
 import AdsNotConnectedBanner from '../components/AdsNotConnectedBanner.jsx';
 import { BrandAnalyticsPanel } from '../components/BrandAnalytics/index.js';
@@ -31,6 +32,7 @@ const MODULE_LABELS = {
   campaigns:        '📊 Campaigns',
   'search-terms':   '🔍 Search Terms',
   listings:         '✏️ Listing Optimizer',
+  'image-optimizer':'🖼️ Main Image Optimizer',
   'listing-history':'🕓 Optimization History',
   bulk:             '⚡ Bulk Optimizer',
   health:           '🩺 Listing Health',
@@ -979,6 +981,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
         {activeTab === 'listings' && (
           <ListingOptimizerPanel searchTerms={loadedSearchTerms} aiModel={aiModel} setAiModel={setAiModel} profileId={selectedProfileId} />
         )}
+        {activeTab === 'image-optimizer' && <ImageOptimizerPanel />}
         {activeTab === 'listing-history' && <ListingHistoryPanel />}
         {activeTab === 'bulk' && <BulkOptimizerPanel aiModel={aiModel} />}
         {activeTab === 'health' && <ListingHealthPanel />}

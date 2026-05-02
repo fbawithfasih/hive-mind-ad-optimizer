@@ -47,7 +47,9 @@ app.use(cookieParser());
 // Mounted here so it bypasses JSON middleware.
 app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), razorpayWebhookHandler);
 
-app.use(express.json());
+// Bumped from the 100 KB default so image-optimizer requests can carry a
+// product photo as base64 (a typical 5 MB JPEG becomes ~7 MB base64).
+app.use(express.json({ limit: '15mb' }));
 app.use(correlationIdMiddleware); // Add correlation ID to all requests
 
 const logger = createLogger('SERVER');

@@ -517,6 +517,29 @@ export async function publishListing({ sku, productType, title, bullets, descrip
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// Main Image Optimizer
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Generate an Amazon-compliant main image from a product brief and an
+ * optional reference photo.
+ * @param {{
+ *   referenceImageBase64?: string,
+ *   referenceMimeType?:   string,
+ *   details: {
+ *     productName: string, category?: string, material?: string,
+ *     endUse?: string, targetAudience?: string, color?: string,
+ *     sizeContext?: string, styleNotes?: string, avoid?: string,
+ *   }
+ * }} payload
+ */
+export async function optimizeMainImage(payload) {
+  // 5 minute timeout — image gen + Claude prompt can take a while.
+  const response = await api.post('/image-optimizer/optimize', payload, { timeout: 300000 });
+  return response.data; // { image: { imageBase64, mimeType }, promptSpec: { ... } }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Reporting Agent API (Background Report Generation)
 // ────────────────────────────────────────────────────────────────────────────
 

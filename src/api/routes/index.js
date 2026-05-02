@@ -17,6 +17,7 @@ import onboardingRouter from './onboarding.js';
 import automationRouter from './automation.js';
 import alertsRouter from './alerts.js';
 import brandAnalyticsRouter from './brand-analytics.js';
+import imageOptimizerRouter from './image-optimizer.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { withTenant } from '../middleware/withTenant.js';
 import { tenantFilterMiddleware } from '../middleware/tenantFilter.js';
@@ -91,7 +92,8 @@ router.use('/reporting-agent', requireActiveSubscription, reportingAgentRouter);
 router.use('/automation', automationRouter);
 router.use('/alerts', alertsRouter);
 router.use('/brand-analytics', brandAnalyticsRouter);
+router.use('/image-optimizer', requireActiveSubscription, imageOptimizerRouter);
 
-console.log('✅ Routes loaded: /auth, /orgs, /credentials, /profiles, /mcp, /campaigns, /reports, /search-terms, /listings, /keywords, /billing, /onboarding, /sp-oauth, /reporting-agent, /automation, /alerts, /brand-analytics');
+console.log('✅ Routes loaded: /auth, /orgs, /credentials, /profiles, /mcp, /campaigns, /reports, /search-terms, /listings, /keywords, /billing, /onboarding, /sp-oauth, /reporting-agent, /automation, /alerts, /brand-analytics, /image-optimizer');
 
 export default router;

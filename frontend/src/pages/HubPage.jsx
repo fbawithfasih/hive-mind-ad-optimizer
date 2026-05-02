@@ -50,6 +50,16 @@ const TOOLS = [
     icon: <Icon d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" size={22} />,
   },
   {
+    tab: 'image-optimizer', name: 'Main Image Optimizer', badge: 'AI',
+    desc: 'Upload your product photo, answer a short brief, and generate an Amazon-compliant main image with a pure-white background.',
+    gradient: 'linear-gradient(135deg, #8B5CF6, #3B82F6)',
+    glow: 'rgba(139,92,246,0.40)',
+    bg: 'rgba(139,92,246,0.10)',
+    border: 'rgba(139,92,246,0.32)',
+    color: '#A78BFA',
+    icon: <Icon d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" size={22} />,
+  },
+  {
     tab: 'listing-history', name: 'Optimization History', badge: 'DATA',
     desc: 'Browse every past AI optimization run — see before/after content, published status, and keywords used.',
     gradient: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
