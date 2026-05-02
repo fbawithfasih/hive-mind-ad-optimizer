@@ -13,6 +13,7 @@
 
 import { prisma }             from '../db/prisma.js';
 import { optimizeListing }    from '../services/claude-mcp.js';
+import { flattenListingKeywords } from '../api/utils/listingKeywords.js';
 import { createLogger }       from '../api/utils/logger.js';
 
 const logger = createLogger('BULK_WORKER');
@@ -73,7 +74,7 @@ export async function bulkListingProcessor(job) {
       optimizedBullets:    result?.bullets     ?? [],
       originalDescription: description         ?? '',
       optimizedDescription: result?.description ?? null,
-      keywords:            searchTerms ?? uploadedKeywords ?? [],
+      keywords:            flattenListingKeywords(searchTerms?.length ? searchTerms : uploadedKeywords),
       aiModel:             model || 'gemini',
       status:              result ? 'COMPLETED' : 'FAILED',
       errorMessage:        errorMessage ?? null,

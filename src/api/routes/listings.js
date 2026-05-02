@@ -5,6 +5,7 @@ import { prisma } from '../../db/prisma.js';
 import { bulkListingQueue } from '../../services/queue.js';
 import { trackUsage } from '../../services/razorpay.js';
 import { requireRole } from '../middleware/requireRole.js';
+import { flattenListingKeywords } from '../utils/listingKeywords.js';
 
 const router = express.Router();
 
@@ -85,8 +86,10 @@ router.post('/optimize', requireRole('MEMBER'), async (req, res) => {
       model || 'gemini'
     );
 
-    // Persist to DB if we have enough info to identify the listing
+    // Persist to DB if we have enough info to identify the listing.
     if (asin || sku) {
+      const keywords = flattenListingKeywords(searchTerms?.length ? searchTerms : uploadedKeywords);
+
       await prisma.listingOptimization.create({
         data: {
           orgId:               req.tenant.orgId,
@@ -98,13 +101,14 @@ router.post('/optimize', requireRole('MEMBER'), async (req, res) => {
           optimizedBullets:    result.bullets ?? [],
           originalDescription: description ?? '',
           optimizedDescription: result.description ?? null,
-          keywords:            searchTerms ?? uploadedKeywords ?? [],
+          keywords,
           aiModel:             model || 'gemini',
           status:              'COMPLETED',
         },
       }).catch((dbErr) => {
-        // Don't fail the request if DB write fails — log and continue
-        console.error('Failed to persist listing optimization:', dbErr.message);
+        // Don't fail the request if DB write fails — but log loudly so a
+        // schema/shape regression doesn't silently empty the history page.
+        console.error(`[listings.optimize] Failed to persist optimization for asin=${asin} sku=${sku}: ${dbErr.message}`);
       });
     }
 
