@@ -84,26 +84,41 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     return normalized;
   }
 
+  // Sponsored Products v3 — `/v2/sp/productAds` returns 404 "Method Not Found".
+  // Server-side asin/skuFilter avoids fetching the entire ad set just to filter
+  // client-side, which is what made listing-optimizer fall back to "all search
+  // terms" when the v2 lookup failed.
   async function getProductAdCampaigns(profileId, { sku, asin } = {}) {
     const token = await getAccessToken();
-    const headers = adsHeaders(token, profileId);
-    const allAds = [];
-    const pageSize = 5000;
-    let startIndex = 0;
+    const headers = {
+      ...adsHeaders(token, profileId),
+      'Content-Type': 'application/vnd.spProductAd.v3+json',
+      Accept:         'application/vnd.spProductAd.v3+json',
+    };
 
-    console.log(`Fetching all SP product ads for profile ${profileId}…`);
+    const filterKey = sku ? 'skuFilter' : asin ? 'asinFilter' : null;
+    const filterVal = sku ?? asin;
+    if (!filterKey) return [];
+
+    console.log(`Fetching SP product ads for profile ${profileId} (${filterKey}=${filterVal})…`);
+    const allAds = [];
+    let nextToken;
     try {
-      while (true) {
-        const url = 'https://advertising-api.amazon.com/v2/sp/productAds';
-        const params = { stateFilter: 'enabled,paused,archived', count: pageSize, startIndex };
-        console.log(`  GET ${url} params:`, params);
-        const res = await axios.get(url, { params, headers });
-        console.log(`  Response status: ${res.status}, data type: ${typeof res.data}, isArray: ${Array.isArray(res.data)}`);
-        const page = Array.isArray(res.data) ? res.data : [];
+      do {
+        const body = {
+          maxResults: 1000,
+          [filterKey]: { include: [filterVal] },
+          ...(nextToken ? { nextToken } : {}),
+        };
+        const res = await axios.post(
+          'https://advertising-api.amazon.com/sp/productAds/list',
+          body,
+          { headers },
+        );
+        const page = Array.isArray(res.data?.productAds) ? res.data.productAds : [];
         allAds.push(...page);
-        if (page.length < pageSize) break;
-        startIndex += pageSize;
-      }
+        nextToken = res.data?.nextToken;
+      } while (nextToken);
     } catch (e) {
       const status = e.response?.status;
       const data   = e.response?.data;
@@ -111,15 +126,8 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
       throw new Error(`Failed to get product ad campaigns: ${data?.message ?? data?.code ?? e.message}`);
     }
 
-    console.log(`Fetched ${allAds.length} total product ads — filtering by ${sku ? `SKU: ${sku}` : `ASIN: ${asin}`}`);
-    const filtered = allAds.filter(ad => {
-      if (sku)  return ad.sku?.toLowerCase()  === sku.toLowerCase();
-      if (asin) return ad.asin?.toLowerCase() === asin.toLowerCase();
-      return false;
-    });
-
-    const campaignIds = [...new Set(filtered.map(ad => ad.campaignId?.toString()).filter(Boolean))];
-    console.log(`✅ Found ${filtered.length} ads for ${sku || asin} → ${campaignIds.length} unique campaigns`);
+    const campaignIds = [...new Set(allAds.map(ad => ad.campaignId?.toString()).filter(Boolean))];
+    console.log(`✅ Found ${allAds.length} ads for ${sku || asin} → ${campaignIds.length} unique campaigns`);
     return campaignIds;
   }
 

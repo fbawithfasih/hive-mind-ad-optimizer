@@ -977,7 +977,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
           <SearchTermPanel profileId={selectedProfileId} campaigns={campaigns} onAskAI={ctx => handleCommandSubmit(null, ctx)} onSearchTermsLoaded={terms => setLoadedSearchTerms(terms)} />
         )}
         {activeTab === 'listings' && (
-          <ListingOptimizerPanel searchTerms={loadedSearchTerms} aiModel={aiModel} profileId={selectedProfileId} />
+          <ListingOptimizerPanel searchTerms={loadedSearchTerms} aiModel={aiModel} setAiModel={setAiModel} profileId={selectedProfileId} />
         )}
         {activeTab === 'listing-history' && <ListingHistoryPanel />}
         {activeTab === 'bulk' && <BulkOptimizerPanel aiModel={aiModel} />}

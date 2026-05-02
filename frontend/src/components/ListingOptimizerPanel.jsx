@@ -233,7 +233,7 @@ function PublishDiffPanel({ current, optimized, sku, overLimit, hasOverLimit, is
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiModel = 'gemini' }) {
+export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiModel = 'gemini', setAiModel }) {
   const today        = getTodayISO();
   const thirtyDaysAgo = getDaysAgoISO(30);
 
@@ -633,12 +633,41 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
             gradient="linear-gradient(135deg,#8B5CF6,#6366F1)" glow="rgba(139,92,246,0.5)" accentColor="#8B5CF6"
             icon={<svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>}
           />
-          <StatCard
-            label="AI Model" value={aiModel === 'claude' ? 'Claude' : 'Gemini'}
-            sub={aiModel === 'claude' ? 'Sonnet 4.5' : '2.5 Flash'}
-            gradient="linear-gradient(135deg,#F59E0B,#D97706)" glow="rgba(245,158,11,0.5)" accentColor="#F59E0B"
-            icon={<svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>}
-          />
+          {setAiModel ? (
+            <div style={{
+              padding: '18px 20px', borderRadius: 16,
+              background: 'rgba(10,14,30,0.6)', border: '1px solid rgba(245,158,11,0.25)',
+              display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'space-between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <svg width="19" height="19" fill="none" stroke="#F59E0B" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#F59E0B' }}>AI Model</span>
+              </div>
+              <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
+                {[
+                  { id: 'gemini', label: 'Gemini 2.5 Flash', color: '#3B82F6', glow: 'rgba(59,130,246,0.4)' },
+                  { id: 'claude', label: 'Claude Sonnet',    color: '#8B5CF6', glow: 'rgba(139,92,246,0.4)' },
+                ].map(({ id, label, color, glow }) => (
+                  <button key={id} onClick={() => setAiModel(id)} style={{
+                    flex: 1, fontSize: 11, fontWeight: 700, padding: '6px 10px', borderRadius: 7,
+                    border: 'none', cursor: 'pointer', transition: 'all .15s',
+                    background: aiModel === id ? color : 'transparent',
+                    color: aiModel === id ? '#fff' : '#94A3B8',
+                    boxShadow: aiModel === id ? `0 2px 12px ${glow}` : 'none',
+                  }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <StatCard
+              label="AI Model" value={aiModel === 'claude' ? 'Claude' : 'Gemini'}
+              sub={aiModel === 'claude' ? 'Sonnet 4.5' : '2.5 Flash'}
+              gradient="linear-gradient(135deg,#F59E0B,#D97706)" glow="rgba(245,158,11,0.5)" accentColor="#F59E0B"
+              icon={<svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>}
+            />
+          )}
         </div>
       )}
 
