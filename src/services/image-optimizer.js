@@ -12,8 +12,16 @@
 const GEMINI_API_KEY    = process.env.GOOGLE_AI_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
-const GEMINI_IMAGE_MODEL = 'gemini-2.5-flash-image-preview';
-const GEMINI_IMAGE_URL   = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_IMAGE_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+// Google has renamed this model twice (preview → GA). Try the current GA
+// name first, then a couple of historical aliases so a future rename
+// doesn't take the feature down again.
+const GEMINI_IMAGE_MODELS = [
+  'gemini-2.5-flash-image',
+  'gemini-2.5-flash-image-preview',
+  'gemini-2.0-flash-preview-image-generation',
+];
+const geminiImageUrl = (model) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
 const PROMPT_SYSTEM_PROMPT = `You are an expert Amazon main-image art director. You translate a product brief into a single, vivid, prescriptive prompt for an image-generation model.
 
@@ -128,21 +136,28 @@ export async function generateMainImage({ prompt, negativePrompt, referenceImage
     });
   }
 
-  const res = await fetch(GEMINI_IMAGE_URL, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      contents:          [{ parts }],
-      generationConfig:  { responseModalities: ['IMAGE'] },
-    }),
-  });
-
-  if (!res.ok) {
+  // Walk the candidate model list, skipping past 404 (model not available)
+  // until one accepts the request. Anything else is a real error.
+  let json, lastErr;
+  for (const model of GEMINI_IMAGE_MODELS) {
+    const res = await fetch(geminiImageUrl(model), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        contents:          [{ parts }],
+        generationConfig:  { responseModalities: ['IMAGE'] },
+      }),
+    });
+    if (res.ok) { json = await res.json(); break; }
     const err = await res.json().catch(() => ({}));
-    throw new Error(`Gemini image API error ${res.status}: ${err?.error?.message ?? res.statusText}`);
+    const msg = err?.error?.message ?? res.statusText;
+    if (res.status === 404 || /not found|not supported/i.test(msg)) {
+      lastErr = `${model}: ${msg}`;
+      continue;
+    }
+    throw new Error(`Gemini image API error ${res.status} (${model}): ${msg}`);
   }
-
-  const json = await res.json();
+  if (!json) throw new Error(`Gemini image API: no candidate model accepted the request — ${lastErr}`);
   const partsOut = json.candidates?.[0]?.content?.parts ?? [];
   const imagePart = partsOut.find(p => p.inline_data || p.inlineData);
   if (!imagePart) {
