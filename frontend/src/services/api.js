@@ -429,11 +429,12 @@ export async function startSearchTermReport(profileId, startDate, endDate, campa
   const body = { startDate, endDate, campaignIds: Array.isArray(campaignIds) ? campaignIds : [] };
   if (profileId) body.profileId = profileId;
   const response = await api.post('/search-terms/start', body);
-  return response.data; // { reportId, profileId, startDate, endDate, campaignIds }
+  return response.data; // { reportIds, reportId, profileId, startDate, endDate, campaignIds }
 }
 
-export async function pollSearchTermStatus(profileId, reportId, campaignIds = []) {
-  const params = { reportId };
+export async function pollSearchTermStatus(profileId, reportIds, campaignIds = []) {
+  const ids = Array.isArray(reportIds) ? reportIds.join(',') : reportIds;
+  const params = { reportIds: ids };
   if (profileId) params.profileId = profileId;
   if (campaignIds.length) params.campaignIds = campaignIds.join(',');
   const response = await api.get('/search-terms/status', { params });

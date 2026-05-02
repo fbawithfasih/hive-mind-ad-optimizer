@@ -6,6 +6,65 @@ import { isProfileAccessDenied, pruneInaccessibleProfile } from '../utils/pruneP
 
 const router = express.Router();
 
+const MAX_RANGE_DAYS = 31;
+const DAY_MS = 86400000;
+
+function isoDay(d) {
+  return new Date(d).toISOString().slice(0, 10);
+}
+
+// Amazon caps spSearchTerm at 31 days per report. Mirror /api/reports/start
+// and split the requested range into ≤31-day windows.
+function splitIntoWindows(startDate, endDate) {
+  const windows = [];
+  let cursor = new Date(startDate).getTime();
+  const endMs = new Date(endDate).getTime();
+  while (cursor <= endMs) {
+    const winEnd = Math.min(cursor + (MAX_RANGE_DAYS - 1) * DAY_MS, endMs);
+    windows.push({ startDate: isoDay(cursor), endDate: isoDay(winEnd) });
+    cursor = winEnd + DAY_MS;
+  }
+  return windows;
+}
+
+// Aggregate per-window search-term rows into one row per
+// (campaignId, adGroupId, matchType, searchTerm). Sums additive metrics and
+// recomputes derived ratios so they reflect the full date range.
+function mergeSearchTermWindows(windowResults) {
+  const byKey = new Map();
+  for (const rows of windowResults) {
+    for (const r of rows) {
+      const key = `${r.campaignId}|${r.adGroupId}|${r.matchType}|${r.searchTerm}`;
+      const existing = byKey.get(key) ?? {
+        campaignId:   r.campaignId,
+        campaignName: r.campaignName,
+        adGroupId:    r.adGroupId,
+        adGroupName:  r.adGroupName,
+        matchType:    r.matchType,
+        searchTerm:   r.searchTerm,
+        targeting:    r.targeting,
+        impressions: 0, clicks: 0, cost: 0, purchases14d: 0, sales14d: 0,
+      };
+      existing.impressions  += Number(r.impressions  ?? 0);
+      existing.clicks       += Number(r.clicks       ?? 0);
+      existing.cost         += Number(r.cost         ?? 0);
+      existing.purchases14d += Number(r.purchases14d ?? 0);
+      existing.sales14d     += Number(r.sales14d     ?? 0);
+      if (r.campaignName) existing.campaignName = r.campaignName;
+      if (r.adGroupName)  existing.adGroupName  = r.adGroupName;
+      if (r.targeting)    existing.targeting    = r.targeting;
+      byKey.set(key, existing);
+    }
+  }
+  return [...byKey.values()].map(c => ({
+    ...c,
+    clickThroughRate: c.impressions > 0 ? c.clicks / c.impressions : 0,
+    costPerClick:     c.clicks > 0 ? c.cost / c.clicks : 0,
+    acosClicks14d:    c.sales14d > 0 ? (c.cost / c.sales14d) * 100 : null,
+    roasClicks14d:    c.cost > 0 ? c.sales14d / c.cost : null,
+  }));
+}
+
 async function resolveProfileId(req) {
   if (req.query.profileId) return req.query.profileId;
   const profile = await prisma.sellerProfile.findFirst({
@@ -47,9 +106,23 @@ router.post('/start', async (req, res) => {
   const dateErr = validateDates(startDate, endDate);
   if (dateErr) return res.status(400).json({ error: dateErr });
 
+  const windows = splitIntoWindows(startDate, endDate);
+
   try {
-    const reportId = await req.adsClient.createSearchTermReport(profileId, startDate, endDate);
-    res.json({ reportId, profileId, startDate, endDate, campaignIds });
+    const reportIds = await Promise.all(
+      windows.map(w => req.adsClient.createSearchTermReport(profileId, w.startDate, w.endDate))
+    );
+    res.json({
+      reportIds,
+      windows,
+      profileId,
+      startDate,
+      endDate,
+      campaignIds,
+      // Back-compat: clients that still read .reportId continue to work for
+      // single-window ranges.
+      reportId: reportIds[0],
+    });
   } catch (err) {
     console.error('Search terms start error:', err.message);
     if (isProfileAccessDenied(err)) {
@@ -76,8 +149,9 @@ router.post('/start', async (req, res) => {
  * Polls the Amazon report status. Returns { status, data? } where status is PENDING | COMPLETED | FAILED.
  */
 router.get('/status', async (req, res) => {
-  const { reportId } = req.query;
-  if (!reportId) return res.status(400).json({ error: 'reportId required' });
+  const idsParam = req.query.reportIds || req.query.reportId;
+  if (!idsParam) return res.status(400).json({ error: 'reportId required' });
+  const reportIds = String(idsParam).split(',').map(s => s.trim()).filter(Boolean);
 
   const profileId = await resolveProfileId(req);
   if (!profileId) return res.status(400).json({ error: 'profileId required' });
@@ -86,14 +160,20 @@ router.get('/status', async (req, res) => {
   const campaignIds = campaignIdsParam ? campaignIdsParam.split(',').map(s => s.trim()).filter(Boolean) : [];
 
   try {
-    const result = await req.adsClient.pollSearchTermReport(profileId, reportId, campaignIds);
+    const results = await Promise.all(
+      reportIds.map(id => req.adsClient.pollSearchTermReport(profileId, id, campaignIds))
+    );
 
-    if (result.status === 'COMPLETED') {
-      const enriched = classifySearchTerms(result.data);
+    const failed = results.find(r => r.status === 'FAILED');
+    if (failed) return res.json({ status: 'FAILED', error: failed.error });
+
+    if (results.every(r => r.status === 'COMPLETED')) {
+      const merged = mergeSearchTermWindows(results.map(r => r.data ?? []));
+      const enriched = classifySearchTerms(merged);
       return res.json({ status: 'COMPLETED', searchTerms: enriched });
     }
 
-    res.json({ status: result.status, error: result.error });
+    res.json({ status: 'PENDING' });
   } catch (err) {
     console.error('Search terms status error:', err.message);
     if (/\b401\b|Unauthorized|does not have access/i.test(err.message)) {

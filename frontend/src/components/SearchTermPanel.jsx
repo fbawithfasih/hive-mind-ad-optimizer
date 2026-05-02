@@ -369,8 +369,9 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
     setError(null);
     try {
       const ids = selectedCampaignIds.size > 0 ? [...selectedCampaignIds] : [];
-      const { reportId, profileId: pid, startDate, endDate } =
+      const { reportIds, reportId, profileId: pid, startDate, endDate } =
         await startSearchTermReport(profileId || undefined, dateFrom, dateTo, ids);
+      const pollIds = Array.isArray(reportIds) && reportIds.length ? reportIds : [reportId];
 
       const schedule = [
         ...Array(12).fill(5000),
@@ -386,7 +387,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
         const secs = Math.round((elapsed % 60000) / 1000);
         setLoadStatus(`Waiting for Amazon… (${mins > 0 ? `${mins}m ` : ''}${secs}s)`);
 
-        const result = await pollSearchTermStatus(pid, reportId, ids);
+        const result = await pollSearchTermStatus(pid, pollIds, ids);
         if (result.status === 'COMPLETED') {
           const terms = Array.isArray(result.searchTerms) ? result.searchTerms : [];
           setSearchTerms(terms);
