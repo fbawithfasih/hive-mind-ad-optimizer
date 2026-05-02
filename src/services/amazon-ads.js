@@ -2,6 +2,7 @@ import axios from 'axios';
 import { gunzipSync } from 'zlib';
 import dotenv from 'dotenv';
 import { getOrCreateTokenManager } from './auth-utils.js';
+import { splitIntoSearchTermWindows, mergeSearchTermWindows } from './search-term-windows.js';
 
 dotenv.config({ override: true });
 
@@ -320,6 +321,43 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
   }
 
   /**
+   * High-level helper: split [startDate, endDate] into ≤31-day windows
+   * (Amazon's spSearchTerm cap), create one report per window, poll all
+   * until they finish, and return the merged raw rows. Used by callers
+   * that just want a single array of search-term records (Keyword
+   * Intelligence, the reporting worker) without managing reportIds.
+   */
+  async function getSearchTermReport(profileId, startDate, endDate, {
+    pollIntervalMs = 5000,
+    maxAttempts    = 36,
+  } = {}) {
+    const windows = splitIntoSearchTermWindows(startDate, endDate);
+    const reportIds = await Promise.all(
+      windows.map(w => createSearchTermReport(profileId, w.startDate, w.endDate))
+    );
+
+    const completed = new Map();
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise(r => setTimeout(r, pollIntervalMs));
+      const pending = reportIds.filter(id => !completed.has(id));
+      if (pending.length === 0) break;
+
+      const polled = await Promise.all(
+        pending.map(id => pollSearchTermReport(profileId, id, []).then(r => ({ id, ...r })))
+      );
+      for (const r of polled) {
+        if (r.status === 'COMPLETED')      completed.set(r.id, r.data ?? []);
+        else if (r.status === 'FAILED')    throw new Error(r.error);
+      }
+    }
+
+    if (completed.size !== reportIds.length) {
+      throw new Error('Search term report timed out');
+    }
+    return mergeSearchTermWindows(reportIds.map(id => completed.get(id)));
+  }
+
+  /**
    * Batch-update campaign state and/or dailyBudget.
    *
    * @param {string} profileId
@@ -400,6 +438,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     getCampaignMetrics,
     createSearchTermReport,
     pollSearchTermReport,
+    getSearchTermReport,
     updateCampaigns,
     addNegativeKeywords,
     addKeywords,
@@ -425,6 +464,7 @@ export const checkReportStatus           = _defaultClient.checkReportStatus;
 export const getCampaignMetrics          = _defaultClient.getCampaignMetrics;
 export const createSearchTermReport      = _defaultClient.createSearchTermReport;
 export const pollSearchTermReport        = _defaultClient.pollSearchTermReport;
+export const getSearchTermReport         = _defaultClient.getSearchTermReport;
 export const updateCampaigns             = _defaultClient.updateCampaigns;
 export const addNegativeKeywords         = _defaultClient.addNegativeKeywords;
 export const addKeywords                 = _defaultClient.addKeywords;
