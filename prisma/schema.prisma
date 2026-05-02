@@ -118,6 +118,8 @@ model SellerProfile {
   orgId             String
   profileId         String
   profileName       String
+  accountId         String?
+  accountName       String?
   countryCode       String
   primaryCountry    String
   merchantToken     String?     // Encrypted

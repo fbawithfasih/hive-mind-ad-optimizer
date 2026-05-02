@@ -2,6 +2,15 @@ import { prisma } from '../../db/prisma.js';
 
 const ACCESS_DENIED_RE = /\b401\b|Unauthorized|does not have access/i;
 
+// Sponsored Ads endpoints (campaigns / reports) only work for `seller` /
+// `vendor` profiles. `agency` profiles — including Amazon Attribution
+// (subType: AMAZON_ATTRIBUTION) — return 404 on every Sponsored Ads call,
+// so they must never be picked as the org's default profile.
+function isAdvertisingProfile(p) {
+  const type = p?.accountInfo?.type;
+  return type === 'seller' || type === 'vendor';
+}
+
 export function isProfileAccessDenied(err) {
   return ACCESS_DENIED_RE.test(err?.message ?? '');
 }
@@ -38,15 +47,35 @@ export async function syncProfilesForOrg(orgId, adsClient) {
     console.warn(`[syncProfilesForOrg] getProfiles returned empty for org ${orgId} — preserving existing rows`);
   }
 
-  // Upsert what Amazon does return
-  const hasDefault = await prisma.sellerProfile.findFirst({
+  // Upsert what Amazon does return. Never seed `isDefault: true` on a
+  // non-advertising profile (agency / Attribution) — those return 404 on
+  // Sponsored Ads endpoints and would render reports/campaigns broken.
+  const advertisingIds = new Set(raw.filter(isAdvertisingProfile).map(p => String(p.profileId ?? p.id)));
+
+  const existingDefault = await prisma.sellerProfile.findFirst({
     where: { orgId, isDefault: true },
   });
+  const existingDefaultIsUsable = existingDefault && advertisingIds.has(existingDefault.profileId);
+
+  // If the current default is an Attribution/agency profile, demote it so we
+  // can promote a real advertising profile below.
+  if (existingDefault && !existingDefaultIsUsable) {
+    await prisma.sellerProfile.update({
+      where: { id: existingDefault.id },
+      data: { isDefault: false },
+    });
+    console.warn(`[syncProfilesForOrg] demoted non-advertising default ${existingDefault.profileId} for org ${orgId}`);
+  }
+
+  // Pick the first advertising profile as the seed default if none survives.
+  const seedDefaultId = existingDefaultIsUsable
+    ? existingDefault.profileId
+    : raw.find(isAdvertisingProfile) && String(raw.find(isAdvertisingProfile).profileId ?? raw.find(isAdvertisingProfile).id);
 
   await Promise.all(
-    raw.map(async (p, i) => {
+    raw.map(async (p) => {
       const profileId = String(p.profileId ?? p.id);
-      const isDefault = !hasDefault && i === 0;
+      const isDefault = profileId === seedDefaultId;
       await prisma.sellerProfile.upsert({
         where: { orgId_profileId: { orgId, profileId } },
         create: {
@@ -72,23 +101,30 @@ export async function syncProfilesForOrg(orgId, adsClient) {
     })
   );
 
-  // Ensure something is default
-  const stillHasDefault = await prisma.sellerProfile.findFirst({
-    where: { orgId, isDefault: true },
+  // Ensure something usable is default. Prefer advertising profiles; only
+  // fall back to whatever exists if the org has none.
+  const stillHasUsableDefault = await prisma.sellerProfile.findFirst({
+    where: { orgId, isDefault: true, profileId: { in: [...advertisingIds] } },
   });
-  if (!stillHasDefault) {
-    const first = await prisma.sellerProfile.findFirst({ where: { orgId } });
-    if (first) {
-      await prisma.sellerProfile.update({
-        where: { id: first.id },
-        data: { isDefault: true },
-      });
-      return first.profileId;
-    }
-    return null;
-  }
+  if (stillHasUsableDefault) return stillHasUsableDefault.profileId;
 
-  return stillHasDefault.profileId;
+  const firstAdvertising = await prisma.sellerProfile.findFirst({
+    where: { orgId, profileId: { in: [...advertisingIds] } },
+    orderBy: { profileId: 'asc' },
+  });
+  const promoteTarget = firstAdvertising
+    ?? await prisma.sellerProfile.findFirst({ where: { orgId }, orderBy: { profileId: 'asc' } });
+  if (!promoteTarget) return null;
+
+  await prisma.sellerProfile.updateMany({
+    where: { orgId, isDefault: true },
+    data: { isDefault: false },
+  });
+  await prisma.sellerProfile.update({
+    where: { id: promoteTarget.id },
+    data: { isDefault: true },
+  });
+  return promoteTarget.profileId;
 }
 
 /**
