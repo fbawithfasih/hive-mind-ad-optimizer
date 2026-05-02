@@ -146,51 +146,88 @@ describe('Amazon Ads API', () => {
   });
 
   describe('getCampaigns', () => {
-    it('should fetch campaigns for profile', async () => {
-      axios.post.mockResolvedValueOnce({
-        data: {
-          access_token: 'token',
-          expires_in: 3600,
-        },
-      });
-
-      const mockCampaigns = [
-        { id: 'c1', name: 'Campaign 1', state: 'enabled' },
-        { id: 'c2', name: 'Campaign 2', state: 'paused' },
-      ];
-
-      axios.get.mockResolvedValueOnce({
-        data: mockCampaigns,
-      });
-
-      const result = await getCampaigns('profile-123');
-      expect(result).toEqual(mockCampaigns);
-    });
-
-    it('should include profile scope in headers', async () => {
+    it('should fetch campaigns for profile and normalize v3 shape', async () => {
       axios.post.mockResolvedValueOnce({
         data: { access_token: 'token', expires_in: 3600 },
       });
 
-      axios.get.mockResolvedValueOnce({
-        data: [],
+      axios.post.mockResolvedValueOnce({
+        data: {
+          campaigns: [
+            { campaignId: 'c1', name: 'Campaign 1', state: 'ENABLED',
+              budget: { budget: 25, budgetType: 'DAILY' },
+              targetingSetting: 'MANUAL', startDate: '2026-01-01' },
+            { campaignId: 'c2', name: 'Campaign 2', state: 'PAUSED',
+              budget: { budget: 10, budgetType: 'DAILY' },
+              targetingSetting: 'AUTO', startDate: '2026-01-02' },
+          ],
+        },
       });
+
+      const result = await getCampaigns('profile-123');
+      expect(result).toEqual([
+        { campaignId: 'c1', name: 'Campaign 1', state: 'ENABLED',
+          dailyBudget: 25, campaignType: 'sponsoredProducts',
+          targetingType: 'manual', startDate: '2026-01-01' },
+        { campaignId: 'c2', name: 'Campaign 2', state: 'PAUSED',
+          dailyBudget: 10, campaignType: 'sponsoredProducts',
+          targetingType: 'auto', startDate: '2026-01-02' },
+      ]);
+    });
+
+    it('should follow nextToken pagination', async () => {
+      axios.post.mockResolvedValueOnce({
+        data: { access_token: 'token', expires_in: 3600 },
+      });
+      axios.post.mockResolvedValueOnce({
+        data: {
+          campaigns: [{ campaignId: 'c1', name: 'A', state: 'ENABLED', budget: { budget: 1 } }],
+          nextToken: 'page2',
+        },
+      });
+      axios.post.mockResolvedValueOnce({
+        data: {
+          campaigns: [{ campaignId: 'c2', name: 'B', state: 'ENABLED', budget: { budget: 2 } }],
+        },
+      });
+
+      const result = await getCampaigns('profile-123');
+      expect(result).toHaveLength(2);
+      expect(result.map(c => c.campaignId)).toEqual(['c1', 'c2']);
+
+      // First post is the token refresh; subsequent posts are the v3 list calls.
+      const listCalls = axios.post.mock.calls.filter(([url]) =>
+        url === 'https://advertising-api.amazon.com/sp/campaigns/list'
+      );
+      expect(listCalls).toHaveLength(2);
+      expect(listCalls[0][1]).toEqual({ maxResults: 100 });
+      expect(listCalls[1][1]).toEqual({ maxResults: 100, nextToken: 'page2' });
+    });
+
+    it('should include profile scope and v3 headers', async () => {
+      axios.post.mockResolvedValueOnce({
+        data: { access_token: 'token', expires_in: 3600 },
+      });
+      axios.post.mockResolvedValueOnce({ data: { campaigns: [] } });
 
       await getCampaigns('profile-456');
 
-      const getCall = axios.get.mock.calls[0];
-      expect(getCall[1].headers).toHaveProperty('Amazon-Advertising-API-Scope');
-      expect(getCall[1].headers['Amazon-Advertising-API-Scope']).toBe('profile-456');
+      const listCall = axios.post.mock.calls.find(([url]) =>
+        url === 'https://advertising-api.amazon.com/sp/campaigns/list'
+      );
+      expect(listCall[2].headers['Amazon-Advertising-API-Scope']).toBe('profile-456');
+      expect(listCall[2].headers['Content-Type']).toBe('application/vnd.spCampaign.v3+json');
+      expect(listCall[2].headers.Accept).toBe('application/vnd.spCampaign.v3+json');
     });
 
-    it('should handle campaigns endpoint not found', async () => {
+    it('should propagate v3 endpoint errors', async () => {
       axios.post.mockResolvedValueOnce({
         data: { access_token: 'token', expires_in: 3600 },
       });
 
       const error = new Error('Not Found');
       error.response = { status: 404 };
-      axios.get.mockRejectedValueOnce(error);
+      axios.post.mockRejectedValueOnce(error);
 
       await expect(getCampaigns('profile-123')).rejects.toThrow();
     });
