@@ -92,6 +92,8 @@ export function createSpApiClient({
       ?? attrs.item_description?.[0]?.value
       ?? '';
 
+    const genericKeyword = attrs.generic_keyword?.[0]?.value ?? '';
+
     const extractedAsin = asin
       ?? data.asin
       ?? data.summaries?.[0]?.asin
@@ -146,6 +148,7 @@ export function createSpApiClient({
       title,
       bullets:     bullets.slice(0, 5),
       description,
+      genericKeyword,
       mainImage,
       images,
     };
@@ -231,7 +234,7 @@ export function createSpApiClient({
     }
   }
 
-  async function updateListingBySku(sku, { title, bullets, description, productType }) {
+  async function updateListingBySku(sku, { title, bullets, description, genericKeyword, productType }) {
     if (!sellerId) throw new Error('sellerId is not configured');
     if (!productType) throw new Error('productType is required — re-fetch the listing to obtain it');
     const token = await getSPToken();
@@ -260,8 +263,16 @@ export function createSpApiClient({
         value: [{ value: description, language_tag: languageTag, marketplace_id: marketplaceId }],
       });
     }
+    if (genericKeyword) {
+      // Amazon backend search-terms field — single value, marketplace-scoped.
+      patches.push({
+        op: 'replace',
+        path: '/attributes/generic_keyword',
+        value: [{ value: genericKeyword, language_tag: languageTag, marketplace_id: marketplaceId }],
+      });
+    }
 
-    if (!patches.length) throw new Error('Nothing to update — title, bullets, and description are all empty');
+    if (!patches.length) throw new Error('Nothing to update — title, bullets, description, and generic keyword are all empty');
 
     console.log(`PATCH listing SKU ${sku} (productType: ${productType}, ${patches.length} fields)…`);
     const res = await axios.patch(

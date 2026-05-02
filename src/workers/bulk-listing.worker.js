@@ -74,6 +74,8 @@ export async function bulkListingProcessor(job) {
       optimizedBullets:    result?.bullets     ?? [],
       originalDescription: description         ?? '',
       optimizedDescription: result?.description ?? null,
+      originalGenericKeyword:  item.genericKeyword ?? null,
+      optimizedGenericKeyword: result?.genericKeyword ?? null,
       keywords:            flattenListingKeywords(searchTerms?.length ? searchTerms : uploadedKeywords),
       aiModel:             model || 'gemini',
       status:              result ? 'COMPLETED' : 'FAILED',

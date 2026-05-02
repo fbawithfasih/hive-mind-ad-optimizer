@@ -74,7 +74,7 @@ router.get('/history', async (req, res) => {
  * Persists the optimization record to the DB.
  */
 router.post('/optimize', requireRole('MEMBER'), async (req, res) => {
-  const { asin, sku, title, bullets, description, searchTerms, uploadedKeywords, model } = req.body;
+  const { asin, sku, title, bullets, description, genericKeyword, searchTerms, uploadedKeywords, model } = req.body;
 
   if (!title && !bullets?.length && !description) {
     return res.status(400).json({ error: 'At least one of title, bullets, or description is required' });
@@ -82,7 +82,7 @@ router.post('/optimize', requireRole('MEMBER'), async (req, res) => {
 
   try {
     const result = await optimizeListing(
-      { asin, title, bullets, description, searchTerms, uploadedKeywords },
+      { asin, title, bullets, description, genericKeyword, searchTerms, uploadedKeywords },
       model || 'gemini'
     );
 
@@ -101,6 +101,8 @@ router.post('/optimize', requireRole('MEMBER'), async (req, res) => {
           optimizedBullets:    result.bullets ?? [],
           originalDescription: description ?? '',
           optimizedDescription: result.description ?? null,
+          originalGenericKeyword:  genericKeyword ?? null,
+          optimizedGenericKeyword: result.genericKeyword ?? null,
           keywords,
           aiModel:             model || 'gemini',
           status:              'COMPLETED',
@@ -127,7 +129,7 @@ router.post('/optimize', requireRole('MEMBER'), async (req, res) => {
  * Pushes to Amazon SP-API and marks the matching optimization record as PUBLISHED.
  */
 router.put('/update', requireRole('MEMBER'), async (req, res) => {
-  const { sku, title, bullets, description } = req.body;
+  const { sku, title, bullets, description, genericKeyword } = req.body;
   let { productType } = req.body;
 
   if (!sku) return res.status(400).json({ error: 'sku is required to update a listing' });
@@ -182,7 +184,7 @@ router.put('/update', requireRole('MEMBER'), async (req, res) => {
   }
 
   try {
-    const result = await req.spClient.updateListingBySku(sku, { title, bullets, description, productType });
+    const result = await req.spClient.updateListingBySku(sku, { title, bullets, description, genericKeyword, productType });
 
     // Mark the most recent optimization for this SKU as PUBLISHED
     if (result?.status === 'ACCEPTED') {

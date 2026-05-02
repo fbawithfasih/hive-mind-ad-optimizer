@@ -120,6 +120,19 @@ async function applySellerProfileMigration() {
 }
 applySellerProfileMigration().catch(err => logger.error('SellerProfile migration error', err.message));
 
+// Add generic-keyword (backend search terms) columns to ListingOptimization
+async function applyListingGenericKeywordMigration() {
+  try {
+    await prisma.$executeRaw`ALTER TABLE "ListingOptimization" ADD COLUMN IF NOT EXISTS "originalGenericKeyword" TEXT`;
+    logger.info('Migration: ListingOptimization.originalGenericKeyword added');
+  } catch { /* already exists */ }
+  try {
+    await prisma.$executeRaw`ALTER TABLE "ListingOptimization" ADD COLUMN IF NOT EXISTS "optimizedGenericKeyword" TEXT`;
+    logger.info('Migration: ListingOptimization.optimizedGenericKeyword added');
+  } catch { /* already exists */ }
+}
+applyListingGenericKeywordMigration().catch(err => logger.error('ListingOptimization migration error', err.message));
+
 async function applyAutomationScheduleMigration() {
   try {
     await prisma.$executeRaw`ALTER TABLE "CampaignRule" ADD COLUMN IF NOT EXISTS "schedule" TEXT`;

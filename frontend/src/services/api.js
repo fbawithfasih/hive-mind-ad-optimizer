@@ -511,8 +511,8 @@ export async function getSearchTermsForProduct({ profileId, sku, asin, startDate
  * @returns {Promise<{success: boolean, sku: string}>} Update result
  * @throws {Error} If publish fails
  */
-export async function publishListing({ sku, productType, title, bullets, description, profileId }) {
-  const response = await api.put('/listings/update', { sku, productType, title, bullets, description, profileId });
+export async function publishListing({ sku, productType, title, bullets, description, genericKeyword, profileId }) {
+  const response = await api.put('/listings/update', { sku, productType, title, bullets, description, genericKeyword, profileId });
   return response.data;
 }
 

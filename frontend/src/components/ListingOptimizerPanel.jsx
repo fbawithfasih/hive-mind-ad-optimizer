@@ -3,7 +3,10 @@ import { lookupProduct, optimizeListingApi, getSearchTermsForProduct, publishLis
 import { parseCsvKeywords, parseXlsxKeywords } from '../utils/file-parsers.js';
 import { getTodayISO, getDaysAgoISO } from '../utils/date-helpers.js';
 
-const CHAR_LIMIT = { title: 200, bullet: 255, description: 2000 };
+const CHAR_LIMIT = { title: 200, bullet: 250, description: 800, genericKeyword: 250 };
+
+// Generic Keyword counts UTF-8 BYTES on Amazon's side, not characters.
+const byteLen = (s) => new TextEncoder().encode(String(s ?? '')).length;
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
@@ -153,8 +156,8 @@ function mapIssuesToFields(issues = []) {
   return result;
 }
 
-function DiffField({ label, current, proposed, limit, isOver }) {
-  const len = (proposed ?? '').length;
+function DiffField({ label, current, proposed, limit, isOver, measureBytes = false }) {
+  const len = measureBytes ? byteLen(proposed) : (proposed ?? '').length;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
       <div>
@@ -185,7 +188,7 @@ function DiffField({ label, current, proposed, limit, isOver }) {
 }
 
 function PublishDiffPanel({ current, optimized, sku, overLimit, hasOverLimit, isPublishing, onConfirm, onCancel }) {
-  const overCount = [overLimit.title, ...(overLimit.bullets ?? []), overLimit.description].filter(Boolean).length;
+  const overCount = [overLimit.title, ...(overLimit.bullets ?? []), overLimit.description, overLimit.genericKeyword].filter(Boolean).length;
   return (
     <div style={{ ...glass, padding: '20px 24px', borderColor: hasOverLimit ? 'rgba(244,63,94,0.3)' : 'rgba(139,92,246,0.25)', boxShadow: '0 4px 40px rgba(0,0,0,0.3)' }}>
       <GradientBar top={hasOverLimit ? 'linear-gradient(90deg,#EF4444,#F59E0B)' : 'linear-gradient(90deg,#8B5CF6,#10B981)'} />
@@ -209,6 +212,9 @@ function PublishDiffPanel({ current, optimized, sku, overLimit, hasOverLimit, is
           <DiffField key={i} label={`Bullet ${i + 1}`} current={current.bullets?.[i] ?? ''} proposed={b} limit={CHAR_LIMIT.bullet} isOver={overLimit.bullets?.[i] ?? false} />
         ))}
         <DiffField label="Description" current={current.description} proposed={optimized.description} limit={CHAR_LIMIT.description} isOver={overLimit.description} />
+        {(optimized.genericKeyword || current.genericKeyword) && (
+          <DiffField label="Generic Keyword (bytes)" current={current.genericKeyword ?? ''} proposed={optimized.genericKeyword ?? ''} limit={CHAR_LIMIT.genericKeyword} isOver={overLimit.genericKeyword} measureBytes />
+        )}
 
         {hasOverLimit && (
           <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.2)', borderRadius: 10, padding: '10px 14px', marginBottom: 14, fontSize: 12, color: '#F87171' }}>
@@ -259,6 +265,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
   const [title, setTitle]             = useState('');
   const [bullets, setBullets]         = useState(['', '', '', '', '']);
   const [description, setDescription] = useState('');
+  const [genericKeyword, setGenericKeyword] = useState('');
   const [fetchedAsin, setFetchedAsin]         = useState('');
   const [fetchedSku, setFetchedSku]           = useState('');
   const [fetchedProductType, setFetchedProductType] = useState('');
@@ -292,6 +299,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
       setTitle(p.title ?? '');
       setBullets(Array.from({ length: 5 }, (_, i) => p.bullets?.[i] ?? ''));
       setDescription(p.description ?? '');
+      setGenericKeyword(p.genericKeyword ?? '');
       setFetchedAsin(p.asin ?? asin.trim());
       setFetchedSku(p.sku ?? '');
       setFetchedProductType(p.productType ?? '');
@@ -315,7 +323,9 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
       const result = await publishListing({
         sku: skuToUse, productType: fetchedProductType,
         title: optimized.title, bullets: optimized.bullets.filter(Boolean),
-        description: optimized.description, profileId: profileId || undefined,
+        description: optimized.description,
+        genericKeyword: optimized.genericKeyword || undefined,
+        profileId: profileId || undefined,
       });
       setPublishResult({ ok: true, issues: result.issues ?? [] });
     } catch (err) {
@@ -384,6 +394,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
     try {
       const result = await optimizeListingApi({
         asin: fetchedAsin, title, bullets: bullets.filter(Boolean), description,
+        genericKeyword,
         searchTerms: relevantTerms,
         uploadedKeywords: uploadedKeywords.length > 0 ? uploadedKeywords : undefined,
         model: aiModel, profileId: profileId || undefined,
@@ -405,14 +416,15 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
     [relevantTerms]);
 
   const overLimit = useMemo(() => {
-    if (!optimized) return { title: false, bullets: [], description: false };
+    if (!optimized) return { title: false, bullets: [], description: false, genericKeyword: false };
     return {
-      title:       (optimized.title ?? '').length > CHAR_LIMIT.title,
-      bullets:     (optimized.bullets ?? []).map(b => (b ?? '').length > CHAR_LIMIT.bullet),
-      description: (optimized.description ?? '').length > CHAR_LIMIT.description,
+      title:          (optimized.title ?? '').length > CHAR_LIMIT.title,
+      bullets:        (optimized.bullets ?? []).map(b => (b ?? '').length > CHAR_LIMIT.bullet),
+      description:    (optimized.description ?? '').length > CHAR_LIMIT.description,
+      genericKeyword: byteLen(optimized.genericKeyword ?? '') > CHAR_LIMIT.genericKeyword,
     };
   }, [optimized]);
-  const hasOverLimit = overLimit.title || overLimit.bullets.some(Boolean) || overLimit.description;
+  const hasOverLimit = overLimit.title || overLimit.bullets.some(Boolean) || overLimit.description || overLimit.genericKeyword;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -735,6 +747,13 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                   onFocus={e => e.target.style.borderColor = '#3B82F6'}
                   onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'} />
               </FieldRow>
+              <FieldRow label="Generic Keyword (backend search terms)" chars={byteLen(genericKeyword) + ' bytes'} limit={CHAR_LIMIT.genericKeyword + ' bytes'}>
+                <textarea value={genericKeyword} onChange={e => setGenericKeyword(e.target.value)} rows={3}
+                  placeholder="space-separated keywords for Amazon's hidden search-terms field"
+                  style={taSt(byteLen(genericKeyword) > CHAR_LIMIT.genericKeyword)}
+                  onFocus={e => e.target.style.borderColor = '#3B82F6'}
+                  onBlur={e => e.target.style.borderColor = byteLen(genericKeyword) > CHAR_LIMIT.genericKeyword ? '#EF4444' : 'rgba(255,255,255,0.08)'} />
+              </FieldRow>
             </div>
           </div>
 
@@ -769,10 +788,18 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                       <div style={{ position: 'absolute', top: 6, right: 8 }}><CopyButton text={optimized.description} /></div>
                     </div>
                   </FieldRow>
+                  {optimized.genericKeyword !== undefined && (
+                    <FieldRow label={`Generic Keyword · ${byteLen(optimized.genericKeyword)}/${CHAR_LIMIT.genericKeyword} bytes`}>
+                      <div style={{ position: 'relative' }}>
+                        <textarea value={optimized.genericKeyword ?? ''} readOnly rows={3} style={taSt(true)} />
+                        <div style={{ position: 'absolute', top: 6, right: 8 }}><CopyButton text={optimized.genericKeyword ?? ''} /></div>
+                      </div>
+                    </FieldRow>
+                  )}
 
                   {/* Copy All */}
                   <button onClick={() => navigator.clipboard.writeText(
-                    `TITLE:\n${optimized.title}\n\nBULLETS:\n${(optimized.bullets ?? []).map((b, i) => `${i+1}. ${b}`).join('\n')}\n\nDESCRIPTION:\n${optimized.description}`
+                    `TITLE:\n${optimized.title}\n\nBULLETS:\n${(optimized.bullets ?? []).map((b, i) => `${i+1}. ${b}`).join('\n')}\n\nDESCRIPTION:\n${optimized.description}${optimized.genericKeyword ? `\n\nGENERIC KEYWORD:\n${optimized.genericKeyword}` : ''}`
                   )} style={{
                     width: '100%', marginBottom: 10, padding: '8px', borderRadius: 9,
                     border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)',
@@ -838,7 +865,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
       {/* ══ PRE-PUBLISH DIFF PANEL ══ */}
       {confirmPublish && optimized && (
         <PublishDiffPanel
-          current={{ title, bullets, description }}
+          current={{ title, bullets, description, genericKeyword }}
           optimized={optimized}
           sku={sku.trim() || fetchedSku}
           overLimit={overLimit}

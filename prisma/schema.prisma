@@ -152,6 +152,8 @@ model ListingOptimization {
   optimizedBullets  String[]
   originalDescription String
   optimizedDescription String?
+  originalGenericKeyword  String?
+  optimizedGenericKeyword String?
   keywords          String[]
   aiModel           String      @default("claude")
   status            OptimizationStatus @default(PENDING)

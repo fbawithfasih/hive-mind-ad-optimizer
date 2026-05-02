@@ -28,10 +28,11 @@ You will receive a product's current listing content, a set of high-performing s
 
 Rules:
 - Respond ONLY with valid JSON in exactly this shape (no markdown fences, no extra text):
-  {"title":"...","bullets":["...","...","...","...","..."],"description":"..."}
+  {"title":"...","bullets":["...","...","...","...","..."],"description":"...","genericKeyword":"..."}
 - Title: STRICT max 200 characters (Amazon hard limit), front-load the single most important keyword, keep it natural and readable.
 - Bullets: exactly 5 items, start each with a capitalized benefit phrase (e.g. "SUPERIOR QUALITY —"), weave in keywords naturally, STRICT max 250 characters each (Amazon hard limit).
 - Description: STRICT max 800 characters (Amazon hard limit), include brand story + key use cases + secondary keywords, readable paragraphs.
+- Generic Keyword (Amazon backend search-terms field): STRICT max 250 BYTES (Amazon hard limit, UTF-8). Fill it with leftover PRIORITY KEYWORDS first (those that did not naturally fit in title / bullets / description), then leftover high-performing search terms. Space-separated, lowercase, no commas, no quotes, no duplicates with title / bullets / description (Amazon ignores duplicates). Do not keyword-stuff brand names or competitor names.
 - These character limits are HARD CAPS. Going over even by one character will cause Amazon to reject the listing. Count carefully and stay safely under the limit.
 - If PRIORITY KEYWORDS (user-uploaded) are provided, you MUST include as many of them as naturally possible in the title, bullets and description. These take highest priority over campaign search terms.
 - After incorporating priority keywords, use campaign search terms (SCALE_UP first, then ADD_EXACT).
@@ -329,9 +330,10 @@ Write the full report now. Use the real numbers from the data above. Be specific
 // Hard caps Amazon enforces server-side. Overruns reject the whole listing
 // at publish time, so we always trim — preferring word boundaries — before
 // returning AI output to the caller.
-const TITLE_MAX       = 200;
-const BULLET_MAX      = 250;
-const DESCRIPTION_MAX = 800;
+const TITLE_MAX                 = 200;
+const BULLET_MAX                = 250;
+const DESCRIPTION_MAX           = 800;
+const GENERIC_KEYWORD_MAX_BYTES = 250;
 
 function trimToLimit(text, max) {
   if (typeof text !== 'string' || text.length <= max) return text;
@@ -341,22 +343,42 @@ function trimToLimit(text, max) {
   return (lastSpace > max * 0.7 ? slice.slice(0, lastSpace) : slice).trimEnd();
 }
 
+// Amazon counts the generic-keyword field in UTF-8 BYTES, not chars. Trim by
+// dropping whole space-separated tokens from the end so we never split mid-word.
+function trimToBytes(text, maxBytes) {
+  if (typeof text !== 'string') return '';
+  const enc = new TextEncoder();
+  if (enc.encode(text).length <= maxBytes) return text;
+  const tokens = text.split(/\s+/).filter(Boolean);
+  while (tokens.length && enc.encode(tokens.join(' ')).length > maxBytes) {
+    tokens.pop();
+  }
+  return tokens.join(' ');
+}
+
 function enforceListingLimits(parsed) {
   const title       = trimToLimit(parsed.title ?? '', TITLE_MAX);
   const description = trimToLimit(parsed.description ?? '', DESCRIPTION_MAX);
   const bullets = (parsed.bullets ?? []).map(b => trimToLimit(b ?? '', BULLET_MAX));
-  if (parsed.title?.length > TITLE_MAX
-      || parsed.description?.length > DESCRIPTION_MAX
-      || (parsed.bullets ?? []).some(b => (b ?? '').length > BULLET_MAX)) {
+  const genericKeyword = trimToBytes(parsed.genericKeyword ?? '', GENERIC_KEYWORD_MAX_BYTES);
+  const overLimit =
+       parsed.title?.length > TITLE_MAX
+    || parsed.description?.length > DESCRIPTION_MAX
+    || (parsed.bullets ?? []).some(b => (b ?? '').length > BULLET_MAX)
+    || (parsed.genericKeyword && new TextEncoder().encode(parsed.genericKeyword).length > GENERIC_KEYWORD_MAX_BYTES);
+  if (overLimit) {
     console.warn('[optimizeListing] AI output exceeded Amazon limits — trimmed to fit', {
       titleLen: parsed.title?.length, descriptionLen: parsed.description?.length,
       bulletLens: (parsed.bullets ?? []).map(b => b?.length),
+      genericKeywordBytes: parsed.genericKeyword
+        ? new TextEncoder().encode(parsed.genericKeyword).length
+        : 0,
     });
   }
-  return { ...parsed, title, bullets, description };
+  return { ...parsed, title, bullets, description, genericKeyword };
 }
 
-export async function optimizeListing({ asin, title, bullets, description, searchTerms, uploadedKeywords }, model = 'gemini') {
+export async function optimizeListing({ asin, title, bullets, description, genericKeyword, searchTerms, uploadedKeywords }, model = 'gemini') {
   const bulletsText = (bullets ?? []).map((b, i) => `${i + 1}. ${b}`).join('\n');
   const priorityBlock = (uploadedKeywords ?? []).length > 0
     ? `\nPRIORITY KEYWORDS (user-uploaded — MUST include as many as possible, these take highest priority):\n${(uploadedKeywords).join(', ')}\n`
@@ -375,6 +397,9 @@ ${bulletsText || '(none provided)'}
 
 CURRENT DESCRIPTION:
 ${description ?? '(none provided)'}
+
+CURRENT GENERIC KEYWORD (Amazon backend search-terms field, max 250 bytes):
+${genericKeyword ?? '(none provided)'}
 ${priorityBlock}
 HIGH-PERFORMING SEARCH TERMS (SCALE_UP and ADD_EXACT — use these as secondary keywords):
 ${JSON.stringify(limitedTerms.map(t => ({
