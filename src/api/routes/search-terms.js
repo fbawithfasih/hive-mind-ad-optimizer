@@ -274,18 +274,41 @@ router.get('/', async (req, res) => {
       }
     }
 
-    const reportId = await req.adsClient.createSearchTermReport(profileId, startDate, endDate);
+    // Amazon caps spSearchTerm at 31 days, so split the requested range into
+    // windows and create one report per window.
+    const windows = splitIntoWindows(startDate, endDate);
+    const reportIds = await Promise.all(
+      windows.map(w => req.adsClient.createSearchTermReport(profileId, w.startDate, w.endDate))
+    );
 
-    // Poll inline (only used by legacy/product path — short range expected)
+    // Poll every report inline. Cloudflare allows ~100s before 524 — keep
+    // each poll iteration short and bail with a clear timeout if Amazon is
+    // still working when the budget runs out.
+    const completed = new Map();
     for (let i = 0; i < 36; i++) {
       await new Promise(r => setTimeout(r, 5000));
-      const result = await req.adsClient.pollSearchTermReport(profileId, reportId, campaignIds);
-      if (result.status === 'COMPLETED') {
-        return res.json({ startDate, endDate, searchTerms: classifySearchTerms(result.data), product: sku || asin || null });
+      const pending = reportIds.filter(id => !completed.has(id));
+      if (pending.length === 0) break;
+
+      const polled = await Promise.all(
+        pending.map(id => req.adsClient.pollSearchTermReport(profileId, id, campaignIds)
+          .then(r => ({ id, ...r }))
+        )
+      );
+      for (const r of polled) {
+        if (r.status === 'COMPLETED') completed.set(r.id, r.data ?? []);
+        else if (r.status === 'FAILED') throw new Error(r.error);
       }
-      if (result.status === 'FAILED') throw new Error(result.error);
     }
-    throw new Error('Search term report timed out');
+
+    if (completed.size !== reportIds.length) throw new Error('Search term report timed out');
+
+    const merged = mergeSearchTermWindows(reportIds.map(id => completed.get(id)));
+    return res.json({
+      startDate, endDate,
+      searchTerms: classifySearchTerms(merged),
+      product: sku || asin || null,
+    });
   } catch (err) {
     console.error('Search terms route error:', err.message);
     res.status(500).json({ error: err.message });
