@@ -44,13 +44,44 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     return res.data;
   }
 
+  // Sponsored Products v3 — `/v2/campaigns` returns 404 "Method Not Found".
+  // Paginates `POST /sp/campaigns/list` and normalizes each item to the v2
+  // shape callers already expect (campaignId / name / state / dailyBudget /
+  // campaignType / targetingType / startDate).
   async function getCampaigns(profileId) {
     const token = await getAccessToken();
-    const res = await axios.get('https://advertising-api.amazon.com/v2/campaigns', {
-      headers: adsHeaders(token, profileId),
-    });
-    console.log(`✅ Fetched ${res.data.length} campaigns for profile ${profileId}`);
-    return res.data;
+    const headers = {
+      ...adsHeaders(token, profileId),
+      'Content-Type': 'application/vnd.spCampaign.v3+json',
+      Accept:         'application/vnd.spCampaign.v3+json',
+    };
+
+    const all = [];
+    let nextToken;
+    do {
+      const body = { maxResults: 100, ...(nextToken ? { nextToken } : {}) };
+      const res = await axios.post(
+        'https://advertising-api.amazon.com/sp/campaigns/list',
+        body,
+        { headers },
+      );
+      const page = Array.isArray(res.data?.campaigns) ? res.data.campaigns : [];
+      all.push(...page);
+      nextToken = res.data?.nextToken;
+    } while (nextToken);
+
+    const normalized = all.map(c => ({
+      campaignId:    c.campaignId,
+      name:          c.name,
+      state:         c.state,
+      dailyBudget:   c.budget?.budget ?? c.dailyBudget ?? 0,
+      campaignType:  'sponsoredProducts',
+      targetingType: c.targetingSetting?.toLowerCase?.() ?? c.targetingType,
+      startDate:     c.startDate,
+    }));
+
+    console.log(`✅ Fetched ${normalized.length} campaigns for profile ${profileId}`);
+    return normalized;
   }
 
   async function getProductAdCampaigns(profileId, { sku, asin } = {}) {

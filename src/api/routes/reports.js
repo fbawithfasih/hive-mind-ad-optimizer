@@ -105,12 +105,21 @@ router.get('/start', async (req, res) => {
   const { startDate, endDate } = normalizeDates(rawStart, rawEnd);
   const windows = splitIntoWindows(startDate, endDate);
 
+  // Campaigns are auxiliary metadata — never let a campaigns failure block
+  // reports. Run both in parallel but settle independently.
+  const campaignsPromise = req.adsClient.getCampaigns(profileId).catch(err => {
+    if (isProfileAccessDenied(err)) {
+      pruneInaccessibleProfile(req.tenant?.orgId, profileId, req.adsClient).catch(() => {});
+    }
+    console.warn(`Live campaigns fetch failed for org ${req.tenant?.orgId}: ${err.message} — continuing with empty list`);
+    return [];
+  });
+
   try {
-    const campaignsPromise = req.adsClient.getCampaigns(profileId);
-    const reportPromises = windows.map(w =>
-      req.adsClient.startCampaignMetricsReport(profileId, w.startDate, w.endDate)
+    const reportIds = await Promise.all(
+      windows.map(w => req.adsClient.startCampaignMetricsReport(profileId, w.startDate, w.endDate))
     );
-    const [campaigns, ...reportIds] = await Promise.all([campaignsPromise, ...reportPromises]);
+    const campaigns = await campaignsPromise;
 
     res.json({
       reportIds,
@@ -129,7 +138,7 @@ router.get('/start', async (req, res) => {
     res.json({
       reportIds: [],
       windows,
-      campaigns: [],
+      campaigns: await campaignsPromise,
       startDate,
       endDate,
       reportId: null,
