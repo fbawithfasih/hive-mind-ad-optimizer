@@ -328,6 +328,17 @@ function debugSamplePayload(p, depth = 0) {
 function num(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
 function str(v) { return (v ?? '').toString().trim(); }
 
+// Exported for unit tests; not part of the public client surface.
+export const __testables = {
+  get normaliseReport()           { return normaliseReport; },
+  get normaliseCatalog()          { return normaliseCatalog; },
+  get normaliseSqp()              { return normaliseSqp; },
+  get normaliseTopSearchTerms()   { return normaliseTopSearchTerms; },
+  get normaliseTopSearchTermsRow(){ return normaliseTopSearchTermsRow; },
+  get debugSamplePayload()        { return debugSamplePayload; },
+  get TOP_LEVEL_ARRAY_KEY()       { return TOP_LEVEL_ARRAY_KEY; },
+};
+
 function normaliseReport(logicalType, payload) {
   switch (logicalType) {
     case 'SQP_BRAND':
