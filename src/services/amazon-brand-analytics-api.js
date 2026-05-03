@@ -252,9 +252,16 @@ const TOP_LEVEL_ARRAY_KEY = {
 
 /**
  * Stream the report document, parse JSON incrementally, normalise each row,
- * and return the accumulated normalised array. Memory footprint scales with
- * post-normalisation output size, not the raw download size.
+ * and return the accumulated normalised array.
+ *
+ * MEMORY BOUND: Top Search Terms can return millions of rank rows for a
+ * marketplace, which OOMs the container even when the JSON parse is streamed.
+ * Real prod incident on 2026-05-04 surfaced this. We cap retention at
+ * STREAM_ROW_CAP rows; since the BA report is sorted by searchFrequencyRank
+ * the top N captures the most-searched (and most-actionable) terms.
  */
+const STREAM_ROW_CAP = 100_000;
+
 async function streamAndNormalise(url, isGzip, arrayKey, logicalType) {
   const response = await axios.get(url, { responseType: 'stream' });
   const rowNormaliser = STREAM_ROW_NORMALISERS[logicalType];
@@ -270,7 +277,13 @@ async function streamAndNormalise(url, isGzip, arrayKey, logicalType) {
       .pipe(jsonParser())
       .pipe(pickMod.asStream({ filter: arrayKey }))
       .pipe(streamArrayMod.asStream());
+
     out.on('data', ({ value }) => {
+      if (rows.length >= STREAM_ROW_CAP) {
+        // Past the cap — drain remaining bytes into /dev/null so the axios
+        // socket closes cleanly. Don't .destroy() the upstream (leaks socket).
+        return;
+      }
       const row = rowNormaliser(value);
       if (row) rows.push(row);
     });
