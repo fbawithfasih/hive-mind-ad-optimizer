@@ -55,8 +55,10 @@ export default function CrossSell() {
     }
   }
 
-  // ── Empty state ──
-  if (!loading && !data && error?.startsWith(NOT_FOUND_PREFIX)) {
+  // ── Empty state — no Market Basket data, OR fetch error after a try ──
+  // Persists across failed fetches so the user can fix the cause and retry.
+  if (!loading && !data) {
+    const isFetchError = error && !error.startsWith(NOT_FOUND_PREFIX);
     return (
       <div style={{ ...glass('rgba(99,102,241,0.18)'), padding: '36px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 14 }}>
         <GradientBar top={COLORS.indigo.gradient} />
@@ -71,6 +73,11 @@ export default function CrossSell() {
               Market Basket identifies pairs of products that customers buy together — directly usable as Sponsored Display product-targeting lists or A+ comparison charts.
             </p>
           </div>
+          {isFetchError && (
+            <div style={{ background: 'rgba(244,63,94,0.10)', border: '1px solid rgba(244,63,94,0.25)', color: '#F87171', borderRadius: 8, padding: '8px 14px', fontSize: 12, maxWidth: 460 }}>
+              {error}
+            </div>
+          )}
           <button onClick={handleFetch} disabled={triggering} style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 10, border: 'none',
             cursor: triggering ? 'wait' : 'pointer',
@@ -78,17 +85,9 @@ export default function CrossSell() {
             color: '#fff', fontWeight: 700, fontSize: 13,
             boxShadow: triggering ? 'none' : `0 4px 20px ${COLORS.indigo.glow}`,
           }}>
-            {triggering ? <><Spinner /> Fetching from Amazon…</> : '⚡ Fetch now'}
+            {triggering ? <><Spinner /> Fetching from Amazon…</> : isFetchError ? 'Try again' : '⚡ Fetch now'}
           </button>
         </div>
-      </div>
-    );
-  }
-
-  if (error && !loading) {
-    return (
-      <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', color: '#F87171', borderRadius: 12, padding: '14px 18px', fontSize: 13 }}>
-        {error}
       </div>
     );
   }

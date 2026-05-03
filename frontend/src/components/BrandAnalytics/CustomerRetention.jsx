@@ -55,8 +55,11 @@ export default function CustomerRetention() {
     }
   }
 
-  // ── Empty state — no Repeat Purchase report yet ─────────────────────────
-  if (!loading && !data && error?.startsWith(NOT_FOUND_MSG_PREFIX)) {
+  // ── Empty state — no Repeat Purchase report yet (or any pre-data error) ──
+  // Stays visible after a failed fetch attempt so the user can correct the
+  // problem (e.g. upgrade tier) and try again without losing the CTA.
+  if (!loading && !data) {
+    const isFetchError = error && !error.startsWith(NOT_FOUND_MSG_PREFIX);
     return (
       <div style={{ ...glass('rgba(245,158,11,0.18)'), padding: '36px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 14 }}>
         <GradientBar top={COLORS.amber.gradient} />
@@ -71,6 +74,11 @@ export default function CustomerRetention() {
               The Repeat Purchase report identifies returning customers per ASIN — useful for spotting Subscribe &amp; Save candidates.
             </p>
           </div>
+          {isFetchError && (
+            <div style={{ background: 'rgba(244,63,94,0.10)', border: '1px solid rgba(244,63,94,0.25)', color: '#F87171', borderRadius: 8, padding: '8px 14px', fontSize: 12, maxWidth: 460 }}>
+              {error}
+            </div>
+          )}
           <button onClick={handleFetch} disabled={triggering} style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 10, border: 'none',
             cursor: triggering ? 'wait' : 'pointer',
@@ -78,18 +86,9 @@ export default function CustomerRetention() {
             color: '#fff', fontWeight: 700, fontSize: 13,
             boxShadow: triggering ? 'none' : `0 4px 20px ${COLORS.amber.glow}`,
           }}>
-            {triggering ? <><Spinner /> Fetching from Amazon…</> : '⚡ Fetch now'}
+            {triggering ? <><Spinner /> Fetching from Amazon…</> : isFetchError ? 'Try again' : '⚡ Fetch now'}
           </button>
         </div>
-      </div>
-    );
-  }
-
-  // ── Generic error ────────────────────────────────────────────────────────
-  if (error && !loading) {
-    return (
-      <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', color: '#F87171', borderRadius: 12, padding: '14px 18px', fontSize: 13 }}>
-        {error}
       </div>
     );
   }
