@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { listBrandAnalyticsReports, triggerBrandAnalyticsFetch } from '../../services/api.js';
 import { glass, GradientBar, GlowBlob, Spinner, COLORS } from './shared.jsx';
+import SqpFetchModal from './SqpFetchModal.jsx';
 
 // Logical type → display label + tier-availability hint. Mirrors the
 // listApiAvailableReportTypes() result on the backend; types not in this map
@@ -43,6 +44,7 @@ export default function ReportsList() {
   const [loading, setLoading]   = useState(false);
   const [error,   setError]     = useState(null);
   const [busy,    setBusy]      = useState(null);   // reportType currently being triggered
+  const [sqpModalOpen, setSqpModalOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -187,22 +189,21 @@ export default function ReportsList() {
               <div style={{ color: '#94A3B8', fontSize: 11.5 }}>{fmtFetchedAt(latest?.fetchedAt)}</div>
               <div style={{ textAlign: 'right' }}>
                 <button
-                  onClick={() => handleTrigger(type)}
-                  disabled={triggering || inFlight || type === 'SQP_BRAND'}
+                  onClick={() => type === 'SQP_BRAND' ? setSqpModalOpen(true) : handleTrigger(type)}
+                  disabled={triggering || inFlight}
                   title={
                     type === 'SQP_BRAND'
-                      ? 'SQP requires an ASIN list — trigger via API for now'
+                      ? 'Pick ASINs and fetch SQP'
                       : inFlight ? 'Already running' : 'Fetch a fresh copy from Amazon'
                   }
                   style={{
                     fontSize: 11, fontWeight: 700, padding: '6px 12px', borderRadius: 7,
                     border: '1px solid rgba(139,92,246,0.25)',
-                    cursor: (triggering || inFlight || type === 'SQP_BRAND') ? 'not-allowed' : 'pointer',
+                    cursor: (triggering || inFlight) ? 'not-allowed' : 'pointer',
                     background: triggering ? 'rgba(255,255,255,0.06)' : 'rgba(139,92,246,0.10)',
-                    color: (triggering || inFlight || type === 'SQP_BRAND') ? '#475569' : '#A78BFA',
-                    opacity: type === 'SQP_BRAND' ? 0.5 : 1,
+                    color: (triggering || inFlight) ? '#475569' : '#A78BFA',
                   }}>
-                  {triggering ? <Spinner size={10} /> : inFlight ? 'Running…' : 'Fetch now'}
+                  {triggering ? <Spinner size={10} /> : inFlight ? 'Running…' : (type === 'SQP_BRAND' ? 'Pick ASINs…' : 'Fetch now')}
                 </button>
               </div>
             </div>
@@ -213,6 +214,13 @@ export default function ReportsList() {
       <p style={{ fontSize: 11, color: '#475569', textAlign: 'center', margin: 0 }}>
         Auto-refreshing while any report is processing. Period coverage is determined by your subscription tier.
       </p>
+
+      {sqpModalOpen && (
+        <SqpFetchModal
+          onClose={() => setSqpModalOpen(false)}
+          onSubmitted={() => setTimeout(refresh, 1500)}
+        />
+      )}
     </div>
   );
 }
