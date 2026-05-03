@@ -623,6 +623,16 @@ export const getBrandAnalyticsReport = (id) =>
 export const triggerBrandAnalyticsFetch = ({ reportType, reportingPeriod, asins } = {}) =>
   api.post('/brand-analytics/reports/refresh', { reportType, reportingPeriod, asins }).then(r => r.data);
 
+// Insight surfaces backed by individual BA report types
+export const getCustomerRetention = (params = {}) =>
+  api.get('/brand-analytics/customer-retention', { params }).then(r => r.data);
+export const getCrossSell = (params = {}) =>
+  api.get('/brand-analytics/cross-sell', { params }).then(r => r.data);
+export const getDemographics = () =>
+  api.get('/brand-analytics/demographics').then(r => r.data);
+export const getItemComparison = (asin) =>
+  api.get('/brand-analytics/item-comparison', { params: { asin } }).then(r => r.data);
+
 export async function uploadBrandAnalyticsCsv(type, file, onProgress) {
   const res = await api.post(`/brand-analytics/upload?type=${type}`, file, {
     headers: { 'Content-Type': 'text/csv' },
