@@ -611,6 +611,18 @@ export const getBrandDominantKw      = (brand, limit)  => api.get('/brand-analyt
 export const getBrandWeakKw          = (brand, limit)  => api.get('/brand-analytics/weak-keywords',    { params: { brand, limit } }).then(r => r.data);
 export const refreshBrandAnalytics   = (brand)         => api.post('/brand-analytics/refresh', null,   { params: { brand } }).then(r => r.data);
 
+// API-fetched (DB-backed) Brand Analytics reports — replaces the manual CSV
+// flow. The fetcher worker runs daily per tier cadence; admins can also
+// trigger one explicitly from the UI.
+export const listBrandAnalyticsReports = (params = {}) =>
+  api.get('/brand-analytics/reports', { params }).then(r => r.data);
+
+export const getBrandAnalyticsReport = (id) =>
+  api.get(`/brand-analytics/reports/${id}`).then(r => r.data);
+
+export const triggerBrandAnalyticsFetch = ({ reportType, reportingPeriod, asins } = {}) =>
+  api.post('/brand-analytics/reports/refresh', { reportType, reportingPeriod, asins }).then(r => r.data);
+
 export async function uploadBrandAnalyticsCsv(type, file, onProgress) {
   const res = await api.post(`/brand-analytics/upload?type=${type}`, file, {
     headers: { 'Content-Type': 'text/csv' },

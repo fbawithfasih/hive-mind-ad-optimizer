@@ -7,12 +7,14 @@ import CompetitorsList       from './CompetitorsList.jsx';
 import OpportunityKeywords   from './OpportunityKeywords.jsx';
 import DominantKeywords      from './DominantKeywords.jsx';
 import UploadCSV             from './UploadCSV.jsx';
+import ReportsList           from './ReportsList.jsx';
 
 const TABS = [
   { id: 'overview',     label: 'Overview'     },
   { id: 'competitors',  label: 'Competitors'  },
   { id: 'opportunities',label: 'Opportunities'},
   { id: 'keywords',     label: 'Keywords'     },
+  { id: 'reports',      label: 'Reports'      },
   { id: 'upload',       label: 'Upload CSVs'  },
 ];
 
@@ -258,11 +260,15 @@ export default function BrandAnalyticsPanel() {
         />
       )}
 
+      {!loading && activeTab === 'reports' && (
+        <ReportsList />
+      )}
+
       {!loading && activeTab === 'upload' && (
         <UploadCSV brand={brandName} onRefreshNeeded={handleRefresh} />
       )}
 
-      {!loading && !hasData && activeTab !== 'upload' && !error && (
+      {!loading && !hasData && activeTab !== 'upload' && activeTab !== 'reports' && !error && (
         <div style={{ ...glass(), padding: '56px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center' }}>
           <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,rgba(139,92,246,0.15),rgba(59,130,246,0.15))', border: '1px solid rgba(139,92,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg style={{ width: 28, height: 28, opacity: 0.4 }} fill="none" stroke="#8B5CF6" viewBox="0 0 24 24">
