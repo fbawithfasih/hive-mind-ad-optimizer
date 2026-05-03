@@ -16,18 +16,18 @@ datasource db {
 // ============================================================================
 
 model User {
-  id                String      @id @default(cuid())
-  email             String      @unique
-  passwordHash      String?
-  googleId          String?     @unique
-  firstName         String?
-  lastName          String?
-  avatar            String?
-  emailVerified     Boolean     @default(false)
-  emailVerifiedAt   DateTime?
-  lastLogin         DateTime?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String?
+  googleId        String?   @unique
+  firstName       String?
+  lastName        String?
+  avatar          String?
+  emailVerified   Boolean   @default(false)
+  emailVerifiedAt DateTime?
+  lastLogin       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   // Relations
   orgMembers              OrgMember[]
@@ -41,30 +41,31 @@ model User {
 }
 
 model Organization {
-  id                String      @id @default(cuid())
-  name              String
-  slug              String      @unique
-  description       String?
-  logoUrl           String?
-  billingEmail      String?
-  tier              SubscriptionTier @default(BASIC)
-  billingStatus     BillingStatus @default(ACTIVE)
-  trialEndsAt       DateTime?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  id            String           @id @default(cuid())
+  name          String
+  slug          String           @unique
+  description   String?
+  logoUrl       String?
+  billingEmail  String?
+  tier          SubscriptionTier @default(BASIC)
+  billingStatus BillingStatus    @default(ACTIVE)
+  trialEndsAt   DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   // Relations
-  members           OrgMember[]
-  amazonCredentials AmazonCredential[]
-  sellerProfiles    SellerProfile[]
-  auditLogs         AuditLog[]
-  subscriptions     Subscription[]
-  usageMetrics      UsageMetric[]
-  listingOptimizations ListingOptimization[]
-  bulkListingBatches   BulkListingBatch[]
-  reportJobs        ReportJob[]
-  campaignRules     CampaignRule[]
-  campaignAlerts    CampaignAlert[]
+  members               OrgMember[]
+  amazonCredentials     AmazonCredential[]
+  sellerProfiles        SellerProfile[]
+  auditLogs             AuditLog[]
+  subscriptions         Subscription[]
+  usageMetrics          UsageMetric[]
+  listingOptimizations  ListingOptimization[]
+  bulkListingBatches    BulkListingBatch[]
+  reportJobs            ReportJob[]
+  campaignRules         CampaignRule[]
+  campaignAlerts        CampaignAlert[]
+  brandAnalyticsReports BrandAnalyticsReport[]
 
   @@index([slug])
   @@index([billingStatus])
@@ -72,17 +73,17 @@ model Organization {
 }
 
 model OrgMember {
-  id                String      @id @default(cuid())
-  orgId             String
-  userId            String
-  role              OrgRole     @default(MEMBER)
-  joinedAt          DateTime    @default(now())
-  invitedAt         DateTime?
-  invitedBy         String?
+  id        String    @id @default(cuid())
+  orgId     String
+  userId    String
+  role      OrgRole   @default(MEMBER)
+  joinedAt  DateTime  @default(now())
+  invitedAt DateTime?
+  invitedBy String?
 
   // Relations
-  org               Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([orgId, userId])
   @@index([orgId])
@@ -94,19 +95,19 @@ model OrgMember {
 // ============================================================================
 
 model AmazonCredential {
-  id                String      @id @default(cuid())
-  orgId             String
-  refreshToken      String      // Encrypted at rest
-  marketplaceId     String      @default("ATVPDKIKX0DER")
-  region            String      @default("NA")
-  connectedAt       DateTime    @default(now())
-  expiresAt         DateTime?
-  lastUsed          DateTime?
-  status            CredentialStatus @default(ACTIVE)
-  encryptedData     String?     // JSON blob for additional encrypted fields
+  id            String           @id @default(cuid())
+  orgId         String
+  refreshToken  String // Encrypted at rest
+  marketplaceId String           @default("ATVPDKIKX0DER")
+  region        String           @default("NA")
+  connectedAt   DateTime         @default(now())
+  expiresAt     DateTime?
+  lastUsed      DateTime?
+  status        CredentialStatus @default(ACTIVE)
+  encryptedData String? // JSON blob for additional encrypted fields
 
   // Relations
-  org               Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@unique([orgId, marketplaceId])
   @@index([orgId])
@@ -114,22 +115,22 @@ model AmazonCredential {
 }
 
 model SellerProfile {
-  id                String      @id @default(cuid())
-  orgId             String
-  profileId         String
-  profileName       String
-  accountId         String?
-  accountName       String?
-  countryCode       String
-  primaryCountry    String
-  merchantToken     String?     // Encrypted
-  isDefault         Boolean     @default(false)
-  lastSyncedAt      DateTime?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  id             String    @id @default(cuid())
+  orgId          String
+  profileId      String
+  profileName    String
+  accountId      String?
+  accountName    String?
+  countryCode    String
+  primaryCountry String
+  merchantToken  String? // Encrypted
+  isDefault      Boolean   @default(false)
+  lastSyncedAt   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   // Relations
-  org               Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@unique([orgId, profileId])
   @@index([orgId])
@@ -141,30 +142,30 @@ model SellerProfile {
 // ============================================================================
 
 model ListingOptimization {
-  id                String      @id @default(cuid())
-  orgId             String
-  batchId           String?     // Links to BulkListingBatch when created via bulk endpoint
-  asin              String
-  sku               String
-  originalTitle     String
-  optimizedTitle    String?
-  originalBullets   String[]
-  optimizedBullets  String[]
-  originalDescription String
-  optimizedDescription String?
+  id                      String             @id @default(cuid())
+  orgId                   String
+  batchId                 String? // Links to BulkListingBatch when created via bulk endpoint
+  asin                    String
+  sku                     String
+  originalTitle           String
+  optimizedTitle          String?
+  originalBullets         String[]
+  optimizedBullets        String[]
+  originalDescription     String
+  optimizedDescription    String?
   originalGenericKeyword  String?
   optimizedGenericKeyword String?
-  keywords          String[]
-  aiModel           String      @default("claude")
-  status            OptimizationStatus @default(PENDING)
-  errorMessage      String?
-  publishedAt       DateTime?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  keywords                String[]
+  aiModel                 String             @default("claude")
+  status                  OptimizationStatus @default(PENDING)
+  errorMessage            String?
+  publishedAt             DateTime?
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
 
   // Relations
-  org               Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  batch             BulkListingBatch? @relation(fields: [batchId], references: [id])
+  org   Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  batch BulkListingBatch? @relation(fields: [batchId], references: [id])
 
   @@index([orgId])
   @@index([batchId])
@@ -175,20 +176,20 @@ model ListingOptimization {
 }
 
 model BulkListingBatch {
-  id          String      @id @default(cuid())
-  orgId       String
-  batchRef    String      @unique  // Client-facing UUID (jobId equivalent)
-  total       Int
-  completed   Int         @default(0)
-  failed      Int         @default(0)
-  status      JobStatus   @default(PENDING)
-  model       String      @default("gemini")
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id        String    @id @default(cuid())
+  orgId     String
+  batchRef  String    @unique // Client-facing UUID (jobId equivalent)
+  total     Int
+  completed Int       @default(0)
+  failed    Int       @default(0)
+  status    JobStatus @default(PENDING)
+  model     String    @default("gemini")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   // Relations
-  org         Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  items       ListingOptimization[]
+  org   Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  items ListingOptimization[]
 
   @@index([orgId])
   @@index([batchRef])
@@ -200,25 +201,45 @@ model BulkListingBatch {
 // ============================================================================
 
 model ReportJob {
-  id                String      @id @default(cuid())
-  orgId             String
-  jobId             String      @unique
-  type              ReportType
-  status            JobStatus   @default(PENDING)
-  profileId         String?
-  dateFrom          DateTime
-  dateTo            DateTime
-  result            Json?       // Report data
-  errorMessage      String?
-  createdAt         DateTime    @default(now())
-  completedAt       DateTime?
+  id           String     @id @default(cuid())
+  orgId        String
+  jobId        String     @unique
+  type         ReportType
+  status       JobStatus  @default(PENDING)
+  profileId    String?
+  dateFrom     DateTime
+  dateTo       DateTime
+  result       Json? // Report data
+  errorMessage String?
+  createdAt    DateTime   @default(now())
+  completedAt  DateTime?
 
   // Relations
-  org               Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
   @@index([status])
   @@index([createdAt])
+}
+
+model BrandAnalyticsReport {
+  id              String                   @id @default(cuid())
+  orgId           String
+  reportType      BrandAnalyticsReportType
+  reportingPeriod String // 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
+  periodStart     DateTime
+  periodEnd       DateTime
+  amazonReportId  String? // SP-API reportDocumentId for traceability
+  status          JobStatus                @default(PENDING)
+  rawData         Json // parsed rows; shape matches existing CSV parser output
+  error           String?
+  fetchedAt       DateTime                 @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, reportType, periodStart, periodEnd])
+  @@index([orgId, reportType, periodEnd])
+  @@index([status])
 }
 
 // ============================================================================
@@ -226,22 +247,22 @@ model ReportJob {
 // ============================================================================
 
 model Subscription {
-  id                String      @id @default(cuid())
-  orgId             String      @unique
-  subscriptionId    String?     // Razorpay subscription ID (sub_xxx)
-  tier              SubscriptionTier
-  status            SubscriptionStatus @default(ACTIVE)
+  id                 String             @id @default(cuid())
+  orgId              String             @unique
+  subscriptionId     String? // Razorpay subscription ID (sub_xxx)
+  tier               SubscriptionTier
+  status             SubscriptionStatus @default(ACTIVE)
   currentPeriodStart DateTime
-  currentPeriodEnd  DateTime
-  renewalDate       DateTime
-  cancelledAt       DateTime?
-  cancelReason      String?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  currentPeriodEnd   DateTime
+  renewalDate        DateTime
+  cancelledAt        DateTime?
+  cancelReason       String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
   // Relations
-  org               Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  invoices          Invoice[]
+  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  invoices Invoice[]
 
   @@index([orgId])
   @@index([status])
@@ -249,34 +270,34 @@ model Subscription {
 }
 
 model Invoice {
-  id                String      @id @default(cuid())
+  id                String        @id @default(cuid())
   subscriptionId    String
-  externalInvoiceId String      @unique  // Razorpay payment ID (pay_xxx)
-  amount            Int         // in paise (smallest INR unit)
-  currency          String      @default("INR")
+  externalInvoiceId String        @unique // Razorpay payment ID (pay_xxx)
+  amount            Int // in paise (smallest INR unit)
+  currency          String        @default("INR")
   status            InvoiceStatus @default(DRAFT)
   paidAt            DateTime?
   dueDate           DateTime
-  createdAt         DateTime    @default(now())
+  createdAt         DateTime      @default(now())
 
   // Relations
-  subscription      Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@index([subscriptionId])
   @@index([status])
 }
 
 model UsageMetric {
-  id                String      @id @default(cuid())
+  id                String   @id @default(cuid())
   orgId             String
-  month             DateTime    // First day of month
-  listingsOptimized Int         @default(0)
-  apiCalls          Int         @default(0)
-  reportsGenerated  Int         @default(0)
-  bulkOperations    Int         @default(0)
+  month             DateTime // First day of month
+  listingsOptimized Int      @default(0)
+  apiCalls          Int      @default(0)
+  reportsGenerated  Int      @default(0)
+  bulkOperations    Int      @default(0)
 
   // Relations
-  org               Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@unique([orgId, month])
   @@index([orgId])
@@ -292,21 +313,21 @@ model CampaignRule {
   name         String
   profileId    String
   // Condition
-  metric       String    // acos | roas | ctr | spend | clicks | impressions
-  condition    String    // gt | lt | gte | lte
+  metric       String // acos | roas | ctr | spend | clicks | impressions
+  condition    String // gt | lt | gte | lte
   threshold    Float
   // Action
-  action       String    // increase_budget | decrease_budget | pause | enable
+  action       String // increase_budget | decrease_budget | pause | enable
   adjustment   Float     @default(10) // % for budget changes; ignored for pause/enable
   lookbackDays Int       @default(14)
   isActive     Boolean   @default(true)
-  schedule     String?   // null=manual | 'daily' | 'twice_daily' | 'weekly'
+  schedule     String? // null=manual | 'daily' | 'twice_daily' | 'weekly'
   lastRunAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  org          Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  executions   RuleExecution[]
+  org        Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  executions RuleExecution[]
 
   @@index([orgId])
   @@index([isActive])
@@ -317,13 +338,13 @@ model RuleExecution {
   id            String   @id @default(cuid())
   ruleId        String
   orgId         String
-  status        String   // success | partial | failed | skipped
+  status        String // success | partial | failed | skipped
   affectedCount Int      @default(0)
-  changes       Json?    // [{ campaignId, name, field, oldValue, newValue }]
+  changes       Json? // [{ campaignId, name, field, oldValue, newValue }]
   error         String?
   executedAt    DateTime @default(now())
 
-  rule          CampaignRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  rule CampaignRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
 
   @@index([ruleId])
   @@index([orgId])
@@ -335,15 +356,15 @@ model RuleExecution {
 // ============================================================================
 
 model CampaignAlert {
-  id          String   @id @default(cuid())
-  orgId       String
-  name        String
-  metric      String   // acos | spend | roas | ctr | clicks | impressions
-  condition   String   // gt | lt | gte | lte
-  threshold   Float
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  metric    String // acos | spend | roas | ctr | clicks | impressions
+  condition String // gt | lt | gte | lte
+  threshold Float
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   org   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   fires AlertFire[]
@@ -375,20 +396,20 @@ model AlertFire {
 // ============================================================================
 
 model AuditLog {
-  id                String      @id @default(cuid())
-  orgId             String
-  userId            String
-  action            String      // e.g., "listing_optimized", "credentials_updated"
-  resource          String      // e.g., "listing", "amazon_credential"
-  resourceId        String?
-  changes           Json?       // Before/after values
-  ipAddress         String?
-  userAgent         String?
-  createdAt         DateTime    @default(now())
+  id         String   @id @default(cuid())
+  orgId      String
+  userId     String
+  action     String // e.g., "listing_optimized", "credentials_updated"
+  resource   String // e.g., "listing", "amazon_credential"
+  resourceId String?
+  changes    Json? // Before/after values
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
 
   // Relations
-  org               Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
   @@index([userId])
@@ -397,16 +418,16 @@ model AuditLog {
 }
 
 model ApiKey {
-  id                String      @id @default(cuid())
-  userId            String
-  name              String
-  keyHash           String      @unique
-  lastUsed          DateTime?
-  revokedAt         DateTime?
-  createdAt         DateTime    @default(now())
+  id        String    @id @default(cuid())
+  userId    String
+  name      String
+  keyHash   String    @unique
+  lastUsed  DateTime?
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
 
   // Relations
-  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([keyHash])
@@ -419,7 +440,7 @@ model EmailVerificationToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([userId])
@@ -433,7 +454,7 @@ model PasswordResetToken {
   usedAt    DateTime?
   createdAt DateTime  @default(now())
 
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([userId])
@@ -507,4 +528,15 @@ enum ReportType {
   KEYWORD_ANALYSIS
   LISTING_HEALTH
   REVENUE_SUMMARY
+}
+
+enum BrandAnalyticsReportType {
+  SQP_BRAND
+  SQP_ASIN
+  TOP_SEARCH_TERMS
+  REPEAT_PURCHASE
+  MARKET_BASKET
+  ITEM_COMPARISON_ALT_PURCHASE
+  DEMOGRAPHICS
+  BRAND_CATALOG_PERFORMANCE
 }

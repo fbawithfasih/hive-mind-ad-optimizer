@@ -9,11 +9,13 @@ import routes from './api/routes/index.js';
 import { razorpayWebhookHandler } from './api/routes/billing.js';
 import { correlationIdMiddleware, createLogger } from './api/utils/logger.js';
 import { prisma } from './db/prisma.js';
-import { createReportingWorker, createBulkListingWorker, createTokenCleanupWorker, createAutomationWorker, tokenCleanupQueue, automationQueue, closeQueue } from './services/queue.js';
+import { createReportingWorker, createBulkListingWorker, createTokenCleanupWorker, createAutomationWorker, createBrandAnalyticsFetchWorker, tokenCleanupQueue, automationQueue, brandAnalyticsFetchQueue, closeQueue } from './services/queue.js';
 import { reportingProcessor }    from './workers/reporting.worker.js';
 import { bulkListingProcessor }  from './workers/bulk-listing.worker.js';
 import { tokenCleanupProcessor } from './workers/token-cleanup.worker.js';
 import { automationProcessor }   from './workers/automation.worker.js';
+import { brandAnalyticsFetchProcessor } from './workers/brand-analytics-fetch.worker.js';
+import { enqueueDailySweep as enqueueBaDailySweep } from './services/brand-analytics-scheduler.js';
 
 dotenv.config({ override: true });
 
@@ -198,6 +200,16 @@ const reportingWorker    = createReportingWorker(reportingProcessor);
 const bulkListingWorker  = createBulkListingWorker(bulkListingProcessor);
 const tokenCleanupWorker = createTokenCleanupWorker(tokenCleanupProcessor);
 const automationWorker   = createAutomationWorker(automationProcessor);
+const baFetchWorker      = createBrandAnalyticsFetchWorker(brandAnalyticsFetchProcessor);
+
+// Brand Analytics daily sweep — fan out fetch jobs to active orgs per tier cadence.
+// We use a tiny scheduler job (jobId-deduplicated) that calls enqueueDailySweep().
+const BA_SWEEP_QUEUE_JOB_NAME = 'ba-daily-sweep';
+brandAnalyticsFetchQueue.add(
+  BA_SWEEP_QUEUE_JOB_NAME,
+  { __sweep: true },
+  { repeat: { pattern: '15 3 * * *' }, jobId: 'ba:daily-sweep' },
+).catch((err) => logger.warn(`Could not schedule BA daily sweep: ${err.message}`));
 
 // Schedule automation rule sweeps (idempotent — BullMQ deduplicates by jobId)
 automationQueue.add('auto-morning', { slot: 'morning' }, {
@@ -228,6 +240,7 @@ async function shutdown(signal) {
     await bulkListingWorker.close();
     await tokenCleanupWorker.close();
     await automationWorker.close();
+    await baFetchWorker.close();
     await closeQueue();
     await prisma.$disconnect();
     logger.info('Shutdown complete');

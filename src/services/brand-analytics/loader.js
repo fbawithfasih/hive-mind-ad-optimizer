@@ -15,6 +15,7 @@ import {
   buildAIContext,
   computePeriodDeltas,
 } from './analytics.js';
+import { prisma } from '../../db/prisma.js';
 
 const BA_DATA_ROOT = join(process.cwd(), 'data', 'brand-analytics');
 
@@ -75,6 +76,121 @@ const PATTERNS = {
   tst:     /top.search.terms/i,
 };
 
+// ── DB-backed loader (preferred — fed by brand-analytics-fetch.worker) ────────
+
+async function latestReport(orgId, reportType) {
+  return prisma.brandAnalyticsReport.findFirst({
+    where: { orgId, reportType, status: 'COMPLETED' },
+    orderBy: { periodEnd: 'desc' },
+  });
+}
+
+/**
+ * Build the loader's full output shape from BrandAnalyticsReport rows.
+ * Returns null if the org has no completed reports yet (caller falls back to CSV).
+ */
+async function loadFromDb(orgId, brandName) {
+  const [sqp, prevSqp, cat, prevCat, tst] = await Promise.all([
+    latestReport(orgId, 'SQP_BRAND'),
+    prisma.brandAnalyticsReport.findFirst({
+      where: { orgId, reportType: 'SQP_BRAND', status: 'COMPLETED' },
+      orderBy: { periodEnd: 'desc' }, skip: 1,
+    }),
+    latestReport(orgId, 'BRAND_CATALOG_PERFORMANCE'),
+    prisma.brandAnalyticsReport.findFirst({
+      where: { orgId, reportType: 'BRAND_CATALOG_PERFORMANCE', status: 'COMPLETED' },
+      orderBy: { periodEnd: 'desc' }, skip: 1,
+    }),
+    latestReport(orgId, 'TOP_SEARCH_TERMS'),
+  ]);
+
+  if (!sqp || !cat || !tst) return null;
+
+  const sqpData     = sqp.rawData ?? [];
+  const catalogData = cat.rawData ?? [];
+  const tstRows     = tst.rawData ?? []; // [{ rank, searchTerm, top3 }]
+
+  // Re-create the same fan-out parseTopSearchTermsReport produces, but starting
+  // from already-parsed rows (no streaming/CSV needed).
+  const catalogASINs = catalogData.map(p => p.asin);
+  const sqpTerms     = sqpData
+    .filter(r => r.brandImpressions > 0)
+    .map(r => r.searchTerm.toLowerCase());
+  const sqpTermSet   = new Set(sqpTerms);
+
+  const relevantKeywords = [];
+  const competitorMap    = new Map();
+  const brandAppearances = [];
+  const brandSet         = new Set(catalogASINs.map(a => a.toUpperCase()));
+
+  for (const row of tstRows) {
+    const term = (row.searchTerm ?? '').toLowerCase();
+    if (!term || (sqpTermSet.size > 0 && !sqpTermSet.has(term))) continue;
+    const top3 = row.top3 ?? [];
+
+    for (const entry of top3) {
+      if (brandSet.has(entry.asin)) {
+        brandAppearances.push({ term, position: entry.position, clickShare: entry.clickShare, convShare: entry.convShare });
+        continue;
+      }
+      if (!competitorMap.has(entry.asin)) {
+        competitorMap.set(entry.asin, {
+          asin: entry.asin, titles: new Set(), appearances: 0,
+          keywords: [], totalClickShare: 0, totalConvShare: 0,
+        });
+      }
+      const comp = competitorMap.get(entry.asin);
+      if (entry.title) comp.titles.add(entry.title.slice(0, 100));
+      comp.appearances++;
+      comp.totalClickShare += entry.clickShare;
+      comp.totalConvShare  += entry.convShare;
+      comp.keywords.push({ term, clickShare: entry.clickShare, convShare: entry.convShare, position: entry.position });
+    }
+    relevantKeywords.push({ term, rank: row.rank, top3 });
+  }
+
+  const tstBrandASINs = identifyBrandASINs(relevantKeywords, brandName);
+  const brandASINs    = [...new Set([...catalogASINs, ...tstBrandASINs])];
+
+  const summary       = getBrandSummary(catalogData, sqpData);
+  const intelligence  = getCompetitorIntelligence(competitorMap, brandASINs);
+  const dominant      = getDominantKeywords(sqpData);
+  const weak          = getWeakKeywords(sqpData);
+  const opportunities = getOpportunityKeywords(sqpData, relevantKeywords, brandASINs);
+
+  let comparison = null;
+  if (prevSqp || prevCat) {
+    const prevSummary = getBrandSummary(prevCat?.rawData ?? [], prevSqp?.rawData ?? []);
+    comparison = {
+      deltas: computePeriodDeltas(summary, prevSummary, sqpData, prevSqp?.rawData ?? []),
+      previousPeriod: {
+        sqp: prevSqp ? { periodStart: prevSqp.periodStart, periodEnd: prevSqp.periodEnd } : null,
+        cat: prevCat ? { periodStart: prevCat.periodStart, periodEnd: prevCat.periodEnd } : null,
+      },
+    };
+  }
+
+  return {
+    brandName,
+    brandASINs,
+    summary,
+    intelligence,
+    dominant,
+    weak,
+    opportunities,
+    brandAppearances,
+    relevantKeywordCount: relevantKeywords.length,
+    comparison,
+    loadedAt: new Date().toISOString(),
+    source:   'db',
+    periods:  {
+      sqp: { periodStart: sqp.periodStart, periodEnd: sqp.periodEnd, fetchedAt: sqp.fetchedAt },
+      cat: { periodStart: cat.periodStart, periodEnd: cat.periodEnd, fetchedAt: cat.fetchedAt },
+      tst: { periodStart: tst.periodStart, periodEnd: tst.periodEnd, fetchedAt: tst.fetchedAt },
+    },
+  };
+}
+
 // ── Core loader ───────────────────────────────────────────────────────────────
 
 /**
@@ -87,6 +203,15 @@ export async function loadAnalytics(orgId, brandName, forceRefresh = false) {
   if (!forceRefresh) {
     const cached = getCache(orgId);
     if (cached) return cached.data;
+  }
+
+  // Prefer DB-backed (API-fetched) reports when available; fall back to
+  // legacy on-disk CSV uploads. This keeps existing tenants working while new
+  // tenants get fresh data via the scheduled fetcher.
+  const fromDb = await loadFromDb(orgId, brandName);
+  if (fromDb) {
+    setCache(orgId, fromDb);
+    return fromDb;
   }
 
   const dataDir = await resolveDataDir(orgId);
@@ -104,7 +229,7 @@ export async function loadAnalytics(orgId, brandName, forceRefresh = false) {
 
   if (missing.length) {
     throw Object.assign(
-      new Error(`Missing Brand Analytics CSV files: ${missing.join(', ')}. Upload them via POST /api/brand-analytics/upload.`),
+      new Error(`No Brand Analytics data found for this org. Either wait for the next scheduled fetch or upload CSVs via POST /api/brand-analytics/upload. Missing: ${missing.join(', ')}.`),
       { status: 404 }
     );
   }
@@ -182,13 +307,22 @@ export async function loadAnalytics(orgId, brandName, forceRefresh = false) {
  * org's own uploaded CSVs are used, preventing data bleed between tenants.
  */
 export async function getBrandAnalyticsContext(orgId, brandName) {
-  // Hard gate: only proceed if this org has its own data directory.
+  // Hard gate: only proceed if this org has data of its own — either a CSV
+  // upload directory OR at least one completed BrandAnalyticsReport row.
   const orgDir = join(BA_DATA_ROOT, orgId);
+  let hasOwnData = false;
   try {
     await readdir(orgDir);
-  } catch {
-    return null;
+    hasOwnData = true;
+  } catch { /* no dir */ }
+  if (!hasOwnData) {
+    const dbHit = await prisma.brandAnalyticsReport.findFirst({
+      where: { orgId, status: 'COMPLETED' },
+      select: { id: true },
+    });
+    if (dbHit) hasOwnData = true;
   }
+  if (!hasOwnData) return null;
 
   try {
     const d = await loadAnalytics(orgId, brandName);

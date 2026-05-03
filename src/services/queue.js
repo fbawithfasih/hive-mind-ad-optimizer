@@ -205,6 +205,44 @@ export function createAutomationWorker(processor) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Brand Analytics fetch queue — scheduled per-org SP-API report fetches
+// ─────────────────────────────────────────────────────────────────────────────
+
+const BA_FETCH_QUEUE_NAME = 'brand-analytics-fetch';
+
+export const brandAnalyticsFetchQueue = new Queue(BA_FETCH_QUEUE_NAME, {
+  connection: makeRedisConnection(),
+  defaultJobOptions: {
+    attempts:         5,                          // BA reports can take a while; tolerate transient failures
+    backoff:          { type: 'exponential', delay: 60_000 },
+    removeOnComplete: { count: 50 },
+    removeOnFail:     { count: 50 },
+  },
+});
+
+/**
+ * @param {Function} processor  - async (job) => void
+ * @returns {Worker}
+ */
+export function createBrandAnalyticsFetchWorker(processor) {
+  const worker = new Worker(BA_FETCH_QUEUE_NAME, processor, {
+    connection:  makeRedisConnection(),
+    concurrency: 2,   // SP-API rate-limits the Reports API tightly
+  });
+
+  worker.on('completed', (job) => {
+    logger.info(`BA fetch ${job.id} completed (${job.data.reportType} ${job.data.periodStart}→${job.data.periodEnd})`);
+  });
+
+  worker.on('failed', (job, err) => {
+    logger.error(`BA fetch ${job?.id} failed (attempt ${job?.attemptsMade}): ${err.message}`);
+  });
+
+  logger.info('Brand Analytics fetch worker started (concurrency=2)');
+  return worker;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Graceful shutdown
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -214,5 +252,6 @@ export async function closeQueue() {
     bulkListingQueue.close(),
     tokenCleanupQueue.close(),
     automationQueue.close(),
+    brandAnalyticsFetchQueue.close(),
   ]);
 }

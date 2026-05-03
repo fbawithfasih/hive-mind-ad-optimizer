@@ -3,6 +3,10 @@ import { join } from 'path';
 import { writeFile, mkdir } from 'fs/promises';
 import { loadAnalytics, clearCache } from '../../services/brand-analytics/loader.js';
 import { requireRole } from '../middleware/requireRole.js';
+import { prisma } from '../../db/prisma.js';
+import { brandAnalyticsFetchQueue } from '../../services/queue.js';
+import { cadenceForTier, previousClosedPeriod } from '../../services/brand-analytics-scheduler.js';
+import { listSupportedReportTypes } from '../../services/amazon-brand-analytics-api.js';
 
 const router = express.Router();
 
@@ -136,6 +140,112 @@ router.get('/market-share/:asin', async (req, res) => {
     const status = err.status ?? 500;
     console.error('[brand-analytics /market-share]', err.message);
     res.status(status).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/brand-analytics/reports?type=&from=&to=
+ * List Brand Analytics reports stored for this org. Filterable by report type
+ * and period date range. Returns metadata only (no rawData payload) for speed.
+ */
+router.get('/reports', async (req, res) => {
+  try {
+    const { type, from, to } = req.query;
+    const where = { orgId: req.tenant.orgId };
+    if (type) where.reportType = type;
+    if (from || to) {
+      where.periodEnd = {};
+      if (from) where.periodEnd.gte = new Date(from);
+      if (to)   where.periodEnd.lte = new Date(to);
+    }
+
+    const rows = await prisma.brandAnalyticsReport.findMany({
+      where,
+      orderBy: [{ reportType: 'asc' }, { periodEnd: 'desc' }],
+      select: {
+        id: true, reportType: true, reportingPeriod: true,
+        periodStart: true, periodEnd: true, status: true,
+        amazonReportId: true, error: true, fetchedAt: true,
+      },
+    });
+    res.json({ total: rows.length, reports: rows });
+  } catch (err) {
+    console.error('[brand-analytics /reports]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/brand-analytics/reports/:id
+ * Fetch the parsed rawData blob for a single report.
+ */
+router.get('/reports/:id', async (req, res) => {
+  try {
+    const row = await prisma.brandAnalyticsReport.findFirst({
+      where: { id: req.params.id, orgId: req.tenant.orgId },
+    });
+    if (!row) return res.status(404).json({ error: 'Report not found' });
+    res.json(row);
+  } catch (err) {
+    console.error('[brand-analytics /reports/:id]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/brand-analytics/reports/refresh — ADMIN only
+ * Manually enqueue a fetch for a specific report type. Body:
+ *   { reportType: string, reportingPeriod?: 'WEEKLY'|'MONTHLY'|'QUARTERLY' }
+ *
+ * If reportingPeriod is omitted we use the cadence appropriate to the org's tier.
+ * Subject to tier gating: BASIC tier may only request the 3 core reports.
+ */
+router.post('/reports/refresh', requireRole('ADMIN'), express.json(), async (req, res) => {
+  try {
+    const { reportType, reportingPeriod } = req.body ?? {};
+    if (!reportType || !listSupportedReportTypes().includes(reportType)) {
+      return res.status(400).json({
+        error: `reportType must be one of: ${listSupportedReportTypes().join(', ')}`,
+      });
+    }
+
+    const org = await prisma.organization.findUnique({
+      where: { id: req.tenant.orgId },
+      select: { tier: true },
+    });
+    const cad = cadenceForTier(org?.tier ?? 'BASIC');
+    if (!cad.reports.includes(reportType)) {
+      return res.status(403).json({
+        error: `Your subscription tier does not include the "${reportType}" report. Upgrade to PRO to access it.`,
+      });
+    }
+
+    const period = reportingPeriod ?? cad.reportingPeriod;
+    const { periodStart, periodEnd } = previousClosedPeriod(period);
+    const jobId = `ba:${req.tenant.orgId}:${reportType}:${periodStart.toISOString().slice(0,10)}:${periodEnd.toISOString().slice(0,10)}:manual`;
+
+    await brandAnalyticsFetchQueue.add(
+      'fetch',
+      {
+        orgId:           req.tenant.orgId,
+        reportType,
+        reportingPeriod: period,
+        periodStart:     periodStart.toISOString(),
+        periodEnd:       periodEnd.toISOString(),
+      },
+      { jobId },
+    );
+
+    res.json({
+      message:     'Fetch enqueued.',
+      reportType,
+      reportingPeriod: period,
+      periodStart, periodEnd,
+      jobId,
+    });
+  } catch (err) {
+    console.error('[brand-analytics /reports/refresh]', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
