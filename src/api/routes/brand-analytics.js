@@ -306,7 +306,10 @@ router.post('/reports/refresh', requireRole('ADMIN'), express.json(), async (req
         debug:           !!debug,
         asins:           Array.isArray(asins) ? asins : [],
       },
-      { jobId: debug ? `${jobId}-debug-${Date.now()}` : jobId },
+      // Manual refreshes always get a unique jobId suffix so a wedged or
+      // retrying canonical job can never block the user's explicit action.
+      // The DB row is still keyed on (orgId, type, period) and dedup'd by upsert.
+      { jobId: `${jobId}-${Date.now()}${debug ? '-debug' : ''}` },
     );
 
     res.json({

@@ -432,18 +432,21 @@ export function createSpApiClient({
             marketplaceIds:  marketplaceId,
             identifiers:     batch.join(','),
             identifiersType: 'ASIN',
-            includedData:    'summaries',
+            // classifications is its own top-level inclusion, not nested in summaries.
+            includedData:    'summaries,classifications',
           },
           headers: spHeaders(token),
         });
         for (const item of res.data?.items ?? []) {
           const summary = item.summaries?.find(s => s.marketplaceId === marketplaceId) ?? item.summaries?.[0];
+          // classifications: [{marketplaceId, classifications:[{displayName, classificationId, parent:{...}}]}]
+          // Newer responses sometimes flatten as classifications:[{displayName,...}].
+          const classifEntry = item.classifications?.find(c => c.marketplaceId === marketplaceId) ?? item.classifications?.[0];
+          const classifList  = classifEntry?.classifications ?? (Array.isArray(classifEntry) ? classifEntry : []);
           map.set(item.asin?.toUpperCase(), {
             asin:        item.asin?.toUpperCase(),
             title:       summary?.itemName ?? '',
-            // Catalog Items returns a list of classifications; the first
-            // entry's displayName is the most specific browse-node category.
-            category:    summary?.classifications?.[0]?.displayName ?? '',
+            category:    classifList?.[0]?.displayName ?? '',
             productType: summary?.productType ?? '',
             brand:       summary?.brandName ?? '',
           });
