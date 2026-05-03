@@ -252,22 +252,40 @@ function normaliseSqp(payload) {
 }
 
 function normaliseCatalog(payload) {
+  // Verified shape (2026-05): { dataByAsin: [{ asin, impressionData, clickData,
+  // cartAddData, purchaseData, startDate, endDate }, ...] }. Every metric is
+  // wrapped under a *Data sub-object; medians/sales are { amount, currencyCode }
+  // objects that may be null when the bucket is empty.
   const rows = payload?.dataByAsin ?? payload?.rows ?? payload?.data ?? [];
   return rows.map(r => {
-    const impressions = num(r.impressions?.impressions ?? r.impressions);
-    const clicks      = num(r.clicks?.clicks ?? r.clicks);
-    const purchases   = num(r.purchases?.purchases ?? r.purchases);
+    const impressions = num(r.impressionData?.impressionCount ?? r.impressions?.impressions ?? r.impressions);
+    const clicks      = num(r.clickData?.clickCount         ?? r.clicks?.clicks           ?? r.clicks);
+    const cartAdds    = num(r.cartAddData?.cartAddCount     ?? r.cartAdds?.cartAdds       ?? r.cartAdds);
+    const purchases   = num(r.purchaseData?.purchaseCount   ?? r.purchases?.purchases     ?? r.purchases);
+    const revenue     = num(r.purchaseData?.searchTrafficSales?.amount ?? r.purchases?.searchTrafficSales ?? r.revenue);
+    // Amazon returns conversionRate as a 0-1 fraction; convert to percent for
+    // the rest of the pipeline (existing CSV parser emits percent).
+    const convRateFraction = r.purchaseData?.conversionRate;
+    const convRate = convRateFraction != null
+      ? Math.round(num(convRateFraction) * 10000) / 100
+      : (clicks ? Math.round((purchases / clicks) * 10000) / 100 : 0);
+    const price = num(
+      r.impressionData?.impressionMedianPrice?.amount
+      ?? r.purchaseData?.purchaseMedianPrice?.amount
+      ?? r.clickData?.clickedMedianPrice?.amount
+      ?? r.impressions?.priceMedian
+    );
     return {
-      asin:        str(r.asin ?? r.childAsin).toUpperCase(),
-      title:       str(r.asinTitle ?? r.productTitle ?? r.title),
-      category:    str(r.category ?? r.department),
-      impressions, clicks,
-      cartAdds:    num(r.cartAdds?.cartAdds ?? r.cartAdds),
-      purchases,
-      revenue:     num(r.purchases?.searchTrafficSales ?? r.revenue),
-      convRate:    num(r.purchases?.conversionRate ?? (clicks ? purchases/clicks*100 : 0)),
-      rating:      num(r.impressions?.ratingMedian ?? r.rating),
-      price:       num(r.impressions?.priceMedian ?? r.price),
+      asin:     str(r.asin ?? r.childAsin).toUpperCase(),
+      // Title/category aren't returned by this BA report — leave empty so
+      // downstream consumers can decide whether to enrich via Catalog Items.
+      title:    str(r.asinTitle ?? r.productTitle ?? r.title),
+      category: str(r.category ?? r.department),
+      impressions, clicks, cartAdds, purchases,
+      revenue,
+      convRate,
+      rating:   num(r.rating),
+      price,
     };
   });
 }
