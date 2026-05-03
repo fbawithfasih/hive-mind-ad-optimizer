@@ -7,6 +7,12 @@ import { prisma } from '../../db/prisma.js';
 import { brandAnalyticsFetchQueue } from '../../services/queue.js';
 import { cadenceForTier, previousClosedPeriod } from '../../services/brand-analytics-scheduler.js';
 import { listSupportedReportTypes } from '../../services/amazon-brand-analytics-api.js';
+import {
+  getCustomerRetention,
+  getMarketBasket,
+  getDemographics,
+  getItemComparison,
+} from '../../services/brand-analytics/insights.js';
 
 const router = express.Router();
 
@@ -140,6 +146,64 @@ router.get('/market-share/:asin', async (req, res) => {
     const status = err.status ?? 500;
     console.error('[brand-analytics /market-share]', err.message);
     res.status(status).json({ error: err.message });
+  }
+});
+
+// ─── Insight surfaces backed by the new Brand Analytics report types ─────────
+
+/**
+ * GET /api/brand-analytics/customer-retention?minRepeatRate=
+ * Repeat-purchase view: per-ASIN retention rate, subscribe-and-save candidates.
+ */
+router.get('/customer-retention', async (req, res) => {
+  try {
+    const minRepeatRate = req.query.minRepeatRate ? Number(req.query.minRepeatRate) : 0;
+    const data = await getCustomerRetention(req.tenant.orgId, { minRepeatRate });
+    res.json(data);
+  } catch (err) {
+    res.status(err.status ?? 500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/brand-analytics/cross-sell?asin=&limit=
+ * Market-basket pairs ranked by combination index. Omit `asin` for the full set.
+ */
+router.get('/cross-sell', async (req, res) => {
+  try {
+    const data = await getMarketBasket(req.tenant.orgId, {
+      anchorAsin: req.query.asin ?? null,
+      limit:      Math.min(Number(req.query.limit) || 50, 200),
+    });
+    res.json(data);
+  } catch (err) {
+    res.status(err.status ?? 500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/brand-analytics/demographics
+ * Age / gender / income / education / marital-status share of purchases.
+ */
+router.get('/demographics', async (req, res) => {
+  try {
+    const data = await getDemographics(req.tenant.orgId);
+    res.json(data);
+  } catch (err) {
+    res.status(err.status ?? 500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/brand-analytics/item-comparison?asin=
+ * Alternate ASINs viewed-instead and bought-instead — defensive ad targeting.
+ */
+router.get('/item-comparison', async (req, res) => {
+  try {
+    const data = await getItemComparison(req.tenant.orgId, req.query.asin);
+    res.json(data);
+  } catch (err) {
+    res.status(err.status ?? 500).json({ error: err.message });
   }
 });
 
