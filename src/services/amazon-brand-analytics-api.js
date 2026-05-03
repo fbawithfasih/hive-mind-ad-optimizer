@@ -11,7 +11,10 @@
  */
 
 import axios from 'axios';
-import { gunzipSync } from 'zlib';
+import { gunzipSync, createGunzip } from 'zlib';
+import jsonParser from 'stream-json';
+import streamArrayMod from 'stream-json/streamers/stream-array.js';
+import pickMod from 'stream-json/filters/pick.js';
 import { getOrCreateTokenManager } from './auth-utils.js';
 
 // Same EU/FE marketplace mapping as amazon-sp-api.js
@@ -198,28 +201,84 @@ export function createBrandAnalyticsClient({
    * returned as JSON (not CSV) when fetched via the Reports API — the parser
    * here normalises that JSON into the same row shape the CSV parsers emit.
    *
-   * When `raw` is true, the unparsed JSON object is returned instead of the
-   * row-flattened normalised shape. Used by the debug capture path to inspect
-   * Amazon's actual field names before tightening the normalisers.
+   * Top Search Terms reports can exceed 470MB uncompressed, blowing past V8's
+   * 536MB max string length. For those we stream the gzip → JSON-parser pipe
+   * row-by-row instead of buffering the whole payload.
+   *
+   * When `raw` is true, returns a sampled snapshot of the payload (debug mode).
    */
   async function downloadReport(reportDocumentId, logicalType, { raw = false } = {}) {
     const token = await getToken();
     const d = await axios.get(`${SP_BASE}/reports/2021-06-30/documents/${reportDocumentId}`, {
       headers: headers(token),
     });
+
+    const isGzip = d.data.compressionAlgorithm === 'GZIP';
+    const arrayKey = TOP_LEVEL_ARRAY_KEY[logicalType];
+
+    // Stream path — required for Top Search Terms (massive payload). Used only
+    // for production normalisation; debug capture still buffers (it produces a
+    // small sample so memory isn't a concern, and it needs the surrounding
+    // metadata that the streaming path discards).
+    if (!raw && arrayKey && logicalType === 'TOP_SEARCH_TERMS') {
+      return streamAndNormalise(d.data.url, isGzip, arrayKey, logicalType);
+    }
+
+    // Buffer path — fine for Catalog/SQP/Repeat-Purchase/Market-Basket whose
+    // payloads stay well under the V8 string limit.
     const dl = await axios.get(d.data.url, { responseType: 'arraybuffer' });
     const buf = Buffer.from(dl.data);
-    const text = d.data.compressionAlgorithm === 'GZIP' ? gunzipSync(buf).toString() : buf.toString();
+    const text = isGzip ? gunzipSync(buf).toString() : buf.toString();
     const payload = JSON.parse(text);
-    if (raw) {
-      // Strip giant arrays down to a sample so the debug payload fits in DB
-      // and stays readable. Keeps the full key shape at top level.
-      return debugSamplePayload(payload);
-    }
+    if (raw) return debugSamplePayload(payload);
     return normaliseReport(logicalType, payload);
   }
 
   return { createReport, getReportStatus, downloadReport };
+}
+
+/**
+ * Top-level array key per report type — needed by the streaming JSON parser
+ * to drill down without holding the whole document in memory.
+ */
+const TOP_LEVEL_ARRAY_KEY = {
+  TOP_SEARCH_TERMS:          'dataByDepartmentAndSearchTerm',
+  SQP_BRAND:                 'dataByDepartmentAndSearchTerm',
+  SQP_ASIN:                  'dataByDepartmentAndSearchTerm',
+  BRAND_CATALOG_PERFORMANCE: 'dataByAsin',
+  REPEAT_PURCHASE:           'dataByAsin',
+  MARKET_BASKET:             'dataByAsin',
+};
+
+/**
+ * Stream the report document, parse JSON incrementally, normalise each row,
+ * and return the accumulated normalised array. Memory footprint scales with
+ * post-normalisation output size, not the raw download size.
+ */
+async function streamAndNormalise(url, isGzip, arrayKey, logicalType) {
+  const response = await axios.get(url, { responseType: 'stream' });
+  const rowNormaliser = STREAM_ROW_NORMALISERS[logicalType];
+  if (!rowNormaliser) {
+    throw new Error(`No streaming row normaliser registered for ${logicalType}`);
+  }
+
+  return new Promise((resolve, reject) => {
+    const rows = [];
+    let stream = response.data;
+    if (isGzip) stream = stream.pipe(createGunzip());
+    const out = stream
+      .pipe(jsonParser())
+      .pipe(pickMod.asStream({ filter: arrayKey }))
+      .pipe(streamArrayMod.asStream());
+    out.on('data', ({ value }) => {
+      const row = rowNormaliser(value);
+      if (row) rows.push(row);
+    });
+    out.on('end',   () => resolve(rows));
+    out.on('error', reject);
+    stream.on('error', reject);
+    response.data.on('error', reject);
+  });
 }
 
 /**
@@ -343,7 +402,12 @@ function normaliseTopSearchTerms(payload) {
   // relevantKeywords/competitors/brandAppearances happens in the loader,
   // because that step needs orgId-specific brand ASINs as input.
   const rows = payload?.dataByDepartmentAndSearchTerm ?? payload?.rows ?? payload?.data ?? [];
-  return rows.map(r => ({
+  return rows.map(normaliseTopSearchTermsRow).filter(Boolean);
+}
+
+function normaliseTopSearchTermsRow(r) {
+  if (!r) return null;
+  return {
     rank:       num(r.searchFrequencyRank ?? r.rank),
     searchTerm: str(r.searchTerm ?? r.searchQuery),
     top3: [
@@ -351,5 +415,10 @@ function normaliseTopSearchTerms(payload) {
       { asin: str(r.topClickedProduct2?.asin).toUpperCase(),  title: str(r.topClickedProduct2?.title), clickShare: num(r.topClickedProduct2?.clickShare),  convShare: num(r.topClickedProduct2?.conversionShare),  position: 2 },
       { asin: str(r.topClickedProduct3?.asin).toUpperCase(),  title: str(r.topClickedProduct3?.title), clickShare: num(r.topClickedProduct3?.clickShare),  convShare: num(r.topClickedProduct3?.conversionShare),  position: 3 },
     ].filter(e => e.asin && e.asin.length >= 10),
-  }));
+  };
 }
+
+// Maps logical type → per-row normaliser used by streamAndNormalise.
+const STREAM_ROW_NORMALISERS = {
+  TOP_SEARCH_TERMS: normaliseTopSearchTermsRow,
+};
