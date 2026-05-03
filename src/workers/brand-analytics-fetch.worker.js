@@ -20,6 +20,7 @@
 
 import { loadOrgCredential } from '../services/credentials.js';
 import { createBrandAnalyticsClient } from '../services/amazon-brand-analytics-api.js';
+import { createSpApiClient } from '../services/amazon-sp-api.js';
 import { prisma } from '../db/prisma.js';
 import { clearCache } from '../services/brand-analytics/loader.js';
 import { enqueueDailySweep } from '../services/brand-analytics-scheduler.js';
@@ -92,7 +93,42 @@ export async function brandAnalyticsFetchProcessor(job) {
     }
     if (!documentId) throw new Error(`Report ${reportId} did not complete within ${POLL_MAX_ATTEMPTS * POLL_INTERVAL_MS / 1000}s`);
 
-    const rawData = await client.downloadReport(documentId, reportType, { raw: !!debug });
+    let rawData = await client.downloadReport(documentId, reportType, { raw: !!debug });
+
+    // Catalog enrichment: BA reports identify ASINs but never carry titles or
+    // categories. Fetch them in batch from Catalog Items and merge — only for
+    // BRAND_CATALOG_PERFORMANCE in normal (non-debug) mode where rawData is a
+    // flat array of {asin, ...} rows.
+    if (!debug && reportType === 'BRAND_CATALOG_PERFORMANCE' && Array.isArray(rawData) && rawData.length) {
+      try {
+        const spClient = createSpApiClient({
+          clientId:      cred.spClientId,
+          clientSecret:  cred.spClientSecret,
+          refreshToken:  cred.spRefreshToken,
+          sellerId:      cred.sellerId,
+          marketplaceId: cred.marketplaceId,
+          cacheKey:      `sp:${orgId}`,
+        });
+        const asinsToEnrich = [...new Set(rawData.map(r => r.asin).filter(Boolean))];
+        const catalog = await spClient.getCatalogItemsByAsins(asinsToEnrich);
+        let enriched = 0;
+        rawData = rawData.map(r => {
+          const meta = catalog.get(r.asin);
+          if (!meta) return r;
+          enriched++;
+          return {
+            ...r,
+            title:    r.title    || meta.title,
+            category: r.category || meta.category,
+          };
+        });
+        logger.info(`BA enrichment — ${tag}: ${enriched}/${asinsToEnrich.length} ASINs enriched`);
+      } catch (err) {
+        // Enrichment is best-effort — never fail the whole report on a Catalog
+        // Items glitch. The base BA data is still valuable.
+        logger.warn(`BA enrichment skipped — ${tag}: ${err.message}`);
+      }
+    }
 
     await prisma.brandAnalyticsReport.update({
       where: { id: row.id },

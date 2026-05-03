@@ -408,11 +408,62 @@ export function createSpApiClient({
     return { status: 'COMPLETED', totalSales, currency, days: rows.length };
   }
 
+  /**
+   * Batch-fetch catalog metadata (title, category, productType) for up to
+   * many ASINs at once. Internally chunks into 20-ASIN batches because the
+   * Catalog Items API caps each request at 20 identifiers.
+   *
+   * @param {string[]} asins
+   * @returns {Promise<Map<string, { asin, title, category, productType }>>}
+   */
+  async function getCatalogItemsByAsins(asins) {
+    const map = new Map();
+    if (!Array.isArray(asins) || asins.length === 0) return map;
+
+    const unique = [...new Set(asins.map(a => a.toUpperCase()).filter(Boolean))];
+    const CHUNK = 20;
+    const token = await getSPToken();
+
+    for (let i = 0; i < unique.length; i += CHUNK) {
+      const batch = unique.slice(i, i + CHUNK);
+      try {
+        const res = await axios.get(`${SP_BASE}/catalog/2022-04-01/items`, {
+          params: {
+            marketplaceIds:  marketplaceId,
+            identifiers:     batch.join(','),
+            identifiersType: 'ASIN',
+            includedData:    'summaries',
+          },
+          headers: spHeaders(token),
+        });
+        for (const item of res.data?.items ?? []) {
+          const summary = item.summaries?.find(s => s.marketplaceId === marketplaceId) ?? item.summaries?.[0];
+          map.set(item.asin?.toUpperCase(), {
+            asin:        item.asin?.toUpperCase(),
+            title:       summary?.itemName ?? '',
+            // Catalog Items returns a list of classifications; the first
+            // entry's displayName is the most specific browse-node category.
+            category:    summary?.classifications?.[0]?.displayName ?? '',
+            productType: summary?.productType ?? '',
+            brand:       summary?.brandName ?? '',
+          });
+        }
+      } catch (err) {
+        const status = err.response?.status;
+        const msg    = err.response?.data?.errors?.[0]?.message ?? err.message;
+        console.warn(`[catalog-items] batch ${i / CHUNK + 1} failed [${status}]: ${msg}`);
+        // Continue with other batches — partial enrichment is still useful.
+      }
+    }
+    return map;
+  }
+
   return {
     getProductBySku,
     getProductByAsin,
     updateListingBySku,
     getProductTypeByAsin,
+    getCatalogItemsByAsins,
     startSalesAndTrafficReport,
     pollSalesAndTrafficReport,
   };
