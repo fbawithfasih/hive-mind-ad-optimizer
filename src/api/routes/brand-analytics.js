@@ -266,7 +266,7 @@ router.get('/reports/:id', async (req, res) => {
  */
 router.post('/reports/refresh', requireRole('ADMIN'), express.json(), async (req, res) => {
   try {
-    const { reportType, reportingPeriod } = req.body ?? {};
+    const { reportType, reportingPeriod, debug } = req.body ?? {};
     if (!reportType || !listSupportedReportTypes().includes(reportType)) {
       return res.status(400).json({
         error: `reportType must be one of: ${listSupportedReportTypes().join(', ')}`,
@@ -296,8 +296,9 @@ router.post('/reports/refresh', requireRole('ADMIN'), express.json(), async (req
         reportingPeriod: period,
         periodStart:     periodStart.toISOString(),
         periodEnd:       periodEnd.toISOString(),
+        debug:           !!debug,
       },
-      { jobId },
+      { jobId: debug ? `${jobId}-debug-${Date.now()}` : jobId },
     );
 
     res.json({

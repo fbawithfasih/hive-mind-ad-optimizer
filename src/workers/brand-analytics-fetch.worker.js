@@ -39,7 +39,7 @@ export async function brandAnalyticsFetchProcessor(job) {
   if (job.data?.__sweep) {
     return enqueueDailySweep();
   }
-  const { orgId, reportType, reportingPeriod, periodStart, periodEnd } = job.data;
+  const { orgId, reportType, reportingPeriod, periodStart, periodEnd, debug } = job.data;
   const tag = `org=${orgId} type=${reportType} period=${periodStart}→${periodEnd}`;
 
   // Upsert PENDING/FETCHING row first so the UI can show progress
@@ -91,7 +91,7 @@ export async function brandAnalyticsFetchProcessor(job) {
     }
     if (!documentId) throw new Error(`Report ${reportId} did not complete within ${POLL_MAX_ATTEMPTS * POLL_INTERVAL_MS / 1000}s`);
 
-    const rawData = await client.downloadReport(documentId, reportType);
+    const rawData = await client.downloadReport(documentId, reportType, { raw: !!debug });
 
     await prisma.brandAnalyticsReport.update({
       where: { id: row.id },

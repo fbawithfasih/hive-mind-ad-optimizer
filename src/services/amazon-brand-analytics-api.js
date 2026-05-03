@@ -149,8 +149,12 @@ export function createBrandAnalyticsClient({
    * Download and parse the report document. Brand Analytics reports are
    * returned as JSON (not CSV) when fetched via the Reports API — the parser
    * here normalises that JSON into the same row shape the CSV parsers emit.
+   *
+   * When `raw` is true, the unparsed JSON object is returned instead of the
+   * row-flattened normalised shape. Used by the debug capture path to inspect
+   * Amazon's actual field names before tightening the normalisers.
    */
-  async function downloadReport(reportDocumentId, logicalType) {
+  async function downloadReport(reportDocumentId, logicalType, { raw = false } = {}) {
     const token = await getToken();
     const d = await axios.get(`${SP_BASE}/reports/2021-06-30/documents/${reportDocumentId}`, {
       headers: headers(token),
@@ -159,10 +163,38 @@ export function createBrandAnalyticsClient({
     const buf = Buffer.from(dl.data);
     const text = d.data.compressionAlgorithm === 'GZIP' ? gunzipSync(buf).toString() : buf.toString();
     const payload = JSON.parse(text);
+    if (raw) {
+      // Strip giant arrays down to a sample so the debug payload fits in DB
+      // and stays readable. Keeps the full key shape at top level.
+      return debugSamplePayload(payload);
+    }
     return normaliseReport(logicalType, payload);
   }
 
   return { createReport, getReportStatus, downloadReport };
+}
+
+/**
+ * Produce a small, key-preserving sample of an arbitrary BA payload —
+ * keeps top-level shape, replaces any array > 5 entries with [first 3, '…', last 1]
+ * so we can see what Amazon actually returns without persisting megabytes.
+ */
+function debugSamplePayload(p, depth = 0) {
+  if (depth > 6) return '[...truncated depth]';
+  if (Array.isArray(p)) {
+    if (p.length <= 5) return p.map(x => debugSamplePayload(x, depth + 1));
+    return [
+      ...p.slice(0, 3).map(x => debugSamplePayload(x, depth + 1)),
+      `… (${p.length - 4} more rows omitted)`,
+      debugSamplePayload(p[p.length - 1], depth + 1),
+    ];
+  }
+  if (p && typeof p === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(p)) out[k] = debugSamplePayload(v, depth + 1);
+    return out;
+  }
+  return p;
 }
 
 // ─── Normalisers — JSON shape from Reports API → row shape from CSV parsers ───
