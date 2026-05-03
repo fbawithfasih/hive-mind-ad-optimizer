@@ -286,7 +286,7 @@ router.post('/reports/refresh', requireRole('ADMIN'), express.json(), async (req
 
     const period = reportingPeriod ?? cad.reportingPeriod;
     const { periodStart, periodEnd } = previousClosedPeriod(period);
-    const jobId = `ba:${req.tenant.orgId}:${reportType}:${periodStart.toISOString().slice(0,10)}:${periodEnd.toISOString().slice(0,10)}:manual`;
+    const jobId = `ba-${req.tenant.orgId}-${reportType}-${periodStart.toISOString().slice(0,10)}-${periodEnd.toISOString().slice(0,10)}-manual`;
 
     await brandAnalyticsFetchQueue.add(
       'fetch',

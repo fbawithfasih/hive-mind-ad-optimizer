@@ -208,7 +208,7 @@ const BA_SWEEP_QUEUE_JOB_NAME = 'ba-daily-sweep';
 brandAnalyticsFetchQueue.add(
   BA_SWEEP_QUEUE_JOB_NAME,
   { __sweep: true },
-  { repeat: { pattern: '15 3 * * *' }, jobId: 'ba:daily-sweep' },
+  { repeat: { pattern: '15 3 * * *' }, jobId: 'ba-daily-sweep' },
 ).catch((err) => logger.warn(`Could not schedule BA daily sweep: ${err.message}`));
 
 // Schedule automation rule sweeps (idempotent — BullMQ deduplicates by jobId)

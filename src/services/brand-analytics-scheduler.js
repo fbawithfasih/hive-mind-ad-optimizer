@@ -92,7 +92,7 @@ export async function enqueueDailySweep() {
       });
       if (existing && existing.status === 'COMPLETED') continue;
 
-      const jobId = `ba:${org.id}:${reportType}:${periodStart.toISOString().slice(0,10)}:${periodEnd.toISOString().slice(0,10)}`;
+      const jobId = `ba-${org.id}-${reportType}-${periodStart.toISOString().slice(0,10)}-${periodEnd.toISOString().slice(0,10)}`;
       await brandAnalyticsFetchQueue.add(
         'fetch',
         {
