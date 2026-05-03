@@ -128,15 +128,32 @@ export default function UploadCSV({ brand, onRefreshNeeded }) {
   }
 
   return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* ── Recommended-path callout ── */}
+      <div style={{
+        background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.18)', borderRadius: 12,
+        padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 12,
+      }}>
+        <span style={{ fontSize: 18, lineHeight: 1.2, flexShrink: 0 }}>✨</span>
+        <div style={{ flex: 1 }}>
+          <p style={{ margin: 0, fontSize: 12.5, color: '#34D399', fontWeight: 700 }}>
+            Auto-fetch is now the recommended path
+          </p>
+          <p style={{ margin: '4px 0 0', fontSize: 11.5, color: '#94A3B8', lineHeight: 1.5 }}>
+            If your seller account has Brand Registry + SP-API access, the Reports tab pulls these reports automatically on a tier-based schedule — no manual exports needed. Use this CSV upload only as a fallback when API access isn't available.
+          </p>
+        </div>
+      </div>
+
     <div style={{ ...glass('rgba(255,255,255,0.06)'), padding: '22px 24px' }}>
       <GradientBar top="linear-gradient(90deg,#8B5CF6,#3B82F6,#10B981)" />
       <GlowBlob color="rgba(139,92,246,0.12)" />
       <div style={{ position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <div>
-            <p style={{ fontSize: 11, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>Upload Brand Analytics CSVs</p>
+            <p style={{ fontSize: 11, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>Manual CSV upload (fallback)</p>
             <p style={{ fontSize: 11, color: '#475569', margin: '3px 0 0' }}>
-              Download reports from Amazon Seller Central → Brand Analytics → Search Analytics
+              Download from Seller Central → Brand Analytics → Search Analytics, then drop the files here
             </p>
           </div>
         </div>
@@ -170,6 +187,7 @@ export default function UploadCSV({ brand, onRefreshNeeded }) {
           <strong style={{ color: '#60A5FA' }}>How to get these reports:</strong> Seller Central → Brand Analytics → Search Analytics → Select your brand → Download quarterly CSVs. The Top Search Terms file can exceed 400 MB — that's normal. First load will take 30–60 seconds while the backend streams it.
         </div>
       </div>
+    </div>
     </div>
   );
 }
