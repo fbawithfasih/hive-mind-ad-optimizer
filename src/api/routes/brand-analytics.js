@@ -6,7 +6,7 @@ import { requireRole } from '../middleware/requireRole.js';
 import { prisma } from '../../db/prisma.js';
 import { brandAnalyticsFetchQueue } from '../../services/queue.js';
 import { cadenceForTier, previousClosedPeriod } from '../../services/brand-analytics-scheduler.js';
-import { listSupportedReportTypes } from '../../services/amazon-brand-analytics-api.js';
+import { listSupportedReportTypes, listApiAvailableReportTypes, reportTypeRequiresAsin } from '../../services/amazon-brand-analytics-api.js';
 import {
   getCustomerRetention,
   getMarketBasket,
@@ -266,10 +266,17 @@ router.get('/reports/:id', async (req, res) => {
  */
 router.post('/reports/refresh', requireRole('ADMIN'), express.json(), async (req, res) => {
   try {
-    const { reportType, reportingPeriod, debug } = req.body ?? {};
-    if (!reportType || !listSupportedReportTypes().includes(reportType)) {
+    const { reportType, reportingPeriod, debug, asins } = req.body ?? {};
+    const apiTypes = listApiAvailableReportTypes();
+    if (!reportType || !apiTypes.includes(reportType)) {
       return res.status(400).json({
-        error: `reportType must be one of: ${listSupportedReportTypes().join(', ')}`,
+        error: `reportType must be one of: ${apiTypes.join(', ')}`,
+        unsupported: listSupportedReportTypes().filter(t => !apiTypes.includes(t)),
+      });
+    }
+    if (reportTypeRequiresAsin(reportType) && (!Array.isArray(asins) || asins.length === 0)) {
+      return res.status(400).json({
+        error: `${reportType} requires an "asins" array (space-separated, ≤200 chars total).`,
       });
     }
 
@@ -297,6 +304,7 @@ router.post('/reports/refresh', requireRole('ADMIN'), express.json(), async (req
         periodStart:     periodStart.toISOString(),
         periodEnd:       periodEnd.toISOString(),
         debug:           !!debug,
+        asins:           Array.isArray(asins) ? asins : [],
       },
       { jobId: debug ? `${jobId}-debug-${Date.now()}` : jobId },
     );

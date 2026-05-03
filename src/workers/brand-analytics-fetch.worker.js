@@ -39,7 +39,7 @@ export async function brandAnalyticsFetchProcessor(job) {
   if (job.data?.__sweep) {
     return enqueueDailySweep();
   }
-  const { orgId, reportType, reportingPeriod, periodStart, periodEnd, debug } = job.data;
+  const { orgId, reportType, reportingPeriod, periodStart, periodEnd, debug, asins = [] } = job.data;
   const tag = `org=${orgId} type=${reportType} period=${periodStart}→${periodEnd}`;
 
   // Upsert PENDING/FETCHING row first so the UI can show progress
@@ -80,6 +80,7 @@ export async function brandAnalyticsFetchProcessor(job) {
       reportingPeriod,
       periodStart,
       periodEnd,
+      asins,
     });
 
     let documentId = null;

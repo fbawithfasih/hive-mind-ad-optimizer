@@ -29,44 +29,57 @@ function spBaseForMarketplace(marketplaceId) {
   return 'https://sellingpartnerapi-na.amazon.com';
 }
 
-// ─── Logical type → SP-API reportType + reportOptions ─────────────────────────
+// ─── Logical type → SP-API reportType + option requirements ──────────────────
 //
-// The strings on the right are Amazon's official reportType values for the
-// Brand Analytics family. Period-of-coverage is controlled by reportOptions
-// (e.g. 'reportPeriod': 'WEEK' | 'MONTH' | 'QUARTER').
+// Calibrated against the SP-API docs at
+// https://developer-docs.amazon.com/sp-api/docs/report-type-values-analytics
+//
+//  - `requiresAsin: true` means the SP-API report won't run unless the caller
+//    supplies a space-separated ASIN list under reportOptions.asin.
+//  - `apiAvailable: false` flags reports that exist in the Brand Analytics
+//    dashboard but are NOT exposed via the Reports API. Requests for these
+//    types short-circuit with a clear error rather than being submitted.
 //
 const REPORT_TYPE_MAP = {
+  // SQP: brand-vs-ASIN view is NOT a separate report type. The single SP-API
+  // report returns SQP for the ASINs you specify via reportOptions.asin
+  // (required). For backwards compat we keep both logical aliases.
   SQP_BRAND: {
-    reportType: 'GET_BRAND_ANALYTICS_SEARCH_QUERY_PERFORMANCE_REPORT',
-    extraOptions: { asinGranularity: 'BRAND' },
+    reportType:    'GET_BRAND_ANALYTICS_SEARCH_QUERY_PERFORMANCE_REPORT',
+    requiresAsin:  true,
+    apiAvailable:  true,
   },
   SQP_ASIN: {
-    reportType: 'GET_BRAND_ANALYTICS_SEARCH_QUERY_PERFORMANCE_REPORT',
-    extraOptions: { asinGranularity: 'PARENT' },
+    reportType:    'GET_BRAND_ANALYTICS_SEARCH_QUERY_PERFORMANCE_REPORT',
+    requiresAsin:  true,
+    apiAvailable:  true,
   },
   TOP_SEARCH_TERMS: {
-    reportType: 'GET_BRAND_ANALYTICS_SEARCH_TERMS_REPORT',
-    extraOptions: {},
+    reportType:    'GET_BRAND_ANALYTICS_SEARCH_TERMS_REPORT',
+    apiAvailable:  true,
   },
   REPEAT_PURCHASE: {
-    reportType: 'GET_BRAND_ANALYTICS_REPEAT_PURCHASE_REPORT',
-    extraOptions: {},
+    reportType:    'GET_BRAND_ANALYTICS_REPEAT_PURCHASE_REPORT',
+    apiAvailable:  true,
   },
   MARKET_BASKET: {
-    reportType: 'GET_BRAND_ANALYTICS_MARKET_BASKET_REPORT',
-    extraOptions: {},
-  },
-  ITEM_COMPARISON_ALT_PURCHASE: {
-    reportType: 'GET_BRAND_ANALYTICS_ITEM_COMPARISON_AND_ALTERNATE_PURCHASE_REPORT',
-    extraOptions: {},
-  },
-  DEMOGRAPHICS: {
-    reportType: 'GET_BRAND_ANALYTICS_DEMOGRAPHICS_REPORT',
-    extraOptions: {},
+    reportType:    'GET_BRAND_ANALYTICS_MARKET_BASKET_REPORT',
+    apiAvailable:  true,
   },
   BRAND_CATALOG_PERFORMANCE: {
-    reportType: 'GET_BRAND_ANALYTICS_SEARCH_CATALOG_PERFORMANCE_REPORT',
-    extraOptions: {},
+    reportType:    'GET_BRAND_ANALYTICS_SEARCH_CATALOG_PERFORMANCE_REPORT',
+    apiAvailable:  true,
+  },
+  // Dashboard-only — no Reports API endpoint as of the 2026-05 docs.
+  // Insight surfaces still exist in our API but will return 404 until Amazon
+  // exposes these reports.
+  ITEM_COMPARISON_ALT_PURCHASE: {
+    reportType:    'GET_BRAND_ANALYTICS_ITEM_COMPARISON_AND_ALTERNATE_PURCHASE_REPORT',
+    apiAvailable:  false,
+  },
+  DEMOGRAPHICS: {
+    reportType:    'GET_BRAND_ANALYTICS_DEMOGRAPHICS_REPORT',
+    apiAvailable:  false,
   },
 };
 
@@ -78,6 +91,20 @@ const PERIOD_TO_SP_OPTION = {
 
 export function listSupportedReportTypes() {
   return Object.keys(REPORT_TYPE_MAP);
+}
+
+/**
+ * Subset of supported reports actually fetchable via SP-API today.
+ * Used by the daily scheduler to skip dashboard-only types.
+ */
+export function listApiAvailableReportTypes() {
+  return Object.entries(REPORT_TYPE_MAP)
+    .filter(([, m]) => m.apiAvailable)
+    .map(([k]) => k);
+}
+
+export function reportTypeRequiresAsin(logicalType) {
+  return !!REPORT_TYPE_MAP[logicalType]?.requiresAsin;
 }
 
 export function createBrandAnalyticsClient({
@@ -105,12 +132,33 @@ export function createBrandAnalyticsClient({
 
   /**
    * Submit a report request to Amazon. Returns the SP-API reportId.
+   *
+   * @param {object} params
+   * @param {string}   params.logicalType
+   * @param {string}   params.reportingPeriod  WEEKLY | MONTHLY | QUARTERLY
+   * @param {Date|string} params.periodStart
+   * @param {Date|string} params.periodEnd
+   * @param {string[]}  [params.asins]  Required for SQP — space-separated list, ≤200 chars.
    */
-  async function createReport({ logicalType, reportingPeriod, periodStart, periodEnd }) {
+  async function createReport({ logicalType, reportingPeriod, periodStart, periodEnd, asins = [] }) {
     const map = REPORT_TYPE_MAP[logicalType];
     if (!map) throw new Error(`Unsupported Brand Analytics report type: ${logicalType}`);
+    if (!map.apiAvailable) {
+      throw new Error(`${logicalType} is dashboard-only — Amazon does not expose it via the SP-API Reports API.`);
+    }
     const reportPeriod = PERIOD_TO_SP_OPTION[reportingPeriod];
     if (!reportPeriod) throw new Error(`Unsupported reportingPeriod: ${reportingPeriod}`);
+    if (map.requiresAsin && (!Array.isArray(asins) || asins.length === 0)) {
+      throw new Error(`${logicalType} requires an asin list — pass { asins: ["B0...", ...] } in the job/refresh payload.`);
+    }
+
+    const reportOptions = { reportPeriod };
+    if (asins.length) {
+      // SP-API expects space-separated ASIN string with ≤200-char limit.
+      const joined = asins.join(' ');
+      if (joined.length > 200) throw new Error('ASIN list exceeds the 200-char SP-API limit; chunk into multiple jobs.');
+      reportOptions.asin = joined;
+    }
 
     const token = await getToken();
     const body = {
@@ -118,7 +166,7 @@ export function createBrandAnalyticsClient({
       marketplaceIds: [marketplaceId],
       dataStartTime:  new Date(periodStart).toISOString(),
       dataEndTime:    new Date(periodEnd).toISOString(),
-      reportOptions: { reportPeriod, ...map.extraOptions },
+      reportOptions,
     };
 
     const res = await axios.post(`${SP_BASE}/reports/2021-06-30/reports`, body, {
