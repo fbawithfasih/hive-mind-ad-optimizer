@@ -9,12 +9,13 @@ import routes from './api/routes/index.js';
 import { razorpayWebhookHandler } from './api/routes/billing.js';
 import { correlationIdMiddleware, createLogger } from './api/utils/logger.js';
 import { prisma } from './db/prisma.js';
-import { createReportingWorker, createBulkListingWorker, createTokenCleanupWorker, createAutomationWorker, createBrandAnalyticsFetchWorker, tokenCleanupQueue, automationQueue, brandAnalyticsFetchQueue, closeQueue } from './services/queue.js';
+import { createReportingWorker, createBulkListingWorker, createTokenCleanupWorker, createAutomationWorker, createBrandAnalyticsFetchWorker, createAlertEvaluationWorker, tokenCleanupQueue, automationQueue, brandAnalyticsFetchQueue, alertEvaluationQueue, closeQueue } from './services/queue.js';
 import { reportingProcessor }    from './workers/reporting.worker.js';
 import { bulkListingProcessor }  from './workers/bulk-listing.worker.js';
 import { tokenCleanupProcessor } from './workers/token-cleanup.worker.js';
 import { automationProcessor }   from './workers/automation.worker.js';
 import { brandAnalyticsFetchProcessor } from './workers/brand-analytics-fetch.worker.js';
+import { alertEvaluationProcessor }     from './workers/alert-evaluation.worker.js';
 import { enqueueDailySweep as enqueueBaDailySweep } from './services/brand-analytics-scheduler.js';
 
 dotenv.config({ override: true });
@@ -201,6 +202,7 @@ const bulkListingWorker  = createBulkListingWorker(bulkListingProcessor);
 const tokenCleanupWorker = createTokenCleanupWorker(tokenCleanupProcessor);
 const automationWorker   = createAutomationWorker(automationProcessor);
 const baFetchWorker      = createBrandAnalyticsFetchWorker(brandAnalyticsFetchProcessor);
+const alertEvalWorker    = createAlertEvaluationWorker(alertEvaluationProcessor);
 
 // Brand Analytics daily sweep — fan out fetch jobs to active orgs per tier cadence.
 // We use a tiny scheduler job (jobId-deduplicated) that calls enqueueDailySweep().
@@ -210,6 +212,14 @@ brandAnalyticsFetchQueue.add(
   { __sweep: true },
   { repeat: { pattern: '15 3 * * *' }, jobId: 'ba-daily-sweep' },
 ).catch((err) => logger.warn(`Could not schedule BA daily sweep: ${err.message}`));
+
+// Alert evaluation daily sweep — runs an hour after the BA sweep so any newly
+// fetched campaign performance reports are considered. 04:30 UTC.
+alertEvaluationQueue.add(
+  'alert-daily-sweep',
+  { __sweep: true },
+  { repeat: { pattern: '30 4 * * *' }, jobId: 'alert-daily-sweep' },
+).catch((err) => logger.warn(`Could not schedule alert eval sweep: ${err.message}`));
 
 // Schedule automation rule sweeps (idempotent — BullMQ deduplicates by jobId)
 automationQueue.add('auto-morning', { slot: 'morning' }, {
@@ -241,6 +251,7 @@ async function shutdown(signal) {
     await tokenCleanupWorker.close();
     await automationWorker.close();
     await baFetchWorker.close();
+    await alertEvalWorker.close();
     await closeQueue();
     await prisma.$disconnect();
     logger.info('Shutdown complete');

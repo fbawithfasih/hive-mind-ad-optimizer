@@ -93,6 +93,75 @@ export async function sendVerificationEmail(to, token) {
   });
 }
 
+/**
+ * Notify org admins that one or more campaign alert thresholds have fired.
+ *
+ * @param {string|string[]} to              recipient or list of recipients
+ * @param {object}          opts
+ * @param {string}          opts.orgName    org display name for the subject line
+ * @param {Array<object>}   opts.fires      [{ alertName, metric, condition, threshold, campaignName, value }, ...]
+ */
+export async function sendCampaignAlertEmail(to, { orgName, fires }) {
+  if (!fires?.length) return null;
+
+  const url = `${FRONTEND_URL()}/alerts`;
+  const verb = (cond) => ({ gt: 'above', gte: 'at or above', lt: 'below', lte: 'at or below' })[cond] ?? cond;
+  const fmtVal = (m, v) => {
+    if (v == null) return '—';
+    if (m === 'acos' || m === 'ctr')               return `${(v * 100).toFixed(2)}%`;
+    if (m === 'roas')                              return `${v.toFixed(2)}×`;
+    if (m === 'spend')                             return `$${v.toFixed(2)}`;
+    return Number(v).toLocaleString('en-US');
+  };
+
+  const subject = fires.length === 1
+    ? `Alert: ${fires[0].alertName} fired on ${fires[0].campaignName}`
+    : `${fires.length} campaign alerts fired (${orgName})`;
+
+  const textRows = fires.map(f =>
+    ` • [${f.alertName}] ${f.campaignName} — ${f.metric.toUpperCase()} ${fmtVal(f.metric, f.value)} (${verb(f.condition)} ${fmtVal(f.metric, f.threshold)})`
+  ).join('\n');
+
+  const htmlRows = fires.map(f => `
+    <tr>
+      <td style="padding:10px 14px;border-bottom:1px solid #eee">
+        <div style="font-weight:600;color:#1a1a1a">${escapeHtml(f.alertName)}</div>
+        <div style="color:#777;font-size:13px;margin-top:2px">${escapeHtml(f.campaignName)}</div>
+      </td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eee;color:#555;font-size:13px">${f.metric.toUpperCase()}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eee;font-weight:700;color:#dc2626">${fmtVal(f.metric, f.value)}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eee;color:#777;font-size:13px">${verb(f.condition)} ${fmtVal(f.metric, f.threshold)}</td>
+    </tr>`).join('');
+
+  return send({
+    to,
+    subject,
+    text: `${fires.length} campaign alert${fires.length === 1 ? '' : 's'} fired for ${orgName}:\n\n${textRows}\n\nReview details: ${url}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:640px;margin:0 auto;padding:32px 24px">
+        <h2 style="margin:0 0 6px;color:#1a1a1a">${fires.length} campaign alert${fires.length === 1 ? '' : 's'} fired</h2>
+        <p style="color:#555;margin:0 0 20px;font-size:14px">Triggered on the latest Campaign Performance report for <strong>${escapeHtml(orgName)}</strong>.</p>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #eee;border-radius:8px;overflow:hidden">
+          <thead>
+            <tr style="background:#fafafa">
+              <th style="padding:10px 14px;text-align:left;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em">Alert / Campaign</th>
+              <th style="padding:10px 14px;text-align:left;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em">Metric</th>
+              <th style="padding:10px 14px;text-align:left;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em">Value</th>
+              <th style="padding:10px 14px;text-align:left;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em">Condition</th>
+            </tr>
+          </thead>
+          <tbody>${htmlRows}</tbody>
+        </table>
+        <a href="${url}" style="display:inline-block;margin-top:20px;padding:11px 20px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Open alerts dashboard</a>
+        <p style="color:#aaa;font-size:12px;margin:28px 0 0">${APP_NAME} only emails alerts when a new threshold fires (4-hour dedup window). To stop these emails, deactivate the alert in the dashboard.</p>
+      </div>`,
+  });
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
 export async function sendPasswordResetEmail(to, token) {
   const url = `${FRONTEND_URL()}/reset-password?token=${token}`;
   return send({

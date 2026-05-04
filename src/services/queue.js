@@ -205,6 +205,37 @@ export function createAutomationWorker(processor) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Alert evaluation queue — scheduled per-org alert sweeps + email delivery
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ALERT_EVAL_QUEUE_NAME = 'alert-evaluation';
+
+export const alertEvaluationQueue = new Queue(ALERT_EVAL_QUEUE_NAME, {
+  connection: makeRedisConnection(),
+  defaultJobOptions: {
+    attempts:         2,                          // alerts shouldn't crashloop
+    backoff:          { type: 'exponential', delay: 30_000 },
+    removeOnComplete: { count: 50 },
+    removeOnFail:     { count: 50 },
+  },
+});
+
+export function createAlertEvaluationWorker(processor) {
+  const worker = new Worker(ALERT_EVAL_QUEUE_NAME, processor, {
+    connection:  makeRedisConnection(),
+    concurrency: 1,   // serial — keeps ordering and avoids email storms
+  });
+  worker.on('completed', (job) => {
+    logger.info(`Alert eval ${job.id} completed (${job.data.__sweep ? 'sweep' : `org=${job.data.orgId}`})`);
+  });
+  worker.on('failed', (job, err) => {
+    logger.error(`Alert eval ${job?.id} failed: ${err.message}`);
+  });
+  logger.info('Alert evaluation worker started (concurrency=1)');
+  return worker;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Brand Analytics fetch queue — scheduled per-org SP-API report fetches
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -253,5 +284,6 @@ export async function closeQueue() {
     tokenCleanupQueue.close(),
     automationQueue.close(),
     brandAnalyticsFetchQueue.close(),
+    alertEvaluationQueue.close(),
   ]);
 }
