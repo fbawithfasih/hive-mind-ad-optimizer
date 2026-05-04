@@ -10,6 +10,7 @@ import { authLimiter, strictLimiter } from '../middleware/rateLimiter.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../services/email.js';
 import { createLogger } from '../utils/logger.js';
 import { consumeClaimToken } from './billing.js';
+import { appleConfigured, getAppleClientSecret, verifyAppleIdToken } from '../../services/apple-auth.js';
 
 const router = express.Router();
 const logger = createLogger('AUTH');
@@ -626,6 +627,146 @@ router.get('/google/callback', async (req, res) => {
   } catch (err) {
     logger.error(`Google OAuth callback error: ${err.message}`);
     res.redirect(`${FRONTEND_URL}/login?error=google_failed`);
+  }
+});
+
+// ── Sign in with Apple ────────────────────────────────────────────────────────
+
+const APPLE_CLIENT_ID = process.env.APPLE_CLIENT_ID;
+
+const getAppleCallbackUri = () => {
+  const base = process.env.BASE_URL || process.env.FRONTEND_URL || 'https://optimizer.hivemindnestor.com';
+  return `${base}/api/auth/apple/callback`;
+};
+
+/**
+ * GET /api/auth/apple
+ * Kicks off Sign in with Apple. Apple posts back to the callback as
+ * application/x-www-form-urlencoded (response_mode=form_post), so the
+ * callback route must accept POST.
+ */
+router.get('/apple', (req, res) => {
+  if (!appleConfigured()) {
+    return res.status(503).json({ error: 'Apple SSO is not configured on this server.' });
+  }
+
+  const state  = randomBytes(16).toString('hex');
+  const isProd = process.env.NODE_ENV === 'production';
+  // form_post comes back without our cookies unless SameSite=None; Apple's
+  // postback is a top-level POST from appleid.apple.com so we need None+Secure.
+  res.cookie('apple_oauth_state', state, {
+    httpOnly: true,
+    sameSite: isProd ? 'none' : 'lax',
+    secure:   isProd,
+    maxAge:   10 * 60 * 1000,
+  });
+
+  const url = new URL('https://appleid.apple.com/auth/authorize');
+  url.searchParams.set('client_id',     APPLE_CLIENT_ID);
+  url.searchParams.set('redirect_uri',  getAppleCallbackUri());
+  url.searchParams.set('response_type', 'code id_token');
+  url.searchParams.set('response_mode', 'form_post');
+  url.searchParams.set('scope',         'name email');
+  url.searchParams.set('state',         state);
+
+  res.redirect(url.toString());
+});
+
+/**
+ * POST /api/auth/apple/callback
+ * Apple posts { code, id_token, state, user? } as form data.
+ * `user` is a JSON string and is ONLY sent on the very first consent.
+ */
+router.post('/apple/callback', express.urlencoded({ extended: false }), async (req, res) => {
+  const { code, id_token, state, user: userJson, error } = req.body || {};
+
+  if (error) {
+    logger.warn(`Apple OAuth denied by user: ${error}`);
+    return res.redirect(`${FRONTEND_URL}/login?error=apple_denied`);
+  }
+
+  const savedState = req.cookies?.apple_oauth_state;
+  res.clearCookie('apple_oauth_state');
+  if (!state || state !== savedState) {
+    logger.warn('Apple OAuth state mismatch — possible CSRF attempt');
+    return res.redirect(`${FRONTEND_URL}/login?error=state_mismatch`);
+  }
+
+  try {
+    // 1. Verify id_token (RS256 against Apple JWKS, audience = our client_id)
+    const claims = await verifyAppleIdToken(id_token);
+    const appleId = claims.sub;
+    const email   = claims.email;
+    if (!appleId) throw new Error('Apple id_token missing sub');
+    if (!email)   throw new Error('Apple id_token missing email — user must allow email sharing');
+
+    // 2. Exchange the auth code for tokens — proves the code is real.
+    //    We don't need the access/refresh token for anything else; we only use
+    //    the id_token claims for identity.
+    await axios.post(
+      'https://appleid.apple.com/auth/token',
+      new URLSearchParams({
+        client_id:     APPLE_CLIENT_ID,
+        client_secret: getAppleClientSecret(),
+        code,
+        grant_type:    'authorization_code',
+        redirect_uri:  getAppleCallbackUri(),
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+
+    // 3. First-consent name (Apple sends this exactly once, in the form body)
+    let firstName = '';
+    let lastName  = '';
+    if (userJson) {
+      try {
+        const parsed = JSON.parse(userJson);
+        firstName = parsed?.name?.firstName || '';
+        lastName  = parsed?.name?.lastName  || '';
+      } catch { /* ignore malformed user blob */ }
+    }
+
+    // 4. Find or create — match on appleId first, fall back to email
+    let dbUser = await prisma.user.findFirst({
+      where: { OR: [{ appleId }, { email }] },
+    });
+
+    if (dbUser) {
+      const updates = { lastLogin: new Date() };
+      if (!dbUser.appleId)      updates.appleId       = appleId;
+      if (!dbUser.emailVerified) updates.emailVerified = true;
+      if (firstName && !dbUser.firstName) updates.firstName = firstName;
+      if (lastName  && !dbUser.lastName)  updates.lastName  = lastName;
+      dbUser = await prisma.user.update({ where: { id: dbUser.id }, data: updates });
+      logger.info(`Apple login: existing user ${dbUser.id} (${email})`);
+    } else {
+      dbUser = await prisma.user.create({
+        data: {
+          id: uuidv4(), email, appleId,
+          passwordHash: null, firstName, lastName,
+          emailVerified: true, lastLogin: new Date(),
+        },
+      });
+      logger.info(`Apple login: new user created ${dbUser.id} (${email})`);
+    }
+
+    const firstMembership = await prisma.orgMember.findFirst({
+      where: { userId: dbUser.id },
+      orderBy: { joinedAt: 'asc' },
+    });
+
+    const token = jwt.sign(
+      { userId: dbUser.id, email: dbUser.email, activeOrgId: firstMembership?.orgId ?? null },
+      JWT_SECRET,
+      { expiresIn: '8h' }
+    );
+    const isProd = process.env.NODE_ENV === 'production';
+    res.cookie(COOKIE_NAME, token, { ...COOKIE_OPTS, secure: isProd });
+
+    res.redirect(`${FRONTEND_URL}/`);
+  } catch (err) {
+    logger.error(`Apple OAuth callback error: ${err.message}`);
+    res.redirect(`${FRONTEND_URL}/login?error=apple_failed`);
   }
 });
 

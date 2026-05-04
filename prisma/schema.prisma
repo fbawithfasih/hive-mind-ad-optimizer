@@ -20,6 +20,7 @@ model User {
   email           String    @unique
   passwordHash    String?
   googleId        String?   @unique
+  appleId         String?   @unique
   firstName       String?
   lastName        String?
   avatar          String?
