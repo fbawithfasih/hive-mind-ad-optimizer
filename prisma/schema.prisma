@@ -41,17 +41,20 @@ model User {
 }
 
 model Organization {
-  id            String           @id @default(cuid())
-  name          String
-  slug          String           @unique
-  description   String?
-  logoUrl       String?
-  billingEmail  String?
-  tier          SubscriptionTier @default(BASIC)
-  billingStatus BillingStatus    @default(ACTIVE)
-  trialEndsAt   DateTime?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  id              String           @id @default(cuid())
+  name            String
+  slug            String           @unique
+  description     String?
+  logoUrl         String?
+  billingEmail    String?
+  // Optional Slack incoming-webhook URL — when set, the alert evaluation
+  // worker posts a summary message to this channel alongside email delivery.
+  slackWebhookUrl String?
+  tier            SubscriptionTier @default(BASIC)
+  billingStatus   BillingStatus    @default(ACTIVE)
+  trialEndsAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   // Relations
   members               OrgMember[]
@@ -73,13 +76,16 @@ model Organization {
 }
 
 model OrgMember {
-  id        String    @id @default(cuid())
-  orgId     String
-  userId    String
-  role      OrgRole   @default(MEMBER)
-  joinedAt  DateTime  @default(now())
-  invitedAt DateTime?
-  invitedBy String?
+  id             String    @id @default(cuid())
+  orgId          String
+  userId         String
+  role           OrgRole   @default(MEMBER)
+  joinedAt       DateTime  @default(now())
+  invitedAt      DateTime?
+  invitedBy      String?
+  // Per-user opt-in for campaign-alert email notifications. Defaults true so
+  // org admins keep getting alerts unless they explicitly opt out.
+  notifyOnAlerts Boolean   @default(true)
 
   // Relations
   org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)

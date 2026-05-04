@@ -662,8 +662,13 @@ export const listAlertsApi       = ()         => api.get('/alerts/rules').then(r
 export const createAlertApi      = (data)     => api.post('/alerts/rules', data).then(r => r.data);
 export const updateAlertApi      = (id, data) => api.patch(`/alerts/rules/${id}`, data).then(r => r.data);
 export const deleteAlertApi      = (id)       => api.delete(`/alerts/rules/${id}`).then(r => r.data);
-export const getAlertFiresApi    = ()         => api.get('/alerts/fires').then(r => r.data);
+export const getAlertFiresApi    = (params={}) => api.get('/alerts/fires', { params }).then(r => r.data);
 export const getUnreadCountApi   = ()         => api.get('/alerts/unread-count').then(r => r.data);
+export const getAlertPreferences = ()         => api.get('/alerts/preferences').then(r => r.data);
+export const updateAlertPreferences = (prefs) => api.patch('/alerts/preferences', prefs).then(r => r.data);
+export const getAlertSlack       = ()         => api.get('/alerts/slack').then(r => r.data);
+export const updateAlertSlack    = (slackWebhookUrl) =>
+  api.patch('/alerts/slack', { slackWebhookUrl }).then(r => r.data);
 export const markFiresReadApi    = (ids)      => api.post('/alerts/fires/mark-read', ids ? { ids } : {}).then(r => r.data);
 export const evaluateAlertsApi   = (campaigns) => api.post('/alerts/evaluate', { campaigns }).then(r => r.data);
 

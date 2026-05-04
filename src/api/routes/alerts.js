@@ -31,6 +31,79 @@ function validateAlert(body) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GET   /api/alerts/slack          — current org's Slack webhook URL (admin)
+// PATCH /api/alerts/slack { slackWebhookUrl: string|null }  (admin)
+//
+// Set null/empty to disable. Only ADMIN members can read/write because the
+// webhook URL is effectively a credential — anyone with it can post to the
+// channel.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/slack', async (req, res) => {
+  const member = await prisma.orgMember.findUnique({
+    where:  { orgId_userId: { orgId: req.tenant.orgId, userId: req.user.userId } },
+    select: { role: true },
+  });
+  if (member?.role !== 'ADMIN') return res.status(403).json({ error: 'Admin only' });
+
+  const org = await prisma.organization.findUnique({
+    where:  { id: req.tenant.orgId },
+    select: { slackWebhookUrl: true },
+  });
+  res.json({ slackWebhookUrl: org?.slackWebhookUrl ?? null });
+});
+
+router.patch('/slack', async (req, res) => {
+  const member = await prisma.orgMember.findUnique({
+    where:  { orgId_userId: { orgId: req.tenant.orgId, userId: req.user.userId } },
+    select: { role: true },
+  });
+  if (member?.role !== 'ADMIN') return res.status(403).json({ error: 'Admin only' });
+
+  const raw = req.body?.slackWebhookUrl;
+  let value = null;
+  if (raw != null && String(raw).trim() !== '') {
+    const trimmed = String(raw).trim();
+    if (!/^https:\/\/hooks\.slack\.com\//i.test(trimmed)) {
+      return res.status(400).json({ error: 'slackWebhookUrl must be a https://hooks.slack.com/… URL or empty to disable.' });
+    }
+    value = trimmed;
+  }
+
+  await prisma.organization.update({
+    where: { id: req.tenant.orgId },
+    data:  { slackWebhookUrl: value },
+  });
+  logger.info(`Slack webhook ${value ? 'updated' : 'cleared'} for org ${req.tenant.orgId}`);
+  res.json({ slackWebhookUrl: value });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET  /api/alerts/preferences  — current user's notify-on-alerts setting
+// PATCH /api/alerts/preferences { notifyOnAlerts: boolean }
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/preferences', async (req, res) => {
+  const member = await prisma.orgMember.findUnique({
+    where:  { orgId_userId: { orgId: req.tenant.orgId, userId: req.user.userId } },
+    select: { notifyOnAlerts: true },
+  });
+  if (!member) return res.status(404).json({ error: 'Membership not found' });
+  res.json({ notifyOnAlerts: member.notifyOnAlerts });
+});
+
+router.patch('/preferences', async (req, res) => {
+  const { notifyOnAlerts } = req.body ?? {};
+  if (typeof notifyOnAlerts !== 'boolean') {
+    return res.status(400).json({ error: 'notifyOnAlerts must be a boolean' });
+  }
+  const updated = await prisma.orgMember.update({
+    where:  { orgId_userId: { orgId: req.tenant.orgId, userId: req.user.userId } },
+    data:   { notifyOnAlerts },
+    select: { notifyOnAlerts: true },
+  });
+  res.json(updated);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /api/alerts/rules
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/rules', async (req, res) => {

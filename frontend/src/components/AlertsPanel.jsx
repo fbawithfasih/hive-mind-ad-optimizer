@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   listAlertsApi, createAlertApi, updateAlertApi, deleteAlertApi,
   getAlertFiresApi, markFiresReadApi,
+  getAlertPreferences, updateAlertPreferences,
+  getAlertSlack, updateAlertSlack,
 } from '../services/api.js';
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -279,18 +281,72 @@ export default function AlertsPanel() {
 
   const unread = fires.filter(f => !f.isRead).length;
 
+  // Per-user opt-in for email notifications. null = still loading.
+  const [notifyOnAlerts, setNotifyOnAlerts] = useState(null);
+  const [notifySaving,   setNotifySaving]   = useState(false);
+
+  // Org-level Slack webhook (admins only — null when non-admin or unset).
+  const [slackUrl,        setSlackUrl]        = useState(null);   // saved value
+  const [slackInput,      setSlackInput]      = useState('');     // editor draft
+  const [slackVisible,    setSlackVisible]    = useState(false);  // admin-only
+  const [slackSaving,     setSlackSaving]     = useState(false);
+  const [slackMsg,        setSlackMsg]        = useState(null);
+
   const loadAlerts = useCallback(async () => {
     setIsLoading(true); setError(null);
     try {
-      const [rules, history] = await Promise.all([listAlertsApi(), getAlertFiresApi()]);
+      const [rules, history, prefs, slack] = await Promise.all([
+        listAlertsApi(),
+        getAlertFiresApi(),
+        getAlertPreferences().catch(() => ({ notifyOnAlerts: true })),
+        getAlertSlack().then(s => ({ admin: true, ...s })).catch(err => ({
+          admin: false,
+          error: err.response?.status === 403 ? null : (err.response?.data?.error ?? err.message),
+        })),
+      ]);
       setAlerts(rules);
       setFires(history);
+      setNotifyOnAlerts(prefs.notifyOnAlerts ?? true);
+      setSlackVisible(slack.admin);
+      if (slack.admin) {
+        setSlackUrl(slack.slackWebhookUrl ?? null);
+        setSlackInput(slack.slackWebhookUrl ?? '');
+      }
     } catch (err) {
       setError(err.response?.data?.error ?? err.message ?? 'Failed to load alerts');
     } finally {
       setIsLoading(false);
     }
   }, []);
+
+  async function handleSaveSlack() {
+    setSlackSaving(true); setSlackMsg(null);
+    try {
+      const resp = await updateAlertSlack(slackInput.trim() || null);
+      setSlackUrl(resp.slackWebhookUrl ?? null);
+      setSlackInput(resp.slackWebhookUrl ?? '');
+      setSlackMsg({ ok: true, text: resp.slackWebhookUrl ? '✓ Saved' : '✓ Cleared' });
+      setTimeout(() => setSlackMsg(null), 3000);
+    } catch (err) {
+      setSlackMsg({ ok: false, text: err.response?.data?.error ?? err.message ?? 'Save failed' });
+    } finally {
+      setSlackSaving(false);
+    }
+  }
+
+  async function handleToggleNotify(next) {
+    setNotifySaving(true);
+    const prev = notifyOnAlerts;
+    setNotifyOnAlerts(next);
+    try {
+      await updateAlertPreferences({ notifyOnAlerts: next });
+    } catch (err) {
+      setNotifyOnAlerts(prev);
+      setError(err.response?.data?.error ?? err.message ?? 'Failed to update notification preference');
+    } finally {
+      setNotifySaving(false);
+    }
+  }
 
   useEffect(() => { loadAlerts(); }, [loadAlerts]);
 
@@ -389,6 +445,82 @@ export default function AlertsPanel() {
           </button>
         ))}
       </div>
+
+      {/* ── Email-notification toggle (per-user) ── */}
+      {notifyOnAlerts !== null && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, fontSize: 12 }}>
+          <span style={{ fontSize: 16 }}>{notifyOnAlerts ? '📬' : '🔕'}</span>
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, color: '#CBD5E1', fontWeight: 600 }}>
+              Email me when alerts fire
+            </p>
+            <p style={{ margin: '2px 0 0', color: '#475569', fontSize: 11 }}>
+              {notifyOnAlerts
+                ? 'You\'ll get an email summarising new fires from each daily evaluation sweep.'
+                : 'Emails are off — alert fires still appear here in the dashboard.'}
+            </p>
+          </div>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: notifySaving ? 'wait' : 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={notifyOnAlerts}
+              disabled={notifySaving}
+              onChange={e => handleToggleNotify(e.target.checked)}
+              style={{ width: 14, height: 14, accentColor: '#F43F5E', cursor: notifySaving ? 'wait' : 'pointer' }}
+            />
+            <span style={{ color: notifyOnAlerts ? '#F43F5E' : '#475569', fontWeight: 700, fontSize: 11 }}>
+              {notifySaving ? 'Saving…' : notifyOnAlerts ? 'On' : 'Off'}
+            </span>
+          </label>
+        </div>
+      )}
+
+      {/* ── Slack webhook (admin only) ── */}
+      {slackVisible && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 16px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, fontSize: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 16 }}>{slackUrl ? '💬' : '💤'}</span>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, color: '#CBD5E1', fontWeight: 600 }}>
+                Slack notifications {slackUrl && <span style={{ color: '#4ADE80', fontSize: 10.5, fontWeight: 800 }}>· ENABLED</span>}
+              </p>
+              <p style={{ margin: '2px 0 0', color: '#475569', fontSize: 11 }}>
+                Org-level. When set, alert sweeps post a Block Kit summary to this channel alongside email.
+                {' '}
+                <a href="https://api.slack.com/messaging/webhooks" target="_blank" rel="noopener noreferrer" style={{ color: '#60A5FA', textDecoration: 'underline' }}>
+                  How to create one
+                </a>
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <input
+              value={slackInput}
+              onChange={e => setSlackInput(e.target.value)}
+              placeholder="https://hooks.slack.com/services/T…/B…/…"
+              spellCheck="false"
+              style={{ flex: 1, minWidth: 260, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#F1F5F9', borderRadius: 8, padding: '7px 12px', fontSize: 11, fontFamily: 'monospace', outline: 'none' }}
+            />
+            <button onClick={handleSaveSlack} disabled={slackSaving || slackInput === (slackUrl ?? '')} style={{
+              fontSize: 11, fontWeight: 700, padding: '7px 14px', borderRadius: 7, border: 'none',
+              cursor: (slackSaving || slackInput === (slackUrl ?? '')) ? 'not-allowed' : 'pointer',
+              background: (slackSaving || slackInput === (slackUrl ?? '')) ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#F43F5E,#EF4444)',
+              color: (slackSaving || slackInput === (slackUrl ?? '')) ? '#475569' : '#fff',
+            }}>
+              {slackSaving ? 'Saving…' : 'Save'}
+            </button>
+            {slackUrl && (
+              <button onClick={() => { setSlackInput(''); handleSaveSlack(); }} disabled={slackSaving} style={{
+                fontSize: 11, fontWeight: 600, padding: '7px 12px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.08)',
+                background: 'transparent', color: '#94A3B8', cursor: slackSaving ? 'not-allowed' : 'pointer',
+              }}>Disable</button>
+            )}
+            {slackMsg && (
+              <span style={{ fontSize: 11, color: slackMsg.ok ? '#34D399' : '#F87171' }}>{slackMsg.text}</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {isLoading && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '24px 0', color: '#334155', fontSize: 13 }}>

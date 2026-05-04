@@ -19,6 +19,7 @@
 import { prisma } from '../db/prisma.js';
 import { evaluateAlertsForOrg } from '../services/alert-evaluator.js';
 import { sendCampaignAlertEmail } from '../services/email.js';
+import { sendCampaignAlertSlack } from '../services/slack.js';
 import { alertEvaluationQueue } from '../services/queue.js';
 import { createLogger } from '../api/utils/logger.js';
 
@@ -26,23 +27,29 @@ const logger = createLogger('ALERT_EVAL_WORKER');
 
 /**
  * Resolve the recipient list for an org's alert emails.
- * Preference order: explicit billingEmail → all admins → first member
- * (so a one-person org still gets emailed even before billing is set up).
+ *
+ * Preference order:
+ *   1. Org-level billingEmail when set (it's expected to be a shared inbox).
+ *   2. All ADMIN members who haven't opted out via OrgMember.notifyOnAlerts.
+ *   3. Any opted-in member (covers the one-person org with no admin).
+ *
+ * Members with notifyOnAlerts=false are excluded at every step.
  */
 async function resolveRecipients(org) {
   if (org.billingEmail) return [org.billingEmail];
-  const admins = await prisma.orgMember.findMany({
-    where:   { orgId: org.id, role: 'ADMIN' },
+
+  const optedInAdmins = await prisma.orgMember.findMany({
+    where:   { orgId: org.id, role: 'ADMIN', notifyOnAlerts: true },
     include: { user: { select: { email: true } } },
   });
-  const adminEmails = admins.map(m => m.user?.email).filter(Boolean);
+  const adminEmails = optedInAdmins.map(m => m.user?.email).filter(Boolean);
   if (adminEmails.length) return adminEmails;
-  // Last-resort fallback — any member
-  const anyMember = await prisma.orgMember.findFirst({
-    where:   { orgId: org.id },
+
+  const anyOptedIn = await prisma.orgMember.findFirst({
+    where:   { orgId: org.id, notifyOnAlerts: true },
     include: { user: { select: { email: true } } },
   });
-  return anyMember?.user?.email ? [anyMember.user.email] : [];
+  return anyOptedIn?.user?.email ? [anyOptedIn.user.email] : [];
 }
 
 export async function alertEvaluationProcessor(job) {
@@ -82,22 +89,28 @@ export async function alertEvaluationProcessor(job) {
 
   logger.info(`Alert eval for org ${orgId} — ${fires.length} new fires`);
 
+  // Email delivery — best-effort. Fires are already in the DB so a transient
+  // SMTP outage logs an error but doesn't lose data. The 4h dedup prevents
+  // re-firing on the next sweep, so we'd rather miss an email than risk
+  // spamming after a delayed BullMQ retry.
   const recipients = await resolveRecipients(org);
-  if (!recipients.length) {
-    logger.warn(`Org ${orgId} has fires but no email recipients — fires saved to DB only`);
-    return;
+  if (recipients.length) {
+    try {
+      await sendCampaignAlertEmail(recipients, { orgName: org.name, fires });
+      logger.info(`Alert email sent to ${recipients.length} recipient(s) for org ${orgId}`);
+    } catch (err) {
+      logger.error(`Alert email failed for org ${orgId}: ${err.message}`);
+    }
+  } else {
+    logger.warn(`Org ${orgId} has fires but no opted-in email recipients`);
   }
 
-  // Best-effort delivery. Don't fail the job if the SMTP transport is
-  // momentarily down; the fires are already in the DB and the user can see
-  // them in the dashboard. Re-evaluation in 12h won't re-fire the same alerts
-  // because of the 4h dedup window — that's fine; we'd rather miss an email
-  // than spam if the SMTP comes back up after a delayed retry.
-  try {
-    await sendCampaignAlertEmail(recipients, { orgName: org.name, fires });
-    logger.info(`Alert email sent to ${recipients.length} recipient(s) for org ${orgId}`);
-  } catch (err) {
-    logger.error(`Alert email failed for org ${orgId}: ${err.message}`);
+  // Slack delivery — independent best-effort. Set Organization.slackWebhookUrl
+  // to enable. Same posture as email: log on failure, don't throw.
+  if (org.slackWebhookUrl) {
+    const dashboardUrl = `${process.env.FRONTEND_URL ?? 'http://localhost:5173'}/alerts`;
+    sendCampaignAlertSlack(org.slackWebhookUrl, { orgName: org.name, fires, dashboardUrl })
+      .catch(err => logger.error(`Slack post threw for org ${orgId}: ${err.message}`));
   }
 }
 

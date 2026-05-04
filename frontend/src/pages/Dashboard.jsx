@@ -27,6 +27,7 @@ import { useCampaignFiltering } from '../hooks/useCampaignFiltering.js';
 import { useMetricsPolling } from '../hooks/useMetricsPolling.js';
 import { useSalesPolling } from '../hooks/useSalesPolling.js';
 import { useAICommandExecution } from '../hooks/useAICommandExecution.js';
+import { useAlertPolling } from '../hooks/useAlertPolling.js';
 
 const MODULE_LABELS = {
   campaigns:        '📊 Campaigns',
@@ -231,12 +232,10 @@ export default function Dashboard({ user, onboarded, onLogout }) {
   const { totalSales, salesCurrency, loadingSales, salesStatus, salesError, loadSales } = useSalesPolling();
   const { isExecuting, result, error: aiError, aiModel, setAiModel, handleCommandSubmit } = useAICommandExecution(filtered, campaigns);
 
-  const [alertUnread,    setAlertUnread]    = useState(0);
-  const [alertBanner,    setAlertBanner]    = useState(null); // { count, fires[] }
-
-  useEffect(() => {
-    getUnreadCountApi().then(d => setAlertUnread(d.count ?? 0)).catch(() => {});
-  }, []);
+  // Periodic alert polling (every 60s). Surfaces new fires via the existing
+  // alertBanner UI without requiring a manual /evaluate call from the
+  // campaign metrics flow — so users see scheduled-worker fires too.
+  const { unread: alertUnread, banner: alertBanner, reset: resetAlertPolling, setUnread: setAlertUnread, pushBanner: setAlertBanner } = useAlertPolling(60_000);
 
   const [activePreset, setActivePreset] = useState(null);
 
@@ -476,7 +475,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                 {user.email}
               </span>
             )}
-            <button onClick={() => { setActiveTab('alerts'); setAlertUnread(0); markFiresReadApi().catch(() => {}); }}
+            <button onClick={() => { setActiveTab('alerts'); resetAlertPolling(); markFiresReadApi().catch(() => {}); }}
               style={{ position: 'relative', padding: '5px 12px', borderRadius: 7, border: `1px solid ${alertUnread > 0 ? 'rgba(244,63,94,0.35)' : 'rgba(255,255,255,0.08)'}`, background: alertUnread > 0 ? 'rgba(244,63,94,0.08)' : 'rgba(255,255,255,0.04)', color: alertUnread > 0 ? '#F87171' : '#94A3B8', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
               🔔
               {alertUnread > 0 && (
@@ -566,7 +565,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             ))}
             {alertBanner.count > 2 && <span style={{ fontSize: 11, color: '#475569' }}>+{alertBanner.count - 2} more</span>}
           </span>
-          <button onClick={() => { setActiveTab('alerts'); setAlertBanner(null); setAlertUnread(0); markFiresReadApi().catch(() => {}); }}
+          <button onClick={() => { setActiveTab('alerts'); resetAlertPolling(); markFiresReadApi().catch(() => {}); }}
             style={{ fontSize: 12, fontWeight: 700, color: '#F43F5E', background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', flexShrink: 0 }}>
             View alerts →
           </button>
