@@ -1,11 +1,12 @@
 {
   "orgId": 3,
   "brand": "Queenza",
-  "period": "YTD",
-  "revenueYtd": 0,
-  "acos": 0,
-  "roas": 0,
-  "unitsYtd": 0,
-  "asof": null,
-  "_note": "Refresh this file via scripts/refresh-public-stats.js once SP-API report finishes."
+  "period": "TTM",
+  "revenueYtd": 201127,
+  "currency": "USD",
+  "acos": 28.0,
+  "roas": 3.8,
+  "unitsYtd": 8713,
+  "asof": "2026-05-07T00:00:00Z",
+  "_note": "Revenue is trailing 12 months; ACOS/ROAS are YTD. Refresh via scripts/refresh-public-stats.js or by editing this file."
 }
