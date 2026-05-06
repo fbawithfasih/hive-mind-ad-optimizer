@@ -44,6 +44,7 @@ COPY --from=backend-deps /app/prisma ./prisma
 
 # Copy source
 COPY src/ ./src/
+COPY data/ ./data/
 COPY package.json ./
 
 # Copy built frontend
