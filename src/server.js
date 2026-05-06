@@ -46,6 +46,23 @@ if (isProd && !process.env.FRONTEND_URL) {
 app.use(cors(corsOptions));
 app.use(cookieParser());
 
+// Permissive CORS for the public marketing-stats endpoint only.
+// Read-only, no credentials, used by the marketing site to render KPIs.
+const PUBLIC_STATS_ALLOW = new Set([
+  'https://www.hivemindnestor.com',
+  'https://hivemindnestor.com',
+  'https://hivemindnestor.pages.dev',
+]);
+app.use('/api/public', cors({
+  origin: (origin, cb) => {
+    if (!origin || PUBLIC_STATS_ALLOW.has(origin)) return cb(null, true);
+    if (!isProd) return cb(null, true);
+    cb(new Error('Origin not allowed'));
+  },
+  credentials: false,
+  methods: ['GET', 'OPTIONS'],
+}));
+
 // Razorpay webhook MUST receive the raw body before express.json() parses it.
 // Mounted here so it bypasses JSON middleware.
 app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), razorpayWebhookHandler);

@@ -18,6 +18,7 @@ import automationRouter from './automation.js';
 import alertsRouter from './alerts.js';
 import brandAnalyticsRouter from './brand-analytics.js';
 import imageOptimizerRouter from './image-optimizer.js';
+import publicStatsRouter from './public-stats.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { withTenant } from '../middleware/withTenant.js';
 import { tenantFilterMiddleware } from '../middleware/tenantFilter.js';
@@ -35,6 +36,9 @@ router.use('/auth', authRouter);
 // SP-API OAuth callback — must be public; Amazon redirects here without a JWT.
 // Security is handled by the CSRF `state` nonce stored in pendingStates (sp-oauth.js).
 router.use('/sp-oauth', spOauthRouter);
+
+// Public marketing stats — read-only, served behind cache. No auth required.
+router.use('/public', publicStatsRouter);
 
 // ============================================================================
 // MIDDLEWARE STACK FOR AUTHENTICATED ROUTES
