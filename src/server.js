@@ -129,6 +129,20 @@ async function applyGoogleSsoMigration() {
 
 applyGoogleSsoMigration().catch(err => logger.error('Google SSO migration error', err.message));
 
+// Apple SSO column — added later than google SSO; run idempotent ALTERs at startup
+async function applyAppleSsoMigration() {
+  try {
+    await prisma.$executeRaw`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "appleId" TEXT`;
+    logger.info('Migration: appleId column added');
+  } catch { /* already exists — no-op */ }
+  try {
+    await prisma.$executeRaw`CREATE UNIQUE INDEX IF NOT EXISTS "User_appleId_key" ON "User"("appleId")`;
+    logger.info('Migration: appleId unique index created');
+  } catch { /* already exists — no-op */ }
+}
+
+applyAppleSsoMigration().catch(err => logger.error('Apple SSO migration error', err.message));
+
 // Add accountId/accountName to SellerProfile for multi-account grouping (idempotent)
 async function applySellerProfileMigration() {
   try {
