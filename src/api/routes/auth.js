@@ -625,7 +625,11 @@ router.get('/google/callback', async (req, res) => {
 
     res.redirect(`${FRONTEND_URL}/`);
   } catch (err) {
-    logger.error(`Google OAuth callback error: ${err.message}`);
+    const detail = err.response?.data
+      ? JSON.stringify(err.response.data)
+      : err.message || err.code || String(err);
+    logger.error(`Google OAuth callback error: ${detail}`);
+    if (err.stack) logger.error(err.stack);
     res.redirect(`${FRONTEND_URL}/login?error=google_failed`);
   }
 });
