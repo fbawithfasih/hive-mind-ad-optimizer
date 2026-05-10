@@ -246,7 +246,11 @@ router.get('/me', requireAuth, async (req, res) => {
       include: {
         orgMembers: {
           include: {
-            org: true,
+            org: {
+              include: {
+                subscriptions: { where: { status: 'ACTIVE' }, take: 1 },
+              },
+            },
           },
         },
       },
@@ -281,8 +285,13 @@ router.get('/me', requireAuth, async (req, res) => {
         const org = currentOrgMember.org;
         const trialEndsAt = org.trialEndsAt ? new Date(org.trialEndsAt) : null;
         const now = Date.now();
-        const isOnTrial = !!trialEndsAt && trialEndsAt.getTime() > now;
-        const trialExpired = !!trialEndsAt && trialEndsAt.getTime() <= now;
+        // An active paid subscription overrides the expired-trial state — the
+        // /billing trap-redirect should only fire when there's neither a live
+        // trial nor an active subscription.
+        const activeSub = org.subscriptions?.[0];
+        const hasActiveSubscription = !!activeSub;
+        const isOnTrial    = !!trialEndsAt && trialEndsAt.getTime() > now;
+        const trialExpired = !hasActiveSubscription && !!trialEndsAt && trialEndsAt.getTime() <= now;
         const trialDaysLeft = isOnTrial
           ? Math.ceil((trialEndsAt.getTime() - now) / 86400000)
           : 0;
@@ -295,6 +304,7 @@ router.get('/me', requireAuth, async (req, res) => {
           isOnTrial,
           trialExpired,
           trialDaysLeft,
+          subscriptionStatus: activeSub?.status ?? null,
         };
       })() : null,
     });

@@ -140,8 +140,10 @@ router.get('/status', requireAuth, async (req, res) => {
   });
   const trialEndsAt   = org?.trialEndsAt ? new Date(org.trialEndsAt) : null;
   const now           = Date.now();
+  // Active paid subscription overrides expired-trial state.
+  const hasActiveSubscription = subscription?.status === 'ACTIVE';
   const isOnTrial     = !!trialEndsAt && trialEndsAt.getTime() > now;
-  const trialExpired  = !!trialEndsAt && trialEndsAt.getTime() <= now;
+  const trialExpired  = !hasActiveSubscription && !!trialEndsAt && trialEndsAt.getTime() <= now;
   const trialDaysLeft = isOnTrial ? Math.ceil((trialEndsAt.getTime() - now) / 86400000) : 0;
 
   res.json({
