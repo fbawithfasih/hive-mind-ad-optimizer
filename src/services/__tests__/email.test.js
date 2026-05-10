@@ -1,258 +1,146 @@
 /**
- * Tests for src/services/email.js
+ * Tests for src/services/email.js — Resend HTTP API.
  *
- * Strategy: jest.isolateModules() + require() gives a fresh module instance
- * per describe block, preventing the module-level _transporter singleton from
- * leaking between tests that need to exercise different transport paths.
+ * Mocks the Resend client so we can assert what we hand to the API
+ * without making real network calls.
  */
 
-jest.mock('nodemailer');
+const mockSend = jest.fn();
 
-import nodemailer from 'nodemailer';
+jest.mock('resend', () => ({
+  Resend: jest.fn().mockImplementation(() => ({
+    emails: { send: mockSend },
+  })),
+}));
 
-// Shared sendMail mock — recreated in each describe block via isolateModules
-const makeSendMail = () => jest.fn().mockResolvedValue({ messageId: '<test-msg-id@test>' });
+import { Resend } from 'resend';
 
 beforeEach(() => {
   jest.clearAllMocks();
-  nodemailer.getTestMessageUrl.mockReturnValue(null);
+  mockSend.mockResolvedValue({ data: { id: 'test-msg-id' }, error: null });
+  process.env.RESEND_API_KEY = 're_test_key';
+  process.env.MAIL_FROM      = 'AMAIOP <noreply@amaiop.test>';
+  process.env.FRONTEND_URL   = 'https://app.test';
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helper: load a fresh email module with specific env / transport mock
-// ─────────────────────────────────────────────────────────────────────────────
+afterEach(() => {
+  delete process.env.RESEND_API_KEY;
+  delete process.env.MAIL_FROM;
+  delete process.env.FRONTEND_URL;
+});
 
-function loadEmail(sendMail) {
+function loadEmail() {
   let mod;
-  jest.isolateModules(() => {
-    nodemailer.createTransport.mockReturnValue({ sendMail });
-    nodemailer.createTestAccount.mockResolvedValue({ user: 'eth_user', pass: 'eth_pass' });
-    mod = require('../email.js');
-  });
+  jest.isolateModules(() => { mod = require('../email.js'); });
   return mod;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Transport initialisation — SMTP path
-// ─────────────────────────────────────────────────────────────────────────────
-
-describe('email.js — SMTP transport', () => {
-  const origHost = process.env.SMTP_HOST;
-
-  beforeEach(() => {
-    process.env.SMTP_HOST = 'smtp.resend.com';
-    process.env.SMTP_PORT = '587';
-    process.env.SMTP_USER = 'resend';
-    process.env.SMTP_PASS = 're_test123';
+describe('email.js — Resend client init', () => {
+  it('throws when RESEND_API_KEY is missing', async () => {
+    delete process.env.RESEND_API_KEY;
+    const { sendVerificationEmail } = loadEmail();
+    await expect(sendVerificationEmail('a@b.test', 'tok')).rejects.toThrow(/RESEND_API_KEY/);
   });
 
-  afterEach(() => {
-    if (origHost) process.env.SMTP_HOST = origHost;
-    else delete process.env.SMTP_HOST;
-    delete process.env.SMTP_PORT;
-    delete process.env.SMTP_USER;
-    delete process.env.SMTP_PASS;
+  it('constructs the Resend client with the API key', async () => {
+    const { sendVerificationEmail } = loadEmail();
+    await sendVerificationEmail('a@b.test', 'tok');
+    expect(Resend).toHaveBeenCalledWith('re_test_key');
   });
 
-  it('calls createTransport with host, port, and auth when SMTP_HOST is set', async () => {
-    const sendMail = makeSendMail();
-    const { sendVerificationEmail } = loadEmail(sendMail);
-
-    await sendVerificationEmail('u@test.com', 'tok');
-
-    expect(nodemailer.createTransport).toHaveBeenCalledWith(
-      expect.objectContaining({
-        host:   'smtp.resend.com',
-        port:   587,
-        secure: false,
-        auth:   { user: 'resend', pass: 're_test123' },
-      })
-    );
-  });
-
-  it('uses secure:true when port is 465', async () => {
-    process.env.SMTP_PORT = '465';
-    const sendMail = makeSendMail();
-    const { sendVerificationEmail } = loadEmail(sendMail);
-
-    await sendVerificationEmail('u@test.com', 'tok');
-
-    expect(nodemailer.createTransport).toHaveBeenCalledWith(
-      expect.objectContaining({ port: 465, secure: true })
-    );
+  it('reuses one client across multiple sends', async () => {
+    const { sendVerificationEmail } = loadEmail();
+    await sendVerificationEmail('a@b.test', 't1');
+    await sendVerificationEmail('c@d.test', 't2');
+    expect(Resend).toHaveBeenCalledTimes(1);
+    expect(mockSend).toHaveBeenCalledTimes(2);
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Transport initialisation — Ethereal fallback
-// ─────────────────────────────────────────────────────────────────────────────
+describe('email.js — sendVerificationEmail', () => {
+  it('sends from MAIL_FROM with the right subject and HTML/text', async () => {
+    const { sendVerificationEmail } = loadEmail();
+    await sendVerificationEmail('user@test.com', 'tok123');
 
-describe('email.js — Ethereal fallback', () => {
-  const origHost = process.env.SMTP_HOST;
-
-  beforeEach(() => {
-    delete process.env.SMTP_HOST;
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    const arg = mockSend.mock.calls[0][0];
+    expect(arg.from).toBe('AMAIOP <noreply@amaiop.test>');
+    expect(arg.to).toBe('user@test.com');
+    expect(arg.subject).toMatch(/Verify your.*email/i);
+    expect(arg.html).toContain('https://app.test/verify-email?token=tok123');
+    expect(arg.text).toContain('https://app.test/verify-email?token=tok123');
   });
 
-  afterEach(() => {
-    if (origHost) process.env.SMTP_HOST = origHost;
+  it('falls back to SMTP_FROM when MAIL_FROM is unset', async () => {
+    delete process.env.MAIL_FROM;
+    process.env.SMTP_FROM = 'Legacy <legacy@test>';
+    const { sendVerificationEmail } = loadEmail();
+    await sendVerificationEmail('user@test.com', 'tok');
+    expect(mockSend.mock.calls[0][0].from).toBe('Legacy <legacy@test>');
+    delete process.env.SMTP_FROM;
   });
 
-  it('calls createTestAccount when SMTP_HOST is not set', async () => {
-    const sendMail = makeSendMail();
-    const { sendVerificationEmail } = loadEmail(sendMail);
-
-    await sendVerificationEmail('u@test.com', 'tok');
-
-    expect(nodemailer.createTestAccount).toHaveBeenCalled();
-    expect(nodemailer.createTransport).toHaveBeenCalledWith(
-      expect.objectContaining({ host: 'smtp.ethereal.email' })
-    );
-  });
-
-  it('logs the Ethereal preview URL when getTestMessageUrl returns one', async () => {
-    nodemailer.getTestMessageUrl.mockReturnValue('https://ethereal.email/message/abc');
-    const sendMail = makeSendMail();
-    const { sendVerificationEmail } = loadEmail(sendMail);
-
-    // Should not throw even with a preview URL present
-    await expect(sendVerificationEmail('u@test.com', 'tok')).resolves.not.toThrow();
+  it('throws and surfaces the Resend error message on failure', async () => {
+    mockSend.mockResolvedValueOnce({ data: null, error: { message: 'invalid from address' } });
+    const { sendVerificationEmail } = loadEmail();
+    await expect(sendVerificationEmail('user@test.com', 'tok')).rejects.toThrow(/invalid from address/);
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// sendVerificationEmail
-// ─────────────────────────────────────────────────────────────────────────────
+describe('email.js — sendPasswordResetEmail', () => {
+  it('uses the reset URL with the token and an appropriate subject', async () => {
+    const { sendPasswordResetEmail } = loadEmail();
+    await sendPasswordResetEmail('user@test.com', 'reset-tok-9');
 
-describe('sendVerificationEmail', () => {
-  let sendVerificationEmail;
-  let sendMail;
-
-  beforeEach(() => {
-    sendMail = makeSendMail();
-    ({ sendVerificationEmail } = loadEmail(sendMail));
-  });
-
-  it('calls sendMail with the correct recipient', async () => {
-    await sendVerificationEmail('alice@example.com', 'mytoken');
-    expect(sendMail).toHaveBeenCalledTimes(1);
-    expect(sendMail.mock.calls[0][0].to).toBe('alice@example.com');
-  });
-
-  it('subject contains "Verify"', async () => {
-    await sendVerificationEmail('u@test.com', 'tok');
-    expect(sendMail.mock.calls[0][0].subject).toMatch(/verify/i);
-  });
-
-  it('HTML body contains the token URL', async () => {
-    process.env.FRONTEND_URL = 'https://app.amaiop.com';
-    await sendVerificationEmail('u@test.com', 'abc123');
-    const { html } = sendMail.mock.calls[0][0];
-    expect(html).toContain('/verify-email?token=abc123');
-    delete process.env.FRONTEND_URL;
-  });
-
-  it('plain-text body contains the token URL', async () => {
-    await sendVerificationEmail('u@test.com', 'tok999');
-    const { text } = sendMail.mock.calls[0][0];
-    expect(text).toContain('/verify-email?token=tok999');
-  });
-
-  it('uses FRONTEND_URL env var in the link', async () => {
-    process.env.FRONTEND_URL = 'https://staging.amaiop.com';
-    await sendVerificationEmail('u@test.com', 'tok');
-    const { html } = sendMail.mock.calls[0][0];
-    expect(html).toContain('https://staging.amaiop.com');
-    delete process.env.FRONTEND_URL;
-  });
-
-  it('returns the sendMail result', async () => {
-    sendMail.mockResolvedValue({ messageId: '<verify@sent>' });
-    const result = await sendVerificationEmail('u@test.com', 'tok');
-    expect(result.messageId).toBe('<verify@sent>');
-  });
-
-  it('propagates sendMail errors', async () => {
-    sendMail.mockRejectedValue(new Error('SMTP connection refused'));
-    await expect(sendVerificationEmail('u@test.com', 'tok')).rejects.toThrow('SMTP connection refused');
+    const arg = mockSend.mock.calls[0][0];
+    expect(arg.subject).toMatch(/Reset your.*password/i);
+    expect(arg.html).toContain('https://app.test/reset-password?token=reset-tok-9');
+    expect(arg.text).toContain('https://app.test/reset-password?token=reset-tok-9');
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// sendPasswordResetEmail
-// ─────────────────────────────────────────────────────────────────────────────
+describe('email.js — sendCampaignAlertEmail', () => {
+  const fires = [
+    { alertName: 'Spend spike', campaignName: 'Camp A', metric: 'spend',
+      condition: 'gt', threshold: 100, value: 250 },
+  ];
 
-describe('sendPasswordResetEmail', () => {
-  let sendPasswordResetEmail;
-  let sendMail;
-
-  beforeEach(() => {
-    sendMail = makeSendMail();
-    ({ sendPasswordResetEmail } = loadEmail(sendMail));
+  it('returns null and skips sending when fires array is empty', async () => {
+    const { sendCampaignAlertEmail } = loadEmail();
+    const r = await sendCampaignAlertEmail('admin@test.com', { orgName: 'Acme', fires: [] });
+    expect(r).toBeNull();
+    expect(mockSend).not.toHaveBeenCalled();
   });
 
-  it('calls sendMail with the correct recipient', async () => {
-    await sendPasswordResetEmail('bob@example.com', 'resettoken');
-    expect(sendMail).toHaveBeenCalledTimes(1);
-    expect(sendMail.mock.calls[0][0].to).toBe('bob@example.com');
+  it('sends a single-fire alert email with the right subject', async () => {
+    const { sendCampaignAlertEmail } = loadEmail();
+    await sendCampaignAlertEmail('admin@test.com', { orgName: 'Acme', fires });
+
+    const arg = mockSend.mock.calls[0][0];
+    expect(arg.subject).toMatch(/Spend spike.*Camp A/);
+    expect(arg.html).toContain('Camp A');
+    expect(arg.html).toContain('SPEND');
   });
 
-  it('subject contains "Reset" and "password"', async () => {
-    await sendPasswordResetEmail('u@test.com', 'tok');
-    const { subject } = sendMail.mock.calls[0][0];
-    expect(subject).toMatch(/reset/i);
-    expect(subject).toMatch(/password/i);
+  it('sends to multiple recipients in one call', async () => {
+    const { sendCampaignAlertEmail } = loadEmail();
+    await sendCampaignAlertEmail(['a@test.com', 'b@test.com'], { orgName: 'Acme', fires });
+
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(mockSend.mock.calls[0][0].to).toEqual(['a@test.com', 'b@test.com']);
   });
 
-  it('HTML body contains the reset token URL', async () => {
-    process.env.FRONTEND_URL = 'https://app.amaiop.com';
-    await sendPasswordResetEmail('u@test.com', 'reset456');
-    const { html } = sendMail.mock.calls[0][0];
-    expect(html).toContain('/reset-password?token=reset456');
-    delete process.env.FRONTEND_URL;
-  });
+  it('escapes HTML in user-provided strings to prevent injection', async () => {
+    const { sendCampaignAlertEmail } = loadEmail();
+    await sendCampaignAlertEmail('a@test.com', {
+      orgName: '<script>x</script>',
+      fires: [{ ...fires[0], campaignName: '<img src=x>' }],
+    });
 
-  it('plain-text body contains the reset token URL', async () => {
-    await sendPasswordResetEmail('u@test.com', 'reset789');
-    const { text } = sendMail.mock.calls[0][0];
-    expect(text).toContain('/reset-password?token=reset789');
-  });
-
-  it('uses FRONTEND_URL env var in the link', async () => {
-    process.env.FRONTEND_URL = 'https://prod.amaiop.com';
-    await sendPasswordResetEmail('u@test.com', 'tok');
-    const { html } = sendMail.mock.calls[0][0];
-    expect(html).toContain('https://prod.amaiop.com');
-    delete process.env.FRONTEND_URL;
-  });
-
-  it('returns the sendMail result', async () => {
-    sendMail.mockResolvedValue({ messageId: '<reset@sent>' });
-    const result = await sendPasswordResetEmail('u@test.com', 'tok');
-    expect(result.messageId).toBe('<reset@sent>');
-  });
-
-  it('propagates sendMail errors', async () => {
-    sendMail.mockRejectedValue(new Error('auth failed'));
-    await expect(sendPasswordResetEmail('u@test.com', 'tok')).rejects.toThrow('auth failed');
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Transporter caching
-// ─────────────────────────────────────────────────────────────────────────────
-
-describe('email.js — transporter caching', () => {
-  it('only calls createTransport once across multiple sends', async () => {
-    const sendMail = makeSendMail();
-    const { sendVerificationEmail, sendPasswordResetEmail } = loadEmail(sendMail);
-
-    await sendVerificationEmail('a@test.com', 'tok1');
-    await sendPasswordResetEmail('b@test.com', 'tok2');
-    await sendVerificationEmail('c@test.com', 'tok3');
-
-    // Singleton — should only initialise once
-    expect(nodemailer.createTransport).toHaveBeenCalledTimes(1);
-    expect(sendMail).toHaveBeenCalledTimes(3);
+    const html = mockSend.mock.calls[0][0].html;
+    expect(html).not.toMatch(/<script>x<\/script>/);
+    expect(html).not.toMatch(/<img src=x>/);
+    expect(html).toContain('&lt;script&gt;');
+    expect(html).toContain('&lt;img');
   });
 });

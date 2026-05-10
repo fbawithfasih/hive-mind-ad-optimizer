@@ -1,54 +1,35 @@
 /**
- * Email service — nodemailer with SMTP
+ * Email service — Resend HTTP API
  *
- * Environment variables:
- *   SMTP_HOST     — e.g. smtp.resend.com | smtp.sendgrid.net | smtp.gmail.com
- *   SMTP_PORT     — 587 (STARTTLS) or 465 (SSL)
- *   SMTP_USER     — SMTP username / API key
- *   SMTP_PASS     — SMTP password / API secret
- *   SMTP_FROM     — "From" address, e.g. "AMAIOP <noreply@amaiop.com>"
+ * Why HTTP, not SMTP: some hosts (Railway, certain Render plans) block
+ * outbound SMTP ports (465/587), causing connection timeouts. The HTTP
+ * API uses port 443 and works everywhere.
  *
- * When SMTP_HOST is not set the transporter falls back to nodemailer's
- * ethereal.email test account and logs the preview URL — useful for
- * local development without a real SMTP provider.
+ * Required env vars:
+ *   RESEND_API_KEY  — from https://resend.com/api-keys
+ *   MAIL_FROM       — "From" address on a verified Resend domain,
+ *                     e.g. "Hive Mind Nestor <info@hivemindnestor.com>"
+ *                     (falls back to SMTP_FROM for backwards compat)
  */
 
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { createLogger } from '../api/utils/logger.js';
 
 const logger = createLogger('EMAIL');
 
-let _transporter = null;
-
-async function getTransporter() {
-  if (_transporter) return _transporter;
-
-  if (process.env.SMTP_HOST) {
-    _transporter = nodemailer.createTransport({
-      host:   process.env.SMTP_HOST,
-      port:   Number(process.env.SMTP_PORT) || 587,
-      secure: Number(process.env.SMTP_PORT) === 465,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-    logger.info(`Email transporter configured (${process.env.SMTP_HOST})`);
-  } else {
-    // Dev fallback — captures emails at ethereal.email without sending anything real
-    const testAccount = await nodemailer.createTestAccount();
-    _transporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      auth: { user: testAccount.user, pass: testAccount.pass },
-    });
-    logger.warn('SMTP_HOST not set — using Ethereal test account (emails are NOT delivered)');
+let _client = null;
+function getClient() {
+  if (_client) return _client;
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY env var is required for sending email');
   }
-
-  return _transporter;
+  _client = new Resend(apiKey);
+  logger.info('Email client configured (Resend HTTP API)');
+  return _client;
 }
 
-const FROM = process.env.SMTP_FROM || 'AMAIOP <noreply@amaiop.com>';
+const FROM = () => process.env.MAIL_FROM || process.env.SMTP_FROM || 'AMAIOP <noreply@amaiop.com>';
 const APP_NAME = 'AMAIOP';
 const FRONTEND_URL = () => process.env.FRONTEND_URL || 'http://localhost:5173';
 
@@ -57,18 +38,21 @@ const FRONTEND_URL = () => process.env.FRONTEND_URL || 'http://localhost:5173';
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function send({ to, subject, html, text }) {
-  const transport = await getTransporter();
-  const info = await transport.sendMail({ from: FROM, to, subject, html, text });
+  const result = await getClient().emails.send({
+    from: FROM(),
+    to,
+    subject,
+    html,
+    text,
+  });
 
-  // In dev with Ethereal, log the preview URL
-  const preview = nodemailer.getTestMessageUrl(info);
-  if (preview) {
-    logger.info(`Email preview (Ethereal): ${preview}`);
-  } else {
-    logger.info(`Email sent to ${to} — messageId: ${info.messageId}`);
+  if (result.error) {
+    const msg = result.error.message || JSON.stringify(result.error);
+    throw new Error(`Resend rejected message: ${msg}`);
   }
 
-  return info;
+  logger.info(`Email sent to ${Array.isArray(to) ? to.join(',') : to} — id: ${result.data?.id}`);
+  return result.data;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
