@@ -56,6 +56,13 @@ export async function automationProcessor(job) {
             cacheKey:     `ads:${orgId}`,
           })
         : defaultAdsClient;
+
+      // Populate region map so this org's profiles route to the correct host.
+      const regions = await prisma.sellerProfile.findMany({
+        where:  { orgId },
+        select: { profileId: true, countryCode: true },
+      });
+      adsClient.setProfileRegions?.(regions);
     } catch (err) {
       logger.error(`Could not load credentials for org ${orgId}: ${err.message}`);
       continue;

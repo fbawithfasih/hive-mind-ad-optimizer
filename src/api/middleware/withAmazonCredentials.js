@@ -93,6 +93,20 @@ export async function withAmazonCredentials(req, res, next) {
           cacheKey:     `ads:${orgId}`,
         });
         req.hasOwnAdsCreds = true;
+
+        // Populate the region map so per-profile API calls (campaigns,
+        // reports, keywords) route to the correct regional host. Without
+        // this, an AU profile would be queried against the NA endpoint
+        // and silently return empty data.
+        try {
+          const profiles = await prisma.sellerProfile.findMany({
+            where:  { orgId },
+            select: { profileId: true, countryCode: true },
+          });
+          req.adsClient.setProfileRegions(profiles);
+        } catch (err) {
+          logger.warn(`Failed to load profile regions for org ${orgId}: ${err.message}`);
+        }
       } else if (pathRequiresAds(req)) {
         logger.warn(`Org ${orgId} hit ${req.originalUrl} without Ads OAuth — returning 412`);
         return res.status(412).json({

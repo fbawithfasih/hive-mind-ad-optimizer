@@ -94,6 +94,17 @@ export async function reportingProcessor(job) {
     logger.info(`Job ${jobId}: no org credentials found — using env defaults`);
   }
 
+  // Populate region map so this profile's calls hit the correct regional host.
+  try {
+    const regions = await prisma.sellerProfile.findMany({
+      where:  { orgId },
+      select: { profileId: true, countryCode: true },
+    });
+    adsClient.setProfileRegions?.(regions);
+  } catch (err) {
+    logger.warn(`Job ${jobId}: profile region load failed — ${err.message}`);
+  }
+
   // 2. Fetch data from Amazon (metrics + search terms run in parallel)
   await job.updateProgress(10);
 

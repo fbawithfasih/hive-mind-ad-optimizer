@@ -36,13 +36,84 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     };
   }
 
+  // Amazon Ads is region-segmented. Refresh tokens are global, so the same
+  // access token works across regions, but each per-profile API call must
+  // hit the host for that profile's marketplace.
+  const REGIONS = {
+    NA: 'https://advertising-api.amazon.com',
+    EU: 'https://advertising-api-eu.amazon.com',
+    FE: 'https://advertising-api-fe.amazon.com',
+  };
+  const ADS_REGIONS = Object.entries(REGIONS).map(([name, host]) => ({ name, host }));
+
+  // Country → region map. Used to route per-profile calls to the right host.
+  const COUNTRY_REGION = {
+    US: 'NA', CA: 'NA', MX: 'NA', BR: 'NA',
+    UK: 'EU', GB: 'EU', DE: 'EU', FR: 'EU', IT: 'EU', ES: 'EU', NL: 'EU',
+    SE: 'EU', PL: 'EU', BE: 'EU', IE: 'EU', TR: 'EU',
+    ZA: 'EU', EG: 'EU', SA: 'EU', AE: 'EU', IN: 'EU',
+    JP: 'FE', AU: 'FE', SG: 'FE',
+  };
+
+  // profileId (string) → country code, populated by getProfiles or
+  // setProfileRegions(). Per-profile functions consult this to pick the host;
+  // unknown profileIds default to NA for backwards compatibility.
+  const profileCountry = new Map();
+
+  function hostFor(profileId) {
+    if (profileId == null) return REGIONS.NA;
+    const country = profileCountry.get(String(profileId));
+    const region  = COUNTRY_REGION[country] ?? 'NA';
+    return REGIONS[region];
+  }
+
+  function rememberProfile(profile) {
+    if (profile?.profileId != null && profile?.countryCode) {
+      profileCountry.set(String(profile.profileId), profile.countryCode);
+    }
+  }
+
+  /**
+   * Pre-populate the profileId→country map. Call from middleware/workers
+   * before making per-profile API calls so the right region is hit even
+   * when getProfiles() hasn't been called this session.
+   * @param {Iterable<{profileId: string|number, countryCode: string}>} profiles
+   */
+  function setProfileRegions(profiles) {
+    for (const p of profiles ?? []) rememberProfile(p);
+  }
+
   async function getProfiles() {
     const token = await getAccessToken();
-    const res = await axios.get('https://advertising-api.amazon.com/v2/profiles', {
-      headers: adsHeaders(token),
+    const results = await Promise.all(ADS_REGIONS.map(async ({ name, host }) => {
+      try {
+        const res = await axios.get(`${host}/v2/profiles`, { headers: adsHeaders(token) });
+        const list = Array.isArray(res.data) ? res.data : [];
+        console.log(`✅ Fetched ${list.length} profiles from ${name}`);
+        return list;
+      } catch (err) {
+        const status = err.response?.status ?? 'network';
+        // 401/403 typically means the seller didn't authorize this region —
+        // expected and not an error worth surfacing to the caller.
+        const level = (status === 401 || status === 403) ? 'info' : 'warn';
+        console[level === 'warn' ? 'warn' : 'log'](
+          `⚠️  ${name} profiles fetch ${level === 'info' ? 'skipped' : 'failed'} (status ${status})`
+        );
+        return [];
+      }
+    }));
+    const merged = results.flat();
+    // De-dupe defensively in case Amazon ever returns the same profileId from two regions.
+    const seen = new Set();
+    const deduped = merged.filter(p => {
+      const id = String(p.profileId);
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
     });
-    console.log(`✅ Fetched ${res.data.length} profiles`);
-    return res.data;
+    // Cache region info so subsequent per-profile calls route to the right host.
+    deduped.forEach(rememberProfile);
+    return deduped;
   }
 
   // Sponsored Products v3 — `/v2/campaigns` returns 404 "Method Not Found".
@@ -62,7 +133,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     do {
       const body = { maxResults: 100, ...(nextToken ? { nextToken } : {}) };
       const res = await axios.post(
-        'https://advertising-api.amazon.com/sp/campaigns/list',
+        `${hostFor(profileId)}/sp/campaigns/list`,
         body,
         { headers },
       );
@@ -112,7 +183,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
           ...(nextToken ? { nextToken } : {}),
         };
         const res = await axios.post(
-          'https://advertising-api.amazon.com/sp/productAds/list',
+          `${hostFor(profileId)}/sp/productAds/list`,
           body,
           { headers },
         );
@@ -140,7 +211,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     let createRes;
     try {
       createRes = await axios.post(
-        'https://advertising-api.amazon.com/reporting/reports',
+        `${hostFor(profileId)}/reporting/reports`,
         {
           name: `SP Campaign Metrics ${Date.now()}`,
           startDate,
@@ -194,7 +265,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
 
     let poll;
     try {
-      poll = await axios.get(`https://advertising-api.amazon.com/reporting/reports/${reportId}`, { headers: h });
+      poll = await axios.get(`${hostFor(profileId)}/reporting/reports/${reportId}`, { headers: h });
     } catch (e) {
       throw new Error(`Poll failed ${e.response?.status}: ${JSON.stringify(e.response?.data)}`);
     }
@@ -252,7 +323,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     let createRes;
     try {
       createRes = await axios.post(
-        'https://advertising-api.amazon.com/reporting/reports',
+        `${hostFor(profileId)}/reporting/reports`,
         { name: `SP Search Term Report ${Date.now()}`, startDate, endDate, configuration: reportConfig },
         {
           headers: {
@@ -287,7 +358,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
 
     let poll;
     try {
-      poll = await axios.get(`https://advertising-api.amazon.com/reporting/reports/${reportId}`, { headers: h });
+      poll = await axios.get(`${hostFor(profileId)}/reporting/reports/${reportId}`, { headers: h });
     } catch (e) {
       throw new Error(`Search term poll failed ${e.response?.status}: ${JSON.stringify(e.response?.data)}`);
     }
@@ -374,7 +445,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     });
 
     const res = await axios.put(
-      'https://advertising-api.amazon.com/v2/campaigns',
+      `${hostFor(profileId)}/v2/campaigns`,
       body,
       { headers: adsHeaders(token, profileId) }
     );
@@ -397,7 +468,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
       matchType:   k.matchType ?? 'negativePhrase',
     }));
     const res = await axios.post(
-      'https://advertising-api.amazon.com/v2/sp/negativeKeywords',
+      `${hostFor(profileId)}/v2/sp/negativeKeywords`,
       body,
       { headers: adsHeaders(token, profileId) }
     );
@@ -421,7 +492,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
       bid:         k.bid ?? 0.75,
     }));
     const res = await axios.post(
-      'https://advertising-api.amazon.com/v2/sp/keywords',
+      `${hostFor(profileId)}/v2/sp/keywords`,
       body,
       { headers: adsHeaders(token, profileId) }
     );
@@ -442,6 +513,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     updateCampaigns,
     addNegativeKeywords,
     addKeywords,
+    setProfileRegions,
   };
 }
 
