@@ -11,6 +11,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
 import ResetPasswordPage  from './pages/ResetPasswordPage.jsx';
 import OnboardingPage   from './pages/OnboardingPage.jsx';
 import BillingPage      from './pages/BillingPage.jsx';
+import SpApiOAuthError  from './pages/auth/spapi/error.jsx';
 
 function Spinner() {
   return (
@@ -96,6 +97,10 @@ export default function App() {
       <Route path="/verify-email"  element={<VerifyEmailPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password"  element={<ResetPasswordPage />} />
+
+      {/* SP-API OAuth error landing — public so the page renders even if the
+          session cookie wasn't set yet during the OAuth round-trip. */}
+      <Route path="/auth/spapi/error" element={<SpApiOAuthError />} />
 
       {/* ── Protected routes ───────────────────────────────────────── */}
       <Route path="/onboarding" element={

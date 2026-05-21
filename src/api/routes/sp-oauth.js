@@ -59,6 +59,26 @@ function consumeState(state) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Error redirect helper — XSS-safe by construction.
+//
+// We never render req.query (or any error detail) into an HTML response.
+// Instead we redirect to the frontend error route with a short, sanitised
+// reason CODE. The frontend owns all user-facing messaging. Raw error detail
+// is logged server-side only and never leaves the server.
+// ─────────────────────────────────────────────────────────────────────────────
+function redirectToError(res, reason, maxLen = 50) {
+  const base = process.env.FRONTEND_URL;
+  // Fail closed: without FRONTEND_URL we cannot build a safe redirect, and we
+  // must never fall back to rendering user input into HTML.
+  if (!base) {
+    console.error('[SP_OAUTH] FRONTEND_URL is not set — cannot redirect to error page');
+    return res.status(500).send('Server misconfiguration: FRONTEND_URL is not set.');
+  }
+  const safeReason = encodeURIComponent(String(reason ?? 'unknown').slice(0, maxLen));
+  return res.redirect(`${base.replace(/\/$/, '')}/auth/spapi/error?reason=${safeReason}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /api/sp-oauth/info — show current config (for debugging)
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/info', requireAuth, withTenant, (req, res) => {
@@ -110,22 +130,15 @@ router.get('/callback', async (req, res) => {
   });
 
   if (!spapi_oauth_code) {
-    return res.status(400).send(errorPage(
-      'No authorization code received',
-      'Amazon did not return a spapi_oauth_code. Common causes: seller cancelled, ' +
-      'redirect URI not registered in SPP, or incorrect application_id.',
-      req.query
-    ));
+    console.error('[SP_OAUTH] callback: missing spapi_oauth_code', { query: req.query });
+    return redirectToError(res, 'no_authorization_code');
   }
 
   // Validate CSRF state — never fall back to req.tenant; state must always be present
   const orgId = consumeState(state);
   if (!orgId) {
-    return res.status(400).send(errorPage(
-      'Invalid or expired state parameter',
-      'The OAuth state was not recognised or has expired. Please start the connection flow again.',
-      req.query
-    ));
+    console.error('[SP_OAUTH] callback: invalid or expired state', { state });
+    return redirectToError(res, 'invalid_state');
   }
 
   const { clientId, clientSecret } = cfg();
@@ -161,12 +174,8 @@ router.get('/callback', async (req, res) => {
   } catch (err) {
     const detail = err.response?.data ?? err.message;
     logger.error(`SP-API token exchange failed for org ${orgId}`, err);
-    res.status(500).send(errorPage(
-      'Token Exchange Failed',
-      'The authorization code was received but could not be exchanged for tokens. ' +
-      'Common causes: redirect URI mismatch, wrong CLIENT_ID/CLIENT_SECRET, or code already used.',
-      detail
-    ));
+    console.error('[SP_OAUTH] callback token exchange failed:', detail);
+    return redirectToError(res, 'token_exchange_failed');
   }
 });
 
@@ -201,20 +210,14 @@ router.get('/ads-callback', async (req, res) => {
   const { code, state, error } = req.query;
 
   if (error || !code) {
-    return res.status(400).send(errorPage(
-      'Ads Authorization Failed',
-      error ?? 'No authorization code received from Amazon.',
-      req.query
-    ));
+    console.error('[SP_OAUTH] ads-callback: authorization failed', { error, hasCode: !!code });
+    return redirectToError(res, error || 'ads_no_authorization_code');
   }
 
   const orgId = consumeState(state);
   if (!orgId) {
-    return res.status(400).send(errorPage(
-      'Invalid or expired state',
-      'Please start the Ads connection flow again.',
-      req.query
-    ));
+    console.error('[SP_OAUTH] ads-callback: invalid or expired state', { state });
+    return redirectToError(res, 'invalid_state');
   }
 
   const clientId     = process.env.AMAZON_ADS_CLIENT_ID;
@@ -242,63 +245,9 @@ router.get('/ads-callback', async (req, res) => {
   } catch (err) {
     const detail = err.response?.data ?? err.message;
     logger.error(`Ads token exchange failed for org ${orgId}`, err);
-    res.status(500).send(errorPage('Ads Token Exchange Failed',
-      'The authorization code could not be exchanged for tokens.',
-      detail
-    ));
+    console.error('[SP_OAUTH] ads-callback token exchange failed:', detail);
+    return redirectToError(res, 'ads_token_exchange_failed');
   }
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// HTML helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-function baseStyle() {
-  return `<style>
-    * { box-sizing: border-box; }
-    body { font-family: monospace; background: #0F172A; color: #F1F5F9; padding: 40px; max-width: 800px; margin: 0 auto; }
-    h2 { margin-top: 0; }
-    .box { background: #1E293B; border: 1px solid #334155; border-radius: 8px; padding: 20px; margin: 16px 0; }
-    .label { color: #94A3B8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
-    .value { color: #F1F5F9; word-break: break-all; line-height: 1.5; }
-    .warn { color: #F59E0B; background: #F59E0B11; border: 1px solid #F59E0B33; border-radius: 8px; padding: 14px 18px; margin-top: 20px; }
-    pre { background: #1E293B; padding: 20px; border-radius: 8px; color: #F43F5E; overflow: auto; }
-  </style>`;
-}
-
-function successPage(orgId, sellerId) {
-  return `<!DOCTYPE html>
-<html>
-<head><title>Amazon Connected</title>${baseStyle()}</head>
-<body>
-  <h2 style="color:#10B981">✅ Amazon Account Connected</h2>
-  <div class="box">
-    <div class="label">Organization</div>
-    <div class="value">${orgId}</div>
-  </div>
-  <div class="box">
-    <div class="label">Selling Partner ID</div>
-    <div class="value">${sellerId}</div>
-  </div>
-  <div class="warn">
-    ✅ <strong>Credentials saved.</strong> This organization will now use its own Amazon account
-    for all API calls. You can close this window and return to the app.
-  </div>
-</body>
-</html>`;
-}
-
-function errorPage(title, description, detail) {
-  return `<!DOCTYPE html>
-<html>
-<head><title>SP-API Error</title>${baseStyle()}</head>
-<body>
-  <h2 style="color:#F43F5E">❌ ${title}</h2>
-  <p>${description}</p>
-  <h3>Detail:</h3>
-  <pre>${JSON.stringify(detail, null, 2)}</pre>
-</body>
-</html>`;
-}
 
 export default router;
