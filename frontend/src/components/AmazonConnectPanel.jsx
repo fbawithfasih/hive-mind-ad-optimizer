@@ -27,7 +27,13 @@ export default function AmazonConnectPanel({ onConnected }) {
   useEffect(() => {
     getAmazonStatus()
       .then(setStatus)
-      .catch(() => setError('Failed to load connection status.'))
+      .catch((err) => {
+        if (err?.response?.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+        setError('Failed to load connection status.');
+      })
       .finally(() => setLoading(false));
   }, []);
 

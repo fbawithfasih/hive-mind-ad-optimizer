@@ -14,11 +14,11 @@
 
 import express from 'express';
 import axios from 'axios';
+import jwt from 'jsonwebtoken';
 import { randomBytes } from 'crypto';
 import dotenv from 'dotenv';
 import { saveOrgCredential, updateOrgAdsToken } from '../../services/credentials.js';
 import { createLogger } from '../utils/logger.js';
-import { requireAuth } from '../middleware/requireAuth.js';
 import { withTenant } from '../middleware/withTenant.js';
 
 dotenv.config({ override: true });
@@ -35,6 +35,24 @@ function cfg() {
     clientSecret: process.env.SP_API_CLIENT_SECRET,
     solutionId:  process.env.SP_SOLUTION_ID || process.env.SP_API_CLIENT_ID,
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Navigation-safe auth: for browser-navigated routes (/start, /ads-start).
+// Unlike requireAuth (which returns JSON 401), this redirects to the login
+// page so the user isn't stranded on a raw JSON error in the browser tab.
+// ─────────────────────────────────────────────────────────────────────────────
+function requireAuthNav(req, res, next) {
+  const token = req.cookies?.hmn_token;
+  const loginUrl = `${(process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')}/login`;
+  if (!token) return res.redirect(loginUrl);
+  try {
+    const payload = jwt.verify(token, process.env.SESSION_SECRET);
+    req.user = { userId: payload.userId, activeOrgId: payload.activeOrgId ?? null };
+    next();
+  } catch {
+    return res.redirect(loginUrl);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -81,7 +99,7 @@ function redirectToError(res, reason, maxLen = 50) {
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/sp-oauth/info — show current config (for debugging)
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/info', requireAuth, withTenant, (req, res) => {
+router.get('/info', requireAuthNav, withTenant, (req, res) => {
   const { clientId, clientSecret, solutionId } = cfg();
   res.json({
     solution_id:       solutionId,
@@ -97,7 +115,7 @@ router.get('/info', requireAuth, withTenant, (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/sp-oauth/start — redirect to Amazon Seller Central SPN consent
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/start', requireAuth, withTenant, (req, res) => {
+router.get('/start', requireAuthNav, withTenant, (req, res) => {
   const { clientId, clientSecret, solutionId } = cfg();
   if (!clientId)     return res.status(500).send('SP_API_CLIENT_ID not set in .env');
   if (!clientSecret) return res.status(500).send('SP_API_CLIENT_SECRET not set in .env');
@@ -182,7 +200,7 @@ router.get('/callback', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/sp-oauth/ads-start — redirect to Amazon LWA for Ads API consent
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/ads-start', requireAuth, withTenant, (req, res) => {
+router.get('/ads-start', requireAuthNav, withTenant, (req, res) => {
   const clientId = process.env.AMAZON_ADS_CLIENT_ID;
   if (!clientId) return res.status(500).send('AMAZON_ADS_CLIENT_ID not set in .env');
 
