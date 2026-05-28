@@ -15,8 +15,10 @@ export function useProfileState(orgName) {
 
         // Determine primary group: org-name match takes priority over isDefault
         const primary = getPrimaryGroup(list, orgName);
-        const us = primary.find(p => p.countryCode === 'US');
-        setSelectedProfileId(String((us ?? primary[0]).profileId));
+        // Default preference: US > any explicitly marked default > first entry
+        const us         = primary.find(p => p.countryCode === 'US');
+        const defaulted  = primary.find(p => p.isDefault);
+        setSelectedProfileId(String((us ?? defaulted ?? primary[0]).profileId));
       })
       .catch(() => setProfiles([]));
   }, [orgName]);
@@ -101,15 +103,21 @@ export function useProfileState(orgName) {
  */
 /**
  * After finding a name match, expand the result to include all profiles that
- * share the same accountId as any matched profile. This ensures that CA/MX
+ * share the same accountId as any matched profile.  This ensures that CA/MX
  * marketplace profiles (which may have a null/numeric accountName) are always
- * returned alongside the US profile that name-matched, since they all belong
- * to the same seller account.
+ * returned alongside the US profile that name-matched.
+ *
+ * Profiles with a null accountId are always kept if they were in the original
+ * match — we never drop a matched profile just because its accountId is absent.
  */
 function expandToAccount(matched, all) {
   const accountIds = new Set(matched.map(p => p.accountId).filter(Boolean));
+  const matchedIds  = new Set(matched.map(p => p.profileId));
   if (!accountIds.size) return matched;
-  return all.filter(p => p.accountId && accountIds.has(p.accountId));
+  return all.filter(p =>
+    matchedIds.has(p.profileId) ||                   // keep originals (null accountId safe)
+    (p.accountId && accountIds.has(p.accountId))     // add same-account siblings
+  );
 }
 
 function getPrimaryGroup(list, orgName) {
