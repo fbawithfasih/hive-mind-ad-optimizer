@@ -28,6 +28,9 @@ const isProd = process.env.NODE_ENV === 'production';
 // Trust Railway's reverse proxy so express-rate-limit can read the real client IP
 app.set('trust proxy', 1);
 
+// Don't advertise the framework — removes the default X-Powered-By: Express header
+app.disable('x-powered-by');
+
 // Configure CORS with explicit origin whitelist
 const corsOptions = {
   origin: process.env.FRONTEND_URL || (isProd ? undefined : 'http://localhost:5173'),

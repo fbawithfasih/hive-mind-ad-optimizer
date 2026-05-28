@@ -99,6 +99,19 @@ export function useProfileState(orgName) {
  * to the wrong seller account when agency-level credentials returned multiple
  * clients' profiles during the last sync.
  */
+/**
+ * After finding a name match, expand the result to include all profiles that
+ * share the same accountId as any matched profile. This ensures that CA/MX
+ * marketplace profiles (which may have a null/numeric accountName) are always
+ * returned alongside the US profile that name-matched, since they all belong
+ * to the same seller account.
+ */
+function expandToAccount(matched, all) {
+  const accountIds = new Set(matched.map(p => p.accountId).filter(Boolean));
+  if (!accountIds.size) return matched;
+  return all.filter(p => p.accountId && accountIds.has(p.accountId));
+}
+
 function getPrimaryGroup(list, orgName) {
   if (!list.length) return [];
 
@@ -111,14 +124,14 @@ function getPrimaryGroup(list, orgName) {
       const name = normalize(p.accountName ?? p.profileName);
       return name === orgKey;
     });
-    if (exact.length) return exact;
+    if (exact.length) return expandToAccount(exact, list);
 
     // 2. Substring match (e.g. org "Queenza" ↔ profile "Queenzaonline" or vice-versa)
     const partial = list.filter(p => {
       const name = normalize(p.accountName ?? p.profileName);
       return name.includes(orgKey) || orgKey.includes(name);
     });
-    if (partial.length) return partial;
+    if (partial.length) return expandToAccount(partial, list);
 
     // 3. Word-level match: any significant word in orgKey appears in the profile name
     const orgWords = orgKey.split(/[\s_\-]+/).filter(w => w.length > 3);
@@ -127,7 +140,7 @@ function getPrimaryGroup(list, orgName) {
         const name = normalize(p.accountName ?? p.profileName);
         return orgWords.some(word => name.includes(word));
       });
-      if (wordMatch.length) return wordMatch;
+      if (wordMatch.length) return expandToAccount(wordMatch, list);
     }
   }
 
