@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { getCustomerRetention, triggerBrandAnalyticsFetch } from '../../services/api.js';
 import { glass, GradientBar, GlowBlob, Spinner, COLORS } from './shared.jsx';
+import RetentionTrendChart from './charts/RetentionTrendChart.jsx';
 
 function fmtN(n)   { return n == null ? '—' : Number(n).toLocaleString('en-US'); }
 function fmtPct(n) { return n == null ? '—' : `${Number(n).toFixed(n >= 10 ? 1 : 2)}%`; }
@@ -133,6 +134,30 @@ export default function CustomerRetention() {
           </div>
         </div>
       </div>
+
+      {/* ── Repeat rate chart ── */}
+      {asins.length > 0 && (
+        <div style={{ ...glass('rgba(16,185,129,0.12)'), padding: '22px 24px' }}>
+          <GradientBar top="linear-gradient(90deg,#10B981,#3B82F6)" />
+          <GlowBlob color="rgba(16,185,129,0.1)" />
+          <div style={{ position: 'relative' }}>
+            <p style={{ fontSize: 11, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 4px' }}>
+              Repeat Rate by ASIN — Top 12
+            </p>
+            <p style={{ fontSize: 11, color: '#475569', margin: '0 0 14px' }}>
+              Green = Subscribe &amp; Save candidate (≥ 25%) · {asins.length} ASINs total
+            </p>
+            <RetentionTrendChart
+              items={asins.map(a => ({
+                asin:            a.asin,
+                repeatRate:      a.repeatRate,
+                repeatCustomers: a.repeatCustomers,
+                totalCustomers:  a.totalCustomers,
+              }))}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ── S&S spotlight (only when there are candidates) ── */}
       {snsCandidates.length > 0 && (

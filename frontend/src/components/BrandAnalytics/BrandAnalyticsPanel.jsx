@@ -12,6 +12,7 @@ import CustomerRetention     from './CustomerRetention.jsx';
 import CrossSell             from './CrossSell.jsx';
 import Demographics          from './Demographics.jsx';
 import ItemComparison        from './ItemComparison.jsx';
+import SearchQueryChart      from './charts/SearchQueryChart.jsx';
 
 const TABS = [
   { id: 'overview',     label: 'Overview'     },
@@ -241,6 +242,31 @@ export default function BrandAnalyticsPanel() {
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Top search queries chart */}
+          {brandAppearances.length > 0 && (
+            <div style={{ ...glass('rgba(139,92,246,0.15)'), padding: '22px 24px' }}>
+              <GradientBar top="linear-gradient(90deg,#8B5CF6,#3B82F6,#10B981)" />
+              <GlowBlob color="rgba(139,92,246,0.1)" />
+              <div style={{ position: 'relative' }}>
+                <p style={{ fontSize: 11, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 4px' }}>
+                  Top Brand Search Queries — Click Share
+                </p>
+                <p style={{ fontSize: 11, color: '#475569', margin: '0 0 16px' }}>
+                  Color = top-3 position · {brandAppearances.length} total queries found
+                </p>
+                <SearchQueryChart brandAppearances={brandAppearances} />
+                <div style={{ display: 'flex', gap: 14, marginTop: 10 }}>
+                  {[['#10B981', '#1 Position'], ['#3B82F6', '#2 Position'], ['#8B5CF6', '#3 Position']].map(([color, label]) => (
+                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: 2, background: color }} />
+                      <span style={{ fontSize: 10, color: '#475569' }}>{label}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

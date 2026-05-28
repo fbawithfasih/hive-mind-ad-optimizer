@@ -1,4 +1,8 @@
 import React, { useState, useMemo } from 'react';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, Cell,
+} from 'recharts';
 import { glass, GradientBar, GlowBlob, Badge, COLORS } from './shared.jsx';
 
 function ThreatColor(appearances) {
@@ -248,6 +252,68 @@ export default function CompetitorsList({ competitors = [], marketConcentration,
           </div>
           <Badge text={`${competitors.length} ranked`} color={COLORS.red.accent} />
         </div>
+
+        {/* Click-share bar chart */}
+        {competitors.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <p style={{ fontSize: 9, fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.10em', margin: '0 0 10px' }}>
+              Avg Click Share — Top 10
+            </p>
+            <ResponsiveContainer width="100%" height={competitors.slice(0, 10).length * 26 + 16}>
+              <BarChart
+                layout="vertical"
+                data={competitors.slice(0, 10).map((c, i) => ({
+                  asin:       c.asin,
+                  click:      c.avgClickShare,
+                  appearances: c.appearances,
+                  rank:       i,
+                }))}
+                margin={{ top: 0, right: 52, left: 0, bottom: 0 }}
+                barSize={10}
+              >
+                <XAxis
+                  type="number"
+                  domain={[0, 'dataMax']}
+                  tick={{ fontSize: 9, fill: '#334155' }}
+                  tickFormatter={v => `${v}%`}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="asin"
+                  width={90}
+                  tick={{ fontSize: 10, fill: '#64748B', fontFamily: 'monospace' }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const d = payload[0].payload;
+                    return (
+                      <div style={{ background: 'rgba(8,12,26,0.97)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 12px', fontSize: 11 }}>
+                        <p style={{ margin: 0, color: '#F1F5F9', fontWeight: 700, fontFamily: 'monospace' }}>{d.asin}</p>
+                        <p style={{ margin: 0, color: '#3B82F6' }}>Click share: <b>{d.click}%</b></p>
+                        <p style={{ margin: 0, color: '#F43F5E' }}>Appearances: <b>{d.appearances}</b></p>
+                      </div>
+                    );
+                  }}
+                  cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                />
+                <Bar dataKey="click" radius={[0, 3, 3, 0]} animationDuration={800}>
+                  {competitors.slice(0, 10).map((c, i) => (
+                    <Cell
+                      key={c.asin}
+                      fill={ThreatColor(c.appearances).accent}
+                      fillOpacity={1 - i * 0.06}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
 
         {/* Table header */}
         <div style={{ display: 'grid', gridTemplateColumns: '26px 110px 1fr 70px 70px 60px', gap: 10, padding: '0 8px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 6 }}>

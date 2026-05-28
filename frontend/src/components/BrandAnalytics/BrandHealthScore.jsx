@@ -1,21 +1,53 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import {
+  RadialBarChart, RadialBar, PolarAngleAxis,
+} from 'recharts';
+import { useMotionValue, useSpring, useMotionValueEvent } from 'framer-motion';
 import { glass, GradientBar, GlowBlob, scoreColor } from './shared.jsx';
 
-function Ring({ score, size = 120, stroke = 10 }) {
-  const r = (size - stroke) / 2;
-  const circ = 2 * Math.PI * r;
-  const filled = Math.min(score / 100, 1) * circ;
+function AnimatedScore({ target, color }) {
+  const motionVal = useMotionValue(0);
+  const spring    = useSpring(motionVal, { stiffness: 70, damping: 18, mass: 0.9 });
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => { motionVal.set(target); }, [target, motionVal]);
+  useMotionValueEvent(spring, 'change', v => setCurrent(Math.round(v)));
+
+  return (
+    <span style={{ fontSize: 28, fontWeight: 900, color: '#fff', lineHeight: 1, fontFamily: 'ui-monospace, monospace' }}>
+      {current}
+    </span>
+  );
+}
+
+function Ring({ score, size = 120 }) {
   const { accent, glow } = scoreColor(score);
+  const data = [{ value: score, fill: accent }];
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', display: 'block' }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={accent} strokeWidth={stroke}
-          strokeDasharray={`${filled} ${circ}`} strokeLinecap="round"
-          style={{ filter: `drop-shadow(0 0 8px ${glow})`, transition: 'stroke-dasharray 1.2s ease' }} />
-      </svg>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-        <span style={{ fontSize: 28, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{score}</span>
+      <RadialBarChart
+        width={size}
+        height={size}
+        cx={size / 2}
+        cy={size / 2}
+        innerRadius={size * 0.36}
+        outerRadius={size * 0.48}
+        data={data}
+        startAngle={90}
+        endAngle={-270}
+        style={{ filter: `drop-shadow(0 0 8px ${glow})` }}
+      >
+        <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
+        <RadialBar
+          dataKey="value"
+          cornerRadius={4}
+          background={{ fill: 'rgba(255,255,255,0.06)' }}
+          animationDuration={1200}
+          animationBegin={100}
+        />
+      </RadialBarChart>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, pointerEvents: 'none' }}>
+        <AnimatedScore target={score} color={accent} />
         <span style={{ fontSize: 10, fontWeight: 800, color: accent, letterSpacing: '0.1em' }}>/ 100</span>
       </div>
     </div>
