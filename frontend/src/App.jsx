@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { CommandPaletteProvider } from './components/command/CommandPaletteProvider.jsx';
 import './index.css';
 import { getMeApi, getOnboardingStatus } from './services/api.js';
 import Dashboard        from './pages/Dashboard.jsx';
@@ -86,6 +87,7 @@ export default function App() {
   const loggedIn = !!user;
 
   return (
+    <CommandPaletteProvider>
     <Routes>
       {/* ── Public auth routes ─────────────────────────────────────── */}
       <Route path="/login"
@@ -130,5 +132,6 @@ export default function App() {
 
       <Route path="*" element={<Navigate to={loggedIn ? '/' : '/login'} replace />} />
     </Routes>
+    </CommandPaletteProvider>
   );
 }

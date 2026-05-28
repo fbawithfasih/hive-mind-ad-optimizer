@@ -1,10 +1,11 @@
 /**
  * Rate limiters — express-rate-limit
  *
- * Three tiers:
+ * Four tiers:
  *   authLimiter    — login, signup, forgot-password (strict: 10 req / 15 min per IP)
  *   apiLimiter     — all authenticated API routes   (generous: 300 req / min per IP)
  *   strictLimiter  — password reset confirm, resend  (tight: 5 req / hour per IP)
+ *   uploadLimiter  — large file-upload endpoints     (tight: 20 req / hour per IP)
  */
 
 import rateLimit from 'express-rate-limit';
@@ -28,6 +29,7 @@ export const authLimiter = rateLimit({
     onLimitReached(req, res, options);
     res.status(options.statusCode).json(options.message);
   },
+  skip: (req) => process.env.NODE_ENV === 'test',
 });
 
 // Tight limiter for password reset confirmation and email resend
@@ -42,6 +44,7 @@ export const strictLimiter = rateLimit({
     onLimitReached(req, res, options);
     res.status(options.statusCode).json(options.message);
   },
+  skip: (req) => process.env.NODE_ENV === 'test',
 });
 
 // General API limiter — applied to all authenticated routes.
@@ -53,6 +56,25 @@ export const apiLimiter = rateLimit({
   legacyHeaders:    false,
   message:          { error: 'Too many requests — slow down and try again shortly.' },
   handler(req, res, next, options) {
+    onLimitReached(req, res, options);
+    res.status(options.statusCode).json(options.message);
+  },
+  skip: (req) => process.env.NODE_ENV === 'test',
+});
+
+// Tight limiter for large file-upload endpoints — e.g. the Brand Analytics
+// CSV upload, which can write up to 600 MB to disk per request. The general
+// apiLimiter (300/min) is far too loose to blunt disk-exhaustion abuse here.
+export const uploadLimiter = rateLimit({
+  windowMs:         60 * 60 * 1000,  // 1 hour
+  max:              20,
+  standardHeaders:  true,
+  legacyHeaders:    false,
+  message:          { error: 'Too many uploads — please wait before uploading again.' },
+  handler(req, res, next, options) {
+    // Drain the request body before replying so the keep-alive socket isn't
+    // left stalled waiting for a 600 MB body that will never be consumed.
+    req.resume();
     onLimitReached(req, res, options);
     res.status(options.statusCode).json(options.message);
   },

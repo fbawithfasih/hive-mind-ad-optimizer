@@ -578,12 +578,13 @@ router.get('/google/callback', async (req, res) => {
       client_secret: GOOGLE_CLIENT_SECRET,
       redirect_uri:  getGoogleCallbackUri(req),
       grant_type:    'authorization_code',
-    });
+    }, { proxy: false });
     const { access_token } = tokenRes.data;
 
     // 2. Fetch Google profile
     const profileRes = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${access_token}` },
+      proxy: false,
     });
     const {
       id:          googleId,
@@ -726,7 +727,7 @@ router.post('/apple/callback', express.urlencoded({ extended: false }), async (r
         grant_type:    'authorization_code',
         redirect_uri:  getAppleCallbackUri(),
       }),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, proxy: false }
     );
 
     // 3. First-consent name (Apple sends this exactly once, in the form body)
@@ -806,14 +807,14 @@ router.get('/amazon/authorize', (req, res) => {
 
 router.get('/amazon/callback', async (req, res) => {
   const { code } = req.query;
-  if (!code) return res.status(400).send('No authorization code received');
+  if (!code) return res.status(400).json({ error: 'No authorization code received' });
 
   try {
     const redirectUri = getRedirectUri(req);
     const response = await axios.post('https://api.amazon.com/auth/o2/token', new URLSearchParams({
       grant_type: 'authorization_code',
       code, client_id: CLIENT_ID, client_secret: CLIENT_SECRET, redirect_uri: redirectUri,
-    }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+    }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, proxy: false });
 
     const { refresh_token } = response.data;
     console.log('\n✅ Amazon Ads tokens received');
@@ -826,7 +827,9 @@ router.get('/amazon/callback', async (req, res) => {
       refresh_token, // Return in JSON body only, not in HTML
     });
   } catch (err) {
-    res.status(500).send(`Error: ${err.message}`);
+    // Log server-side; never render the error into an HTML response (XSS).
+    console.error('[auth/amazon/callback] token exchange failed:', err.message);
+    res.status(500).json({ error: 'Authorization failed' });
   }
 });
 

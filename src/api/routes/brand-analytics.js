@@ -3,6 +3,7 @@ import { join } from 'path';
 import { writeFile, mkdir } from 'fs/promises';
 import { loadAnalytics, clearCache } from '../../services/brand-analytics/loader.js';
 import { requireRole } from '../middleware/requireRole.js';
+import { uploadLimiter } from '../middleware/rateLimiter.js';
 import { prisma } from '../../db/prisma.js';
 import { brandAnalyticsFetchQueue } from '../../services/queue.js';
 import { cadenceForTier, previousClosedPeriod } from '../../services/brand-analytics-scheduler.js';
@@ -336,7 +337,7 @@ router.post('/reports/refresh', requireRole('ADMIN'), express.json(), async (req
  *        -H "Content-Type: text/csv" \
  *        --data-binary @US_Search_Query_Performance_Brand_View_Q1.csv
  */
-router.post('/upload', requireRole('MEMBER'), express.raw({ type: 'text/csv', limit: '600mb' }), async (req, res) => {
+router.post('/upload', requireRole('MEMBER'), uploadLimiter, express.raw({ type: 'text/csv', limit: '600mb' }), async (req, res) => {
   const { type } = req.query;
   const validTypes = { sqp: 'US_Search_Query_Performance_Brand_View', catalog: 'US_Search_Catalog_Performance', tst: 'Top_Search_Terms' };
 
@@ -360,8 +361,8 @@ router.post('/upload', requireRole('MEMBER'), express.raw({ type: 'text/csv', li
 
     res.json({ message: `${type.toUpperCase()} file uploaded successfully. Cache cleared.`, filename, bytes: req.body.length });
   } catch (err) {
-    console.error('[brand-analytics /upload]', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('[brand-analytics /upload]', err);
+    res.status(500).json({ error: 'Upload failed — please try again or contact support.' });
   }
 });
 

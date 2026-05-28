@@ -28,6 +28,7 @@ export default function CampaignTable({
   selectedIds = null,     // Set<id> | null — null means "no selection UI"
   onToggleSelect = null,  // (id) => void
   onToggleAll = null,     // (allIds) => void
+  onRowClick = null,      // (campaign) => void — opens drill-down drawer
 }) {
   // Sort by startDate (newest → oldest). Amazon returns startDate as
   // 'YYYYMMDD' or 'YYYY-MM-DD'; either compares correctly as a string.
@@ -126,11 +127,13 @@ export default function CampaignTable({
 
             return (
               <tr key={rowId ?? i}
+                onClick={onRowClick ? () => onRowClick(c) : undefined}
+                style={{ cursor: onRowClick ? 'pointer' : undefined }}
                 onMouseEnter={e => Array.from(e.currentTarget.cells).forEach(x => x.style.background = isSelected ? 'rgba(59,130,246,0.18)' : '#263348')}
                 onMouseLeave={e => Array.from(e.currentTarget.cells).forEach(x => x.style.background = rowBg)}>
 
                 {showCheckbox && (
-                  <td style={tdC}>
+                  <td style={tdC} onClick={e => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       style={checkboxStyle}

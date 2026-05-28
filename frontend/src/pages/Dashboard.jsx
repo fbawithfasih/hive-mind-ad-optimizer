@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useCommandPalette } from '../components/command/CommandPaletteProvider.jsx';
+import { useAppHotkeys } from '../hooks/useAppHotkeys.js';
+import { useGamification } from '../hooks/useGamification.js';
+import AppShell from '../components/shell/AppShell.jsx';
+import KeyboardShortcutsOverlay from '../components/shell/KeyboardShortcutsOverlay.jsx';
+import OverviewPanel from '../components/overview/OverviewPanel.jsx';
+import CampaignDrawer from '../components/campaigns/CampaignDrawer.jsx';
+import { useMetricsHistory } from '../hooks/useMetricsHistory.js';
 import CampaignTable from '../components/CampaignTable';
 import CommandInput from '../components/CommandInput';
 import ResultsDisplay from '../components/ResultsDisplay';
@@ -30,6 +37,7 @@ import { useAICommandExecution } from '../hooks/useAICommandExecution.js';
 import { useAlertPolling } from '../hooks/useAlertPolling.js';
 
 const MODULE_LABELS = {
+  overview:         '⬡ Overview',
   campaigns:        '📊 Campaigns',
   'search-terms':   '🔍 Search Terms',
   listings:         '✏️ Listing Optimizer',
@@ -258,6 +266,8 @@ export default function Dashboard({ user, onboarded, onLogout }) {
   const [selectedCampaignIds, setSelectedCampaignIds] = useState(new Set());
   const [bulkExecuting, setBulkExecuting] = useState(false);
   const [bulkResult,    setBulkResult]    = useState(null);
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [showShortcuts,   setShowShortcuts]   = useState(false);
 
   async function handleBulkAction(action, value, currentBudgets) {
     setBulkExecuting(true);
@@ -366,7 +376,9 @@ export default function Dashboard({ user, onboarded, onLogout }) {
   }
 
   const sixtyDaysAgo = getDaysAgoISO(60);
-  const [activeTab, setActiveTab] = useState('campaigns');
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const metricsHistory = useMetricsHistory(metricsSummary, metricsSummary.hasMetrics);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -409,89 +421,51 @@ export default function Dashboard({ user, onboarded, onLogout }) {
 
   const activePct = stats.total ? Math.round((stats.enabled / stats.total) * 100) : 0;
 
+  const moduleLabel = (MODULE_LABELS[activeTab] ?? '📊 Campaigns').replace(/^\S+\s/, '');
+  const handleAlertsClick = () => { setActiveTab('alerts'); resetAlertPolling(); markFiresReadApi().catch(() => {}); };
+
+  // Register palette actions — runs after every render so closures stay fresh
+  const paletteCtx = useCommandPalette();
+  useEffect(() => {
+    paletteCtx?.registerActions({
+      navigate:        setActiveTab,
+      applyPreset,
+      openCampaign:    setSelectedCampaign,
+      enableSelected:  () => selectedCampaignIds.size > 0 && handleBulkAction('enable'),
+      pauseSelected:   () => selectedCampaignIds.size > 0 && handleBulkAction('pause'),
+      campaigns,
+    });
+  });
+
+  useAppHotkeys({
+    navigate:        setActiveTab,
+    applyPreset,
+    loadMetrics:     handleLoadMetrics,
+    closeDrawer:     () => { setSelectedCampaign(null); setShowShortcuts(false); },
+    toggleShortcuts: () => setShowShortcuts(s => !s),
+  });
+
+  const gamification = useGamification(metricsSummary, campaigns);
+
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#05080F', color: '#F1F5F9' }}>
-
-      {/* ── Navbar ── */}
-      <header style={{ background: 'rgba(5,8,20,0.95)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 50, backdropFilter: 'blur(24px)' }}>
-        {/* Left: back + logo + title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link to="/" style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '5px 12px', borderRadius: 8,
-            border: '1px solid rgba(167,139,250,0.2)',
-            background: 'rgba(167,139,250,0.08)',
-            color: '#A78BFA', fontSize: 12, fontWeight: 700, textDecoration: 'none',
-            transition: 'all 0.15s',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(167,139,250,0.15)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(167,139,250,0.08)'; }}
-          >
-            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-            </svg>
-            Hub
-          </Link>
-          <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.06)' }} />
-          <img src="/HMN-APP-ICON.png" alt="HMN" style={{ width: 36, height: 36, borderRadius: 9, objectFit: 'contain' }} />
-          <div>
-            <p style={{ fontWeight: 800, fontSize: 14, color: '#F1F5F9', lineHeight: 1.2, margin: 0 }}>Hive Mind Nestor</p>
-            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: '#A78BFA', margin: 0 }}>ADS OPTIMIZER</p>
-          </div>
-        </div>
-
-        {/* Right: controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {organizations.length > 1 && (
-            <select value={activeOrgId} onChange={e => handleSwitchOrg(e.target.value)} disabled={switchingOrg}
-              style={{ background: '#0F172A', border: '1px solid rgba(255,255,255,0.08)', color: '#F1F5F9', borderRadius: 8, padding: '6px 10px', fontSize: 12, maxWidth: 180, cursor: 'pointer' }}>
-              {organizations.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-            </select>
-          )}
-
-          {Object.keys(primaryAccountGroups).length > 0 && (
-            <select value={selectedProfileId} onChange={e => setSelectedProfileId(e.target.value)}
-              style={{ background: '#0F172A', border: '1px solid rgba(167,139,250,0.25)', color: '#C4B5FD', borderRadius: 8, padding: '6px 10px', fontSize: 12, maxWidth: 280, cursor: 'pointer', fontWeight: 600 }}>
-              {Object.entries(primaryAccountGroups).map(([accountId, group]) => (
-                <optgroup key={accountId} label={group.label}>
-                  {group.profiles.map(p => (
-                    <option key={p.profileId} value={p.profileId}>
-                      {FLAG(p.countryCode)} {p.countryCode}{p.isDefault ? ' ★' : ''}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          )}
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 100, background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.25)' }}>
-            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 8px #10B981' }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#34D399' }}>Live</span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, borderLeft: '1px solid rgba(255,255,255,0.06)', paddingLeft: 12 }}>
-            {user?.email && (
-              <span style={{ fontSize: 11, color: '#334155', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {user.email}
-              </span>
-            )}
-            <button onClick={() => { setActiveTab('alerts'); resetAlertPolling(); markFiresReadApi().catch(() => {}); }}
-              style={{ position: 'relative', padding: '5px 12px', borderRadius: 7, border: `1px solid ${alertUnread > 0 ? 'rgba(244,63,94,0.35)' : 'rgba(255,255,255,0.08)'}`, background: alertUnread > 0 ? 'rgba(244,63,94,0.08)' : 'rgba(255,255,255,0.04)', color: alertUnread > 0 ? '#F87171' : '#94A3B8', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
-              🔔
-              {alertUnread > 0 && (
-                <span style={{ background: '#F43F5E', color: '#fff', fontSize: 10, fontWeight: 800, borderRadius: 99, padding: '1px 5px', minWidth: 16, textAlign: 'center' }}>{alertUnread}</span>
-              )}
-            </button>
-            <Link to="/billing" style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94A3B8', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
-              Billing
-            </Link>
-            <button onClick={async () => { await logoutApi(); onLogout(); }}
-              style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.06)', color: '#F87171', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-              Sign out
-            </button>
-          </div>
-        </div>
-      </header>
+    <AppShell
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      moduleLabel={moduleLabel}
+      user={user}
+      organizations={organizations}
+      activeOrgId={activeOrgId}
+      switchingOrg={switchingOrg}
+      onSwitchOrg={handleSwitchOrg}
+      primaryAccountGroups={primaryAccountGroups}
+      selectedProfileId={selectedProfileId}
+      onSelectProfile={setSelectedProfileId}
+      selectedProfile={selectedProfile}
+      alertUnread={alertUnread}
+      onAlertsClick={handleAlertsClick}
+      onLogout={async () => { await logoutApi(); onLogout(); }}
+      earnedBadgeCount={gamification.earnedCount}
+    >
 
       <AdsNotConnectedBanner />
 
@@ -603,6 +577,20 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             </svg>
             {error}
           </div>
+        )}
+
+        {/* ═══════════════════ OVERVIEW CONTENT ═══════════════════ */}
+        {activeTab === 'overview' && (
+          <OverviewPanel
+            metricsSummary={metricsSummary}
+            stats={stats}
+            totalSales={totalSales}
+            salesCurrency={salesCurrency}
+            loadingSales={loadingSales}
+            isLoadingMetrics={isLoadingMetrics}
+            metricsHistory={metricsHistory}
+            gamification={gamification}
+          />
         )}
 
         {/* ═══════════════════ CAMPAIGNS CONTENT ═══════════════════ */}
@@ -968,6 +956,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               selectedIds={selectedCampaignIds}
               onToggleSelect={handleToggleSelect}
               onToggleAll={handleToggleAll}
+              onRowClick={setSelectedCampaign}
             />
           </div>
 
@@ -998,6 +987,31 @@ export default function Dashboard({ user, onboarded, onLogout }) {
       </main>
 
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}`}</style>
-    </div>
+
+      <CampaignDrawer
+        campaign={selectedCampaign}
+        onClose={() => setSelectedCampaign(null)}
+        actionExecuting={bulkExecuting}
+        onEnable={async id => {
+          setBulkExecuting(true);
+          try {
+            await bulkUpdateCampaigns({ action: 'enable', campaignIds: [id] });
+            setCampaigns(prev => prev.map(c => (c.id ?? c.campaignId) === id ? { ...c, status: 'enabled' } : c));
+            setSelectedCampaign(prev => prev && (prev.id ?? prev.campaignId) === id ? { ...prev, status: 'enabled' } : prev);
+          } finally { setBulkExecuting(false); }
+        }}
+        onPause={async id => {
+          setBulkExecuting(true);
+          try {
+            await bulkUpdateCampaigns({ action: 'pause', campaignIds: [id] });
+            setCampaigns(prev => prev.map(c => (c.id ?? c.campaignId) === id ? { ...c, status: 'paused' } : c));
+            setSelectedCampaign(prev => prev && (prev.id ?? prev.campaignId) === id ? { ...prev, status: 'paused' } : prev);
+          } finally { setBulkExecuting(false); }
+        }}
+        onGoToCampaigns={() => { setSelectedCampaign(null); setActiveTab('campaigns'); }}
+      />
+
+      <KeyboardShortcutsOverlay open={showShortcuts} onClose={() => setShowShortcuts(false)} />
+    </AppShell>
   );
 }
