@@ -88,8 +88,15 @@ app.use('/api', routes);
 if (isProd) {
   const distPath = join(__dirname, '../frontend/dist');
   if (existsSync(distPath)) {
-    app.use(express.static(distPath));
+    // Hashed assets (JS/CSS bundles) are safe to cache forever — content hash changes on rebuild
+    app.use('/assets', express.static(join(distPath, 'assets'), {
+      maxAge: '1y',
+      immutable: true,
+    }));
+    // Everything else (index.html, manifest, icons) must never be cached so deploys flow through
+    app.use(express.static(distPath, { maxAge: 0, etag: false }));
     app.get('/*path', (req, res) => {
+      res.set('Cache-Control', 'no-store');
       res.sendFile(join(distPath, 'index.html'));
     });
   }
