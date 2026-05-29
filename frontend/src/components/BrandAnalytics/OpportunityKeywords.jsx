@@ -1,17 +1,22 @@
 import React, { useState, useMemo } from 'react';
-import { glass, GradientBar, GlowBlob, Badge, COLORS } from './shared.jsx';
+
+const CARD = { background: 'rgba(10,14,30,0.60)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden' };
+const TH  = { padding: '8px 12px', fontSize: 11, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid rgba(255,255,255,0.08)', whiteSpace: 'nowrap', textAlign: 'left', background: 'rgba(255,255,255,0.02)' };
+const THR = { ...TH, textAlign: 'right' };
+const TD  = { padding: '9px 12px', fontSize: 12, color: '#CBD5E1', borderBottom: '1px solid rgba(255,255,255,0.04)', verticalAlign: 'middle' };
+const TDR = { ...TD, textAlign: 'right', fontVariantNumeric: 'tabular-nums' };
 
 const TYPE_META = {
-  INVISIBLE:       { label: 'Not in Top 3', color: '#F43F5E', desc: 'Brand not among top 3 clicked products' },
-  LOW_CONVERSION:  { label: 'Low Conv',     color: '#F59E0B', desc: 'Getting clicks but not purchases' },
-  LOW_CLICK_SHARE: { label: 'Low Clicks',   color: '#3B82F6', desc: 'Impressions but low click share' },
+  INVISIBLE:       { label: 'Not in Top 3', color: '#F43F5E' },
+  LOW_CONVERSION:  { label: 'Low Conv',     color: '#F59E0B' },
+  LOW_CLICK_SHARE: { label: 'Low Clicks',   color: '#3B82F6' },
 };
 
 function VolumeBar({ volume, max }) {
   const pct = max > 0 ? (volume / max) * 100 : 0;
   return (
-    <div style={{ width: 60, height: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 99, overflow: 'hidden', flexShrink: 0 }}>
-      <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg,#10B981,#3B82F6)', borderRadius: 99 }} />
+    <div style={{ width: 48, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden', flexShrink: 0 }}>
+      <div style={{ width: `${pct}%`, height: '100%', background: 'rgba(16,185,129,0.60)', borderRadius: 99 }} />
     </div>
   );
 }
@@ -36,90 +41,99 @@ export default function OpportunityKeywords({ opportunities = [] }) {
   const maxVol = useMemo(() => Math.max(...filtered.map(o => o.volume), 1), [filtered]);
 
   return (
-    <div style={{ ...glass('rgba(16,185,129,0.15)'), padding: '22px 24px', boxShadow: '0 4px 32px rgba(16,185,129,0.08)' }}>
-      <GradientBar top="linear-gradient(90deg,#10B981,#3B82F6,#8B5CF6)" />
-      <GlowBlob color="rgba(16,185,129,0.12)" />
-      <div style={{ position: 'relative' }}>
-
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>
-              Opportunity Keywords
-            </p>
-            <p style={{ fontSize: 11, color: '#475569', margin: '3px 0 0' }}>
-              High-volume keywords where brand is under-performing
-            </p>
-          </div>
-          <Badge text={`${opportunities.length} keywords`} color={COLORS.green.accent} />
-        </div>
-
-        {/* Filter tabs */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+    <div style={CARD}>
+      {/* Header + controls */}
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#94A3B8' }}>
+          Opportunity Keywords
+        </p>
+        <span style={{ fontSize: 11, color: '#64748B' }}>·</span>
+        <p style={{ margin: 0, fontSize: 11, color: '#64748B' }}>High-volume keywords where brand under-performs</p>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
           {['ALL', 'INVISIBLE', 'LOW_CONVERSION', 'LOW_CLICK_SHARE'].map(t => {
             const meta = t === 'ALL' ? { label: 'All', color: '#64748B' } : TYPE_META[t];
             const active = filter === t;
             return (
               <button key={t} onClick={() => { setFilter(t); setLimit(25); }}
                 style={{
-                  fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 8, cursor: 'pointer', border: 'none',
-                  background: active ? `${meta.color}25` : 'rgba(255,255,255,0.04)',
-                  color: active ? meta.color : '#334155',
-                  outline: active ? `1px solid ${meta.color}40` : 'none',
-                  transition: 'all 0.15s',
+                  fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 6,
+                  border: '1px solid',
+                  borderColor: active ? `${meta.color}40` : 'transparent',
+                  cursor: 'pointer',
+                  background: active ? `${meta.color}12` : 'transparent',
+                  color: active ? meta.color : '#64748B',
+                  transition: 'all 0.1s',
                 }}>
-                {meta.label} <span style={{ opacity: 0.7 }}>({counts[t] ?? 0})</span>
+                {meta.label} ({counts[t] ?? 0})
               </button>
             );
           })}
-          <div style={{ flex: 1, minWidth: 150, position: 'relative' }}>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filter keywords…"
-              style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#F1F5F9', borderRadius: 8, padding: '5px 10px', fontSize: 12, outline: 'none' }} />
-          </div>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"
+            style={{ marginLeft: 4, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#F1F5F9', borderRadius: 7, padding: '4px 10px', fontSize: 12, outline: 'none', width: 130 }} />
         </div>
+      </div>
 
-        {/* Table */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {/* Header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 70px 70px 70px 90px', gap: 10, padding: '0 8px 6px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-            {['Keyword', 'Volume', 'Impr %', 'Click %', 'Purch %', 'Type'].map(h => (
-              <span key={h} style={{ fontSize: 9, fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{h}</span>
-            ))}
-          </div>
-
+      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+        <colgroup>
+          <col style={{ width: '32%' }} />
+          <col style={{ width: '18%' }} />
+          <col style={{ width: '12%' }} />
+          <col style={{ width: '12%' }} />
+          <col style={{ width: '12%' }} />
+          <col style={{ width: '14%' }} />
+        </colgroup>
+        <thead>
+          <tr>
+            <th style={TH}>Keyword</th>
+            <th style={THR}>Volume</th>
+            <th style={THR}>Impr %</th>
+            <th style={THR}>Click %</th>
+            <th style={THR}>Purch %</th>
+            <th style={TH}>Type</th>
+          </tr>
+        </thead>
+        <tbody>
           {filtered.slice(0, limit).map((o, i) => {
             const meta = TYPE_META[o.opportunityType] ?? { label: o.opportunityType, color: '#64748B' };
             return (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 90px 70px 70px 70px 90px', gap: 10, padding: '7px 8px', borderRadius: 8, alignItems: 'center', transition: 'background 0.1s' }}
+              <tr key={i}
+                style={{ transition: 'background 0.1s' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                <span style={{ fontSize: 12, color: '#E2E8F0', fontWeight: 500 }}>{o.searchTerm}</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <VolumeBar volume={o.volume} max={maxVol} />
-                  <span style={{ fontSize: 11, color: '#64748B', fontWeight: 600, flexShrink: 0 }}>{(o.volume ?? 0).toLocaleString()}</span>
-                </div>
-                <span style={{ fontSize: 11, color: COLORS.purple.accent, fontWeight: 600 }}>{o.impressionShare ?? 0}%</span>
-                <span style={{ fontSize: 11, color: COLORS.blue.accent,   fontWeight: 600 }}>{o.clickShare     ?? 0}%</span>
-                <span style={{ fontSize: 11, color: COLORS.green.accent,  fontWeight: 600 }}>{o.purchaseShare  ?? 0}%</span>
-                <Badge text={meta.label} color={meta.color} />
-              </div>
+                <td style={TD}>{o.searchTerm}</td>
+                <td style={TDR}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+                    <VolumeBar volume={o.volume} max={maxVol} />
+                    <span>{(o.volume ?? 0).toLocaleString()}</span>
+                  </div>
+                </td>
+                <td style={TDR}>{o.impressionShare ?? 0}%</td>
+                <td style={TDR}>{o.clickShare     ?? 0}%</td>
+                <td style={TDR}>{o.purchaseShare  ?? 0}%</td>
+                <td style={TD}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: meta.color, background: `${meta.color}12`, padding: '2px 8px', borderRadius: 5, whiteSpace: 'nowrap' }}>
+                    {meta.label}
+                  </span>
+                </td>
+              </tr>
             );
           })}
-        </div>
+          {filtered.length === 0 && (
+            <tr><td colSpan={6} style={{ ...TD, textAlign: 'center', padding: '36px', color: '#475569', borderBottom: 'none' }}>
+              {search ? `No keywords matching "${search}"` : 'No opportunity keywords found.'}
+            </td></tr>
+          )}
+        </tbody>
+      </table>
 
-        {filtered.length > limit && (
+      {filtered.length > limit && (
+        <div style={{ padding: '10px 16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
           <button onClick={() => setLimit(l => l + 25)}
-            style={{ marginTop: 10, width: '100%', padding: '8px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: '#475569', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+            style={{ width: '100%', padding: '7px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#64748B', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             Show more ({filtered.length - limit} remaining)
           </button>
-        )}
-
-        {filtered.length === 0 && (
-          <p style={{ fontSize: 13, color: '#334155', textAlign: 'center', padding: '32px 0' }}>
-            {search ? `No keywords matching "${search}"` : 'No opportunity keywords found.'}
-          </p>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

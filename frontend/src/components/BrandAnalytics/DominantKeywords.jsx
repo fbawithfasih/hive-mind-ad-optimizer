@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
-import { glass, GradientBar, GlowBlob, COLORS } from './shared.jsx';
 
-function ShareBar({ value, max, color }) {
+const CARD = { background: 'rgba(10,14,30,0.60)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden' };
+const TH  = { padding: '8px 12px', fontSize: 11, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid rgba(255,255,255,0.08)', whiteSpace: 'nowrap', textAlign: 'left', background: 'rgba(255,255,255,0.02)' };
+const THR = { ...TH, textAlign: 'right' };
+const TD  = { padding: '9px 12px', fontSize: 12, color: '#CBD5E1', borderBottom: '1px solid rgba(255,255,255,0.04)', verticalAlign: 'middle' };
+const TDR = { ...TD, textAlign: 'right', fontVariantNumeric: 'tabular-nums' };
+
+const DIAG_COLOR = { LISTING_QUALITY: '#F59E0B', CLICK_BARRIER: '#F43F5E', LOW_RELEVANCE: '#6366F1' };
+
+function ShareBar({ value, max }) {
   const pct = max > 0 ? (value / max) * 100 : 0;
   return (
-    <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 99, overflow: 'hidden' }}>
-      <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 99, transition: 'width 0.8s ease', boxShadow: `0 0 4px ${color}60` }} />
+    <div style={{ width: 48, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden', flexShrink: 0 }}>
+      <div style={{ width: `${pct}%`, height: '100%', background: '#10B981', borderRadius: 99, transition: 'width 0.8s ease' }} />
     </div>
   );
 }
@@ -13,104 +20,118 @@ function ShareBar({ value, max, color }) {
 export default function DominantKeywords({ keywords = [], weakKeywords = [] }) {
   const [activeTab, setActiveTab] = useState('dominant');
   const list = activeTab === 'dominant' ? keywords : weakKeywords;
-
-  const diagColors = { LISTING_QUALITY: COLORS.amber.accent, CLICK_BARRIER: COLORS.red.accent, LOW_RELEVANCE: COLORS.indigo.accent };
-
   const maxShare = list.length > 0 ? Math.max(...list.map(k => k.purchaseShare ?? k.impressionShare ?? 0)) : 1;
 
   return (
-    <div style={{ ...glass('rgba(16,185,129,0.12)'), padding: '22px 24px', boxShadow: '0 4px 28px rgba(16,185,129,0.08)' }}>
-      <GradientBar top="linear-gradient(90deg,#10B981,#3B82F6)" />
-      <GlowBlob color="rgba(16,185,129,0.15)" />
-      <div style={{ position: 'relative' }}>
-        {/* Tab bar */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 18, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 3, width: 'fit-content', border: '1px solid rgba(255,255,255,0.06)' }}>
-          {[
-            { id: 'dominant', label: `Dominant (${keywords.length})`, color: COLORS.green.accent },
-            { id: 'weak',     label: `Weak (${weakKeywords.length})`, color: COLORS.amber.accent },
-          ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
-              fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 7, border: 'none', cursor: 'pointer', transition: 'all .15s',
-              background: activeTab === tab.id ? tab.color : 'transparent',
-              color:      activeTab === tab.id ? '#fff' : '#475569',
-              boxShadow:  activeTab === tab.id ? `0 2px 10px ${tab.color}50` : 'none',
-            }}>
-              {tab.label}
-            </button>
-          ))}
-        </div>
+    <div style={CARD}>
+      {/* Tab bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        {[
+          { id: 'dominant', label: `Dominant (${keywords.length})` },
+          { id: 'weak',     label: `Weak (${weakKeywords.length})` },
+        ].map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+            fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 7, border: '1px solid',
+            borderColor: activeTab === tab.id ? 'rgba(255,255,255,0.15)' : 'transparent',
+            cursor: 'pointer',
+            background: activeTab === tab.id ? 'rgba(255,255,255,0.06)' : 'transparent',
+            color: activeTab === tab.id ? '#CBD5E1' : '#64748B',
+            transition: 'all .15s',
+          }}>
+            {tab.label}
+          </button>
+        ))}
+        <p style={{ marginLeft: 10, fontSize: 11, color: '#64748B', margin: '0 0 0 10px' }}>
+          {activeTab === 'dominant'
+            ? 'Brand leads on purchase share — defend with strong bids'
+            : 'Impressions but poor conversion — fix listings or bids'}
+        </p>
+      </div>
 
-        {activeTab === 'dominant' ? (
-          <>
-            <p style={{ fontSize: 11, color: '#475569', margin: '0 0 14px' }}>
-              Keywords where brand leads on purchase share — defend with strong bids
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '28px 28px 28px 28px', gap: 10, padding: '0 6px 6px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 6 }}>
-              {/* invisible header hack — real grid is below */}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {/* Header row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px', gap: 10, padding: '0 6px 6px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 4 }}>
-                {['Keyword', 'Purchase %', 'Click %', 'Volume'].map(h => (
-                  <span key={h} style={{ fontSize: 9, fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{h}</span>
-                ))}
-              </div>
-              {list.slice(0, 30).map((k, i) => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px', gap: 10, padding: '7px 6px', borderRadius: 8, alignItems: 'center' }}
+      {activeTab === 'dominant' ? (
+        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+          <colgroup>
+            <col style={{ width: '44%' }} />
+            <col style={{ width: '20%' }} />
+            <col style={{ width: '18%' }} />
+            <col style={{ width: '18%' }} />
+          </colgroup>
+          <thead>
+            <tr>
+              <th style={TH}>Keyword</th>
+              <th style={THR}>Purchase %</th>
+              <th style={THR}>Click %</th>
+              <th style={THR}>Volume</th>
+            </tr>
+          </thead>
+          <tbody>
+            {list.length === 0 ? (
+              <tr><td colSpan={4} style={{ ...TD, textAlign: 'center', padding: '36px', color: '#475569', borderBottom: 'none' }}>
+                No dominant keywords found. Try lowering the minPurchaseShare threshold.
+              </td></tr>
+            ) : list.slice(0, 30).map((k, i) => (
+              <tr key={i}
+                style={{ transition: 'background 0.1s' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <td style={TD}>{k.searchTerm}</td>
+                <td style={TDR}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+                    <ShareBar value={k.purchaseShare} max={maxShare} />
+                    <span style={{ color: '#10B981', fontWeight: 700, minWidth: 36 }}>{k.purchaseShare}%</span>
+                  </div>
+                </td>
+                <td style={TDR}>{k.clickShare}%</td>
+                <td style={TDR}>{(k.volume ?? 0).toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+          <colgroup>
+            <col style={{ width: '36%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '22%' }} />
+          </colgroup>
+          <thead>
+            <tr>
+              <th style={TH}>Keyword</th>
+              <th style={THR}>Impr %</th>
+              <th style={THR}>Click %</th>
+              <th style={THR}>Purchase %</th>
+              <th style={TH}>Diagnosis</th>
+            </tr>
+          </thead>
+          <tbody>
+            {list.length === 0 ? (
+              <tr><td colSpan={5} style={{ ...TD, textAlign: 'center', padding: '36px', color: '#475569', borderBottom: 'none' }}>
+                No weak keywords found — brand conversion efficiency looks healthy!
+              </td></tr>
+            ) : list.slice(0, 30).map((k, i) => {
+              const diagColor = DIAG_COLOR[k.diagnosis] ?? '#64748B';
+              return (
+                <tr key={i}
+                  style={{ transition: 'background 0.1s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <span style={{ fontSize: 12, color: '#E2E8F0', fontWeight: 500 }}>{k.searchTerm}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <ShareBar value={k.purchaseShare} max={maxShare} color={COLORS.green.accent} />
-                    <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.green.accent, flexShrink: 0, minWidth: 32, textAlign: 'right' }}>{k.purchaseShare}%</span>
-                  </div>
-                  <span style={{ fontSize: 11, color: COLORS.blue.accent, fontWeight: 600 }}>{k.clickShare}%</span>
-                  <span style={{ fontSize: 11, color: '#475569', fontWeight: 600 }}>{(k.volume ?? 0).toLocaleString()}</span>
-                </div>
-              ))}
-              {list.length === 0 && (
-                <p style={{ fontSize: 13, color: '#334155', textAlign: 'center', padding: '32px 0' }}>
-                  No dominant keywords found. Try lowering the minPurchaseShare threshold.
-                </p>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            <p style={{ fontSize: 11, color: '#475569', margin: '0 0 14px' }}>
-              Keywords with impressions but poor conversion — fix listings or bids
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px 90px', gap: 10, padding: '0 6px 6px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 4 }}>
-                {['Keyword', 'Impr %', 'Click %', 'Purchase %', 'Diagnosis'].map(h => (
-                  <span key={h} style={{ fontSize: 9, fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{h}</span>
-                ))}
-              </div>
-              {list.slice(0, 30).map((k, i) => {
-                const diagColor = diagColors[k.diagnosis] ?? '#64748B';
-                return (
-                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px 90px', gap: 10, padding: '7px 6px', borderRadius: 8, alignItems: 'center' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                    <span style={{ fontSize: 12, color: '#E2E8F0', fontWeight: 500 }}>{k.searchTerm}</span>
-                    <span style={{ fontSize: 11, color: COLORS.purple.accent, fontWeight: 600 }}>{k.impressionShare}%</span>
-                    <span style={{ fontSize: 11, color: COLORS.blue.accent,   fontWeight: 600 }}>{k.clickShare}%</span>
-                    <span style={{ fontSize: 11, color: COLORS.amber.accent,  fontWeight: 600 }}>{k.purchaseShare}%</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: diagColor, background: `${diagColor}18`, padding: '2px 8px', borderRadius: 6, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                      {k.diagnosis?.replace('_', ' ')}
+                  <td style={TD}>{k.searchTerm}</td>
+                  <td style={TDR}>{k.impressionShare}%</td>
+                  <td style={TDR}>{k.clickShare}%</td>
+                  <td style={TDR}>{k.purchaseShare}%</td>
+                  <td style={TD}>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: diagColor, background: `${diagColor}15`, padding: '2px 8px', borderRadius: 5, whiteSpace: 'nowrap' }}>
+                      {k.diagnosis?.replace(/_/g, ' ')}
                     </span>
-                  </div>
-                );
-              })}
-              {list.length === 0 && (
-                <p style={{ fontSize: 13, color: '#334155', textAlign: 'center', padding: '32px 0' }}>
-                  No weak keywords found — brand conversion efficiency looks healthy!
-                </p>
-              )}
-            </div>
-          </>
-        )}
-      </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
