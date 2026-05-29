@@ -6,11 +6,22 @@ const api = axios.create({
   withCredentials: true,  // send session cookie on every request
 });
 
-// When the backend signals the org hasn't completed Ads OAuth, surface it
-// globally so any page can show a "Connect Amazon Ads" prompt.
+// Global response interceptor — handle cross-cutting API errors.
 api.interceptors.response.use(
   (res) => res,
   (err) => {
+    // Expired/missing session → redirect to login so the user isn't stuck on
+    // a raw "Unauthorized" error inside a panel. Skip the redirect for the
+    // /auth/* endpoints themselves (login, logout) to avoid redirect loops.
+    if (
+      err?.response?.status === 401 &&
+      !err.config?.url?.startsWith('/auth/')
+    ) {
+      window.location.href = '/login';
+      return new Promise(() => {}); // prevent further error propagation
+    }
+    // Amazon Ads OAuth not yet completed — surface via custom event so any
+    // page can show a "Connect Amazon Ads" prompt.
     if (err?.response?.status === 412 && err.response.data?.code === 'ADS_NOT_CONNECTED') {
       window.dispatchEvent(new CustomEvent('ads-not-connected', { detail: err.response.data }));
     }
