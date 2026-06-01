@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { startReportJob, pollReportJob, getReportHistory } from '../services/api.js';
+import { htmlBrandingStyles, htmlBrandingHeader, htmlBrandingFooter } from '../utils/reportBranding.js';
 
 // ── Report type definitions ───────────────────────────────────────────────────
 
@@ -254,7 +255,7 @@ export default function ReportingAgentPanel({ profileId, aiModel = 'claude' }) {
     *, *::before, *::after { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
            font-size: 13px; line-height: 1.65; color: #111827; padding: 40px 52px;
-           max-width: 960px; margin: 0 auto; }
+           max-width: 960px; margin: 0 auto; position: relative; }
     h1 { font-size: 22px; font-weight: 800; color: #111827; margin: 0 0 4px; }
     h2 { font-size: 16px; font-weight: 700; color: #1f2937; margin: 28px 0 10px;
          border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; page-break-after: avoid; }
@@ -282,9 +283,14 @@ export default function ReportingAgentPanel({ profileId, aiModel = 'claude' }) {
       body { padding: 20px 32px; }
       h2 { page-break-before: auto; }
     }
+    ${htmlBrandingStyles()}
   </style>
 </head>
-<body>${content}</body>
+<body>
+${htmlBrandingHeader({ title: selectedType?.label ?? 'Amazon Report', subtitle: `${dateFrom} → ${dateTo}` })}
+${content}
+${htmlBrandingFooter()}
+</body>
 </html>`);
     win.document.close();
     win.focus();

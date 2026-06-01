@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import SearchTermTable, { termKey } from './SearchTermTable.jsx';
 import { startSearchTermReport, pollSearchTermStatus, bulkApplySearchTermActions } from '../services/api.js';
 import { getTodayISO, getDaysAgoISO } from '../utils/date-helpers.js';
+import { csvBrandingLines, addPdfBranding } from '../utils/reportBranding.js';
 
 // ── Export helpers ────────────────────────────────────────────────────────────
 
@@ -30,9 +31,14 @@ const CSV_HEADERS = ['Search Term','Campaign','Ad Group','Match Type','Impressio
 
 function exportCsv(terms, dateRange) {
   const rows = buildRows(terms);
-  const csv  = [CSV_HEADERS, ...rows]
+  const dataCsv = [CSV_HEADERS, ...rows]
     .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
     .join('\n');
+  const branding = csvBrandingLines({
+    title:    'Search Term Report',
+    subtitle: dateRange.start ? `${dateRange.start} → ${dateRange.end} · ${terms.length} terms` : null,
+  }).join('\n');
+  const csv = `${branding}\n${dataCsv}`;
   const a = Object.assign(document.createElement('a'), {
     href: URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })),
     download: `search-terms-${dateRange.start || 'report'}.csv`,
@@ -44,13 +50,16 @@ async function exportPdf(terms, dateRange) {
   const { default: jsPDF }     = await import('jspdf');
   const { default: autoTable } = await import('jspdf-autotable');
   const doc = new jsPDF({ orientation: 'landscape' });
-  doc.setFontSize(14); doc.setTextColor(241, 245, 249);
-  doc.text('Search Term Report — Hive Mind Nestor', 14, 14);
-  doc.setFontSize(9);  doc.setTextColor(148, 163, 184);
-  if (dateRange.start) doc.text(`${dateRange.start}  →  ${dateRange.end}   ·   ${terms.length} terms`, 14, 21);
+  // Body title — the cross-page brand header + confidential footer are added
+  // by addPdfBranding() after the table runs.
+  doc.setFontSize(14); doc.setTextColor(15, 23, 42);
+  doc.text('Search Term Report', 14, 30);
+  doc.setFontSize(9);  doc.setTextColor(100, 116, 139);
+  if (dateRange.start) doc.text(`${dateRange.start}  →  ${dateRange.end}   ·   ${terms.length} terms`, 14, 36);
   const recColors = { 'Scale Up': [16,185,129], 'Add as Exact': [59,130,246], 'Add Negative': [244,63,94], 'Watch': [245,158,11] };
   autoTable(doc, {
-    startY: 26, head: [['Search Term','Campaign','Ad Group','Match','Impr.','Clicks','CTR%','Spend','CPC','Orders','Sales','ACoS%','ROAS','Rec.']],
+    startY: 42, margin: { top: 22, bottom: 18 },
+    head: [['Search Term','Campaign','Ad Group','Match','Impr.','Clicks','CTR%','Spend','CPC','Orders','Sales','ACoS%','ROAS','Rec.']],
     body: buildRows(terms),
     styles: { fontSize: 6.5, cellPadding: 2.5, textColor: [203,213,225], fillColor: [15,23,42] },
     headStyles: { fillColor: [30,41,59], textColor: [148,163,184], fontStyle: 'bold', fontSize: 6.5 },
@@ -65,6 +74,10 @@ async function exportPdf(terms, dateRange) {
         data.cell.styles.textColor = v < 20 ? [16,185,129] : v <= 30 ? [245,158,11] : [244,63,94];
       }
     },
+  });
+  await addPdfBranding(doc, {
+    title:    'Search Term Report',
+    subtitle: dateRange.start ? `${dateRange.start} → ${dateRange.end}` : null,
   });
   doc.save(`search-terms-${dateRange.start || 'report'}.pdf`);
 }
