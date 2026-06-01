@@ -150,6 +150,19 @@ export default function BrandAnalyticsPanel() {
         </div>
       )}
 
+      {/* ── Partial-data banner ── */}
+      {summary?.missingDatasets?.length > 0 && (
+        <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: '#FBBF24', borderRadius: 12, padding: '12px 16px', fontSize: 13, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <span style={{ fontSize: 16, lineHeight: '18px' }}>⚠</span>
+          <div>
+            <strong>Showing partial data.</strong> {summary.missingDatasets.join(', ')} not yet available for this org.
+            {summary.missingDatasets.includes('Search Query Performance') && (
+              <> Search Query reports require an ASIN list — trigger a manual refresh with your brand ASINs via <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12 }}>POST /api/brand-analytics/reports/refresh</code> (body: <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12 }}>{`{ "reportType": "SQP_BRAND", "asins": ["B0…"] }`}</code>).</>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Summary stat cards ── */}
       {hasData && summary && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>

@@ -40,6 +40,8 @@ router.get('/summary', async (req, res) => {
       loadedAt:             d.loadedAt,
       relevantKeywordCount: d.relevantKeywordCount,
       comparison:           d.comparison ?? null,
+      availableDatasets:    d.availableDatasets ?? [],
+      missingDatasets:      d.missingDatasets   ?? [],
       ...d.summary,
     });
   } catch (err) {
