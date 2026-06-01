@@ -67,8 +67,11 @@ export default function OverviewPanel({
   isLoadingMetrics,
   metricsHistory,
   gamification,
+  onRefresh,
+  dateRange,
 }) {
   const loading = isLoadingMetrics;
+  const refreshing = isLoadingMetrics || loadingSales;
 
   // Build chart data from history snapshots
   const spendRevenueData = useMemo(() => {
@@ -98,6 +101,39 @@ export default function OverviewPanel({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease-out' }}>
+
+      {/* ── Refresh control ── */}
+      {onRefresh && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ fontSize: 12, color: '#64748B', fontWeight: 500 }}>
+            {refreshing
+              ? 'Refreshing — last loaded data shown until new data arrives'
+              : dateRange?.from
+                ? `Showing ${dateRange.from} → ${dateRange.to}`
+                : 'Showing last loaded data'}
+          </div>
+          <button
+            onClick={() => onRefresh()}
+            disabled={refreshing}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '8px 14px', borderRadius: 8,
+              border: '1px solid rgba(59,130,246,0.35)',
+              background: refreshing ? 'rgba(59,130,246,0.05)' : 'linear-gradient(135deg,#3B82F6,#8B5CF6)',
+              color: refreshing ? '#94A3B8' : '#fff',
+              fontSize: 12, fontWeight: 700,
+              cursor: refreshing ? 'not-allowed' : 'pointer',
+              boxShadow: refreshing ? 'none' : '0 4px 14px rgba(59,130,246,0.35)',
+              transition: 'all 0.15s',
+            }}>
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"
+              style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v6h6M20 20v-6h-6M20 9a8 8 0 0 0-15-2M4 15a8 8 0 0 0 15 2"/>
+            </svg>
+            {refreshing ? 'Refreshing…' : 'Refresh data'}
+          </button>
+        </div>
+      )}
 
       {/* ── Account health bar ── */}
       <AccountHealthBar stats={stats} metricsSummary={metricsSummary} loadingSales={loadingSales} />

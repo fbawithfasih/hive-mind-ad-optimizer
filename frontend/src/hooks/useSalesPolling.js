@@ -8,6 +8,9 @@
  */
 import { useState } from 'react';
 import { startSalesReport, pollSalesReport } from '../services/api.js';
+import { usePersistedState } from './usePersistedState.js';
+
+const SALES_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 const SCHEDULE = [
   ...Array(6).fill(10000),  // 0–60s:    every 10s
@@ -18,9 +21,13 @@ const SCHEDULE = [
 
 const POLL_CEILING_MS = SCHEDULE.reduce((a, b) => a + b, 0);
 
-export function useSalesPolling() {
-  const [totalSales,    setTotalSales]    = useState(null);
-  const [salesCurrency, setSalesCurrency] = useState(null);
+export function useSalesPolling(profileId) {
+  // Persist last successful sales fetch per profile so a page refresh shows
+  // the last known value immediately instead of wiping to nil while a fresh
+  // SP-API report (which can take 5+ minutes) is generated in the background.
+  const cacheKey = profileId ? `sales:${profileId}` : null;
+  const [totalSales,    setTotalSales]    = usePersistedState(cacheKey ? `${cacheKey}:total`    : null, null, SALES_CACHE_MAX_AGE_MS);
+  const [salesCurrency, setSalesCurrency] = usePersistedState(cacheKey ? `${cacheKey}:currency` : null, null, SALES_CACHE_MAX_AGE_MS);
   const [loadingSales,  setLoadingSales]  = useState(false);
   const [salesStatus,   setSalesStatus]   = useState('');
   const [salesError,    setSalesError]    = useState(null);
@@ -29,7 +36,8 @@ export function useSalesPolling() {
     setLoadingSales(true);
     setSalesStatus('Requesting SP-API sales report…');
     setSalesError(null);
-    setTotalSales(null);
+    // Keep the previous totalSales on screen until the new value lands —
+    // wiping to null mid-fetch is the "every refresh = blank" UX bug.
 
     try {
       const { reportId } = await startSalesReport(startDate, endDate);

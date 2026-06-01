@@ -236,7 +236,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
   const { dateFrom, dateTo, today, handleDateFromChange, handleDateToChange, setDateFromRaw, setDateToRaw } = useDateRangeState();
   const { campaigns, setCampaigns, search, setSearch, statusFilter, setStatusFilter, filtered, stats, isLoading, isRefreshing, error: campaignError } = useCampaignFiltering(selectedProfileId);
   const { isLoadingMetrics, metricsStatus, metricsProgress, metricsDateRange, error: metricsError, pendingReport, handleLoadMetrics: _handleLoadMetrics, handleCheckAgain: _handleCheckAgain } = useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampaigns);
-  const { totalSales, salesCurrency, loadingSales, salesStatus, salesError, loadSales } = useSalesPolling();
+  const { totalSales, salesCurrency, loadingSales, salesStatus, salesError, loadSales } = useSalesPolling(selectedProfileId);
   const { isExecuting, result, error: aiError, aiModel, setAiModel, handleCommandSubmit } = useAICommandExecution(filtered, campaigns);
 
   // Periodic alert polling (every 60s). Surfaces new fires via the existing
@@ -589,6 +589,8 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             isLoadingMetrics={isLoadingMetrics}
             metricsHistory={metricsHistory}
             gamification={gamification}
+            onRefresh={handleLoadMetrics}
+            dateRange={{ from: dateFrom, to: dateTo }}
           />
         )}
 
