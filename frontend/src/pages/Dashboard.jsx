@@ -232,8 +232,7 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export default function Dashboard({ user, onboarded, onLogout }) {
-  const orgName = user?.currentOrg?.name ?? '';
-  const { profiles, primaryAccountGroups, selectedProfileId, setSelectedProfileId, selectedProfile, nameMatchFailed } = useProfileState(orgName);
+  const { profiles, primaryAccountGroups, selectedProfileId, setSelectedProfileId, selectedProfile, nameMatchFailed } = useProfileState();
   const { dateFrom, dateTo, today, handleDateFromChange, handleDateToChange, setDateFromRaw, setDateToRaw } = useDateRangeState();
   const { campaigns, setCampaigns, search, setSearch, statusFilter, setStatusFilter, filtered, stats, isLoading, error: campaignError } = useCampaignFiltering(selectedProfileId);
   const { isLoadingMetrics, metricsStatus, metricsProgress, metricsDateRange, error: metricsError, pendingReport, handleLoadMetrics: _handleLoadMetrics, handleCheckAgain: _handleCheckAgain } = useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampaigns);
