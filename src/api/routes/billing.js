@@ -28,6 +28,7 @@ import {
   syncSubscriptionFromRazorpay,
   syncPaymentFromRazorpay,
 } from '../../services/razorpay.js';
+import { PLAN_PRICING, PLAN_TIER_MAP } from '../../config/pricing.js';
 
 // Short-lived Redis client for claim tokens (separate from BullMQ connections)
 const claimRedis = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
@@ -35,16 +36,6 @@ const claimRedis = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379'
   lazyConnect: true,
 });
 const CLAIM_TTL_SECONDS = 30 * 60; // 30 minutes
-
-// Marketing site plan name → AMAIOP SubscriptionTier
-const PLAN_TIER_MAP = {
-  STARTER: 'BASIC',
-  BASIC:   'BASIC',
-  GROWTH:  'PRO',
-  PRO:     'PRO',
-  SCALE:   'ENTERPRISE',
-  ENTERPRISE: 'ENTERPRISE',
-};
 
 const router = express.Router();
 const logger = createLogger('BILLING');
@@ -160,11 +151,9 @@ router.get('/status', requireAuth, async (req, res) => {
       trialExpired,
       trialDaysLeft,
     },
-    availablePlans: [
-      { tier: 'BASIC',      planId: PLAN_IDS.BASIC,      name: 'Starter',    price: '$49/mo'  },
-      { tier: 'PRO',        planId: PLAN_IDS.PRO,        name: 'Growth',     price: '$149/mo' },
-      { tier: 'ENTERPRISE', planId: PLAN_IDS.ENTERPRISE, name: 'Scale',      price: '$349/mo' },
-    ].filter(p => p.planId),
+    availablePlans: Object.entries(PLAN_PRICING)
+      .map(([tier, p]) => ({ tier, planId: PLAN_IDS[tier], name: p.name, price: p.priceDisplay }))
+      .filter(p => p.planId),
   });
 });
 

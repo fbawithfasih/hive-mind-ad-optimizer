@@ -2,26 +2,30 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getBillingStatus, createCheckoutSession, verifyPaymentApi, cancelSubscriptionApi, logoutApi } from '../services/api.js';
 
-const TIER_LABEL  = { BASIC: 'Basic', PRO: 'Pro', ENTERPRISE: 'Enterprise', CUSTOM: 'Custom' };
+const TIER_LABEL  = { BASIC: 'Starter', PRO: 'Growth', ENTERPRISE: 'Scale', CUSTOM: 'Custom' };
 const TIER_COLOR  = { BASIC: '#64748B', PRO: '#3B82F6', ENTERPRISE: '#8B5CF6', CUSTOM: '#F59E0B' };
 const STATUS_COLOR = { ACTIVE: '#10B981', PAST_DUE: '#F59E0B', CANCELLED: '#F43F5E', EXPIRED: '#64748B' };
 
+// Prices mirror src/config/pricing.js — keep aligned with the backend source of truth.
 const PLAN_DETAILS = [
   {
     tier: 'BASIC',
-    price: '₹3,999/mo',
+    name: 'Starter',
+    price: '$49/mo',
     features: ['Up to 100 listing optimizations/mo', '5 bulk operations/mo', '10 reports/mo', '1 Amazon profile', 'Email support'],
   },
   {
     tier: 'PRO',
-    price: '₹9,999/mo',
+    name: 'Growth',
+    price: '$149/mo',
     popular: true,
     features: ['Unlimited listing optimizations', '50 bulk operations/mo', 'Unlimited reports', '5 Amazon profiles', 'Priority email support', 'AI keyword recommendations'],
   },
   {
     tier: 'ENTERPRISE',
-    price: 'Custom',
-    features: ['Everything in Pro', 'Unlimited profiles', 'Dedicated account manager', 'Custom AI models', 'SLA guarantee', 'SSO / SAML'],
+    name: 'Scale',
+    price: '$499/mo',
+    features: ['Everything in Growth', 'Unlimited profiles', 'Dedicated account manager', 'Custom AI models', 'SLA guarantee', 'SSO / SAML'],
   },
 ];
 
