@@ -7,6 +7,33 @@ const router = express.Router();
 
 const norm = (s) => String(s ?? '').trim().toLowerCase();
 
+// Amazon's spSearchTerm report typically takes 30s–3min to generate. The
+// route's HTTP request is gated by the CDN edge timeout (~100s on Cloudflare
+// free, longer on pro). Caching the merged rows in-process keyed by
+// (orgId, profileId, start, end) lets the user retry after a timeout and
+// have the next call land instantly once the underlying report has filled
+// in. Module-level Map → cleared on process restart, which is fine for a
+// 1h TTL.
+const searchTermCache = new Map();
+const SEARCH_TERM_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+function cacheGet(key) {
+  const entry = searchTermCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.t > SEARCH_TERM_CACHE_TTL_MS) {
+    searchTermCache.delete(key);
+    return null;
+  }
+  return entry.v;
+}
+function cacheSet(key, v) { searchTermCache.set(key, { v, t: Date.now() }); }
+
+// Internal polling cap. Shorter than Cloudflare's edge timeout so the route
+// always returns a real JSON error (not a generic 502) before the connection
+// is severed. If Amazon needs longer the user gets a clean "still generating"
+// message and the next click hits the cache once the report completes.
+const REPORT_POLL_MAX_ATTEMPTS  = 14;     // 14 × 5s = 70s
+const REPORT_POLL_INTERVAL_MS   = 5000;
+
 /**
  * GET /api/keywords/recommendations
  *
@@ -67,20 +94,36 @@ router.get('/recommendations', async (req, res) => {
     }
   }
 
-  // 2. Search term report (windowed + merged inside the helper)
-  let rawTerms;
-  try {
-    rawTerms = await req.adsClient.getSearchTermReport(profileId, start, end);
-  } catch (err) {
-    console.error('[keywords/recommendations] Search term fetch failed:', err.message);
-    if (isProfileAccessDenied(err)) {
-      await pruneInaccessibleProfile(req.tenant?.orgId, profileId, req.adsClient);
-      return res.status(409).json({
-        error: 'This Amazon profile is not accessible with your current Ads connection.',
-        code: 'PROFILE_ACCESS_DENIED',
+  // 2. Search term report (windowed + merged inside the helper).
+  //    Served from in-process cache when available — Amazon's report API is
+  //    slow and a fresh generation per request will exceed the edge timeout.
+  const cacheKey = `${req.tenant?.orgId}|${profileId}|${start}|${end}`;
+  let rawTerms = cacheGet(cacheKey);
+  if (!rawTerms) {
+    try {
+      rawTerms = await req.adsClient.getSearchTermReport(profileId, start, end, {
+        maxAttempts:    REPORT_POLL_MAX_ATTEMPTS,
+        pollIntervalMs: REPORT_POLL_INTERVAL_MS,
       });
+      cacheSet(cacheKey, rawTerms);
+    } catch (err) {
+      console.error('[keywords/recommendations] Search term fetch failed:', err.message);
+      if (isProfileAccessDenied(err)) {
+        await pruneInaccessibleProfile(req.tenant?.orgId, profileId, req.adsClient);
+        return res.status(409).json({
+          error: 'This Amazon profile is not accessible with your current Ads connection.',
+          code: 'PROFILE_ACCESS_DENIED',
+        });
+      }
+      if (err.message === 'Search term report timed out') {
+        return res.status(503).json({
+          error: 'Amazon is still generating the search term report (this can take up to 5 minutes for large date ranges). Wait ~30 seconds and click Retry — the next request will pick up the completed report.',
+          code:  'REPORT_PENDING',
+          retryAfterSeconds: 30,
+        });
+      }
+      return res.status(500).json({ error: `Failed to fetch search term data: ${err.message}` });
     }
-    return res.status(500).json({ error: `Failed to fetch search term data: ${err.message}` });
   }
 
   // 3. Scope to product's campaigns when we have them
