@@ -1,10 +1,13 @@
 name: Lighthouse Audit CI
 
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+  workflow_dispatch:
+  # Auto-triggers disabled — workflow file currently fails at parse time on
+  # every push. Re-enable push/pull_request once the underlying issue is fixed.
+  # push:
+  #   branches: [main, develop]
+  # pull_request:
+  #   branches: [main, develop]
 
 jobs:
   lighthouse:
