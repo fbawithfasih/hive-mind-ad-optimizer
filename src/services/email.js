@@ -29,9 +29,70 @@ function getClient() {
   return _client;
 }
 
-const FROM = () => process.env.MAIL_FROM || process.env.SMTP_FROM || 'AMAIOP <noreply@amaiop.com>';
-const APP_NAME = 'AMAIOP';
-const FRONTEND_URL = () => process.env.FRONTEND_URL || 'http://localhost:5173';
+const FROM = () => process.env.MAIL_FROM || process.env.SMTP_FROM || 'Hive Mind Nestor <noreply@hivemindnestor.com>';
+const APP_NAME = 'Hive Mind Nestor';
+const BRAND_TAGLINE = 'Amazon Advertising Intelligence';
+const BRAND_URL     = 'https://www.hivemindnestor.com';
+const FRONTEND_URL  = () => process.env.FRONTEND_URL || 'http://localhost:5173';
+// Email clients fetch this absolute URL; the asset is served by the SPA.
+// Override via EMAIL_LOGO_URL if hosting the logo elsewhere.
+const LOGO_URL = () => process.env.EMAIL_LOGO_URL || 'https://optimizer.hivemindnestor.com/HMN-APP-ICON.png';
+const CONFIDENTIAL_TXT =
+  'CONFIDENTIAL — This message and any attachments contain proprietary ' +
+  'advertising data intended solely for the addressed recipient. If you are ' +
+  'not the intended recipient, please delete this email and notify the sender.';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Branded HTML envelope
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Wrap a body HTML fragment in the Hive Mind Nestor envelope — logo header,
+ * neutral content area, confidential footer, and brand sign-off.
+ *
+ * @param {string} bodyHtml         The email body's main content.
+ * @param {object} [opts]
+ * @param {string} [opts.preheader] Short hidden text shown in inbox previews.
+ */
+function wrap(bodyHtml, { preheader } = {}) {
+  return `
+<!DOCTYPE html>
+<html><body style="margin:0;padding:0;background:#f5f7fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1f2937">
+  ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${escapeHtml(preheader)}</div>` : ''}
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f5f7fb;padding:24px 0">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
+        <tr><td style="padding:24px 28px;border-bottom:1px solid #f1f5f9;background:#ffffff">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+            <tr>
+              <td style="vertical-align:middle">
+                <img src="${LOGO_URL()}" width="40" height="40" alt="${APP_NAME}" style="border-radius:8px;display:block">
+              </td>
+              <td style="vertical-align:middle;padding-left:12px">
+                <div style="font-size:15px;font-weight:800;color:#0f172a;line-height:1.2">${APP_NAME}</div>
+                <div style="font-size:11px;color:#64748b;line-height:1.2;margin-top:2px">${BRAND_TAGLINE}</div>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+        <tr><td style="padding:28px">${bodyHtml}</td></tr>
+        <tr><td style="padding:14px 28px;background:#fef2f2;border-top:1px solid #fecaca">
+          <div style="font-size:11px;color:#b91c1c;font-weight:600;line-height:1.5">${CONFIDENTIAL_TXT}</div>
+        </td></tr>
+        <tr><td style="padding:18px 28px;background:#f8fafc;border-top:1px solid #f1f5f9">
+          <div style="font-size:11px;color:#94a3b8;line-height:1.5">
+            Sent by ${APP_NAME} · <a href="${BRAND_URL}" style="color:#64748b;text-decoration:none">${BRAND_URL.replace('https://', '')}</a>
+          </div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+function textFooter() {
+  return `\n\n— ${APP_NAME}\n${BRAND_URL}\n\n${CONFIDENTIAL_TXT}\n`;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Send helpers
@@ -64,16 +125,17 @@ export async function sendVerificationEmail(to, token) {
   return send({
     to,
     subject: `Verify your ${APP_NAME} email address`,
-    text: `Click this link to verify your email (expires in 24 hours):\n\n${url}\n\nIf you didn't sign up for ${APP_NAME}, you can ignore this email.`,
-    html: `
-      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
-        <h2 style="margin:0 0 8px;color:#1a1a1a">Verify your email</h2>
-        <p style="color:#555;margin:0 0 24px">Click the button below to confirm your ${APP_NAME} account. This link expires in 24 hours.</p>
-        <a href="${url}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Verify Email</a>
-        <p style="color:#888;font-size:13px;margin:24px 0 0">Or copy this URL into your browser:<br><a href="${url}" style="color:#2563eb;word-break:break-all">${url}</a></p>
-        <hr style="border:none;border-top:1px solid #eee;margin:32px 0">
-        <p style="color:#aaa;font-size:12px;margin:0">If you didn't sign up for ${APP_NAME}, you can safely ignore this email.</p>
-      </div>`,
+    text:
+      `Click this link to verify your email (expires in 24 hours):\n\n${url}\n\n` +
+      `If you didn't sign up for ${APP_NAME}, you can ignore this email.` +
+      textFooter(),
+    html: wrap(`
+      <h2 style="margin:0 0 8px;color:#0f172a;font-size:20px;font-weight:800">Verify your email</h2>
+      <p style="color:#475569;margin:0 0 24px;font-size:14px;line-height:1.6">Click the button below to confirm your ${APP_NAME} account. This link expires in 24 hours.</p>
+      <a href="${url}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Verify Email</a>
+      <p style="color:#64748b;font-size:13px;margin:24px 0 0">Or copy this URL into your browser:<br><a href="${url}" style="color:#2563eb;word-break:break-all">${url}</a></p>
+      <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">If you didn't sign up for ${APP_NAME}, you can safely ignore this email.</p>
+    `, { preheader: 'Confirm your email to finish setting up your Hive Mind Nestor account.' }),
   });
 }
 
@@ -120,25 +182,26 @@ export async function sendCampaignAlertEmail(to, { orgName, fires }) {
   return send({
     to,
     subject,
-    text: `${fires.length} campaign alert${fires.length === 1 ? '' : 's'} fired for ${orgName}:\n\n${textRows}\n\nReview details: ${url}`,
-    html: `
-      <div style="font-family:sans-serif;max-width:640px;margin:0 auto;padding:32px 24px">
-        <h2 style="margin:0 0 6px;color:#1a1a1a">${fires.length} campaign alert${fires.length === 1 ? '' : 's'} fired</h2>
-        <p style="color:#555;margin:0 0 20px;font-size:14px">Triggered on the latest Campaign Performance report for <strong>${escapeHtml(orgName)}</strong>.</p>
-        <table style="width:100%;border-collapse:collapse;border:1px solid #eee;border-radius:8px;overflow:hidden">
-          <thead>
-            <tr style="background:#fafafa">
-              <th style="padding:10px 14px;text-align:left;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em">Alert / Campaign</th>
-              <th style="padding:10px 14px;text-align:left;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em">Metric</th>
-              <th style="padding:10px 14px;text-align:left;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em">Value</th>
-              <th style="padding:10px 14px;text-align:left;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em">Condition</th>
-            </tr>
-          </thead>
-          <tbody>${htmlRows}</tbody>
-        </table>
-        <a href="${url}" style="display:inline-block;margin-top:20px;padding:11px 20px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Open alerts dashboard</a>
-        <p style="color:#aaa;font-size:12px;margin:28px 0 0">${APP_NAME} only emails alerts when a new threshold fires (4-hour dedup window). To stop these emails, deactivate the alert in the dashboard.</p>
-      </div>`,
+    text:
+      `${fires.length} campaign alert${fires.length === 1 ? '' : 's'} fired for ${orgName}:\n\n${textRows}\n\nReview details: ${url}` +
+      textFooter(),
+    html: wrap(`
+      <h2 style="margin:0 0 6px;color:#0f172a;font-size:20px;font-weight:800">${fires.length} campaign alert${fires.length === 1 ? '' : 's'} fired</h2>
+      <p style="color:#475569;margin:0 0 20px;font-size:14px">Triggered on the latest Campaign Performance report for <strong>${escapeHtml(orgName)}</strong>.</p>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+        <thead>
+          <tr style="background:#f8fafc">
+            <th style="padding:10px 14px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Alert / Campaign</th>
+            <th style="padding:10px 14px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Metric</th>
+            <th style="padding:10px 14px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Value</th>
+            <th style="padding:10px 14px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Condition</th>
+          </tr>
+        </thead>
+        <tbody>${htmlRows}</tbody>
+      </table>
+      <a href="${url}" style="display:inline-block;margin-top:20px;padding:11px 20px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Open alerts dashboard</a>
+      <p style="color:#94a3b8;font-size:12px;margin:28px 0 0">${APP_NAME} only emails alerts when a new threshold fires (4-hour dedup window). To stop these emails, deactivate the alert in the dashboard.</p>
+    `, { preheader: `${fires.length} alert${fires.length === 1 ? '' : 's'} fired on your campaigns.` }),
   });
 }
 
@@ -151,15 +214,16 @@ export async function sendPasswordResetEmail(to, token) {
   return send({
     to,
     subject: `Reset your ${APP_NAME} password`,
-    text: `You requested a password reset. Click this link (expires in 1 hour):\n\n${url}\n\nIf you didn't request this, ignore this email — your password won't change.`,
-    html: `
-      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
-        <h2 style="margin:0 0 8px;color:#1a1a1a">Reset your password</h2>
-        <p style="color:#555;margin:0 0 24px">We received a request to reset your password. Click the button below — this link expires in 1 hour.</p>
-        <a href="${url}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Reset Password</a>
-        <p style="color:#888;font-size:13px;margin:24px 0 0">Or copy this URL into your browser:<br><a href="${url}" style="color:#2563eb;word-break:break-all">${url}</a></p>
-        <hr style="border:none;border-top:1px solid #eee;margin:32px 0">
-        <p style="color:#aaa;font-size:12px;margin:0">If you didn't request a password reset, no action is needed — your password remains unchanged.</p>
-      </div>`,
+    text:
+      `You requested a password reset. Click this link (expires in 1 hour):\n\n${url}\n\n` +
+      `If you didn't request this, ignore this email — your password won't change.` +
+      textFooter(),
+    html: wrap(`
+      <h2 style="margin:0 0 8px;color:#0f172a;font-size:20px;font-weight:800">Reset your password</h2>
+      <p style="color:#475569;margin:0 0 24px;font-size:14px;line-height:1.6">We received a request to reset your password. Click the button below — this link expires in 1 hour.</p>
+      <a href="${url}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Reset Password</a>
+      <p style="color:#64748b;font-size:13px;margin:24px 0 0">Or copy this URL into your browser:<br><a href="${url}" style="color:#2563eb;word-break:break-all">${url}</a></p>
+      <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">If you didn't request a password reset, no action is needed — your password remains unchanged.</p>
+    `, { preheader: `Reset your ${APP_NAME} password — this link expires in 1 hour.` }),
   });
 }
