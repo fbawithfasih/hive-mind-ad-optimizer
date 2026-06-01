@@ -104,9 +104,14 @@ async function loadFromDb(orgId, brandName) {
     latestReport(orgId, 'TOP_SEARCH_TERMS'),
   ]);
 
-  if (!sqp || !cat || !tst) return null;
+  // Catalog + Top Search Terms are the minimum needed for a useful dashboard.
+  // SQP_BRAND is optional — the daily sweep skips it (it requires an ASIN list,
+  // which is only supplied via manual /reports/refresh). When SQP is missing
+  // we still render the catalog/keyword views and flag SQP as unavailable so
+  // the UI can show a banner instead of a blank "no data" error.
+  if (!cat || !tst) return null;
 
-  const sqpData     = sqp.rawData ?? [];
+  const sqpData     = sqp?.rawData ?? [];
   const catalogData = cat.rawData ?? [];
   const tstRows     = tst.rawData ?? []; // [{ rank, searchTerm, top3 }]
 
@@ -170,6 +175,9 @@ async function loadFromDb(orgId, brandName) {
     };
   }
 
+  const missingDatasets = [];
+  if (!sqp) missingDatasets.push('Search Query Performance');
+
   return {
     brandName,
     brandASINs,
@@ -183,8 +191,14 @@ async function loadFromDb(orgId, brandName) {
     comparison,
     loadedAt: new Date().toISOString(),
     source:   'db',
+    availableDatasets: [
+      sqp && 'Search Query Performance',
+      cat && 'Catalog Performance',
+      tst && 'Top Search Terms',
+    ].filter(Boolean),
+    missingDatasets,
     periods:  {
-      sqp: { periodStart: sqp.periodStart, periodEnd: sqp.periodEnd, fetchedAt: sqp.fetchedAt },
+      sqp: sqp ? { periodStart: sqp.periodStart, periodEnd: sqp.periodEnd, fetchedAt: sqp.fetchedAt } : null,
       cat: { periodStart: cat.periodStart, periodEnd: cat.periodEnd, fetchedAt: cat.fetchedAt },
       tst: { periodStart: tst.periodStart, periodEnd: tst.periodEnd, fetchedAt: tst.fetchedAt },
     },
@@ -221,15 +235,17 @@ export async function loadAnalytics(orgId, brandName, forceRefresh = false) {
     findCsv(dataDir, PATTERNS.tst),
   ]);
 
-  const missing = [
-    !sqpPath && 'Search Query Performance',
+  // Catalog Performance + Top Search Terms are the minimum required; SQP is
+  // optional (matches the DB-loader policy — the daily sweep can't auto-fetch
+  // SQP_BRAND because it needs an ASIN list).
+  const missingRequired = [
     !catPath && 'Catalog Performance',
     !tstPath && 'Top Search Terms',
   ].filter(Boolean);
 
-  if (missing.length) {
+  if (missingRequired.length) {
     throw Object.assign(
-      new Error(`No Brand Analytics data found for this org. Either wait for the next scheduled fetch or upload CSVs via POST /api/brand-analytics/upload. Missing: ${missing.join(', ')}.`),
+      new Error(`No Brand Analytics data found for this org. Either wait for the next scheduled fetch or upload CSVs via POST /api/brand-analytics/upload. Missing: ${missingRequired.join(', ')}.`),
       { status: 404 }
     );
   }
@@ -237,7 +253,7 @@ export async function loadAnalytics(orgId, brandName, forceRefresh = false) {
   console.log(`[brand-analytics] Parsing for org ${orgId} (brand: "${brandName}")…`);
 
   const [sqpData, catalogData] = await Promise.all([
-    parseSearchQueryReport(sqpPath),
+    sqpPath ? parseSearchQueryReport(sqpPath) : Promise.resolve([]),
     parseCatalogReport(catPath),
   ]);
 
@@ -291,6 +307,12 @@ export async function loadAnalytics(orgId, brandName, forceRefresh = false) {
     relevantKeywordCount: relevantKeywords.length,
     comparison,
     loadedAt: new Date().toISOString(),
+    availableDatasets: [
+      sqpPath && 'Search Query Performance',
+      catPath && 'Catalog Performance',
+      tstPath && 'Top Search Terms',
+    ].filter(Boolean),
+    missingDatasets: !sqpPath ? ['Search Query Performance'] : [],
     files: { sqpPath, catPath, tstPath },
   };
 
