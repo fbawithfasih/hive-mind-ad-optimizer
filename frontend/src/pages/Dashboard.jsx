@@ -234,7 +234,7 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
 export default function Dashboard({ user, onboarded, onLogout }) {
   const { profiles, primaryAccountGroups, selectedProfileId, setSelectedProfileId, selectedProfile, nameMatchFailed } = useProfileState();
   const { dateFrom, dateTo, today, handleDateFromChange, handleDateToChange, setDateFromRaw, setDateToRaw } = useDateRangeState();
-  const { campaigns, setCampaigns, search, setSearch, statusFilter, setStatusFilter, filtered, stats, isLoading, error: campaignError } = useCampaignFiltering(selectedProfileId);
+  const { campaigns, setCampaigns, search, setSearch, statusFilter, setStatusFilter, filtered, stats, isLoading, isRefreshing, error: campaignError } = useCampaignFiltering(selectedProfileId);
   const { isLoadingMetrics, metricsStatus, metricsProgress, metricsDateRange, error: metricsError, pendingReport, handleLoadMetrics: _handleLoadMetrics, handleCheckAgain: _handleCheckAgain } = useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampaigns);
   const { totalSales, salesCurrency, loadingSales, salesStatus, salesError, loadSales } = useSalesPolling();
   const { isExecuting, result, error: aiError, aiModel, setAiModel, handleCommandSubmit } = useAICommandExecution(filtered, campaigns);
@@ -949,6 +949,12 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               isExecuting={bulkExecuting}
               lastResult={bulkResult}
             />
+            {isRefreshing && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 600, color: '#94A3B8', padding: '6px 12px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 6, marginBottom: 8, width: 'fit-content' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3B82F6', animation: 'pulse 1.4s ease-in-out infinite' }} />
+                Refreshing — showing last cached data
+              </div>
+            )}
             <CampaignTable
               campaigns={filtered}
               isLoading={isLoading}

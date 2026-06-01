@@ -4,6 +4,10 @@
  */
 import { useState, useMemo, useEffect } from 'react';
 import { getCampaigns } from '../services/api.js';
+import { usePersistedState } from './usePersistedState.js';
+
+// Cache campaigns (including merged metrics) for 24h per profile.
+const CAMPAIGN_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 /**
  * @typedef {Object} CampaignStats
@@ -37,25 +41,43 @@ import { getCampaigns } from '../services/api.js';
  * @returns {CampaignFilteringState} Campaign state and filter controls
  */
 export function useCampaignFiltering(selectedProfileId) {
-  const [campaigns, setCampaigns] = useState([]);
+  const cacheKey = selectedProfileId ? `campaigns:${selectedProfileId}` : null;
+  const [campaigns, setCampaigns, { hasHydrated }] = usePersistedState(
+    cacheKey,
+    [],
+    CAMPAIGN_CACHE_MAX_AGE_MS
+  );
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [isLoading, setIsLoading] = useState(true);
+  // isLoading = true only when there's nothing on screen yet.
+  // isRefreshing = true when we have cached data but are pulling fresh.
+  const [isLoading, setIsLoading] = useState(!hasHydrated);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
-  // Load campaigns when profile ID changes
+  // Refetch when profile ID changes — show cached immediately, replace on success.
   useEffect(() => {
-    setIsLoading(true);
+    const hadCache = hasHydrated;
+    if (hadCache) {
+      setIsRefreshing(true);
+      setIsLoading(false);
+    } else {
+      setIsLoading(true);
+      setIsRefreshing(false);
+    }
     setError(null);
     getCampaigns(selectedProfileId || undefined)
       .then(d => {
         setCampaigns(Array.isArray(d) ? d : []);
         setIsLoading(false);
+        setIsRefreshing(false);
       })
       .catch(err => {
         setError(err.message);
         setIsLoading(false);
+        setIsRefreshing(false);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProfileId]);
 
   // Calculate campaign statistics (memoized)
@@ -89,6 +111,7 @@ export function useCampaignFiltering(selectedProfileId) {
     filtered,
     stats,
     isLoading,
+    isRefreshing,
     error,
   };
 }
