@@ -11,12 +11,15 @@ function deriveKey(masterKey, salt) {
   return crypto.pbkdf2Sync(masterKey, salt, 100000, 32, 'sha256');
 }
 
-export function encrypt(plaintext) {
-  if (!process.env.ENCRYPTION_KEY) {
-    throw new Error('ENCRYPTION_KEY environment variable is not set');
-  }
+// ─────────────────────────────────────────────────────────────────────────────
+// Explicit-key primitives — used by key rotation, where two keys (old + new)
+// must be in play at once. The default exports below delegate to these using
+// process.env.ENCRYPTION_KEY.
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const masterKey = process.env.ENCRYPTION_KEY;
+export function encryptWithKey(plaintext, masterKey) {
+  if (!masterKey) throw new Error('encryptWithKey: master key is required');
+
   const iv = crypto.randomBytes(IV_LENGTH);
   const salt = crypto.randomBytes(SALT_LENGTH);
   const key = deriveKey(masterKey, salt);
@@ -38,12 +41,9 @@ export function encrypt(plaintext) {
   return combined.toString('base64');
 }
 
-export function decrypt(encryptedBase64) {
-  if (!process.env.ENCRYPTION_KEY) {
-    throw new Error('ENCRYPTION_KEY environment variable is not set');
-  }
+export function decryptWithKey(encryptedBase64, masterKey) {
+  if (!masterKey) throw new Error('decryptWithKey: master key is required');
 
-  const masterKey = process.env.ENCRYPTION_KEY;
   const combined = Buffer.from(encryptedBase64, 'base64');
 
   const iv = combined.slice(0, IV_LENGTH);
@@ -62,13 +62,13 @@ export function decrypt(encryptedBase64) {
   return decrypted;
 }
 
-export function canDecrypt(encryptedBase64) {
+export function canDecryptWithKey(encryptedBase64, masterKey) {
   try {
-    if (!process.env.ENCRYPTION_KEY) return false;
+    if (!masterKey || typeof encryptedBase64 !== 'string' || encryptedBase64.length === 0) {
+      return false;
+    }
 
-    const masterKey = process.env.ENCRYPTION_KEY;
     const combined = Buffer.from(encryptedBase64, 'base64');
-
     if (combined.length < ENCRYPTED_DATA_POSITION + 1) {
       return false;
     }
@@ -91,4 +91,27 @@ export function canDecrypt(encryptedBase64) {
   }
 }
 
-export default { encrypt, decrypt, canDecrypt };
+// ─────────────────────────────────────────────────────────────────────────────
+// Default API — keyed on process.env.ENCRYPTION_KEY (the live master key)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function encrypt(plaintext) {
+  if (!process.env.ENCRYPTION_KEY) {
+    throw new Error('ENCRYPTION_KEY environment variable is not set');
+  }
+  return encryptWithKey(plaintext, process.env.ENCRYPTION_KEY);
+}
+
+export function decrypt(encryptedBase64) {
+  if (!process.env.ENCRYPTION_KEY) {
+    throw new Error('ENCRYPTION_KEY environment variable is not set');
+  }
+  return decryptWithKey(encryptedBase64, process.env.ENCRYPTION_KEY);
+}
+
+export function canDecrypt(encryptedBase64) {
+  if (!process.env.ENCRYPTION_KEY) return false;
+  return canDecryptWithKey(encryptedBase64, process.env.ENCRYPTION_KEY);
+}
+
+export default { encrypt, decrypt, canDecrypt, encryptWithKey, decryptWithKey, canDecryptWithKey };

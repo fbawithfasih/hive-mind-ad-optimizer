@@ -14,7 +14,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:prod": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "prisma:reset": "prisma migrate reset"
+    "prisma:reset": "prisma migrate reset",
+    "rotate:encryption-key": "node scripts/rotate-encryption-key.js"
   },
   "keywords": [],
   "author": "",
