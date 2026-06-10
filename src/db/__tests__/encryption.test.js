@@ -1,4 +1,7 @@
-import { encrypt, decrypt, canDecrypt } from '../encryption.js';
+import {
+  encrypt, decrypt, canDecrypt,
+  encryptWithKey, decryptWithKey, canDecryptWithKey,
+} from '../encryption.js';
 
 const KEY = 'test-encryption-key-32-chars-ok!';
 
@@ -102,5 +105,58 @@ describe('canDecrypt', () => {
     const ct = encrypt('data');
     process.env.ENCRYPTION_KEY = 'different-key-32-chars-padding!!';
     expect(canDecrypt(ct)).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Explicit-key primitives + key rotation
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('explicit-key primitives', () => {
+  const OLD = 'old-key-32-chars-padding-aaaaaaa';
+  const NEW = 'new-key-32-chars-padding-bbbbbbb';
+
+  it('round-trips with an explicit key independent of env', () => {
+    delete process.env.ENCRYPTION_KEY;
+    const ct = encryptWithKey('token-xyz', OLD);
+    expect(decryptWithKey(ct, OLD)).toBe('token-xyz');
+  });
+
+  it('decryptWithKey throws with the wrong key', () => {
+    const ct = encryptWithKey('token-xyz', OLD);
+    expect(() => decryptWithKey(ct, NEW)).toThrow();
+  });
+
+  it('canDecryptWithKey distinguishes the right key from the wrong one', () => {
+    const ct = encryptWithKey('token-xyz', OLD);
+    expect(canDecryptWithKey(ct, OLD)).toBe(true);
+    expect(canDecryptWithKey(ct, NEW)).toBe(false);
+  });
+
+  it('requires a key', () => {
+    expect(() => encryptWithKey('x', undefined)).toThrow(/key/i);
+    expect(canDecryptWithKey('whatever', undefined)).toBe(false);
+  });
+});
+
+describe('key rotation simulation', () => {
+  const OLD = 'old-key-32-chars-padding-aaaaaaa';
+  const NEW = 'new-key-32-chars-padding-bbbbbbb';
+
+  it('re-encrypts a secret from the old key to the new key losslessly', () => {
+    const secret = 'Atzr|refresh-token-payload';
+    const atRest = encryptWithKey(secret, OLD);
+
+    // Before rotation: readable with OLD, not NEW.
+    expect(canDecryptWithKey(atRest, OLD)).toBe(true);
+    expect(canDecryptWithKey(atRest, NEW)).toBe(false);
+
+    // Rotate: decrypt with OLD, re-encrypt with NEW (what the script does).
+    const rotated = encryptWithKey(decryptWithKey(atRest, OLD), NEW);
+
+    // After rotation: readable with NEW, not OLD, same plaintext.
+    expect(canDecryptWithKey(rotated, NEW)).toBe(true);
+    expect(canDecryptWithKey(rotated, OLD)).toBe(false);
+    expect(decryptWithKey(rotated, NEW)).toBe(secret);
   });
 });
