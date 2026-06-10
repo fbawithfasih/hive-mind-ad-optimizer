@@ -10,13 +10,14 @@ import { razorpayWebhookHandler } from './api/routes/billing.js';
 import { correlationIdMiddleware, createLogger } from './api/utils/logger.js';
 import { prisma } from './db/prisma.js';
 import { runAsSystem } from './db/tenant-context.js';
-import { createReportingWorker, createBulkListingWorker, createTokenCleanupWorker, createAutomationWorker, createBrandAnalyticsFetchWorker, createAlertEvaluationWorker, tokenCleanupQueue, automationQueue, brandAnalyticsFetchQueue, alertEvaluationQueue, closeQueue } from './services/queue.js';
+import { createReportingWorker, createBulkListingWorker, createTokenCleanupWorker, createAutomationWorker, createBrandAnalyticsFetchWorker, createAlertEvaluationWorker, createBillingReconcileWorker, tokenCleanupQueue, automationQueue, brandAnalyticsFetchQueue, alertEvaluationQueue, billingReconcileQueue, closeQueue } from './services/queue.js';
 import { reportingProcessor }    from './workers/reporting.worker.js';
 import { bulkListingProcessor }  from './workers/bulk-listing.worker.js';
 import { tokenCleanupProcessor } from './workers/token-cleanup.worker.js';
 import { automationProcessor }   from './workers/automation.worker.js';
 import { brandAnalyticsFetchProcessor } from './workers/brand-analytics-fetch.worker.js';
 import { alertEvaluationProcessor }     from './workers/alert-evaluation.worker.js';
+import { billingReconcileProcessor }    from './workers/billing-reconcile.worker.js';
 import { enqueueDailySweep as enqueueBaDailySweep } from './services/brand-analytics-scheduler.js';
 
 dotenv.config({ override: true });
@@ -239,6 +240,33 @@ async function applyAlertsMigration() {
 }
 applyAlertsMigration().catch(err => logger.error('Alerts migration error', err.message));
 
+async function applyWebhookEventsMigration() {
+  try {
+    await prisma.$executeRaw`
+      DO $$ BEGIN
+        CREATE TYPE "WebhookEventStatus" AS ENUM ('RECEIVED', 'PROCESSED', 'FAILED');
+      EXCEPTION WHEN duplicate_object THEN null;
+      END $$;`;
+    await prisma.$executeRaw`
+      CREATE TABLE IF NOT EXISTS "WebhookEvent" (
+        "id"          TEXT NOT NULL PRIMARY KEY,
+        "provider"    TEXT NOT NULL DEFAULT 'razorpay',
+        "eventId"     TEXT NOT NULL,
+        "eventType"   TEXT NOT NULL,
+        "status"      "WebhookEventStatus" NOT NULL DEFAULT 'RECEIVED',
+        "attempts"    INTEGER NOT NULL DEFAULT 0,
+        "error"       TEXT,
+        "receivedAt"  TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "processedAt" TIMESTAMP(3)
+      )`;
+    await prisma.$executeRaw`CREATE UNIQUE INDEX IF NOT EXISTS "WebhookEvent_eventId_key" ON "WebhookEvent"("eventId")`;
+    await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "WebhookEvent_provider_eventType_idx" ON "WebhookEvent"("provider", "eventType")`;
+    await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "WebhookEvent_status_idx" ON "WebhookEvent"("status")`;
+    logger.info('Migration: WebhookEvent table ready');
+  } catch { /* already exists */ }
+}
+applyWebhookEventsMigration().catch(err => logger.error('WebhookEvent migration error', err.message));
+
 const server = app.listen(PORT, () => {
   logger.info('Server started', { port: PORT, nodeEnv: process.env.NODE_ENV });
 });
@@ -253,6 +281,7 @@ const tokenCleanupWorker = createTokenCleanupWorker(asSystem(tokenCleanupProcess
 const automationWorker   = createAutomationWorker(asSystem(automationProcessor));
 const baFetchWorker      = createBrandAnalyticsFetchWorker(asSystem(brandAnalyticsFetchProcessor));
 const alertEvalWorker    = createAlertEvaluationWorker(asSystem(alertEvaluationProcessor));
+const billingReconcileWorker = createBillingReconcileWorker(asSystem(billingReconcileProcessor));
 
 // Brand Analytics daily sweep — fan out fetch jobs to active orgs per tier cadence.
 // We use a tiny scheduler job (jobId-deduplicated) that calls enqueueDailySweep().
@@ -292,6 +321,14 @@ tokenCleanupQueue.add(
   },
 ).catch((err) => logger.warn(`Could not schedule token cleanup (Redis unavailable?): ${err.message}`));
 
+// Schedule daily billing reconciliation at 05:00 UTC — re-syncs live subscriptions
+// from Razorpay so a missed/failed webhook can't leave the DB out of sync.
+billingReconcileQueue.add(
+  'daily-reconcile',
+  {},
+  { repeat: { pattern: '0 5 * * *' }, jobId: 'billing-daily-reconcile' },
+).catch((err) => logger.warn(`Could not schedule billing reconcile: ${err.message}`));
+
 // Graceful shutdown — finish in-progress jobs before exiting
 async function shutdown(signal) {
   logger.info(`${signal} received — shutting down gracefully`);
@@ -302,6 +339,7 @@ async function shutdown(signal) {
     await automationWorker.close();
     await baFetchWorker.close();
     await alertEvalWorker.close();
+    await billingReconcileWorker.close();
     await closeQueue();
     await prisma.$disconnect();
     logger.info('Shutdown complete');

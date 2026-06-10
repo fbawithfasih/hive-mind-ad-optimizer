@@ -274,6 +274,45 @@ export function createBrandAnalyticsFetchWorker(processor) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Billing reconciliation queue — scheduled re-sync of subscriptions from Razorpay
+// (safety net for missed/failed webhooks)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const BILLING_RECONCILE_QUEUE_NAME = 'billing-reconcile';
+
+export const billingReconcileQueue = new Queue(BILLING_RECONCILE_QUEUE_NAME, {
+  connection: makeRedisConnection(),
+  defaultJobOptions: {
+    attempts:         2,
+    backoff:          { type: 'exponential', delay: 60_000 },
+    removeOnComplete: { count: 10 },
+    removeOnFail:     { count: 10 },
+  },
+});
+
+/**
+ * @param {Function} processor  - async (job) => void
+ * @returns {Worker}
+ */
+export function createBillingReconcileWorker(processor) {
+  const worker = new Worker(BILLING_RECONCILE_QUEUE_NAME, processor, {
+    connection:  makeRedisConnection(),
+    concurrency: 1,
+  });
+
+  worker.on('completed', (job) => {
+    logger.info(`Billing reconcile job ${job.id} completed`);
+  });
+
+  worker.on('failed', (job, err) => {
+    logger.error(`Billing reconcile job ${job?.id} failed: ${err.message}`);
+  });
+
+  logger.info('Billing reconcile worker started');
+  return worker;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Graceful shutdown
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -285,5 +324,6 @@ export async function closeQueue() {
     automationQueue.close(),
     brandAnalyticsFetchQueue.close(),
     alertEvaluationQueue.close(),
+    billingReconcileQueue.close(),
   ]);
 }

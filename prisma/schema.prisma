@@ -477,6 +477,29 @@ enum OrgRole {
   VIEWER
 }
 
+/// Idempotency + audit ledger for inbound provider webhooks (e.g. Razorpay).
+/// Not org-scoped: events are provider-level and resolved to an org while processing.
+model WebhookEvent {
+  id          String             @id @default(cuid())
+  provider    String             @default("razorpay")
+  eventId     String             @unique // provider event id (x-razorpay-event-id) or body hash
+  eventType   String
+  status      WebhookEventStatus @default(RECEIVED)
+  attempts    Int                @default(0)
+  error       String?
+  receivedAt  DateTime           @default(now())
+  processedAt DateTime?
+
+  @@index([provider, eventType])
+  @@index([status])
+}
+
+enum WebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+}
+
 enum SubscriptionTier {
   BASIC
   PRO

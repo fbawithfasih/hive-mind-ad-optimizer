@@ -4,6 +4,7 @@ jest.mock('../../../db/prisma.js', () => ({
     subscription: { findFirst: jest.fn(), update: jest.fn(), upsert: jest.fn() },
     invoice:      { upsert: jest.fn() },
     usageMetric:  { upsert: jest.fn() },
+    webhookEvent: { findUnique: jest.fn(), upsert: jest.fn() },
   },
 }));
 
@@ -16,6 +17,7 @@ jest.mock('../../../services/razorpay.js', () => ({
 
 import { razorpayWebhookHandler }   from '../billing.js';
 import * as razorpayModule           from '../../../services/razorpay.js';
+import { prisma }                    from '../../../db/prisma.js';
 
 const { verifyWebhookSignature, syncSubscriptionFromRazorpay, syncPaymentFromRazorpay } = razorpayModule;
 
@@ -60,6 +62,8 @@ beforeEach(() => {
   verifyWebhookSignature.mockReturnValue(true);
   syncSubscriptionFromRazorpay.mockResolvedValue(undefined);
   syncPaymentFromRazorpay.mockResolvedValue(undefined);
+  prisma.webhookEvent.findUnique.mockResolvedValue(null); // not seen before
+  prisma.webhookEvent.upsert.mockResolvedValue({});
 });
 
 afterEach(() => {
@@ -163,5 +167,52 @@ describe('razorpayWebhookHandler — processing errors', () => {
     const res = mockRes();
     await razorpayWebhookHandler(mockReq('payment.captured', mockPayment, 'payment'), res);
     expect(res.status).toHaveBeenCalledWith(500);
+  });
+
+  it('records the event as FAILED so it can be retried', async () => {
+    syncSubscriptionFromRazorpay.mockRejectedValue(new Error('DB down'));
+    const res = mockRes();
+    await razorpayWebhookHandler(mockReq('subscription.activated', mockSub), res);
+    expect(prisma.webhookEvent.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ create: expect.objectContaining({ status: 'FAILED' }) })
+    );
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Idempotency (Razorpay delivers at-least-once)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('razorpayWebhookHandler — idempotency', () => {
+  it('skips processing when the event was already PROCESSED', async () => {
+    prisma.webhookEvent.findUnique.mockResolvedValue({ status: 'PROCESSED' });
+    const res = mockRes();
+    await razorpayWebhookHandler(mockReq('subscription.activated', mockSub), res);
+    expect(syncSubscriptionFromRazorpay).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith({ received: true, deduplicated: true });
+  });
+
+  it('reprocesses an event previously recorded as FAILED', async () => {
+    prisma.webhookEvent.findUnique.mockResolvedValue({ status: 'FAILED' });
+    const res = mockRes();
+    await razorpayWebhookHandler(mockReq('subscription.activated', mockSub), res);
+    expect(syncSubscriptionFromRazorpay).toHaveBeenCalledWith(mockSub);
+    expect(res.json).toHaveBeenCalledWith({ received: true });
+  });
+
+  it('marks the event PROCESSED after a successful run', async () => {
+    const res = mockRes();
+    await razorpayWebhookHandler(mockReq('subscription.activated', mockSub), res);
+    expect(prisma.webhookEvent.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ create: expect.objectContaining({ status: 'PROCESSED' }) })
+    );
+  });
+
+  it('prefers the x-razorpay-event-id header as the idempotency key', async () => {
+    const req = mockReq('subscription.activated', mockSub);
+    req.headers['x-razorpay-event-id'] = 'evt_abc123';
+    const res = mockRes();
+    await razorpayWebhookHandler(req, res);
+    expect(prisma.webhookEvent.findUnique).toHaveBeenCalledWith({ where: { eventId: 'evt_abc123' } });
   });
 });

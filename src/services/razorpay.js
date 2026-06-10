@@ -130,6 +130,17 @@ export async function syncSubscriptionFromRazorpay(rzpSub) {
     return;
   }
 
+  // Out-of-order protection: don't resurrect a terminal subscription from a
+  // stale event (e.g. a late `subscription.updated` arriving after `cancelled`).
+  const newStatus = SUB_STATUS_MAP[rzpSub.status] ?? 'ACTIVE';
+  const TERMINAL = new Set(['CANCELLED', 'EXPIRED']);
+  if (TERMINAL.has(existing.status) && !TERMINAL.has(newStatus)) {
+    logger.warn(
+      `syncSubscription: ignoring '${rzpSub.status}' for ${rzpSub.id} — DB already ${existing.status} (out-of-order event)`
+    );
+    return;
+  }
+
   const planId = rzpSub.plan_id;
   const tier   = planId ? tierFromPlanId(planId) : existing.tier;
 
@@ -142,7 +153,7 @@ export async function syncSubscriptionFromRazorpay(rzpSub) {
     where: { id: existing.id },
     data: {
       tier,
-      status:             SUB_STATUS_MAP[rzpSub.status] ?? 'ACTIVE',
+      status:             newStatus,
       currentPeriodStart: periodStart,
       currentPeriodEnd:   periodEnd,
       renewalDate:        periodEnd,
@@ -181,4 +192,45 @@ export async function syncPaymentFromRazorpay(payment) {
       paidAt: new Date(),
     },
   }).catch((err) => logger.error(`Failed to sync payment ${payment.id}: ${err.message}`));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reconciliation — safety net for missed/failed webhooks
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Re-sync live (non-terminal) subscriptions from Razorpay's API. Catches any
+ * webhook that was missed, arrived during downtime, or failed to process.
+ * Intended to run on a schedule (see billing-reconcile worker).
+ *
+ * @param {{ limit?: number }} [opts]
+ * @returns {Promise<{ checked: number, synced: number, errors: number }>}
+ */
+export async function reconcileSubscriptions({ limit = 500 } = {}) {
+  if (!razorpay) {
+    logger.warn('reconcileSubscriptions: Razorpay not configured — skipping');
+    return { checked: 0, synced: 0, errors: 0 };
+  }
+
+  const subs = await prisma.subscription.findMany({
+    where:  { subscriptionId: { not: null }, status: { in: ['ACTIVE', 'PAST_DUE'] } },
+    select: { subscriptionId: true },
+    take:   limit,
+  });
+
+  let synced = 0;
+  let errors = 0;
+  for (const sub of subs) {
+    try {
+      const rzpSub = await razorpay.subscriptions.fetch(sub.subscriptionId);
+      await syncSubscriptionFromRazorpay(rzpSub);
+      synced += 1;
+    } catch (err) {
+      errors += 1;
+      logger.error(`reconcileSubscriptions: failed for ${sub.subscriptionId}: ${err.message}`);
+    }
+  }
+
+  logger.info(`reconcileSubscriptions: checked ${subs.length}, synced ${synced}, errors ${errors}`);
+  return { checked: subs.length, synced, errors };
 }
