@@ -13,7 +13,7 @@
  */
 
 import express from 'express';
-import { randomBytes } from 'crypto';
+import { randomBytes, createHash } from 'crypto';
 import IORedis from 'ioredis';
 import { prisma } from '../../db/prisma.js';
 import { requireAuth } from '../middleware/requireAuth.js';
@@ -334,6 +334,31 @@ router.post('/verify-order', requireAuth, razorpayRequired, async (req, res) => 
 // Razorpay webhook handler — exported and mounted with raw body parser in server.js
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Dispatch a verified Razorpay event to the right DB sync helper.
+ * Each helper is itself idempotent (upsert / no-op on unchanged state).
+ */
+async function processWebhookEvent(event, eventPayload) {
+  switch (event) {
+    case 'subscription.activated':
+    case 'subscription.charged':
+    case 'subscription.updated':
+    case 'subscription.cancelled':
+    case 'subscription.completed':
+    case 'subscription.expired':
+      await syncSubscriptionFromRazorpay(eventPayload?.subscription?.entity);
+      break;
+
+    case 'payment.captured':
+      await syncPaymentFromRazorpay(eventPayload?.payment?.entity);
+      break;
+
+    default:
+      // Unhandled event — acknowledged but not processed.
+      break;
+  }
+}
+
 export async function razorpayWebhookHandler(req, res) {
   const signature = req.headers['x-razorpay-signature'];
   const secret    = process.env.RAZORPAY_WEBHOOK_SECRET;
@@ -365,31 +390,43 @@ export async function razorpayWebhookHandler(req, res) {
   }
 
   const { event, payload: eventPayload } = payload;
-  logger.info(`Razorpay event received: ${event}`);
+
+  // Idempotency key: Razorpay's per-delivery event id, falling back to a hash of
+  // the signed body. Razorpay delivers at-least-once, so the same event can
+  // arrive multiple times (and retries on our 5xx).
+  const eventId = req.headers['x-razorpay-event-id']
+    || `sha256:${createHash('sha256').update(rawBody).digest('hex')}`;
+
+  // Skip if we've already fully processed this exact event.
+  const seen = await prisma.webhookEvent
+    .findUnique({ where: { eventId } })
+    .catch(() => null);
+  if (seen?.status === 'PROCESSED') {
+    logger.info(`Razorpay event ${event} (${eventId}) already processed — skipping`);
+    return res.json({ received: true, deduplicated: true });
+  }
+
+  logger.info(`Razorpay event received: ${event} (${eventId})`);
 
   try {
-    switch (event) {
-      case 'subscription.activated':
-      case 'subscription.charged':
-      case 'subscription.updated':
-      case 'subscription.cancelled':
-      case 'subscription.completed':
-      case 'subscription.expired':
-        await syncSubscriptionFromRazorpay(eventPayload?.subscription?.entity);
-        break;
-
-      case 'payment.captured':
-        await syncPaymentFromRazorpay(eventPayload?.payment?.entity);
-        break;
-
-      default:
-        // Unhandled event — acknowledged but not processed
-        break;
-    }
+    await processWebhookEvent(event, eventPayload);
   } catch (err) {
-    logger.error(`Error processing Razorpay event ${event}: ${err.message}`);
+    logger.error(`Error processing Razorpay event ${event} (${eventId}): ${err.message}`);
+    // Record the failure and return 5xx so Razorpay retries delivery.
+    await prisma.webhookEvent.upsert({
+      where:  { eventId },
+      create: { eventId, eventType: event, status: 'FAILED', attempts: 1, error: err.message },
+      update: { status: 'FAILED', attempts: { increment: 1 }, error: err.message },
+    }).catch((e) => logger.error(`Failed to record webhook failure ${eventId}: ${e.message}`));
     return res.status(500).send('Webhook processing error');
   }
+
+  // Mark processed for idempotency + audit trail.
+  await prisma.webhookEvent.upsert({
+    where:  { eventId },
+    create: { eventId, eventType: event, status: 'PROCESSED', attempts: 1, processedAt: new Date() },
+    update: { status: 'PROCESSED', attempts: { increment: 1 }, processedAt: new Date(), error: null },
+  }).catch((err) => logger.error(`Failed to record webhook success ${eventId}: ${err.message}`));
 
   res.json({ received: true });
 }
