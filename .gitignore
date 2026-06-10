@@ -5,6 +5,14 @@ frontend/node_modules/
 # Environment
 .env
 .env.local
+.env.*.backup-*
+.env.placeholder-backup-*
+
+# Security scan output (Snyk)
+snyk-report.json
+snyk-report.sarif
+snyk-mediums.json
+snyk-mediums.txt
 
 # Build
 dist/
