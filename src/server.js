@@ -9,6 +9,7 @@ import routes from './api/routes/index.js';
 import { razorpayWebhookHandler } from './api/routes/billing.js';
 import { correlationIdMiddleware, createLogger } from './api/utils/logger.js';
 import { prisma } from './db/prisma.js';
+import { runAsSystem } from './db/tenant-context.js';
 import { createReportingWorker, createBulkListingWorker, createTokenCleanupWorker, createAutomationWorker, createBrandAnalyticsFetchWorker, createAlertEvaluationWorker, tokenCleanupQueue, automationQueue, brandAnalyticsFetchQueue, alertEvaluationQueue, closeQueue } from './services/queue.js';
 import { reportingProcessor }    from './workers/reporting.worker.js';
 import { bulkListingProcessor }  from './workers/bulk-listing.worker.js';
@@ -67,8 +68,13 @@ app.use('/api/public', cors({
 }));
 
 // Razorpay webhook MUST receive the raw body before express.json() parses it.
-// Mounted here so it bypasses JSON middleware.
-app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), razorpayWebhookHandler);
+// Mounted here so it bypasses JSON middleware. No user session exists, so it runs
+// as trusted system code (it resolves the org from the Razorpay subscription id).
+app.post(
+  '/api/billing/webhook',
+  express.raw({ type: 'application/json' }),
+  (req, res, next) => runAsSystem(() => razorpayWebhookHandler(req, res, next))
+);
 
 // Bumped from the 100 KB default so image-optimizer requests can carry a
 // product photo as base64 (a typical 5 MB JPEG becomes ~7 MB base64).
@@ -237,13 +243,16 @@ const server = app.listen(PORT, () => {
   logger.info('Server started', { port: PORT, nodeEnv: process.env.NODE_ENV });
 });
 
-// Start BullMQ workers
-const reportingWorker    = createReportingWorker(reportingProcessor);
-const bulkListingWorker  = createBulkListingWorker(bulkListingProcessor);
-const tokenCleanupWorker = createTokenCleanupWorker(tokenCleanupProcessor);
-const automationWorker   = createAutomationWorker(automationProcessor);
-const baFetchWorker      = createBrandAnalyticsFetchWorker(brandAnalyticsFetchProcessor);
-const alertEvalWorker    = createAlertEvaluationWorker(alertEvaluationProcessor);
+// Start BullMQ workers. Each job runs as trusted system code: workers span
+// organizations and pass explicit orgId in their queries, so the tenant guard
+// must not impose a single-org filter on them.
+const asSystem = (processor) => (job) => runAsSystem(() => processor(job));
+const reportingWorker    = createReportingWorker(asSystem(reportingProcessor));
+const bulkListingWorker  = createBulkListingWorker(asSystem(bulkListingProcessor));
+const tokenCleanupWorker = createTokenCleanupWorker(asSystem(tokenCleanupProcessor));
+const automationWorker   = createAutomationWorker(asSystem(automationProcessor));
+const baFetchWorker      = createBrandAnalyticsFetchWorker(asSystem(brandAnalyticsFetchProcessor));
+const alertEvalWorker    = createAlertEvaluationWorker(asSystem(alertEvaluationProcessor));
 
 // Brand Analytics daily sweep — fan out fetch jobs to active orgs per tier cadence.
 // We use a tiny scheduler job (jobId-deduplicated) that calls enqueueDailySweep().

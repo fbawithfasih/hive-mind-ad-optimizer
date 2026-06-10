@@ -1,4 +1,5 @@
 import { prisma } from '../../db/prisma.js';
+import { runWithTenant, runAsSystem } from '../../db/tenant-context.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('TENANT');
@@ -29,12 +30,16 @@ export async function withTenant(req, res, next) {
     // Extract org_id from request (priority: query > body > JWT activeOrgId > first membership)
     let orgId = req.query?.org_id || req.body?.org_id || req.user.activeOrgId;
 
-    // Fall back to first membership if JWT has no activeOrgId (e.g. old tokens)
+    // Fall back to first membership if JWT has no activeOrgId (e.g. old tokens).
+    // Bootstrap membership lookups run as system: they establish which org the
+    // request belongs to, so they pre-date (and can't use) the tenant context.
     if (!orgId) {
-      const firstMembership = await prisma.orgMember.findFirst({
-        where: { userId: req.user.userId },
-        orderBy: { joinedAt: 'asc' },
-      });
+      const firstMembership = await runAsSystem(() =>
+        prisma.orgMember.findFirst({
+          where: { userId: req.user.userId },
+          orderBy: { joinedAt: 'asc' },
+        })
+      );
 
       if (firstMembership) {
         orgId = firstMembership.orgId;
@@ -45,14 +50,17 @@ export async function withTenant(req, res, next) {
       }
     }
 
-    // Validate user has access to this organization
-    const membership = await prisma.orgMember.findFirst({
-      where: {
-        userId: req.user.userId,
-        orgId: orgId,
-      },
-      include: { org: true },
-    });
+    // Validate user has access to this organization (authorization bootstrap —
+    // runs as system because it filters by userId to decide org membership).
+    const membership = await runAsSystem(() =>
+      prisma.orgMember.findFirst({
+        where: {
+          userId: req.user.userId,
+          orgId: orgId,
+        },
+        include: { org: true },
+      })
+    );
 
     if (!membership) {
       logger.warn(
@@ -75,7 +83,9 @@ export async function withTenant(req, res, next) {
       `Tenant context: user=${req.user.userId}, org=${orgId}, role=${membership.role}`
     );
 
-    next();
+    // Run the rest of the request inside the org's tenant context so every
+    // Prisma query on a tenant-scoped model is automatically isolated.
+    return runWithTenant(membership.org.id, () => next());
   } catch (err) {
     logger.error(`Tenant middleware error: ${err.message}`);
     res.status(500).json({ error: 'Organization context error' });
