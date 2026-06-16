@@ -54,6 +54,16 @@ function CheckIcon() {
   );
 }
 
+// Always resolve an API error to a string. The backend's global error handler
+// returns { error: { code, message } } (an object) on 500s — rendering that
+// object directly would crash React, so never store a non-string in `error`.
+function errMsg(err, fallback) {
+  const e = err?.response?.data?.error;
+  if (typeof e === 'string') return e;
+  if (e && typeof e === 'object') return e.message || e.description || fallback;
+  return err?.message || fallback;
+}
+
 function loadRazorpayScript() {
   return new Promise((resolve) => {
     if (window.Razorpay) return resolve(true);
@@ -100,7 +110,7 @@ export default function BillingPage({ user, onLogout }) {
     try {
       checkoutData = await createCheckoutSession(tier);
     } catch (err) {
-      setError(err.response?.data?.error ?? 'Could not start checkout.');
+      setError(errMsg(err, 'Could not start checkout.'));
       setWorking(false);
       return;
     }
@@ -149,7 +159,7 @@ export default function BillingPage({ user, onLogout }) {
       setShowCancel(false);
       reload();
     } catch (err) {
-      setError(err.response?.data?.error ?? 'Could not cancel subscription.');
+      setError(errMsg(err, 'Could not cancel subscription.'));
     } finally {
       setWorking(false);
     }

@@ -179,15 +179,24 @@ router.post('/checkout', requireAuth, razorpayRequired, requireRole('ADMIN'), as
     return res.status(409).json({ error: 'An active subscription already exists. Cancel it before switching plans.' });
   }
 
-  const rzpSubscription = await razorpay.subscriptions.create({
-    plan_id:         PLAN_IDS[tier],
-    total_count:     12,          // 12 billing cycles (1 year); user can cancel anytime
-    quantity:        1,
-    notes: {
-      orgId,
-      tier,
-    },
-  });
+  let rzpSubscription;
+  try {
+    rzpSubscription = await razorpay.subscriptions.create({
+      plan_id:         PLAN_IDS[tier],
+      total_count:     12,          // 12 billing cycles (1 year); user can cancel anytime
+      quantity:        1,
+      notes: {
+        orgId,
+        tier,
+      },
+    });
+  } catch (err) {
+    // Razorpay SDK errors carry { error: { description } }; never let one become
+    // an unhandled 500 (which the frontend can't render and blanks the page).
+    const detail = err?.error?.description ?? err?.message ?? 'Unknown Razorpay error';
+    logger.error(`checkout: Razorpay subscription create failed for org ${orgId} (tier ${tier}): ${detail}`);
+    return res.status(502).json({ error: `Could not start checkout: ${detail}` });
+  }
 
   // Pre-create / update Subscription row so the webhook can find it by subscriptionId
   await prisma.subscription.upsert({
@@ -263,7 +272,13 @@ router.post('/cancel', requireAuth, razorpayRequired, requireRole('ADMIN'), asyn
   }
 
   // cancel_at_cycle_end=1 means cancel at next billing cycle (not immediately)
-  await razorpay.subscriptions.cancel(subscription.subscriptionId, /* cancel_at_cycle_end */ true);
+  try {
+    await razorpay.subscriptions.cancel(subscription.subscriptionId, /* cancel_at_cycle_end */ true);
+  } catch (err) {
+    const detail = err?.error?.description ?? err?.message ?? 'Unknown Razorpay error';
+    logger.error(`cancel: Razorpay cancel failed for org ${orgId} (sub ${subscription.subscriptionId}): ${detail}`);
+    return res.status(502).json({ error: `Could not cancel subscription: ${detail}` });
+  }
 
   await prisma.subscription.update({
     where: { id: subscription.id },
