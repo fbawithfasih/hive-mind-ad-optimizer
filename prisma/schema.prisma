@@ -281,7 +281,7 @@ model Invoice {
   subscriptionId    String
   externalInvoiceId String        @unique // Razorpay payment ID (pay_xxx)
   amount            Int // in paise (smallest INR unit)
-  currency          String        @default("INR")
+  currency          String        @default("USD")
   status            InvoiceStatus @default(DRAFT)
   paidAt            DateTime?
   dueDate           DateTime

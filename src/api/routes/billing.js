@@ -298,7 +298,7 @@ router.post('/cancel', requireAuth, razorpayRequired, requireRole('ADMIN'), asyn
 // ─────────────────────────────────────────────────────────────────────────────
 
 router.post('/create-order', requireAuth, razorpayRequired, async (req, res) => {
-  const { amount, currency = 'INR', receipt } = req.body;
+  const { amount, currency = 'USD', receipt } = req.body;
 
   if (!amount || Number(amount) < 100) {
     return res.status(400).json({ error: 'amount must be at least 100 paise (₹1).' });

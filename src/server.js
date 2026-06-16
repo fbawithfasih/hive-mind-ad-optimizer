@@ -289,6 +289,16 @@ async function applyDeadLetterMigration() {
 }
 applyDeadLetterMigration().catch(err => logger.error('DeadLetterJob migration error', err.message));
 
+// Bill in USD (international payments enabled on Razorpay) — flip the legacy
+// INR column default. Idempotent.
+async function applyInvoiceCurrencyDefault() {
+  try {
+    await prisma.$executeRaw`ALTER TABLE "Invoice" ALTER COLUMN "currency" SET DEFAULT 'USD'`;
+    logger.info('Migration: Invoice.currency default set to USD');
+  } catch { /* already applied */ }
+}
+applyInvoiceCurrencyDefault().catch(err => logger.error('Invoice currency migration error', err.message));
+
 const server = app.listen(PORT, () => {
   logger.info('Server started', { port: PORT, nodeEnv: process.env.NODE_ENV });
 });
