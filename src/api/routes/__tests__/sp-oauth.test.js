@@ -1,5 +1,6 @@
 import express from 'express';
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import spOauthRouter from '../sp-oauth.js';
 
 // Mock axios (token exchange) and saveOrgCredential
@@ -8,12 +9,9 @@ jest.mock('../../../services/credentials.js', () => ({
   saveOrgCredential: jest.fn(),
 }));
 
-// Mock auth middleware — this test covers sp-oauth route logic, not the auth layer.
-// requireAuth and withTenant are tested separately; here we pass-through so that
-// the pre-set req.user / req.tenant values are respected.
-jest.mock('../../middleware/requireAuth.js', () => ({
-  requireAuth: (_req, _res, next) => next(),
-}));
+// withTenant is tested separately; here it's a pass-through so the pre-set
+// req.tenant is respected. (/info and /start use the route's own requireAuthNav,
+// which reads the hmn_token cookie — makeApp supplies a valid one below.)
 jest.mock('../../middleware/withTenant.js', () => ({
   withTenant: (_req, _res, next) => next(),
 }));
@@ -21,17 +19,17 @@ jest.mock('../../middleware/withTenant.js', () => ({
 import axios from 'axios';
 import { saveOrgCredential } from '../../../services/credentials.js';
 
-// Build a minimal Express app that replicates the real middleware stack:
-// requireAuth + withTenant have already run, so req.user and req.tenant are set.
-const DEFAULT_USER   = { userId: 'user-1', email: 'test@example.com', activeOrgId: 'org-1' };
 const DEFAULT_TENANT = { orgId: 'org-1', org: { id: 'org-1', name: 'Acme' }, role: 'ADMIN' };
 
-function makeApp({ user = DEFAULT_USER, tenant = DEFAULT_TENANT } = {}) {
+// Build a minimal app: inject a valid session cookie (so requireAuthNav passes)
+// and a pre-set req.tenant (so withTenant's pass-through leaves it in place).
+function makeApp({ tenant = DEFAULT_TENANT } = {}) {
+  const token = jwt.sign({ userId: 'user-1', activeOrgId: 'org-1' }, process.env.SESSION_SECRET);
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
-    req.user   = user;
-    req.tenant = tenant;   // explicitly set — allows null to be passed through
+    req.cookies = { hmn_token: token }; // requireAuthNav reads req.cookies.hmn_token
+    req.tenant  = tenant;               // explicitly set — allows null to be passed through
     next();
   });
   app.use('/', spOauthRouter);
@@ -61,6 +59,15 @@ describe('GET /info', () => {
   it('includes current org from req.tenant', async () => {
     const res = await request(makeApp()).get('/info');
     expect(res.body.current_org).toBe('org-1');
+  });
+
+  it('redirects to login when no session cookie is present', async () => {
+    const app = express();
+    app.use((req, _res, next) => { req.cookies = {}; req.tenant = DEFAULT_TENANT; next(); });
+    app.use('/', spOauthRouter);
+    const res = await request(app).get('/info');
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toMatch(/\/login$/);
   });
 });
 
@@ -110,7 +117,8 @@ describe('GET /start', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET /callback
+// GET /callback — note: errors REDIRECT (302) to the frontend error page with a
+// sanitised reason code (XSS-safe), they no longer render HTML.
 // ─────────────────────────────────────────────────────────────────────────────
 describe('GET /callback', () => {
   async function getValidState(app) {
@@ -119,7 +127,7 @@ describe('GET /callback', () => {
     return url.searchParams.get('state');
   }
 
-  it('exchanges code, saves credentials, redirects to frontend', async () => {
+  it('exchanges code, saves credentials, redirects to ads-start', async () => {
     const app = makeApp();
     const state = await getValidState(app);
 
@@ -164,27 +172,26 @@ describe('GET /callback', () => {
     expect(body.get('client_id')).toBe('test-client-id');
   });
 
-  it('returns 400 HTML when spapi_oauth_code is missing', async () => {
+  it('redirects to error page when spapi_oauth_code is missing', async () => {
     const res = await request(makeApp()).get('/callback').query({
       selling_partner_id: 'A1B2C3',
       state: 'some-state',
     });
-    expect(res.status).toBe(400);
-    expect(res.text).toMatch(/No authorization code/);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toMatch(/\/auth\/spapi\/error\?reason=no_authorization_code/);
   });
 
-  it('returns 400 HTML when state is invalid', async () => {
+  it('redirects to error page when state is invalid', async () => {
     const res = await request(makeApp()).get('/callback').query({
       spapi_oauth_code: 'code-abc',
       selling_partner_id: 'SELLER1',
       state: 'invalid-state-not-in-map',
     });
-    expect(res.status).toBe(400);
-    expect(res.text).toMatch(/Invalid or expired state/);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toMatch(/\/auth\/spapi\/error\?reason=invalid_state/);
   });
 
-  it('returns 400 HTML when state has expired', async () => {
-    // State entries expire after 10 minutes; simulate by using a consumed state
+  it('rejects a state that has already been consumed', async () => {
     const app = makeApp();
     const state = await getValidState(app);
 
@@ -193,16 +200,17 @@ describe('GET /callback', () => {
     saveOrgCredential.mockResolvedValueOnce({});
     await request(app).get('/callback').query({ spapi_oauth_code: 'c1', selling_partner_id: 'S1', state });
 
-    // Second call with same state should fail (already consumed)
+    // Second call with the same state must fail (single-use)
     const res = await request(app).get('/callback').query({
       spapi_oauth_code: 'c2',
       selling_partner_id: 'S1',
       state,
     });
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toMatch(/\/auth\/spapi\/error\?reason=invalid_state/);
   });
 
-  it('returns 500 HTML when token exchange fails', async () => {
+  it('redirects to error page when token exchange fails', async () => {
     const app = makeApp();
     const state = await getValidState(app);
 
@@ -215,7 +223,7 @@ describe('GET /callback', () => {
       selling_partner_id: 'S1',
       state,
     });
-    expect(res.status).toBe(500);
-    expect(res.text).toMatch(/Token Exchange Failed/);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toMatch(/\/auth\/spapi\/error\?reason=token_exchange_failed/);
   });
 });

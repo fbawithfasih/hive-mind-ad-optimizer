@@ -13,6 +13,11 @@ jest.mock('axios');
 describe('Amazon Ads API', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // mockReset (not just clearAllMocks) so persistent mockResolvedValue impls and
+    // queued mock*Once values from a prior test don't leak into the next one —
+    // e.g. the "reuse cached token" test sets axios.get.mockResolvedValue(...).
+    axios.get.mockReset();
+    axios.post.mockReset();
     // Clear the cached token so each test starts with a fresh token fetch.
     // The default client uses cacheKey 'ads:default' in the module-level registry.
     invalidateTokenManager('ads:default');
@@ -98,14 +103,16 @@ describe('Amazon Ads API', () => {
         },
       });
 
+      // getProfiles fetches every region (NA/EU/FE) and de-dupes by profileId,
+      // so use a realistic shape and have the non-NA regions return nothing.
       const mockProfiles = [
-        { id: '1', name: 'Profile 1', type: 'seller' },
-        { id: '2', name: 'Profile 2', type: 'brand' },
+        { profileId: 1, countryCode: 'US', accountInfo: { name: 'Profile 1', type: 'seller' } },
+        { profileId: 2, countryCode: 'CA', accountInfo: { name: 'Profile 2', type: 'seller' } },
       ];
 
-      axios.get.mockResolvedValueOnce({
-        data: mockProfiles,
-      });
+      axios.get
+        .mockResolvedValueOnce({ data: mockProfiles }) // NA
+        .mockResolvedValue({ data: [] });               // EU, FE
 
       const result = await getProfiles();
       expect(result).toEqual(mockProfiles);
@@ -251,13 +258,19 @@ describe('Amazon Ads API', () => {
       await expect(getProfiles()).rejects.toThrow('Custom API error message');
     });
 
-    it('should handle malformed JSON responses', async () => {
+    it('is resilient when a region returns a malformed/failed response', async () => {
       axios.post.mockResolvedValueOnce({
         data: { access_token: 'token', expires_in: 3600 },
       });
 
-      axios.get.mockRejectedValueOnce(new SyntaxError('Unexpected token <'));
-      await expect(getProfiles()).rejects.toThrow();
+      // NA succeeds; the other regions fail — getProfiles tolerates per-region
+      // failures and still returns the regions that worked (never throws here).
+      axios.get
+        .mockResolvedValueOnce({ data: [{ profileId: 1, countryCode: 'US' }] })
+        .mockRejectedValue(new SyntaxError('Unexpected token <'));
+
+      const result = await getProfiles();
+      expect(result).toEqual([{ profileId: 1, countryCode: 'US' }]);
     });
   });
 });
