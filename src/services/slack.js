@@ -87,3 +87,31 @@ export async function sendCampaignAlertSlack(webhookUrl, { orgName, fires, dashb
 function escapeMd(s) {
   return String(s ?? '').replace(/[*_~`<>]/g, (c) => '\\' + c);
 }
+
+/**
+ * Operational alert to a single ops channel (separate from per-org alert webhooks).
+ * Best-effort: no-op when OPS_SLACK_WEBHOOK_URL is unset, never throws.
+ * @param {string} text   headline message (Slack mrkdwn)
+ * @param {Record<string, unknown>} [context]  extra key/value lines
+ * @returns {Promise<{ok: boolean} | null>}
+ */
+export async function sendOpsAlert(text, context = {}) {
+  const webhookUrl = process.env.OPS_SLACK_WEBHOOK_URL;
+  if (!webhookUrl) return null;
+
+  const lines = Object.entries(context)
+    .filter(([, v]) => v != null)
+    .map(([k, v]) => `*${k}:* ${typeof v === 'string' ? v : JSON.stringify(v)}`);
+
+  try {
+    await axios.post(
+      webhookUrl,
+      { text: [text, ...lines].join('\n') },
+      { headers: { 'Content-Type': 'application/json' }, timeout: 5_000 }
+    );
+    return { ok: true };
+  } catch (err) {
+    logger.warn(`Ops alert delivery failed: ${err.message}`);
+    return { ok: false };
+  }
+}

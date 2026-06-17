@@ -500,6 +500,25 @@ enum WebhookEventStatus {
   FAILED
 }
 
+/// Durable record of background jobs that permanently failed (all BullMQ retries
+/// exhausted). Not org-scoped — operational/ops-level (the job's `data` may carry
+/// an orgId). Used for inspection, alerting, and manual replay.
+model DeadLetterJob {
+  id           String    @id @default(cuid())
+  queue        String
+  jobId        String
+  name         String?
+  data         Json?
+  attemptsMade Int       @default(0)
+  failedReason String?
+  stack        String?
+  replayedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([queue])
+  @@index([createdAt])
+}
+
 enum SubscriptionTier {
   BASIC
   PRO

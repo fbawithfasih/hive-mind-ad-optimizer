@@ -267,6 +267,28 @@ async function applyWebhookEventsMigration() {
 }
 applyWebhookEventsMigration().catch(err => logger.error('WebhookEvent migration error', err.message));
 
+async function applyDeadLetterMigration() {
+  try {
+    await prisma.$executeRaw`
+      CREATE TABLE IF NOT EXISTS "DeadLetterJob" (
+        "id"           TEXT NOT NULL PRIMARY KEY,
+        "queue"        TEXT NOT NULL,
+        "jobId"        TEXT NOT NULL,
+        "name"         TEXT,
+        "data"         JSONB,
+        "attemptsMade" INTEGER NOT NULL DEFAULT 0,
+        "failedReason" TEXT,
+        "stack"        TEXT,
+        "replayedAt"   TIMESTAMP(3),
+        "createdAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`;
+    await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "DeadLetterJob_queue_idx"     ON "DeadLetterJob"("queue")`;
+    await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "DeadLetterJob_createdAt_idx" ON "DeadLetterJob"("createdAt")`;
+    logger.info('Migration: DeadLetterJob table ready');
+  } catch { /* already exists */ }
+}
+applyDeadLetterMigration().catch(err => logger.error('DeadLetterJob migration error', err.message));
+
 const server = app.listen(PORT, () => {
   logger.info('Server started', { port: PORT, nodeEnv: process.env.NODE_ENV });
 });

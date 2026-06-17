@@ -17,6 +17,7 @@
 import { Queue, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { createLogger } from '../api/utils/logger.js';
+import { attachDeadLetter } from './dead-letter.js';
 
 const logger = createLogger('QUEUE');
 
@@ -86,6 +87,7 @@ export function createReportingWorker(processor) {
     logger.warn(`Job ${jobId} stalled — will be retried`);
   });
 
+  attachDeadLetter(worker, QUEUE_NAME);
   logger.info(`Reporting worker started (concurrency=2)`);
   return worker;
 }
@@ -126,6 +128,7 @@ export function createBulkListingWorker(processor) {
     logger.warn(`Bulk item ${jobId} stalled — will be retried`);
   });
 
+  attachDeadLetter(worker, BULK_QUEUE_NAME);
   logger.info(`Bulk listing worker started (concurrency=3)`);
   return worker;
 }
@@ -162,6 +165,7 @@ export function createTokenCleanupWorker(processor) {
     logger.error(`Token cleanup job ${job?.id} failed: ${err.message}`);
   });
 
+  attachDeadLetter(worker, CLEANUP_QUEUE_NAME);
   logger.info('Token cleanup worker started');
   return worker;
 }
@@ -200,6 +204,7 @@ export function createAutomationWorker(processor) {
     logger.error(`Automation run ${job?.id} failed: ${err.message}`);
   });
 
+  attachDeadLetter(worker, AUTOMATION_QUEUE_NAME);
   logger.info('Automation worker started');
   return worker;
 }
@@ -231,6 +236,7 @@ export function createAlertEvaluationWorker(processor) {
   worker.on('failed', (job, err) => {
     logger.error(`Alert eval ${job?.id} failed: ${err.message}`);
   });
+  attachDeadLetter(worker, ALERT_EVAL_QUEUE_NAME);
   logger.info('Alert evaluation worker started (concurrency=1)');
   return worker;
 }
@@ -269,6 +275,7 @@ export function createBrandAnalyticsFetchWorker(processor) {
     logger.error(`BA fetch ${job?.id} failed (attempt ${job?.attemptsMade}): ${err.message}`);
   });
 
+  attachDeadLetter(worker, BA_FETCH_QUEUE_NAME);
   logger.info('Brand Analytics fetch worker started (concurrency=2)');
   return worker;
 }
@@ -308,6 +315,7 @@ export function createBillingReconcileWorker(processor) {
     logger.error(`Billing reconcile job ${job?.id} failed: ${err.message}`);
   });
 
+  attachDeadLetter(worker, BILLING_RECONCILE_QUEUE_NAME);
   logger.info('Billing reconcile worker started');
   return worker;
 }
