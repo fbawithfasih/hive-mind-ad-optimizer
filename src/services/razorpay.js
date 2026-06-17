@@ -181,8 +181,8 @@ export async function syncPaymentFromRazorpay(payment) {
     create: {
       subscriptionId:    sub.id,
       externalInvoiceId: payment.id,
-      amount:            payment.amount,          // already in paise (smallest unit)
-      currency:          (payment.currency ?? 'INR').toUpperCase(),
+      amount:            payment.amount,          // smallest currency unit (USD cents)
+      currency:          (payment.currency ?? 'USD').toUpperCase(),
       status:            'PAID',
       paidAt:            new Date(),
       dueDate:           new Date(),

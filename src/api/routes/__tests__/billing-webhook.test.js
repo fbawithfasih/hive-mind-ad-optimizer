@@ -40,7 +40,7 @@ const mockPayment = {
   id:              'pay_test123',
   subscription_id: 'sub_test123',
   amount:          49900,
-  currency:        'INR',
+  currency:        'USD',
 };
 
 const mockReq = (event, entity, entityType) => ({
