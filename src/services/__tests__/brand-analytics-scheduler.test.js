@@ -4,7 +4,14 @@
  * (used ISO Mon→Sun, but Amazon BA weeks are Sun→Sat).
  */
 
-import { cadenceForTier, previousClosedPeriod } from '../brand-analytics-scheduler.js';
+import { jest } from '@jest/globals';
+
+jest.mock('../../db/prisma.js', () => ({
+  prisma: { brandAnalyticsReport: { findFirst: jest.fn(), findUnique: jest.fn() } },
+}));
+
+import { cadenceForTier, previousClosedPeriod, getBrandAsinsForOrg } from '../brand-analytics-scheduler.js';
+import { prisma } from '../../db/prisma.js';
 
 describe('cadenceForTier', () => {
   it('BASIC fetches the 3 core reports monthly', () => {
@@ -103,5 +110,47 @@ describe('previousClosedPeriod — QUARTERLY', () => {
     const { periodStart, periodEnd } = previousClosedPeriod('QUARTERLY', new Date('2026-02-15T00:00:00Z'));
     expect(periodStart.toISOString().slice(0, 10)).toBe('2025-10-01');
     expect(periodEnd.toISOString().slice(0, 10)).toBe('2025-12-31');
+  });
+});
+
+describe('SQP_BRAND in cadence', () => {
+  it('PRO/ENTERPRISE include SQP_BRAND; BASIC does not', () => {
+    expect(cadenceForTier('PRO').reports).toContain('SQP_BRAND');
+    expect(cadenceForTier('ENTERPRISE').reports).toContain('SQP_BRAND');
+    expect(cadenceForTier('BASIC').reports).not.toContain('SQP_BRAND');
+  });
+});
+
+describe('getBrandAsinsForOrg', () => {
+  afterEach(() => jest.clearAllMocks());
+
+  it('returns de-duped, validated ASINs from the latest catalog report', async () => {
+    prisma.brandAnalyticsReport.findFirst.mockResolvedValue({
+      rawData: [
+        { asin: 'B0AAAAAAAA' },
+        { asin: 'b0bbbbbbbb' },        // lowercase → upper-cased
+        { asin: 'B0AAAAAAAA' },        // duplicate → dropped
+        { asin: 'not-an-asin' },       // invalid → dropped
+        { asin: null },                // skipped
+      ],
+    });
+    const asins = await getBrandAsinsForOrg('org-1');
+    expect(asins).toEqual(['B0AAAAAAAA', 'B0BBBBBBBB']);
+  });
+
+  it('caps the list to the space-joined char budget', async () => {
+    // 30 distinct 10-char ASINs (B0 + 8 hex-ish chars). 200-char budget /11 ≈ 18.
+    const rows = Array.from({ length: 30 }, (_, i) => ({
+      asin: 'B0' + String(i).padStart(8, '0'),
+    }));
+    prisma.brandAnalyticsReport.findFirst.mockResolvedValue({ rawData: rows });
+    const asins = await getBrandAsinsForOrg('org-1');
+    expect(asins.length).toBeLessThanOrEqual(18);
+    expect(asins.join(' ').length).toBeLessThanOrEqual(200);
+  });
+
+  it('returns [] when the org has no completed catalog report', async () => {
+    prisma.brandAnalyticsReport.findFirst.mockResolvedValue(null);
+    expect(await getBrandAsinsForOrg('org-1')).toEqual([]);
   });
 });

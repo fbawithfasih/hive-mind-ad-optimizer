@@ -105,9 +105,10 @@ async function loadFromDb(orgId, brandName) {
   ]);
 
   // Catalog + Top Search Terms are the minimum needed for a useful dashboard.
-  // SQP_BRAND is optional — the daily sweep skips it (it requires an ASIN list,
-  // which is only supplied via manual /reports/refresh). When SQP is missing
-  // we still render the catalog/keyword views and flag SQP as unavailable so
+  // SQP_BRAND is optional — the sweep auto-derives brand ASINs from the catalog
+  // report and fetches it, but until the first catalog report completes there
+  // may be no SQP yet. When SQP is missing we still render the catalog/keyword
+  // views and flag SQP as unavailable so
   // the UI can show a banner instead of a blank "no data" error.
   if (!cat || !tst) return null;
 
