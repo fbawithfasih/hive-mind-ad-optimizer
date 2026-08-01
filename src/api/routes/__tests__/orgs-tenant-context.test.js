@@ -124,6 +124,67 @@ describe('/:orgId routes run inside the org tenant context', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PUT /:orgId — org settings, including the brandName field
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('PUT /:orgId brandName', () => {
+  beforeEach(() => {
+    prisma.orgMember.findFirst.mockImplementation(() =>
+      Promise.resolve({ id: 'm1', role: 'ADMIN', org: { id: 'org-A' } })
+    );
+  });
+
+  it('persists a trimmed brand name', async () => {
+    prisma.organization.update.mockResolvedValueOnce({ id: 'org-A', brandName: 'Queenza' });
+
+    const res = await request(makeApp()).put('/org-A').send({ brandName: '  Queenza  ' });
+
+    expect(res.status).toBe(200);
+    expect(prisma.organization.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { brandName: 'Queenza' } })
+    );
+  });
+
+  it('clears the brand name when given an empty string', async () => {
+    prisma.organization.update.mockResolvedValueOnce({ id: 'org-A', brandName: null });
+
+    const res = await request(makeApp()).put('/org-A').send({ brandName: '' });
+
+    expect(res.status).toBe(200);
+    expect(prisma.organization.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { brandName: null } })
+    );
+  });
+
+  it('leaves brandName untouched when the field is absent', async () => {
+    prisma.organization.update.mockResolvedValueOnce({ id: 'org-A', name: 'Renamed' });
+
+    await request(makeApp()).put('/org-A').send({ name: 'Renamed' });
+
+    const { data } = prisma.organization.update.mock.calls.at(-1)[0];
+    expect(data).not.toHaveProperty('brandName');
+  });
+
+  it('rejects an empty update', async () => {
+    const res = await request(makeApp()).put('/org-A').send({});
+
+    expect(res.status).toBe(400);
+    expect(prisma.organization.update).not.toHaveBeenCalled();
+  });
+
+  it('requires ADMIN', async () => {
+    prisma.orgMember.findFirst.mockImplementation(() =>
+      Promise.resolve({ id: 'm1', role: 'MEMBER', org: { id: 'org-A' } })
+    );
+
+    const res = await request(makeApp()).put('/org-A').send({ brandName: 'Queenza' });
+
+    expect(res.status).toBe(403);
+    expect(prisma.organization.update).not.toHaveBeenCalled();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // The property that matters: no guarded query ever runs context-less
 // ─────────────────────────────────────────────────────────────────────────────
 

@@ -195,6 +195,20 @@ export async function createOrgApi(name) {
   return res.data;
 }
 
+export async function getOrgApi(orgId) {
+  const res = await api.get(`/orgs/${orgId}`);
+  return res.data;
+}
+
+/**
+ * Update org settings. Pass only the fields you want changed.
+ * @param {{ name?: string, description?: string, brandName?: string }} fields
+ */
+export async function updateOrgApi(orgId, fields) {
+  const res = await api.put(`/orgs/${orgId}`, fields);
+  return res.data;
+}
+
 export async function getOrgMembersApi(orgId) {
   const res = await api.get(`/orgs/${orgId}/members`);
   return res.data;

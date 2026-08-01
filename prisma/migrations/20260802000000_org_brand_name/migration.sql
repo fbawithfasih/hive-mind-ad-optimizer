@@ -1,0 +1,13 @@
+-- Organization.brandName — the org's Amazon brand name as it appears in product
+-- titles.
+--
+-- Five call sites already read `org.brandName` (brand-analytics, keywords,
+-- reporting-agent, mcp) but the column never existed, so it always read as
+-- undefined. The keyword brand-enrichment path in src/api/routes/keywords.js is
+-- gated on it and had therefore never executed. This adds the missing column.
+--
+-- Nullable: orgs that never set it fall back to deriving brand ASINs from the
+-- catalog report, which is less complete but functional.
+--
+-- Idempotent, matching the convention of the other hand-written migrations here.
+ALTER TABLE "Organization" ADD COLUMN IF NOT EXISTS "brandName" TEXT;
