@@ -29,13 +29,22 @@ export function clearCache(orgId)     { cache.delete(orgId); }
 
 // ── File resolution ───────────────────────────────────────────────────────────
 
+/**
+ * Resolve the CSV directory for an org, or null if it has none.
+ *
+ * Returns ONLY the org's own directory. It deliberately does not fall back to
+ * the shared BA_DATA_ROOT: that directory holds whatever CSVs happen to sit in
+ * the deployment, so falling back would serve one tenant another tenant's
+ * numbers. `getBrandAnalyticsContext()` already gated on this separately —
+ * this makes the loader itself enforce it for every caller.
+ */
 export async function resolveDataDir(orgId) {
   const orgDir = join(BA_DATA_ROOT, orgId);
   try {
     await readdir(orgDir);
     return orgDir;
   } catch {
-    return BA_DATA_ROOT;
+    return null;
   }
 }
 
@@ -230,6 +239,13 @@ export async function loadAnalytics(orgId, brandName, forceRefresh = false) {
   }
 
   const dataDir = await resolveDataDir(orgId);
+  if (!dataDir) {
+    throw Object.assign(
+      new Error('No Brand Analytics data found for this org. Either wait for the next scheduled fetch or upload CSVs via POST /api/brand-analytics/upload.'),
+      { status: 404 }
+    );
+  }
+
   const [[sqpPath, prevSqpPath], [catPath, prevCatPath], tstPath] = await Promise.all([
     findTwoCsvs(dataDir, PATTERNS.sqp),
     findTwoCsvs(dataDir, PATTERNS.catalog),
