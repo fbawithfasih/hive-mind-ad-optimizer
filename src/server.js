@@ -128,6 +128,36 @@ app.use((err, req, res, next) => {
   });
 });
 
+// ============================================================================
+// DEPRECATED — boot-time raw-SQL schema patches. Do not add to this section.
+//
+// Every block below is already covered by a real migration in prisma/migrations/:
+//
+//   googleId / passwordHash nullable → 20260428000000_google_sso
+//   appleId                          → 20260504170800_apple_sso
+//   SellerProfile.account*           → 20260502000000_seller_profile_account_fields
+//   ListingOptimization.*GenericKeyword → 20260503000000_listing_generic_keyword
+//   CampaignRule.schedule            → 20260503150546_brand_analytics_report
+//   CampaignAlert / AlertFire        → 20260503150546_brand_analytics_report
+//   WebhookEvent                     → 20260610120000_webhook_events
+//   DeadLetterJob                    → 20260610130000_dead_letter_jobs
+//   Invoice.currency default USD     → 20260610140000_invoice_currency_usd
+//
+// They survive only because `prisma migrate deploy` historically never ran
+// against production (it ran in CI against the test DB only), which made these
+// the sole mechanism keeping the prod schema current. railway.toml now runs it
+// as a preDeployCommand.
+//
+// This duplication has already caused one production incident — see the header
+// of 20260504041841_schema_drift_cleanup, where a boot-time ADD COLUMN collided
+// with the Prisma migration and forced a manual force-resolve.
+//
+// REMOVE THIS ENTIRE SECTION once, on production:
+//   1. `_prisma_migrations` exists and lists all migrations as applied, and
+//   2. one deploy has completed with the preDeployCommand green.
+// Until both hold, deleting this code stops prod from receiving schema changes.
+// ============================================================================
+
 // Apply Google SSO schema changes if not already present (idempotent)
 async function applyGoogleSsoMigration() {
   try {
