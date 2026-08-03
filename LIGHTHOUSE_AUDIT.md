@@ -1,5 +1,32 @@
 # Lighthouse Audit CI - Phase 6
 
+> ## ⚠️ The CI workflow described below no longer exists
+>
+> `.github/workflows/lighthouse-audit.yml` was removed on 2026-08-03. It had never
+> run successfully: its auto-triggers were commented out because the file failed
+> YAML parsing, and five further problems meant a parse fix would only have turned
+> it into a permanently red job.
+>
+> Anyone reviving performance CI should start from these, not from the old file:
+>
+> 1. **Port mismatch.** `.lighthouserc.json` targets `localhost:5173` (the Vite *dev*
+>    port), but the job ran `npm run preview`, which defaults to **4173**. Pin
+>    `preview.port` in `frontend/vite.config.js` or change the rc.
+> 2. **Phantom upload server.** The job passed
+>    `--upload.serverBaseUrl=http://localhost:9001` with no LHCI server running,
+>    contradicting the rc's `upload.target: temporary-public-storage`. Pick one.
+> 3. **Unreachable budgets.** `resourceSizes.script` is 300 KB; the main bundle is
+>    ~1.16 MB (3.9x over). Either code-split first or set budgets to current
+>    reality plus a margin, then ratchet down.
+> 4. **Retired metric.** `first-input-delay` no longer exists in current Lighthouse
+>    — use `interaction-to-next-paint`.
+> 5. **Wrong results path.** The job read `.lighthouse/manifest.json`; lhci writes
+>    `.lighthouseci/` by default.
+>
+> `.lighthouserc.json` is kept because it still works for local runs:
+> `npx lhci autorun --config=.lighthouserc.json` (subject to items 1, 3 and 4).
+> Everything below documents the original intent and is retained for that purpose.
+
 Performance monitoring and continuous auditing using Google Lighthouse integrated into CI/CD pipeline.
 
 ## Overview
