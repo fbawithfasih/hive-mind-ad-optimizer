@@ -45,6 +45,27 @@ export function tierFromPlanId(planId) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
+ * Constant-time comparison of a computed HMAC against a client-supplied one.
+ *
+ * crypto.timingSafeEqual throws RangeError unless both buffers are the same
+ * length, so a signature of the wrong length would escape as an exception
+ * instead of a clean "not valid". Callers that did not wrap it turned a
+ * malformed signature into a 500 rather than a 400. Length is not a secret —
+ * comparing it up front leaks nothing and keeps the compare constant-time for
+ * the only case that matters (same-length, differing content).
+ *
+ * @param {string} expected - hex digest we computed
+ * @param {string} provided - hex digest supplied by the caller
+ * @returns {boolean}
+ */
+function safeEqualHex(expected, provided) {
+  if (typeof provided !== 'string' || provided.length !== expected.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(provided));
+}
+
+/**
  * Verify Razorpay webhook payload authenticity.
  * Razorpay sends X-Razorpay-Signature = HMAC-SHA256(body, webhookSecret)
  */
@@ -53,7 +74,7 @@ export function verifyWebhookSignature(rawBody, signature, secret) {
     .createHmac('sha256', secret)
     .update(rawBody)
     .digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  return safeEqualHex(expected, signature);
 }
 
 /**
@@ -66,7 +87,7 @@ export function verifyOrderSignature(orderId, paymentId, signature) {
     .createHmac('sha256', secret)
     .update(`${orderId}|${paymentId}`)
     .digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  return safeEqualHex(expected, signature);
 }
 
 /**
@@ -79,7 +100,7 @@ export function verifyPaymentSignature(paymentId, subscriptionId, signature) {
     .createHmac('sha256', secret)
     .update(`${paymentId}|${subscriptionId}`)
     .digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  return safeEqualHex(expected, signature);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
