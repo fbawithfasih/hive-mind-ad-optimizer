@@ -13,6 +13,18 @@
 
 import crypto from 'crypto';
 
+// razorpay.js imports db/prisma.js, which constructs a real PrismaClient at
+// import time. These are pure-crypto tests that never touch the database, and
+// an unmocked client opens a connection pool that keeps the jest process alive
+// after the run finishes — a hang in CI, where DATABASE_URL actually resolves.
+jest.mock('../../db/prisma.js', () => ({
+  prisma: {
+    subscription: { findFirst: jest.fn(), update: jest.fn() },
+    invoice:      { upsert: jest.fn() },
+    usageMetric:  { upsert: jest.fn() },
+  },
+}));
+
 const KEY_SECRET     = 'test_key_secret';
 const WEBHOOK_SECRET = 'test_webhook_secret';
 

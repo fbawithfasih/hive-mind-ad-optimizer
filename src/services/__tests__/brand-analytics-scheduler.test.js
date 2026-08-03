@@ -10,6 +10,15 @@ jest.mock('../../db/prisma.js', () => ({
   prisma: { brandAnalyticsReport: { findFirst: jest.fn(), findUnique: jest.fn() } },
 }));
 
+// The scheduler imports ./queue.js, which constructs seven BullMQ Queues at
+// import time, each with its own IORedis connection. Those connections keep the
+// event loop alive, so the suite never exits on its own: locally jest force
+// exits the worker and masks it, but under --runInBand (and in CI) the run
+// hangs indefinitely. None of these tests enqueue anything.
+jest.mock('../queue.js', () => ({
+  brandAnalyticsFetchQueue: { add: jest.fn().mockResolvedValue(undefined) },
+}));
+
 import { cadenceForTier, previousClosedPeriod, getBrandAsinsForOrg } from '../brand-analytics-scheduler.js';
 import { prisma } from '../../db/prisma.js';
 
