@@ -5,6 +5,7 @@ import { loadAnalytics, clearCache } from '../../services/brand-analytics/loader
 import { requireRole } from '../middleware/requireRole.js';
 import { uploadLimiter } from '../middleware/rateLimiter.js';
 import { prisma } from '../../db/prisma.js';
+import { baDataRoot } from '../../config/paths.js';
 import { brandAnalyticsFetchQueue } from '../../services/queue.js';
 import { cadenceForTier, previousClosedPeriod } from '../../services/brand-analytics-scheduler.js';
 import { listSupportedReportTypes, listApiAvailableReportTypes, reportTypeRequiresAsin } from '../../services/amazon-brand-analytics-api.js';
@@ -17,7 +18,8 @@ import {
 
 const router = express.Router();
 
-const BA_DATA_ROOT = join(process.cwd(), 'data', 'brand-analytics');
+// Upload target. Resolved per request so BA_DATA_DIR (a mounted volume in
+// production) is honoured — see src/config/paths.js.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Route handlers
@@ -351,7 +353,7 @@ router.post('/upload', requireRole('MEMBER'), uploadLimiter, express.raw({ type:
   }
 
   try {
-    const orgDir  = join(BA_DATA_ROOT, req.tenant.orgId);
+    const orgDir  = join(baDataRoot(), req.tenant.orgId);
     await mkdir(orgDir, { recursive: true });
 
     const filename = `${validTypes[type]}_${new Date().toISOString().slice(0, 10)}.csv`;

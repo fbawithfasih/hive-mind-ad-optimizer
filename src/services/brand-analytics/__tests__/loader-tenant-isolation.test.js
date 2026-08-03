@@ -66,6 +66,33 @@ describe('resolveDataDir', () => {
   });
 });
 
+describe('BA_DATA_DIR override', () => {
+  afterEach(() => { delete process.env.BA_DATA_DIR; });
+
+  it('reads uploads from an absolute BA_DATA_DIR (a mounted volume in prod)', async () => {
+    const { resolveDataDir } = await import('../loader.js');
+    const volume = await mkdtemp(join(tmpdir(), 'ba-vol-'));
+    const orgDir = join(volume, 'org-on-volume');
+    await mkdir(orgDir, { recursive: true });
+    process.env.BA_DATA_DIR = volume;
+
+    expect(await resolveDataDir('org-on-volume')).toBe(orgDir);
+
+    await rm(volume, { recursive: true, force: true });
+  });
+
+  it('still isolates per org when BA_DATA_DIR is set', async () => {
+    const { resolveDataDir } = await import('../loader.js');
+    const volume = await mkdtemp(join(tmpdir(), 'ba-vol-'));
+    await seedRequiredCsvs(volume); // data sitting at the volume root
+    process.env.BA_DATA_DIR = volume;
+
+    expect(await resolveDataDir('org-with-no-dir-on-volume')).toBeNull();
+
+    await rm(volume, { recursive: true, force: true });
+  });
+});
+
 describe('loadAnalytics', () => {
   it('404s for an org with no data of its own, rather than serving the shared root', async () => {
     const { loadAnalytics, clearCache } = await import('../loader.js');
