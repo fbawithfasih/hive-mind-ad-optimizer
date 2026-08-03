@@ -40,6 +40,40 @@ export function tierFromPlanId(planId) {
   return Object.entries(PLAN_IDS).find(([, pid]) => pid === planId)?.[0] ?? 'BASIC';
 }
 
+/**
+ * Render a Razorpay SDK rejection as a readable string.
+ *
+ * The SDK rejects with a plain object — { statusCode, error: { code,
+ * description, reason } } — not an Error, so `err.message` is undefined. Logging
+ * it bare produced lines like "failed for sub_xxx: undefined", which said
+ * nothing about the cause. The route handlers in api/routes/billing.js already
+ * unwrap this shape; this is the same logic for the service layer.
+ *
+ * @param {unknown} err
+ * @returns {string}
+ */
+export function describeRazorpayError(err) {
+  if (err === null || err === undefined) return 'unknown error (nothing thrown)';
+
+  const e = err?.error ?? err;
+  const parts = [
+    e?.code,
+    e?.description ?? err?.message,
+    e?.reason && e.reason !== 'NA' ? `(reason: ${e.reason})` : null,
+  ].filter(Boolean);
+
+  const status = err?.statusCode ? `HTTP ${err.statusCode}` : null;
+  if (parts.length) return [status, parts.join(': ')].filter(Boolean).join(' ');
+
+  // Unknown shape — surface something rather than "undefined".
+  if (status) return status;
+  try {
+    return typeof err === 'string' ? err : JSON.stringify(err) ?? String(err);
+  } catch {
+    return String(err);
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Signature verification
 // ─────────────────────────────────────────────────────────────────────────────
@@ -248,7 +282,9 @@ export async function reconcileSubscriptions({ limit = 500 } = {}) {
       synced += 1;
     } catch (err) {
       errors += 1;
-      logger.error(`reconcileSubscriptions: failed for ${sub.subscriptionId}: ${err.message}`);
+      logger.error(
+        `reconcileSubscriptions: failed for ${sub.subscriptionId}: ${describeRazorpayError(err)}`
+      );
     }
   }
 
