@@ -46,7 +46,8 @@ export default {
     'src/api/middleware/withTenant.js':    { statements: 100, branches: 100, functions: 100 },
     'src/api/middleware/requireActiveSubscription.js': { statements: 100, branches: 100, functions: 100 },
     // ── Money ───────────────────────────────────────────────────────────────
-    'src/services/razorpay.js':  { statements: 45, branches: 50, functions: 40 },
+    'src/services/razorpay.js':  { statements: 60, branches: 60, functions: 55 },
+    'src/workers/billing-reconcile.worker.js': { statements: 100, branches: 100, functions: 100 },
   },
   transform: {
     '^.+\\.(js|ts)$': ['babel-jest', {

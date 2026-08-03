@@ -291,3 +291,39 @@ export async function reconcileSubscriptions({ limit = 500 } = {}) {
   logger.info(`reconcileSubscriptions: checked ${subs.length}, synced ${synced}, errors ${errors}`);
   return { checked: subs.length, synced, errors };
 }
+
+/**
+ * Expire subscriptions that have no payment provider behind them and whose paid
+ * period has elapsed.
+ *
+ * These come from the marketing-site claim-token flow (see the signup handler):
+ * a one-time order payment creates an ACTIVE Subscription with a 30-day period
+ * and no `subscriptionId`. Nothing ever ends it — no Razorpay subscription means
+ * no renewal webhook, and reconcileSubscriptions() skips them because it filters
+ * on `subscriptionId: { not: null }`. The result was permanent paid access from a
+ * single payment.
+ *
+ * requireActiveSubscription already refuses these at the gate; this flips the row
+ * so the billing UI and any reporting agree with the paywall.
+ *
+ * Deliberately narrow: only ACTIVE rows with a null subscriptionId and a period
+ * end in the past. Rows cleared by repair-orphaned-subscription.js are already
+ * CANCELLED and are not touched, and provider-backed rows are never considered.
+ *
+ * @returns {Promise<{ expired: number }>}
+ */
+export async function expireLapsedClaimSubscriptions({ now = new Date() } = {}) {
+  const { count } = await prisma.subscription.updateMany({
+    where: {
+      subscriptionId:   null,
+      status:           'ACTIVE',
+      currentPeriodEnd: { lt: now },
+    },
+    data: { status: 'EXPIRED' },
+  });
+
+  if (count > 0) {
+    logger.info(`expireLapsedClaimSubscriptions: expired ${count} lapsed claim subscription(s)`);
+  }
+  return { expired: count };
+}

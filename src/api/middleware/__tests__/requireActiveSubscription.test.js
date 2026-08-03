@@ -29,6 +29,20 @@ function makeApp(tenant) {
 const orgTrial = (days) => ({ orgId: 'org-1', org: { trialEndsAt: new Date(Date.now() + days * DAY) } });
 const orgNoTrial = { orgId: 'org-1', org: { trialEndsAt: null } };
 
+/** Razorpay-backed subscription (has a subscriptionId) */
+const providerSub = (status, periodDays) => ({
+  status,
+  subscriptionId: 'sub_RealRazorpayId',
+  currentPeriodEnd: new Date(Date.now() + periodDays * DAY),
+});
+
+/** Claim-token subscription from the marketing site — no provider behind it */
+const claimSub = (status, periodDays) => ({
+  status,
+  subscriptionId: null,
+  currentPeriodEnd: new Date(Date.now() + periodDays * DAY),
+});
+
 beforeEach(() => jest.clearAllMocks());
 
 describe('trial window', () => {
@@ -79,6 +93,79 @@ describe('subscription status', () => {
     const res = await request(makeApp(orgTrial(-30))).get('/gated');
 
     expect(res.status).toBe(200);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Claim-token subscriptions (marketing site) — no Razorpay object behind them,
+// so nothing will ever renew them and currentPeriodEnd is the only truth.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('claim-token subscriptions honour currentPeriodEnd', () => {
+  it('allows access while the paid period is still running', async () => {
+    prisma.subscription.findUnique.mockResolvedValue(claimSub('ACTIVE', 10));
+
+    const res = await request(makeApp(orgNoTrial)).get('/gated');
+
+    expect(res.status).toBe(200);
+  });
+
+  it('blocks once the period has elapsed, even though status is ACTIVE', async () => {
+    // The leak: a single one-time marketing-site payment previously bought
+    // permanent access, because only `status` was ever checked.
+    prisma.subscription.findUnique.mockResolvedValue(claimSub('ACTIVE', -1));
+
+    const res = await request(makeApp(orgNoTrial)).get('/gated');
+
+    expect(res.status).toBe(402);
+    expect(res.body.code).toBe('SUBSCRIPTION_EXPIRED');
+  });
+
+  it('blocks a long-lapsed claim subscription', async () => {
+    prisma.subscription.findUnique.mockResolvedValue(claimSub('ACTIVE', -400));
+
+    expect((await request(makeApp(orgNoTrial)).get('/gated')).status).toBe(402);
+  });
+
+  it('does not guess when no period end was recorded', async () => {
+    prisma.subscription.findUnique.mockResolvedValue({
+      status: 'ACTIVE', subscriptionId: null, currentPeriodEnd: null,
+    });
+
+    expect((await request(makeApp(orgNoTrial)).get('/gated')).status).toBe(200);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The safety property: a real paying customer is never locked out by the date.
+// Razorpay owns their period, and it is extended by the renewal webhook or the
+// daily reconcile — both of which can lag, and reconcile is currently failing
+// outright in production.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('provider-backed subscriptions are never period-gated', () => {
+  it.each([
+    ['renewal webhook is a day late', -1],
+    ['reconcile has been down a week', -7],
+    ['reconcile has been down a month', -30],
+  ])('ACTIVE stays allowed when %s', async (_label, days) => {
+    prisma.subscription.findUnique.mockResolvedValue(providerSub('ACTIVE', days));
+
+    const res = await request(makeApp(orgNoTrial)).get('/gated');
+
+    expect(res.status).toBe(200);
+  });
+
+  it('PAST_DUE past its period still gets the retry grace period', async () => {
+    prisma.subscription.findUnique.mockResolvedValue(providerSub('PAST_DUE', -3));
+
+    expect((await request(makeApp(orgNoTrial)).get('/gated')).status).toBe(200);
+  });
+
+  it('still blocks a CANCELLED provider subscription inside its period', async () => {
+    prisma.subscription.findUnique.mockResolvedValue(providerSub('CANCELLED', 10));
+
+    expect((await request(makeApp(orgNoTrial)).get('/gated')).status).toBe(402);
   });
 });
 
