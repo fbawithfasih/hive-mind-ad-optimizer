@@ -17,6 +17,7 @@
 import { Queue, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { createLogger } from '../api/utils/logger.js';
+import { redactConnectionUrl } from '../api/utils/redact.js';
 import { attachDeadLetter } from './dead-letter.js';
 
 const logger = createLogger('QUEUE');
@@ -38,7 +39,7 @@ function makeRedisConnection() {
     lazyConnect:          false,
   });
 
-  conn.on('connect', () => logger.info(`Redis connected (${REDIS_URL})`));
+  conn.on('connect', () => logger.info(`Redis connected (${redactConnectionUrl(REDIS_URL)})`));
   conn.on('error',   (err) => logger.error(`Redis error: ${err.message}`));
 
   return conn;
