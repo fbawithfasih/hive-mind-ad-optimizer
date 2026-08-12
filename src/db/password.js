@@ -10,6 +10,14 @@ export async function hashPassword(plaintext) {
 }
 
 export async function verifyPassword(plaintext, hash) {
+  // bcryptjs throws "Illegal arguments" when either side is missing, and SSO
+  // users legitimately have passwordHash = null. The login route already checks
+  // for that before calling here, so this is defence in depth rather than a
+  // live fix — an auth primitive should fail closed, not throw, for any future
+  // caller that forgets the guard.
+  if (typeof plaintext !== 'string' || typeof hash !== 'string' || !plaintext || !hash) {
+    return false;
+  }
   return bcrypt.compare(plaintext, hash);
 }
 

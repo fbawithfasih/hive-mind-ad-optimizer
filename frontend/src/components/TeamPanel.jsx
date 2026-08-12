@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getOrgMembersApi, addOrgMemberApi, updateOrgMemberRoleApi, removeOrgMemberApi } from '../services/api.js';
+import { getOrgApi, updateOrgApi, getOrgMembersApi, addOrgMemberApi, updateOrgMemberRoleApi, removeOrgMemberApi } from '../services/api.js';
 
 const ROLES = ['ADMIN', 'MEMBER', 'VIEWER'];
 
@@ -53,16 +53,46 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
   const [changingRole, setChangingRole] = useState(null);
   const [removing, setRemoving]         = useState(null);
 
+  // Org brand name — drives Brand Analytics ASIN matching and report labelling
+  const [brandName, setBrandName]       = useState('');
+  const [savedBrand, setSavedBrand]     = useState('');
+  const [savingBrand, setSavingBrand]   = useState(false);
+
   async function load() {
     setLoading(true);
     setError('');
     try {
-      const data = await getOrgMembersApi(orgId);
+      const [data, orgData] = await Promise.all([
+        getOrgMembersApi(orgId),
+        // Best-effort: the team list still renders if org settings fail to load.
+        getOrgApi(orgId).catch(() => null),
+      ]);
       setMembers(data.members ?? []);
+      const brand = orgData?.org?.brandName ?? '';
+      setBrandName(brand);
+      setSavedBrand(brand);
     } catch (e) {
       setError(e.response?.data?.error ?? 'Failed to load team.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSaveBrand(e) {
+    e.preventDefault();
+    setSavingBrand(true);
+    setMsg('');
+    setError('');
+    try {
+      const res = await updateOrgApi(orgId, { brandName });
+      const saved = res.org?.brandName ?? '';
+      setBrandName(saved);
+      setSavedBrand(saved);
+      setMsg(saved ? `Brand name set to "${saved}".` : 'Brand name cleared.');
+    } catch (e) {
+      setError(e.response?.data?.error ?? 'Failed to save brand name.');
+    } finally {
+      setSavingBrand(false);
     }
   }
 
@@ -139,6 +169,39 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
         <div style={{ padding: '10px 20px', fontSize: 12, color: error ? '#F43F5E' : '#10B981', borderBottom: '1px solid #334155' }}>
           {error || msg}
         </div>
+      )}
+
+      {/* Brand name — ADMIN only. Brand Analytics matches this against product
+          titles to identify the org's own ASINs, and reports are labelled with it. */}
+      {isAdmin && (
+        <form onSubmit={handleSaveBrand} style={{ padding: '14px 20px', borderBottom: '1px solid #334155' }}>
+          <label htmlFor="org-brand-name" style={{ ...S.sub, display: 'block', marginBottom: 6 }}>
+            Brand name — as it appears in your Amazon product titles
+          </label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <input
+              id="org-brand-name"
+              type="text"
+              placeholder="e.g. Queenza"
+              value={brandName}
+              onChange={e => setBrandName(e.target.value)}
+              style={{ ...S.input, flex: '1 1 180px', minWidth: 0 }}
+            />
+            <button
+              type="submit"
+              disabled={savingBrand || brandName.trim() === savedBrand.trim()}
+              style={S.btn(!savingBrand && brandName.trim() !== savedBrand.trim())}
+            >
+              {savingBrand ? <><Spinner /> Saving…</> : 'Save'}
+            </button>
+          </div>
+          {!savedBrand && (
+            <p style={{ ...S.sub, marginTop: 6 }}>
+              Not set — Brand Analytics falls back to your catalog report, and keyword
+              brand enrichment stays off.
+            </p>
+          )}
+        </form>
       )}
 
       {/* Add member form — ADMIN only */}

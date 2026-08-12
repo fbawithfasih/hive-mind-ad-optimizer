@@ -48,6 +48,11 @@ model Organization {
   description     String?
   logoUrl         String?
   billingEmail    String?
+  // Amazon brand name, as it appears in product titles. Used by Brand
+  // Analytics to identify the org's own ASINs (identifyBrandASINs) and to
+  // label generated reports. Nullable — orgs that never set it fall back to
+  // the catalog report's ASIN list, which is less complete but still works.
+  brandName       String?
   // Optional Slack incoming-webhook URL — when set, the alert evaluation
   // worker posts a summary message to this channel alongside email delivery.
   slackWebhookUrl String?

@@ -1,0 +1,30 @@
+# Tenant data must never be baked into the image. The brand-analytics directory
+# holds per-org CSV uploads (and, on a developer machine, real customer reports).
+# Shipping it would put one tenant's data on every deployment — see
+# resolveDataDir() in src/services/brand-analytics/loader.js.
+#
+# data/keepa and data/public-stats ARE read at runtime and are intentionally
+# not excluded. The upload route creates data/brand-analytics/<orgId>/ with
+# mkdir recursive, so the missing directory is fine.
+data/brand-analytics/
+
+# Dependencies are installed inside the image; copying host copies both bloats
+# the build context and can clobber the platform-correct binaries.
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Never ship secrets or local scan output
+.env
+.env.*
+snyk-report.json
+snyk-report.sarif
+snyk-mediums.json
+snyk-mediums.txt
+
+.git/
+.github/
+coverage/
+.DS_Store
+**/.DS_Store

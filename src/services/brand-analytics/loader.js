@@ -16,8 +16,10 @@ import {
   computePeriodDeltas,
 } from './analytics.js';
 import { prisma } from '../../db/prisma.js';
+import { baDataRoot } from '../../config/paths.js';
 
-const BA_DATA_ROOT = join(process.cwd(), 'data', 'brand-analytics');
+// Resolved per call so BA_DATA_DIR (a mounted volume in production) is
+// honoured — see src/config/paths.js.
 
 // ── In-memory cache keyed by orgId ────────────────────────────────────────────
 
@@ -29,13 +31,22 @@ export function clearCache(orgId)     { cache.delete(orgId); }
 
 // ── File resolution ───────────────────────────────────────────────────────────
 
+/**
+ * Resolve the CSV directory for an org, or null if it has none.
+ *
+ * Returns ONLY the org's own directory. It deliberately does not fall back to
+ * the shared data root: that directory holds whatever CSVs happen to sit in
+ * the deployment, so falling back would serve one tenant another tenant's
+ * numbers. `getBrandAnalyticsContext()` already gated on this separately —
+ * this makes the loader itself enforce it for every caller.
+ */
 export async function resolveDataDir(orgId) {
-  const orgDir = join(BA_DATA_ROOT, orgId);
+  const orgDir = join(baDataRoot(), orgId);
   try {
     await readdir(orgDir);
     return orgDir;
   } catch {
-    return BA_DATA_ROOT;
+    return null;
   }
 }
 
@@ -230,6 +241,13 @@ export async function loadAnalytics(orgId, brandName, forceRefresh = false) {
   }
 
   const dataDir = await resolveDataDir(orgId);
+  if (!dataDir) {
+    throw Object.assign(
+      new Error('No Brand Analytics data found for this org. Either wait for the next scheduled fetch or upload CSVs via POST /api/brand-analytics/upload.'),
+      { status: 404 }
+    );
+  }
+
   const [[sqpPath, prevSqpPath], [catPath, prevCatPath], tstPath] = await Promise.all([
     findTwoCsvs(dataDir, PATTERNS.sqp),
     findTwoCsvs(dataDir, PATTERNS.catalog),
@@ -332,7 +350,7 @@ export async function loadAnalytics(orgId, brandName, forceRefresh = false) {
 export async function getBrandAnalyticsContext(orgId, brandName) {
   // Hard gate: only proceed if this org has data of its own — either a CSV
   // upload directory OR at least one completed BrandAnalyticsReport row.
-  const orgDir = join(BA_DATA_ROOT, orgId);
+  const orgDir = join(baDataRoot(), orgId);
   let hasOwnData = false;
   try {
     await readdir(orgDir);

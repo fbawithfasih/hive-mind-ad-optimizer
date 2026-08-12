@@ -2,6 +2,17 @@
 buildCommand = "npm install && cd frontend && npm install && npm run build && cd .."
 
 [deploy]
+# Apply pending Prisma migrations before the new version goes live.
+#
+# Until this was added, `prisma migrate deploy` ran ONLY in CI (against the
+# throwaway test database) — production schema was kept up to date solely by
+# the idempotent raw-SQL blocks in src/server.js. Those are being retired in
+# favour of the declarative migration history in prisma/migrations/.
+#
+# Prisma takes a Postgres advisory lock, so this is safe with multiple replicas.
+# A failing migration fails the deploy and the previous version keeps serving.
+preDeployCommand = ["npx prisma migrate deploy"]
+
 startCommand = "node src/server.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 30

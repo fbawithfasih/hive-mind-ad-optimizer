@@ -40,9 +40,64 @@ export function tierFromPlanId(planId) {
   return Object.entries(PLAN_IDS).find(([, pid]) => pid === planId)?.[0] ?? 'BASIC';
 }
 
+/**
+ * Render a Razorpay SDK rejection as a readable string.
+ *
+ * The SDK rejects with a plain object — { statusCode, error: { code,
+ * description, reason } } — not an Error, so `err.message` is undefined. Logging
+ * it bare produced lines like "failed for sub_xxx: undefined", which said
+ * nothing about the cause. The route handlers in api/routes/billing.js already
+ * unwrap this shape; this is the same logic for the service layer.
+ *
+ * @param {unknown} err
+ * @returns {string}
+ */
+export function describeRazorpayError(err) {
+  if (err === null || err === undefined) return 'unknown error (nothing thrown)';
+
+  const e = err?.error ?? err;
+  const parts = [
+    e?.code,
+    e?.description ?? err?.message,
+    e?.reason && e.reason !== 'NA' ? `(reason: ${e.reason})` : null,
+  ].filter(Boolean);
+
+  const status = err?.statusCode ? `HTTP ${err.statusCode}` : null;
+  if (parts.length) return [status, parts.join(': ')].filter(Boolean).join(' ');
+
+  // Unknown shape — surface something rather than "undefined".
+  if (status) return status;
+  try {
+    return typeof err === 'string' ? err : JSON.stringify(err) ?? String(err);
+  } catch {
+    return String(err);
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Signature verification
 // ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Constant-time comparison of a computed HMAC against a client-supplied one.
+ *
+ * crypto.timingSafeEqual throws RangeError unless both buffers are the same
+ * length, so a signature of the wrong length would escape as an exception
+ * instead of a clean "not valid". Callers that did not wrap it turned a
+ * malformed signature into a 500 rather than a 400. Length is not a secret —
+ * comparing it up front leaks nothing and keeps the compare constant-time for
+ * the only case that matters (same-length, differing content).
+ *
+ * @param {string} expected - hex digest we computed
+ * @param {string} provided - hex digest supplied by the caller
+ * @returns {boolean}
+ */
+function safeEqualHex(expected, provided) {
+  if (typeof provided !== 'string' || provided.length !== expected.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(provided));
+}
 
 /**
  * Verify Razorpay webhook payload authenticity.
@@ -53,7 +108,7 @@ export function verifyWebhookSignature(rawBody, signature, secret) {
     .createHmac('sha256', secret)
     .update(rawBody)
     .digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  return safeEqualHex(expected, signature);
 }
 
 /**
@@ -66,7 +121,7 @@ export function verifyOrderSignature(orderId, paymentId, signature) {
     .createHmac('sha256', secret)
     .update(`${orderId}|${paymentId}`)
     .digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  return safeEqualHex(expected, signature);
 }
 
 /**
@@ -79,7 +134,7 @@ export function verifyPaymentSignature(paymentId, subscriptionId, signature) {
     .createHmac('sha256', secret)
     .update(`${paymentId}|${subscriptionId}`)
     .digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  return safeEqualHex(expected, signature);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -227,10 +282,48 @@ export async function reconcileSubscriptions({ limit = 500 } = {}) {
       synced += 1;
     } catch (err) {
       errors += 1;
-      logger.error(`reconcileSubscriptions: failed for ${sub.subscriptionId}: ${err.message}`);
+      logger.error(
+        `reconcileSubscriptions: failed for ${sub.subscriptionId}: ${describeRazorpayError(err)}`
+      );
     }
   }
 
   logger.info(`reconcileSubscriptions: checked ${subs.length}, synced ${synced}, errors ${errors}`);
   return { checked: subs.length, synced, errors };
+}
+
+/**
+ * Expire subscriptions that have no payment provider behind them and whose paid
+ * period has elapsed.
+ *
+ * These come from the marketing-site claim-token flow (see the signup handler):
+ * a one-time order payment creates an ACTIVE Subscription with a 30-day period
+ * and no `subscriptionId`. Nothing ever ends it — no Razorpay subscription means
+ * no renewal webhook, and reconcileSubscriptions() skips them because it filters
+ * on `subscriptionId: { not: null }`. The result was permanent paid access from a
+ * single payment.
+ *
+ * requireActiveSubscription already refuses these at the gate; this flips the row
+ * so the billing UI and any reporting agree with the paywall.
+ *
+ * Deliberately narrow: only ACTIVE rows with a null subscriptionId and a period
+ * end in the past. Rows cleared by repair-orphaned-subscription.js are already
+ * CANCELLED and are not touched, and provider-backed rows are never considered.
+ *
+ * @returns {Promise<{ expired: number }>}
+ */
+export async function expireLapsedClaimSubscriptions({ now = new Date() } = {}) {
+  const { count } = await prisma.subscription.updateMany({
+    where: {
+      subscriptionId:   null,
+      status:           'ACTIVE',
+      currentPeriodEnd: { lt: now },
+    },
+    data: { status: 'EXPIRED' },
+  });
+
+  if (count > 0) {
+    logger.info(`expireLapsedClaimSubscriptions: expired ${count} lapsed claim subscription(s)`);
+  }
+  return { expired: count };
 }

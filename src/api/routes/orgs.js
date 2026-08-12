@@ -1,5 +1,6 @@
 import express from 'express';
 import { prisma } from '../../db/prisma.js';
+import { runAsSystem, runWithTenant } from '../../db/tenant-context.js';
 import { createLogger } from '../utils/logger.js';
 
 const router = express.Router();
@@ -34,13 +35,20 @@ async function uniqueSlug(base) {
 /**
  * Validate that `userId` has at least `minRole` in `orgId`.
  * Returns the OrgMember record (with .org included) or null.
+ *
+ * Runs as system: this is an authorization *bootstrap* lookup — it decides
+ * which org the caller may act in, so it necessarily pre-dates the tenant
+ * context (same pattern as the withTenant middleware). The `orgId` filter is
+ * explicit here, so nothing is over-fetched.
  */
 async function getAccess(userId, orgId, minRole = 'VIEWER') {
   const LEVELS = { VIEWER: 0, MEMBER: 1, ADMIN: 2 };
-  const m = await prisma.orgMember.findFirst({
-    where: { userId, orgId },
-    include: { org: true },
-  });
+  const m = await runAsSystem(() =>
+    prisma.orgMember.findFirst({
+      where: { userId, orgId },
+      include: { org: true },
+    })
+  );
   if (!m) return null;
   if (LEVELS[m.role] < LEVELS[minRole]) return null;
   return m;
@@ -61,7 +69,9 @@ router.post('/', async (req, res) => {
   try {
     const slug = await uniqueSlug(toSlug(name.trim()));
 
-    const org = await prisma.$transaction(async (tx) => {
+    // Runs as system: the org does not exist yet, so no tenant context can
+    // exist for it. Both writes carry an explicit orgId.
+    const org = await runAsSystem(() => prisma.$transaction(async (tx) => {
       const created = await tx.organization.create({
         data: {
           name: name.trim(),
@@ -80,7 +90,7 @@ router.post('/', async (req, res) => {
       });
 
       return created;
-    });
+    }));
 
     logger.info(`Org created: ${org.id} (${org.name}) by user ${req.user.userId}`);
     res.status(201).json({ org });
@@ -96,11 +106,15 @@ router.post('/', async (req, res) => {
 // ---------------------------------------------------------------------------
 router.get('/', async (req, res) => {
   try {
-    const memberships = await prisma.orgMember.findMany({
-      where: { userId: req.user.userId },
-      include: { org: true },
-      orderBy: { joinedAt: 'asc' },
-    });
+    // Runs as system: this query spans every org the user belongs to, so it
+    // cannot be scoped to a single tenant. Filtered by userId.
+    const memberships = await runAsSystem(() =>
+      prisma.orgMember.findMany({
+        where: { userId: req.user.userId },
+        include: { org: true },
+        orderBy: { joinedAt: 'asc' },
+      })
+    );
 
     const orgs = memberships.map((m) => ({
       ...m.org,
@@ -114,6 +128,22 @@ router.get('/', async (req, res) => {
     res.status(500).json({ error: 'Failed to list organizations.' });
   }
 });
+
+// ---------------------------------------------------------------------------
+// Tenant context for the /:orgId subtree.
+//
+// This router is mounted ABOVE withTenant (a user may have no org yet), so
+// nothing else establishes a tenant context here. Without one, every
+// prisma.orgMember query below is an unscoped query on a guarded model —
+// tolerated in TENANT_GUARD_MODE=warn, but a hard failure under strict.
+//
+// Opening the context from :orgId is safe on its own: it only *narrows* which
+// rows are reachable. Authorization is still decided by getAccess(), which each
+// handler calls before touching anything.
+// ---------------------------------------------------------------------------
+router.use('/:orgId', (req, res, next) =>
+  runWithTenant(req.params.orgId, () => next())
+);
 
 // ---------------------------------------------------------------------------
 // GET /api/orgs/:orgId — Get a specific org (any member)
@@ -138,13 +168,16 @@ router.put('/:orgId', async (req, res) => {
     const m = await getAccess(req.user.userId, req.params.orgId, 'ADMIN');
     if (!m) return res.status(403).json({ error: 'Admin access required.' });
 
-    const { name, description } = req.body;
+    const { name, description, brandName } = req.body;
     const data = {};
     if (name?.trim()) data.name = name.trim();
     if (description !== undefined) data.description = description?.trim() || null;
+    // Brand Analytics matches this against product titles, so store it as the
+    // seller typed it. Empty string clears it back to null.
+    if (brandName !== undefined) data.brandName = brandName?.trim() || null;
 
     if (!Object.keys(data).length) {
-      return res.status(400).json({ error: 'Provide name or description to update.' });
+      return res.status(400).json({ error: 'Provide name, description, or brandName to update.' });
     }
 
     const org = await prisma.organization.update({
