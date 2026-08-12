@@ -19,6 +19,7 @@ import { prisma } from '../../db/prisma.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { createLogger } from '../utils/logger.js';
+import { timingSafeEqualSecret } from '../utils/secrets.js';
 import {
   razorpay,
   PLAN_IDS,
@@ -56,14 +57,27 @@ function razorpayRequired(req, res, next) {
 //
 // Body:  { paymentId, orderId, planName, amount, currency, secret }
 // Returns: { claimToken }
+//
+// Exported rather than mounted on this router: billingRouter sits below
+// requireAuth and withTenant, so a route defined here would demand a session
+// cookie and org membership — neither of which a server-to-server caller has.
+// It is mounted above requireAuth in routes/index.js, on the same public URL,
+// which is the contract the marketing site already calls. It touches Redis only
+// (no Prisma), so it needs no tenant context.
 // ─────────────────────────────────────────────────────────────────────────────
 
-router.post('/claim-payment', async (req, res) => {
-  const { paymentId, orderId, planName, amount, currency, secret } = req.body;
+export async function claimPaymentHandler(req, res) {
+  const { paymentId, orderId, planName, amount, currency, secret } = req.body ?? {};
 
-  // Shared secret prevents arbitrary claim creation
+  // Shared secret prevents arbitrary claim creation. Compared in constant time:
+  // this is the only thing authenticating an unauthenticated endpoint.
   const expected = process.env.MARKETING_CLAIM_SECRET;
-  if (!expected || secret !== expected) {
+  if (!expected) {
+    logger.error('claim-payment: MARKETING_CLAIM_SECRET is not configured — rejecting');
+    return res.status(503).json({ error: 'Claim processing is not configured' });
+  }
+  if (!timingSafeEqualSecret(secret, expected)) {
+    logger.warn('claim-payment: rejected request with an invalid claim secret');
     return res.status(401).json({ error: 'Invalid claim secret' });
   }
 
@@ -88,7 +102,7 @@ router.post('/claim-payment', async (req, res) => {
 
   logger.info(`Claim token issued: plan=${planName} tier=${tier} payment=${paymentId}`);
   res.json({ claimToken, tier });
-});
+}
 
 // Exported so auth signup can consume claim tokens
 export async function consumeClaimToken(claimToken) {

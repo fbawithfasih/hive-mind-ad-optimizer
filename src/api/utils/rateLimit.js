@@ -79,5 +79,11 @@ export function cleanupOldBuckets(maxAge = 3600000) {
   }
 }
 
-// Cleanup every 10 minutes
-setInterval(() => cleanupOldBuckets(), 10 * 60 * 1000);
+// Cleanup every 10 minutes.
+//
+// .unref() so this timer never holds the process open on its own. Without it,
+// importing this module (via routes/mcp.js, and therefore the whole router
+// tree) keeps the Node event loop alive forever: jest hangs instead of exiting,
+// and graceful shutdown relies on server.js's forced process.exit to escape.
+// The interval still fires normally for as long as the server is running.
+setInterval(() => cleanupOldBuckets(), 10 * 60 * 1000).unref();

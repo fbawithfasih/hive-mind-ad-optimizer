@@ -12,7 +12,7 @@ import spOauthRouter from './sp-oauth.js';
 import reportingAgentRouter from './reporting-agent.js';
 import credentialsRouter from './credentials.js';
 import keywordsRouter from './keywords.js';
-import billingRouter from './billing.js';
+import billingRouter, { claimPaymentHandler } from './billing.js';
 import onboardingRouter from './onboarding.js';
 import automationRouter from './automation.js';
 import alertsRouter from './alerts.js';
@@ -24,7 +24,7 @@ import { withTenant } from '../middleware/withTenant.js';
 import { tenantFilterMiddleware } from '../middleware/tenantFilter.js';
 import { auditLogMiddleware } from '../middleware/auditLog.js';
 import { withAmazonCredentials } from '../middleware/withAmazonCredentials.js';
-import { apiLimiter } from '../middleware/rateLimiter.js';
+import { apiLimiter, claimLimiter } from '../middleware/rateLimiter.js';
 import { requireActiveSubscription } from '../middleware/requireActiveSubscription.js';
 
 const { Router } = express;
@@ -39,6 +39,17 @@ router.use('/sp-oauth', spOauthRouter);
 
 // Public marketing stats — read-only, served behind cache. No auth required.
 router.use('/public', publicStatsRouter);
+
+// Claim-payment — called server-to-server by the marketing site after a
+// successful Razorpay order payment. It must be public: the caller has no
+// session cookie and no org, so mounting it on billingRouter (below requireAuth
+// and withTenant) made it 401 for its only legitimate caller. Kept on the same
+// /api/billing/claim-payment URL the marketing site already posts to.
+//
+// Authenticated by the MARKETING_CLAIM_SECRET shared secret, compared in
+// constant time, and rate limited here because apiLimiter is applied further
+// down and would never see this route.
+router.post('/billing/claim-payment', claimLimiter, claimPaymentHandler);
 
 // ============================================================================
 // MIDDLEWARE STACK FOR AUTHENTICATED ROUTES
