@@ -4,6 +4,7 @@ import axios from 'axios';
 import { randomBytes } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '../../db/prisma.js';
+import { runAsSystem } from '../../db/tenant-context.js';
 import { hashPassword, verifyPassword } from '../../db/password.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { authLimiter, strictLimiter } from '../middleware/rateLimiter.js';
@@ -88,21 +89,26 @@ router.post('/signup', authLimiter, async (req, res) => {
           const orgName = [firstName, lastName].filter(Boolean).join(' ') || email.split('@')[0];
           const slug = orgName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50)
             + '-' + randomBytes(3).toString('hex');
-          const org = await prisma.organization.create({
-            data: { name: orgName, slug, trialEndsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) },
-          });
-          await prisma.orgMember.create({
-            data: { userId: user.id, orgId: org.id, role: 'ADMIN' },
-          });
-          await prisma.subscription.create({
-            data: {
-              orgId:              org.id,
-              tier:               claim.tier,
-              status:             'ACTIVE',
-              currentPeriodStart: new Date(),
-              currentPeriodEnd:   new Date(Date.now() + 30 * 86400000),
-              renewalDate:        new Date(Date.now() + 30 * 86400000),
-            },
+          // Runs as system: the org is being created right here, so no tenant
+          // context can exist for it yet. Both writes carry an explicit orgId.
+          const org = await runAsSystem(async () => {
+            const created = await prisma.organization.create({
+              data: { name: orgName, slug, trialEndsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) },
+            });
+            await prisma.orgMember.create({
+              data: { userId: user.id, orgId: created.id, role: 'ADMIN' },
+            });
+            await prisma.subscription.create({
+              data: {
+                orgId:              created.id,
+                tier:               claim.tier,
+                status:             'ACTIVE',
+                currentPeriodStart: new Date(),
+                currentPeriodEnd:   new Date(Date.now() + 30 * 86400000),
+                renewalDate:        new Date(Date.now() + 30 * 86400000),
+              },
+            });
+            return created;
           });
           logger.info(`Claim redeemed: org ${org.id} created with ${claim.tier} plan (payment ${claim.paymentId})`);
         } catch (claimErr) {
@@ -198,10 +204,15 @@ router.post('/login', authLimiter, async (req, res) => {
     logger.info(`User logged in: ${user.id} (${email})`);
 
     // Pick the user's active org (first membership by join date)
-    const firstMembership = await prisma.orgMember.findFirst({
-      where: { userId: user.id },
-      orderBy: { joinedAt: 'asc' },
-    });
+    // Runs as system: resolving which orgs the user belongs to is an
+    // authorization bootstrap — it decides the tenant, so it necessarily
+    // pre-dates the tenant context. Filtered by userId.
+    const firstMembership = await runAsSystem(() =>
+      prisma.orgMember.findFirst({
+        where: { userId: user.id },
+        orderBy: { joinedAt: 'asc' },
+      })
+    );
 
     // Create JWT token
     const token = jwt.sign(
@@ -338,10 +349,15 @@ router.post('/switch-org', requireAuth, async (req, res) => {
   if (!orgId) return res.status(400).json({ error: 'orgId is required' });
 
   try {
-    const membership = await prisma.orgMember.findFirst({
-      where: { userId: req.user.userId, orgId },
-      include: { org: true },
-    });
+    // Runs as system: this is the membership check that authorises the
+    // switch, so it cannot already be inside the target org's context.
+    // The orgId filter is explicit, so nothing is over-fetched.
+    const membership = await runAsSystem(() =>
+      prisma.orgMember.findFirst({
+        where: { userId: req.user.userId, orgId },
+        include: { org: true },
+      })
+    );
 
     if (!membership) {
       return res.status(403).json({ error: 'You are not a member of that organization' });
@@ -620,10 +636,15 @@ router.get('/google/callback', async (req, res) => {
     }
 
     // 4. Pick active org
-    const firstMembership = await prisma.orgMember.findFirst({
-      where: { userId: user.id },
-      orderBy: { joinedAt: 'asc' },
-    });
+    // Runs as system: resolving which orgs the user belongs to is an
+    // authorization bootstrap — it decides the tenant, so it necessarily
+    // pre-dates the tenant context. Filtered by userId.
+    const firstMembership = await runAsSystem(() =>
+      prisma.orgMember.findFirst({
+        where: { userId: user.id },
+        orderBy: { joinedAt: 'asc' },
+      })
+    );
 
     // 5. Issue JWT + cookie
     const token = jwt.sign(
@@ -765,10 +786,15 @@ router.post('/apple/callback', express.urlencoded({ extended: false }), async (r
       logger.info(`Apple login: new user created ${dbUser.id} (${email})`);
     }
 
-    const firstMembership = await prisma.orgMember.findFirst({
-      where: { userId: dbUser.id },
-      orderBy: { joinedAt: 'asc' },
-    });
+    // Runs as system: resolving which orgs the user belongs to is an
+    // authorization bootstrap — it decides the tenant, so it necessarily
+    // pre-dates the tenant context. Filtered by userId.
+    const firstMembership = await runAsSystem(() =>
+      prisma.orgMember.findFirst({
+        where: { userId: dbUser.id },
+        orderBy: { joinedAt: 'asc' },
+      })
+    );
 
     const token = jwt.sign(
       { userId: dbUser.id, email: dbUser.email, activeOrgId: firstMembership?.orgId ?? null },
