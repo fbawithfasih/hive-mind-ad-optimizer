@@ -62,6 +62,24 @@ export const apiLimiter = rateLimit({
   skip: (req) => process.env.NODE_ENV === 'test',
 });
 
+// Limiter for the public, unauthenticated claim-payment endpoint. It sits above
+// requireAuth (the marketing site calls it server-to-server with a shared
+// secret, not a session), so apiLimiter never sees it. Sized for real payment
+// volume rather than per-user traffic: the caller is a single origin, so this is
+// effectively a whole-site cap, and every request writes a key to Redis.
+export const claimLimiter = rateLimit({
+  windowMs:         15 * 60 * 1000,  // 15 minutes
+  max:              30,
+  standardHeaders:  true,
+  legacyHeaders:    false,
+  message:          { error: 'Too many claim requests — please try again shortly.' },
+  handler(req, res, next, options) {
+    onLimitReached(req, res, options);
+    res.status(options.statusCode).json(options.message);
+  },
+  skip: (req) => process.env.NODE_ENV === 'test',
+});
+
 // Tight limiter for large file-upload endpoints — e.g. the Brand Analytics
 // CSV upload, which can write up to 600 MB to disk per request. The general
 // apiLimiter (300/min) is far too loose to blunt disk-exhaustion abuse here.
