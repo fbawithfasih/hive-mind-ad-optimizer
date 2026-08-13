@@ -22,25 +22,33 @@ const storage = new AsyncLocalStorage();
 
 /**
  * Run `fn` with an active tenant (organization) context.
+ *
+ * `fn` is invoked inside an `async () => await fn()` wrapper so the ALS scope
+ * stays alive until fn's returned promise resolves. Without the wrapper, a
+ * caller like `runWithTenant(id, () => prisma.x.findFirst(...))` would lose the
+ * context because Prisma's lazy PrismaPromise only executes its work after the
+ * caller awaits it — by then the sync `storage.run` scope is already gone.
  * @param {string} orgId
  * @param {Function} fn
- * @returns {*} whatever `fn` returns
+ * @returns {Promise<*>} resolves to whatever `fn` returns
  */
 export function runWithTenant(orgId, fn) {
   if (!orgId) {
     throw new Error('runWithTenant requires an orgId');
   }
-  return storage.run({ mode: 'tenant', orgId }, fn);
+  return storage.run({ mode: 'tenant', orgId }, async () => await fn());
 }
 
 /**
  * Run `fn` as trusted system code that may span organizations.
  * The tenant guard will not inject an org filter inside this scope.
+ *
+ * See runWithTenant for why fn is wrapped in an async awaiter.
  * @param {Function} fn
- * @returns {*} whatever `fn` returns
+ * @returns {Promise<*>} resolves to whatever `fn` returns
  */
 export function runAsSystem(fn) {
-  return storage.run({ mode: 'system' }, fn);
+  return storage.run({ mode: 'system' }, async () => await fn());
 }
 
 /**
