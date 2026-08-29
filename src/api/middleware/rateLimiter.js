@@ -1,7 +1,11 @@
 /**
  * Rate limiters — express-rate-limit
  *
- * Four tiers:
+ * Most limiters here are keyed on the client IP. Two are keyed on the account
+ * being targeted instead — see emailKeyedLimiter() below for why both are
+ * needed.
+ *
+ * IP-keyed tiers:
  *   authLimiter    — login, signup, forgot-password (strict: 10 req / 15 min per IP)
  *   apiLimiter     — all authenticated API routes   (generous: 300 req / min per IP)
  *   strictLimiter  — password reset confirm, resend  (tight: 5 req / hour per IP)
@@ -10,6 +14,7 @@
 
 import rateLimit from 'express-rate-limit';
 import { createLogger } from '../utils/logger.js';
+import { normalizeEmail } from '../utils/normalizeEmail.js';
 
 const logger = createLogger('RATE_LIMIT');
 
@@ -97,4 +102,67 @@ export const uploadLimiter = rateLimit({
     res.status(options.statusCode).json(options.message);
   },
   skip: (req) => process.env.NODE_ENV === 'test',
+});
+
+// ── Per-account limiters ─────────────────────────────────────────────────────
+
+/**
+ * Build a limiter keyed on the email in the request body rather than the client IP.
+ *
+ * The IP-keyed limiters above cap how fast one host can hammer an endpoint, but
+ * credential stuffing is distributed by design: rotate the source address every
+ * ten guesses and the per-IP cap never trips, while a single high-value account
+ * absorbs unlimited attempts. Keying on the target account closes that, and the
+ * two tiers compose — an attacker now has to stay under both.
+ *
+ * Requests with no email in the body are skipped rather than bucketed under a
+ * shared placeholder key: they fail validation anyway, the IP limiter still
+ * covers them, and a common bucket would let junk traffic exhaust a counter
+ * that real accounts depend on.
+ *
+ * Note this uses express-rate-limit's default in-memory store, like every
+ * limiter in this file — counters are per-process, so the effective cap is
+ * multiplied by the replica count.
+ */
+function emailKeyedLimiter({ windowMs, max, message, skipSuccessfulRequests = false }) {
+  return rateLimit({
+    windowMs,
+    max,
+    message,
+    skipSuccessfulRequests,
+    standardHeaders: true,
+    legacyHeaders:   false,
+    keyGenerator:    (req) => normalizeEmail(req.body?.email),
+    skip:            (req) => process.env.NODE_ENV === 'test' || !req.body?.email,
+    handler(req, res, next, options) {
+      logger.warn(
+        `Per-account rate limit hit — account: ${normalizeEmail(req.body?.email)}, path: ${req.path}`
+      );
+      res.status(options.statusCode).json(options.message);
+    },
+  });
+}
+
+/**
+ * Failed logins against one account. Successful logins are not counted, so a
+ * legitimate user is never locked out by their own activity — only by someone
+ * guessing at their password.
+ */
+export const loginAccountLimiter = emailKeyedLimiter({
+  windowMs: 15 * 60 * 1000,
+  max:      10,
+  skipSuccessfulRequests: true,
+  message:  { error: 'Too many failed login attempts for this account — please wait a few minutes and try again.' },
+});
+
+/**
+ * Password-reset requests for one account. Counts every request, not just
+ * failures: /forgot-password deliberately returns 200 whether or not the
+ * address exists (to avoid enumeration), so "success" carries no signal here.
+ * This is what stops a distributed attacker from flooding one person's inbox.
+ */
+export const passwordResetAccountLimiter = emailKeyedLimiter({
+  windowMs: 60 * 60 * 1000,
+  max:      5,
+  message:  { error: 'Too many password reset requests for this account — please try again later.' },
 });

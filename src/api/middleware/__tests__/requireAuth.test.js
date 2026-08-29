@@ -87,6 +87,154 @@ describe('requireAuth middleware', () => {
     });
   });
 
+  describe('Session Revocation (tokenVersion)', () => {
+    it('should reject a token whose tokenVersion is behind the user record', async () => {
+      const req = mockRequest();
+      const res = mockResponse();
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1', email: 'test@example.com', tokenVersion: 2,
+      });
+      req.cookies[COOKIE_NAME] = createToken({
+        userId: 'user-1', email: 'test@example.com', tokenVersion: 1,
+      });
+
+      await requireAuth(req, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it('should allow a token whose tokenVersion matches', async () => {
+      const req = mockRequest();
+      const res = mockResponse();
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1', email: 'test@example.com', tokenVersion: 3,
+      });
+      req.cookies[COOKIE_NAME] = createToken({
+        userId: 'user-1', email: 'test@example.com', tokenVersion: 3,
+      });
+
+      await requireAuth(req, res, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(req.user.tokenVersion).toBe(3);
+    });
+
+    it('should accept pre-existing tokens that carry no tokenVersion claim', async () => {
+      // Sessions issued before this field existed must keep working — users
+      // default to tokenVersion 0, and a missing claim reads as 0.
+      const req = mockRequest();
+      const res = mockResponse();
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1', email: 'test@example.com', tokenVersion: 0,
+      });
+      req.cookies[COOKIE_NAME] = createToken({ userId: 'user-1', email: 'test@example.com' });
+
+      await requireAuth(req, res, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it('should reject a legacy token once the user has been revoked', async () => {
+      const req = mockRequest();
+      const res = mockResponse();
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1', email: 'test@example.com', tokenVersion: 1,
+      });
+      req.cookies[COOKIE_NAME] = createToken({ userId: 'user-1', email: 'test@example.com' });
+
+      await requireAuth(req, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Absolute Session Cap', () => {
+    const DAY = 24 * 60 * 60;
+
+    it('rejects a token whose authAt is older than the cap', async () => {
+      const req = mockRequest();
+      const res = mockResponse();
+      req.cookies[COOKIE_NAME] = createToken({
+        userId: 'user-1', email: 'test@example.com',
+        authAt: Math.floor(Date.now() / 1000) - (8 * DAY),
+      });
+
+      await requireAuth(req, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it('allows a token well inside the cap', async () => {
+      const req = mockRequest();
+      const res = mockResponse();
+      req.cookies[COOKIE_NAME] = createToken({
+        userId: 'user-1', email: 'test@example.com',
+        authAt: Math.floor(Date.now() / 1000) - (2 * DAY),
+      });
+
+      await requireAuth(req, res, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it('allows a legacy token that carries no authAt claim', async () => {
+      const req = mockRequest();
+      const res = mockResponse();
+      req.cookies[COOKIE_NAME] = createToken({ userId: 'user-1', email: 'test@example.com' });
+
+      await requireAuth(req, res, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(req.user.authAt).toBeNull();
+    });
+  });
+
+  describe('Issuer / Audience', () => {
+    it('accepts a token stamped with this app\'s issuer and audience', async () => {
+      const req = mockRequest();
+      const res = mockResponse();
+      req.cookies[COOKIE_NAME] = jwt.sign(
+        { userId: 'user-1', email: 'test@example.com' },
+        JWT_SECRET,
+        { expiresIn: '8h', issuer: 'amaiop', audience: 'amaiop:session' }
+      );
+
+      await requireAuth(req, res, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+    });
+
+    it('rejects a correctly-signed token minted for another audience', async () => {
+      const req = mockRequest();
+      const res = mockResponse();
+      req.cookies[COOKIE_NAME] = jwt.sign(
+        { userId: 'user-1', email: 'test@example.com' },
+        JWT_SECRET,
+        { expiresIn: '8h', issuer: 'amaiop', audience: 'some-other-service' }
+      );
+
+      await requireAuth(req, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it('still accepts tokens issued before these claims existed', async () => {
+      const req = mockRequest();
+      const res = mockResponse();
+      req.cookies[COOKIE_NAME] = createToken({ userId: 'user-1', email: 'test@example.com' });
+
+      await requireAuth(req, res, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+    });
+  });
+
   describe('Missing Token', () => {
     it('should reject request without cookie', async () => {
       const req = mockRequest();

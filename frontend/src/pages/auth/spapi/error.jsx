@@ -18,6 +18,13 @@ const REASONS = {
       "Amazon didn't return an authorization code. The connection may have been " +
       "cancelled, or the app's redirect URI isn't registered correctly in Seller Central.",
   },
+  email_unverified: {
+    title: 'Verify your email first',
+    message:
+      'Connecting an Amazon account attaches real seller credentials to your ' +
+      'organization, so we need to confirm your email address first. Check your ' +
+      'inbox for the verification link, then try connecting again.',
+  },
   invalid_state: {
     title: 'Connection session expired',
     message:
@@ -60,11 +67,11 @@ const FALLBACK = {
 const S = {
   page: {
     minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: 'linear-gradient(135deg,#0F172A 0%,#1E293B 100%)', padding: 20,
+    background: 'linear-gradient(135deg,var(--bg-app-2) 0%,var(--bg-panel) 100%)', padding: 20,
   },
   card: {
-    width: '100%', maxWidth: 440, padding: '40px 36px', background: '#1E293B',
-    borderRadius: 16, border: '1px solid #334155', boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+    width: '100%', maxWidth: 440, padding: '40px 36px', background: 'var(--bg-panel)',
+    borderRadius: 16, border: '1px solid var(--border-strong)', boxShadow: '0 25px 60px var(--bg-overlay-lo)',
     textAlign: 'center',
   },
   iconWrap: {
@@ -72,8 +79,8 @@ const S = {
     border: '1px solid #F43F5E44', display: 'flex', alignItems: 'center',
     justifyContent: 'center', margin: '0 auto 20px',
   },
-  title: { margin: 0, fontSize: 20, fontWeight: 700, color: '#F1F5F9' },
-  message: { margin: '10px 0 0', fontSize: 14, color: '#94A3B8', lineHeight: 1.6 },
+  title: { margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' },
+  message: { margin: '10px 0 0', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 },
   btn: {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
     width: '100%', boxSizing: 'border-box', marginTop: 24, padding: '12px',
@@ -81,7 +88,7 @@ const S = {
     color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', textDecoration: 'none',
   },
   link: { display: 'inline-block', marginTop: 16, fontSize: 13, color: '#3B82F6', textDecoration: 'none' },
-  ref: { marginTop: 22, fontSize: 11, color: '#475569', fontFamily: 'monospace' },
+  ref: { marginTop: 22, fontSize: 11, color: 'var(--border-med)', fontFamily: 'monospace' },
 };
 
 export default function SpApiOAuthError() {

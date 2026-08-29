@@ -17,6 +17,7 @@ import { randomBytes, createHash } from 'crypto';
 import IORedis from 'ioredis';
 import { prisma } from '../../db/prisma.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { requireVerifiedEmail } from '../middleware/requireVerifiedEmail.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { createLogger } from '../utils/logger.js';
 import { timingSafeEqualSecret } from '../utils/secrets.js';
@@ -177,7 +178,7 @@ router.get('/status', requireAuth, async (req, res) => {
 // frontend to open the Razorpay checkout modal via checkout.js.
 // ─────────────────────────────────────────────────────────────────────────────
 
-router.post('/checkout', requireAuth, razorpayRequired, requireRole('ADMIN'), async (req, res) => {
+router.post('/checkout', requireAuth, requireVerifiedEmail, razorpayRequired, requireRole('ADMIN'), async (req, res) => {
   const { tier } = req.body;
   if (!tier || !PLAN_IDS[tier]) {
     return res.status(400).json({
@@ -244,7 +245,7 @@ router.post('/checkout', requireAuth, razorpayRequired, requireRole('ADMIN'), as
 // Verifies the payment signature and marks the subscription confirmed.
 // ─────────────────────────────────────────────────────────────────────────────
 
-router.post('/verify', requireAuth, razorpayRequired, requireRole('ADMIN'), async (req, res) => {
+router.post('/verify', requireAuth, requireVerifiedEmail, razorpayRequired, requireRole('ADMIN'), async (req, res) => {
   const { razorpay_payment_id, razorpay_subscription_id, razorpay_signature } = req.body;
 
   if (!razorpay_payment_id || !razorpay_subscription_id || !razorpay_signature) {
@@ -277,7 +278,7 @@ router.post('/verify', requireAuth, razorpayRequired, requireRole('ADMIN'), asyn
 // Cancels the active Razorpay subscription at period end.
 // ─────────────────────────────────────────────────────────────────────────────
 
-router.post('/cancel', requireAuth, razorpayRequired, requireRole('ADMIN'), async (req, res) => {
+router.post('/cancel', requireAuth, requireVerifiedEmail, razorpayRequired, requireRole('ADMIN'), async (req, res) => {
   const { orgId } = req.tenant;
 
   const subscription = await prisma.subscription.findUnique({ where: { orgId } });
@@ -311,7 +312,7 @@ router.post('/cancel', requireAuth, razorpayRequired, requireRole('ADMIN'), asyn
 // Used for testing or add-on purchases. Amount in paise (min 100).
 // ─────────────────────────────────────────────────────────────────────────────
 
-router.post('/create-order', requireAuth, razorpayRequired, async (req, res) => {
+router.post('/create-order', requireAuth, requireVerifiedEmail, razorpayRequired, async (req, res) => {
   const { amount, currency = 'USD', receipt } = req.body;
 
   if (!amount || Number(amount) < 100) {
@@ -342,7 +343,7 @@ router.post('/create-order', requireAuth, razorpayRequired, async (req, res) => 
 // POST /api/billing/verify-order — verify one-time order payment signature
 // ─────────────────────────────────────────────────────────────────────────────
 
-router.post('/verify-order', requireAuth, razorpayRequired, async (req, res) => {
+router.post('/verify-order', requireAuth, requireVerifiedEmail, razorpayRequired, async (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
   if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
