@@ -49,7 +49,7 @@ export default function RetentionTrendChart({ items = [] }) {
   if (!data.length) {
     return (
       <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontSize: 12, color: 'var(--border-strong)' }}>No retention items to display</span>
+        <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>No retention items to display</span>
       </div>
     );
   }

@@ -100,7 +100,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
         <button
           onClick={() => setCollapsed(c => !c)}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--border-strong)', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center', flexShrink: 0 }}
         >
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -115,7 +115,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
           <div key={section.label} style={{ marginBottom: 4 }}>
             {!collapsed && (
               <p style={{
-                fontSize: 9, fontWeight: 800, color: 'var(--bg-panel)',
+                fontSize: 9, fontWeight: 800, color: 'var(--text-faint)',
                 letterSpacing: '0.14em', textTransform: 'uppercase',
                 padding: '10px 16px 4px',
                 margin: 0,
@@ -142,7 +142,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
                     border: 'none',
                     borderLeft: isActive ? `2px solid ${item.color}` : '2px solid transparent',
                     cursor: 'pointer',
-                    color: isActive ? item.color : 'var(--border-med)',
+                    color: isActive ? item.color : 'var(--text-faint)',
                     fontSize: 12,
                     fontWeight: isActive ? 700 : 500,
                     textAlign: 'left',
@@ -186,7 +186,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
         >
           <span style={{ fontSize: 14, lineHeight: 1 }}>🏆</span>
           {!collapsed && (
-            <span style={{ fontSize: 11, fontWeight: 700, color: earnedBadgeCount > 0 ? '#F59E0B' : 'var(--bg-panel)' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: earnedBadgeCount > 0 ? '#F59E0B' : 'var(--text-faint)' }}>
               {earnedBadgeCount} / 4 badges
             </span>
           )}
@@ -209,7 +209,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
             display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start',
             gap: 8, padding: collapsed ? '7px 0' : '7px 8px',
             borderRadius: 8, textDecoration: 'none',
-            color: 'var(--border-strong)', fontSize: 11, fontWeight: 600,
+            color: 'var(--text-faint)', fontSize: 11, fontWeight: 600,
             transition: 'color 0.12s',
           }}
           onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}

@@ -109,7 +109,7 @@ export default function CustomerRetention() {
     return (
       <div style={{ ...CARD, padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
         <Spinner size={28} />
-        <p style={{ fontSize: 12, color: 'var(--border-med)', margin: 0 }}>Loading retention data…</p>
+        <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>Loading retention data…</p>
       </div>
     );
   }
@@ -179,7 +179,7 @@ export default function CustomerRetention() {
             {snsCandidates.slice(0, 5).map(a => (
               <div key={a.asin} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '7px 10px', borderRadius: 7, background: 'var(--overlay-2)', border: '1px solid var(--overlay-4)' }}>
                 <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, flexShrink: 0, width: 90 }}>{a.asin}</span>
-                <span style={{ flex: 1, fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title || <em style={{ color: 'var(--border-med)' }}>untitled</em>}</span>
+                <span style={{ flex: 1, fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title || <em style={{ color: 'var(--text-faint)' }}>untitled</em>}</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#10B981', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{fmtPct(a.repeatRate)}</span>
                 <span style={{ fontSize: 11, color: 'var(--text-subtle)', flexShrink: 0, width: 80, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>~{a.daysBetweenOrders}d cadence</span>
               </div>
@@ -238,7 +238,7 @@ export default function CustomerRetention() {
           </thead>
           <tbody>
             {visible.length === 0 ? (
-              <tr><td colSpan={6} style={{ ...TD, textAlign: 'center', padding: '36px', color: 'var(--border-med)', borderBottom: 'none' }}>No ASINs match this filter</td></tr>
+              <tr><td colSpan={6} style={{ ...TD, textAlign: 'center', padding: '36px', color: 'var(--text-faint)', borderBottom: 'none' }}>No ASINs match this filter</td></tr>
             ) : visible.map(a => (
               <tr key={a.asin}
                 style={{ transition: 'background 0.1s', background: a.subscribeAndSaveCandidate ? 'rgba(16,185,129,0.03)' : 'transparent' }}
@@ -246,7 +246,7 @@ export default function CustomerRetention() {
                 onMouseLeave={e => e.currentTarget.style.background = a.subscribeAndSaveCandidate ? 'rgba(16,185,129,0.03)' : 'transparent'}>
                 <td style={TD}><span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>{a.asin}</span></td>
                 <td style={{ ...TD, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 0 }} title={a.title}>
-                  {a.title || <em style={{ color: 'var(--border-med)' }}>untitled</em>}
+                  {a.title || <em style={{ color: 'var(--text-faint)' }}>untitled</em>}
                 </td>
                 <td style={{ ...TDR, color: a.repeatRate >= 25 ? '#10B981' : 'var(--text-muted)', fontWeight: 700 }}>{fmtPct(a.repeatRate)}</td>
                 <td style={TDR}>{fmtN(a.repeatCustomers)} / {fmtN(a.totalCustomers)}</td>
@@ -258,7 +258,7 @@ export default function CustomerRetention() {
         </table>
       </div>
 
-      <p style={{ fontSize: 11, color: 'var(--border-med)', textAlign: 'center', margin: 0 }}>
+      <p style={{ fontSize: 11, color: 'var(--text-faint)', textAlign: 'center', margin: 0 }}>
         Source: Amazon Brand Analytics Repeat Purchase report · last fetched {fmtDate(period?.fetchedAt)}
       </p>
     </div>

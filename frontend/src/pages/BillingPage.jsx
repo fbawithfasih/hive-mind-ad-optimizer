@@ -181,7 +181,7 @@ export default function BillingPage({ user, onLogout }) {
       <header style={{ background: 'var(--bg-panel)', borderBottom: '1px solid var(--border-strong)', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Link to="/" style={{ fontSize: 13, color: 'var(--text-subtle)', textDecoration: 'none' }}>← Dashboard</Link>
-          <span style={{ color: 'var(--border-strong)' }}>|</span>
+          <span style={{ color: 'var(--text-faint)' }}>|</span>
           <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>Billing</span>
         </div>
         <button onClick={async () => { await logoutApi(); onLogout(); }}
@@ -257,7 +257,7 @@ export default function BillingPage({ user, onLogout }) {
         )}
 
         {loading ? (
-          <p style={{ color: 'var(--border-med)', fontSize: 14, textAlign: 'center', padding: 40 }}>Loading billing info…</p>
+          <p style={{ color: 'var(--text-faint)', fontSize: 14, textAlign: 'center', padding: 40 }}>Loading billing info…</p>
         ) : (
           <>
             {/* Current plan */}
@@ -312,7 +312,7 @@ export default function BillingPage({ user, onLogout }) {
             {usage && (
               <div style={{ background: 'var(--bg-panel)', borderRadius: 14, border: '1px solid var(--border-strong)', padding: '24px' }}>
                 <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Usage This Month</p>
-                <p style={{ margin: '0 0 16px', fontSize: 12, color: 'var(--border-med)' }}>{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
+                <p style={{ margin: '0 0 16px', fontSize: 12, color: 'var(--text-faint)' }}>{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
                 <UsageStat label="Listings optimized"  value={usage.listingsOptimized} />
                 <UsageStat label="Bulk operations"     value={usage.bulkOperations} />
                 <UsageStat label="Reports generated"   value={usage.reportsGenerated} />
@@ -327,7 +327,7 @@ export default function BillingPage({ user, onLogout }) {
               </p>
 
               {availableTiers.size === 0 && (
-                <p style={{ fontSize: 12, color: 'var(--border-med)', marginBottom: 16 }}>
+                <p style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 16 }}>
                   Razorpay is not configured on this server — plan selection is unavailable.
                 </p>
               )}
@@ -389,7 +389,7 @@ export default function BillingPage({ user, onLogout }) {
               </div>
 
               {!isAdmin && availableTiers.size > 0 && (
-                <p style={{ marginTop: 16, fontSize: 12, color: 'var(--border-med)' }}>Contact your organization Admin to change the plan.</p>
+                <p style={{ marginTop: 16, fontSize: 12, color: 'var(--text-faint)' }}>Contact your organization Admin to change the plan.</p>
               )}
             </div>
 

@@ -15,7 +15,7 @@ const TYPE_COLOR = {
   sponsoredDisplay:  '#10B981',
 };
 
-const dash = <span style={{ color: 'var(--border-med)' }}>—</span>;
+const dash = <span style={{ color: 'var(--text-faint)' }}>—</span>;
 
 const fmtDate = s => s?.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') ?? '';
 

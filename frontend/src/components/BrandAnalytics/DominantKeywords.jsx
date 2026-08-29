@@ -66,7 +66,7 @@ export default function DominantKeywords({ keywords = [], weakKeywords = [] }) {
           </thead>
           <tbody>
             {list.length === 0 ? (
-              <tr><td colSpan={4} style={{ ...TD, textAlign: 'center', padding: '36px', color: 'var(--border-med)', borderBottom: 'none' }}>
+              <tr><td colSpan={4} style={{ ...TD, textAlign: 'center', padding: '36px', color: 'var(--text-faint)', borderBottom: 'none' }}>
                 No dominant keywords found. Try lowering the minPurchaseShare threshold.
               </td></tr>
             ) : list.slice(0, 30).map((k, i) => (
@@ -107,7 +107,7 @@ export default function DominantKeywords({ keywords = [], weakKeywords = [] }) {
           </thead>
           <tbody>
             {list.length === 0 ? (
-              <tr><td colSpan={5} style={{ ...TD, textAlign: 'center', padding: '36px', color: 'var(--border-med)', borderBottom: 'none' }}>
+              <tr><td colSpan={5} style={{ ...TD, textAlign: 'center', padding: '36px', color: 'var(--text-faint)', borderBottom: 'none' }}>
                 No weak keywords found — brand conversion efficiency looks healthy!
               </td></tr>
             ) : list.slice(0, 30).map((k, i) => {

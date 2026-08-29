@@ -41,7 +41,7 @@ export default function TopBar({
 
       {/* Left: breadcrumb */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--bg-panel)', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-faint)', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
           Dashboard
         </span>
         <svg width="10" height="10" fill="none" stroke="var(--bg-panel)" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
@@ -55,7 +55,7 @@ export default function TopBar({
             <svg width="10" height="10" fill="none" stroke="var(--bg-panel)" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
             </svg>
-            <span style={{ fontSize: 11, color: 'var(--border-strong)', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>
               {FLAG(selectedProfile.countryCode)} {selectedProfile.countryCode}
             </span>
           </>
@@ -104,7 +104,7 @@ export default function TopBar({
             padding: '3px 10px', borderRadius: 6,
             border: '1px solid var(--overlay-7)',
             background: 'var(--overlay-3)',
-            color: 'var(--border-med)', fontSize: 11, fontWeight: 600,
+            color: 'var(--text-faint)', fontSize: 11, fontWeight: 600,
             cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s',
           }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(59,130,246,0.40)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
@@ -148,14 +148,14 @@ export default function TopBar({
         {/* Billing */}
         <Link
           to="/billing"
-          style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--overlay-7)', background: 'var(--overlay-3)', color: 'var(--border-med)', fontSize: 11, fontWeight: 600, textDecoration: 'none' }}
+          style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--overlay-7)', background: 'var(--overlay-3)', color: 'var(--text-faint)', fontSize: 11, fontWeight: 600, textDecoration: 'none' }}
         >
           Billing
         </Link>
 
         {/* User email + sign out */}
         {user?.email && (
-          <span style={{ fontSize: 10, color: 'var(--bg-panel)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 10, color: 'var(--text-faint)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {user.email}
           </span>
         )}

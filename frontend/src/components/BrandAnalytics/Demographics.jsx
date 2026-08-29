@@ -62,7 +62,7 @@ export default function Demographics() {
     return (
       <div style={{ ...CARD, padding: 40, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
         <Spinner size={28} />
-        <p style={{ fontSize: 12, color: 'var(--border-med)', margin: 0 }}>Loading demographics…</p>
+        <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>Loading demographics…</p>
       </div>
     );
   }
@@ -88,7 +88,7 @@ export default function Demographics() {
         })}
       </div>
 
-      <p style={{ fontSize: 11, color: 'var(--border-med)', textAlign: 'center', margin: 0 }}>
+      <p style={{ fontSize: 11, color: 'var(--text-faint)', textAlign: 'center', margin: 0 }}>
         Source: Amazon Brand Analytics Demographics report · last fetched {fmtDate(data.period?.fetchedAt)}
       </p>
     </div>

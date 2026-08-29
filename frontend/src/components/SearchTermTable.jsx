@@ -9,7 +9,7 @@ const REC_STYLE = {
 
 const REC_ORDER = { SCALE_UP: 0, ADD_EXACT: 1, ADD_NEGATIVE: 2, WATCH: 3 };
 
-const dash = <span style={{ color: 'var(--border-med)' }}>—</span>;
+const dash = <span style={{ color: 'var(--text-faint)' }}>—</span>;
 const fmtN = (v, dec = 2) => v == null ? dash : Number(v).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 const pct  = (v, dec = 2) => v == null ? dash : `${Number(v).toFixed(dec)}%`;
 

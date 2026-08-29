@@ -227,7 +227,7 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
             <p style={{ fontSize: 11, color: '#8B5CF6' }}>Scheduled — will run automatically</p>
           )}
           {!rule.schedule && (
-            <p style={{ fontSize: 11, color: 'var(--border-strong)' }}>Manual only — use Run to execute</p>
+            <p style={{ fontSize: 11, color: 'var(--text-faint)' }}>Manual only — use Run to execute</p>
           )}
         </div>
 

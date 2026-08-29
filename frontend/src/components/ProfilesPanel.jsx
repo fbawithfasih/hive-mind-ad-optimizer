@@ -10,12 +10,12 @@ const S = {
     padding: '7px 14px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600,
     cursor: active ? 'pointer' : 'not-allowed',
     background: active ? 'linear-gradient(135deg,#3B82F6,#8B5CF6)' : 'var(--bg-panel-2)',
-    color: active ? '#fff' : 'var(--border-med)',
+    color: active ? '#fff' : 'var(--text-faint)',
   }),
   ghost:   { padding: '5px 12px', borderRadius: 6, border: '1px solid var(--border-strong)', background: 'transparent', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', cursor: 'pointer' },
   badge:   (color) => ({ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: color + '20', color, border: `1px solid ${color}40` }),
   row:     { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: '1px solid var(--bg-panel)' },
-  empty:   { padding: '32px 20px', textAlign: 'center', color: 'var(--border-med)', fontSize: 13 },
+  empty:   { padding: '32px 20px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 },
 };
 
 function Spinner() {

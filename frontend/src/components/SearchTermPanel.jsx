@@ -161,9 +161,9 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
       <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, background: `radial-gradient(circle, ${glow} 0%, transparent 70%)`, pointerEvents: 'none' }} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, position: 'relative' }}>
         <div>
-          <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 10px' }}>{label}</p>
+          <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 10px' }}>{label}</p>
           <p style={{ fontSize: 30, fontWeight: 900, color: '#FFFFFF', margin: 0, lineHeight: 1, letterSpacing: '-1px' }}>{value}</p>
-          {sub && <p style={{ fontSize: 11, color: 'var(--border-med)', margin: '6px 0 0', fontWeight: 500 }}>{sub}</p>}
+          {sub && <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '6px 0 0', fontWeight: 500 }}>{sub}</p>}
         </div>
         {ringPct !== undefined ? (
           <RingProgress pct={ringPct} color={accentColor} glow={glow} />
@@ -185,7 +185,7 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
 function TopTermsBar({ terms }) {
   const top = [...terms].sort((a, b) => (b.impressions ?? 0) - (a.impressions ?? 0)).slice(0, 7);
   if (!top.length) return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 160, color: 'var(--border-strong)', fontSize: 13 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 160, color: 'var(--text-faint)', fontSize: 13 }}>
       <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ opacity: .3, marginBottom: 8 }}>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
       </svg>
@@ -490,7 +490,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
             <div>
               <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Search Term Intelligence</p>
-              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--border-strong)' }}>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-faint)' }}>
                 {hasData
                   ? `${filtered.length} of ${searchTerms.length} terms · ${dateRange.start} → ${dateRange.end}`
                   : 'Select date range and campaigns, then load'}
@@ -517,7 +517,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
             <input type="date" value={dateFrom}
               onChange={e => { setDateFrom(e.target.value); setActivePreset(null); }}
               max={dateTo} style={inputStyle} />
-            <span style={{ color: 'var(--border-strong)', fontSize: 12 }}>→</span>
+            <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>→</span>
             <input type="date" value={dateTo}
               onChange={e => { setDateTo(e.target.value); setActivePreset(null); }}
               min={dateFrom} max={getTodayISO()} style={inputStyle} />
@@ -738,10 +738,10 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
               <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>Campaign Filter</span>
               {selectedCampaignIds.size > 0
                 ? <span style={{ background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', borderRadius: 12, padding: '2px 10px', fontSize: 11, fontWeight: 700 }}>{selectedCampaignIds.size} selected</span>
-                : <span style={{ color: 'var(--border-strong)', fontSize: 12 }}>All campaigns</span>
+                : <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>All campaigns</span>
               }
             </div>
-            <svg style={{ width: 14, height: 14, color: 'var(--border-med)', transform: pickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg style={{ width: 14, height: 14, color: 'var(--text-faint)', transform: pickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
             </svg>
           </button>
@@ -754,7 +754,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
                   <button key={tab.key} onClick={() => setCampaignStatusFilter(tab.key)} style={{
                     padding: '8px 14px', background: 'none', border: 'none',
                     borderBottom: campaignStatusFilter === tab.key ? '2px solid #6366F1' : '2px solid transparent',
-                    color: campaignStatusFilter === tab.key ? '#A78BFA' : 'var(--border-med)',
+                    color: campaignStatusFilter === tab.key ? '#A78BFA' : 'var(--text-faint)',
                     fontWeight: campaignStatusFilter === tab.key ? 700 : 500,
                     fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap',
                   }}>
@@ -766,15 +766,15 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
               {/* Select all row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 20px', borderBottom: '1px solid var(--overlay-3)' }}>
                 <button onClick={selectAll} style={{ fontSize: 11, color: '#6366F1', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Select all visible</button>
-                <span style={{ color: 'var(--bg-panel)' }}>|</span>
-                <button onClick={deselectAll} style={{ fontSize: 11, color: 'var(--border-med)', background: 'none', border: 'none', cursor: 'pointer' }}>Deselect all</button>
-                <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--border-strong)' }}>{visibleCampaigns.length} campaigns</span>
+                <span style={{ color: 'var(--text-faint)' }}>|</span>
+                <button onClick={deselectAll} style={{ fontSize: 11, color: 'var(--text-faint)', background: 'none', border: 'none', cursor: 'pointer' }}>Deselect all</button>
+                <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-faint)' }}>{visibleCampaigns.length} campaigns</span>
               </div>
 
               {/* Checkboxes */}
               <div style={{ maxHeight: 220, overflowY: 'auto', padding: '8px 20px 12px' }}>
                 {visibleCampaigns.length === 0 ? (
-                  <p style={{ margin: 0, fontSize: 12, color: 'var(--border-strong)', textAlign: 'center', padding: '16px 0' }}>No campaigns match this status</p>
+                  <p style={{ margin: 0, fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', padding: '16px 0' }}>No campaigns match this status</p>
                 ) : visibleCampaigns.map(c => {
                   const id = c.campaignId || c.id;
                   const checked = selectedCampaignIds.has(id);
@@ -855,7 +855,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           position: 'relative', overflow: 'hidden',
         }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,#6366F1,#8B5CF6,#3B82F6)' }} />
-          <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Recommendation Breakdown</p>
+          <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Recommendation Breakdown</p>
           <RecommendationDonut stats={stats} total={searchTerms.length} />
         </div>
 
@@ -866,7 +866,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           position: 'relative', overflow: 'hidden',
         }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,#F59E0B,#10B981,#3B82F6)' }} />
-          <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Top Search Terms by Impressions</p>
+          <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Top Search Terms by Impressions</p>
           <TopTermsBar terms={filtered} />
         </div>
       </div>
@@ -874,7 +874,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
       {/* ══ RECOMMENDATION QUICK-FILTER PILLS ══ */}
       {hasData && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: 'var(--border-strong)', fontWeight: 600, marginRight: 4 }}>FILTER:</span>
+          <span style={{ fontSize: 11, color: 'var(--text-faint)', fontWeight: 600, marginRight: 4 }}>FILTER:</span>
           {[{ key: 'all', label: `All (${searchTerms.length})`, color: 'var(--text-subtle)' },
             ...Object.entries(REC_META).map(([key, m]) => ({
               key, color: m.color,
@@ -884,7 +884,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
             <button key={item.key} onClick={() => setRecFilter(item.key)} style={{
               padding: '5px 14px', borderRadius: 20, border: `1px solid ${recFilter === item.key ? item.color : 'var(--overlay-6)'}`,
               background: recFilter === item.key ? `${item.color}20` : 'transparent',
-              color: recFilter === item.key ? item.color : 'var(--border-med)',
+              color: recFilter === item.key ? item.color : 'var(--text-faint)',
               fontSize: 12, fontWeight: recFilter === item.key ? 700 : 500, cursor: 'pointer',
               transition: 'all 0.15s',
             }}>

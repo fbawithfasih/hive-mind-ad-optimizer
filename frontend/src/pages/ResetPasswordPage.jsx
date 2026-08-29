@@ -63,7 +63,7 @@ export default function ResetPasswordPage() {
         ) : (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <label style={S.label}>New password <span style={{ color: 'var(--border-med)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(min 8 chars)</span></label>
+              <label style={S.label}>New password <span style={{ color: 'var(--text-faint)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(min 8 chars)</span></label>
               <input type="password" value={password} onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••" required autoFocus style={S.input}
                 onFocus={e => (e.target.style.borderColor = '#3B82F6')}

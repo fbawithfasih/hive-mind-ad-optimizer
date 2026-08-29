@@ -37,10 +37,10 @@ export default function PerformanceBadges({ badges }) {
               </motion.span>
             )}
           </div>
-          <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 800, color: badge.earned ? 'var(--text-primary)' : 'var(--border-strong)', lineHeight: 1.2 }}>
+          <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 800, color: badge.earned ? 'var(--text-primary)' : 'var(--text-faint)', lineHeight: 1.2 }}>
             {badge.label}
           </p>
-          <p style={{ margin: 0, fontSize: 10, color: 'var(--border-med)', lineHeight: 1.3 }}>
+          <p style={{ margin: 0, fontSize: 10, color: 'var(--text-faint)', lineHeight: 1.3 }}>
             {badge.desc}
           </p>
         </motion.div>

@@ -143,7 +143,7 @@ export default function SignupPage({ onSignup }) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <div style={{ flex: 1, height: 1, background: 'var(--border-strong)' }} />
-          <span style={{ fontSize: 12, color: 'var(--border-med)' }}>or sign up with email</span>
+          <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>or sign up with email</span>
           <div style={{ flex: 1, height: 1, background: 'var(--border-strong)' }} />
         </div>
 
@@ -168,7 +168,7 @@ export default function SignupPage({ onSignup }) {
           </div>
 
           <div>
-            <label style={S.label}>Password <span style={{ color: 'var(--border-med)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(min 8 chars)</span></label>
+            <label style={S.label}>Password <span style={{ color: 'var(--text-faint)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(min 8 chars)</span></label>
             <input type="password" value={form.password} onChange={set('password')} placeholder="••••••••"
               required style={S.input} onFocus={focus} onBlur={blur} />
           </div>

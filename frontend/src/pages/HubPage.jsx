@@ -244,7 +244,7 @@ function ToolCard({ tool, onClick }) {
       </h3>
 
       <p style={{
-        fontSize: 13, color: hovered ? 'var(--text-muted)' : 'var(--border-med)',
+        fontSize: 13, color: hovered ? 'var(--text-muted)' : 'var(--text-faint)',
         lineHeight: 1.65, flex: 1, margin: '0 0 20px',
         transition: 'color 0.2s',
       }}>
@@ -254,7 +254,7 @@ function ToolCard({ tool, onClick }) {
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
         fontSize: 12, fontWeight: 800, letterSpacing: '0.02em',
-        color: hovered ? tool.color : 'var(--border-strong)',
+        color: hovered ? tool.color : 'var(--text-faint)',
         transition: 'color 0.2s',
       }}>
         Open tool
@@ -527,7 +527,7 @@ export default function HubPage({ user, onLogout }) {
             <span style={{ color: 'var(--text-faint)' }}>/</span>
             <span style={{
               fontSize: 13, fontWeight: 700,
-              background: 'linear-gradient(135deg, #A78BFA, #60A5FA)',
+              backgroundImage: 'var(--grad-accent)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             }}>Hub</span>
           </div>
@@ -612,7 +612,7 @@ export default function HubPage({ user, onLogout }) {
             <div>
               <p style={{
                 fontSize: 11, fontWeight: 800, marginBottom: 10, letterSpacing: '0.14em', textTransform: 'uppercase',
-                background: 'linear-gradient(90deg, #A78BFA, #60A5FA)',
+                backgroundImage: 'var(--grad-accent-90)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               }}>
                 {today}
@@ -620,7 +620,7 @@ export default function HubPage({ user, onLogout }) {
               <h1 style={{
                 fontSize: 48, fontWeight: 900, letterSpacing: '-2px', lineHeight: 1.05,
                 margin: '0 0 16px',
-                background: 'linear-gradient(135deg, #FFFFFF 0%, #A78BFA 40%, #60A5FA 70%, #F472B6 100%)',
+                backgroundImage: 'var(--grad-hero)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               }}>
                 Welcome {clientName} 👋

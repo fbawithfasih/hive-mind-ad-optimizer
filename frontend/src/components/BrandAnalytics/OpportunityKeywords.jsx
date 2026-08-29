@@ -119,7 +119,7 @@ export default function OpportunityKeywords({ opportunities = [] }) {
             );
           })}
           {filtered.length === 0 && (
-            <tr><td colSpan={6} style={{ ...TD, textAlign: 'center', padding: '36px', color: 'var(--border-med)', borderBottom: 'none' }}>
+            <tr><td colSpan={6} style={{ ...TD, textAlign: 'center', padding: '36px', color: 'var(--text-faint)', borderBottom: 'none' }}>
               {search ? `No keywords matching "${search}"` : 'No opportunity keywords found.'}
             </td></tr>
           )}

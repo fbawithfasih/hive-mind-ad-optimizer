@@ -62,7 +62,7 @@ export default function ItemComparison() {
       {loading && (
         <div style={{ ...CARD, padding: 36, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
           <Spinner size={24} />
-          <p style={{ fontSize: 12, color: 'var(--border-med)', margin: 0 }}>Loading comparison…</p>
+          <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>Loading comparison…</p>
         </div>
       )}
 
@@ -84,7 +84,7 @@ export default function ItemComparison() {
       )}
 
       {data && (
-        <p style={{ fontSize: 11, color: 'var(--border-med)', textAlign: 'center', margin: 0 }}>
+        <p style={{ fontSize: 11, color: 'var(--text-faint)', textAlign: 'center', margin: 0 }}>
           Source: Amazon Brand Analytics Item Comparison &amp; Alternate Purchase report · last fetched {fmtDate(data.period?.fetchedAt)}
         </p>
       )}
@@ -114,7 +114,7 @@ function AsinForm({ value, onChange, onSubmit, loading }) {
           fontSize: 12, fontWeight: 600, padding: '8px 18px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)',
           cursor: (loading || !value.trim()) ? 'not-allowed' : 'pointer',
           background: (loading || !value.trim()) ? 'var(--overlay-2)' : 'var(--overlay-7)',
-          color: (loading || !value.trim()) ? 'var(--border-med)' : 'var(--text-muted)',
+          color: (loading || !value.trim()) ? 'var(--text-faint)' : 'var(--text-muted)',
         }}>
           {loading ? <><Spinner size={11} /> Loading…</> : 'Look up'}
         </button>
@@ -143,7 +143,7 @@ function ColumnCard({ title, entries, accentColor, empty }) {
               onMouseLeave={ev => ev.currentTarget.style.background = 'transparent'}>
               <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, flex: '0 0 90px' }}>{e.asin}</span>
               <span title={e.title} style={{ flex: 1, fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {e.title || <em style={{ color: 'var(--border-med)' }}>—</em>}
+                {e.title || <em style={{ color: 'var(--text-faint)' }}>—</em>}
               </span>
               <div style={{ flex: '0 0 64px', height: 4, background: 'var(--overlay-4)', borderRadius: 99, overflow: 'hidden' }}>
                 <div style={{ width: `${((e.percentage ?? 0) / max) * 100}%`, height: '100%', background: accentColor, borderRadius: 99, opacity: 0.6 }} />

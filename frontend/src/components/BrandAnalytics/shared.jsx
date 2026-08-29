@@ -40,12 +40,12 @@ export function StatCard({ label, value, sub, gradient, glow, accentColor, icon,
       <GlowBlob color={glow} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 8px' }}>{label}</p>
+          <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 8px' }}>{label}</p>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
             <p style={{ fontSize: 26, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1, letterSpacing: '-0.5px' }}>{value}</p>
             <Delta d={delta} mode={deltaMode} invert={deltaInvert} />
           </div>
-          {sub && <p style={{ fontSize: 11, color: 'var(--border-med)', margin: '5px 0 0' }}>{sub}</p>}
+          {sub && <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '5px 0 0' }}>{sub}</p>}
         </div>
         <div style={{ width: 40, height: 40, borderRadius: 12, background: gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 4px 12px ${glow}` }}>
           <div style={{ color: '#fff' }}>{icon}</div>

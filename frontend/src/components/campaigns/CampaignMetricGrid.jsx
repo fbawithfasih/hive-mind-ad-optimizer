@@ -24,10 +24,10 @@ export default function CampaignMetricGrid({ campaign }) {
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: 'var(--overlay-3)', borderRadius: 12, overflow: 'hidden' }}>
       {cells.map(cell => (
         <div key={cell.label} style={{ padding: '12px 16px', background: 'rgba(8,12,26,0.95)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--bg-panel)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+          <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
             {cell.label}
           </span>
-          <span style={{ fontSize: 18, fontWeight: 900, color: cell.value === '—' ? 'var(--border-strong)' : cell.color, fontFamily: 'ui-monospace, monospace', lineHeight: 1.2 }}>
+          <span style={{ fontSize: 18, fontWeight: 900, color: cell.value === '—' ? 'var(--text-faint)' : cell.color, fontFamily: 'ui-monospace, monospace', lineHeight: 1.2 }}>
             {cell.value}
           </span>
         </div>

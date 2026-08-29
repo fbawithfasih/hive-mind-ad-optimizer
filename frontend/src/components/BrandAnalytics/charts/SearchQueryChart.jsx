@@ -39,7 +39,7 @@ export default function SearchQueryChart({ brandAppearances = [] }) {
   if (!data.length) {
     return (
       <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontSize: 12, color: 'var(--border-strong)' }}>No search query data — load brand analytics first</span>
+        <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>No search query data — load brand analytics first</span>
       </div>
     );
   }

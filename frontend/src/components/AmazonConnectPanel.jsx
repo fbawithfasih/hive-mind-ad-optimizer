@@ -169,7 +169,7 @@ export default function AmazonConnectPanel({ onConnected }) {
               </svg>
               Connect Amazon Account
             </a>
-            <p className="text-xs mt-3" style={{ color: 'var(--border-med)' }}>
+            <p className="text-xs mt-3" style={{ color: 'var(--text-faint)' }}>
               You will be redirected to Amazon Seller Central to authorise access. No passwords are stored — only the OAuth refresh token.
             </p>
           </div>

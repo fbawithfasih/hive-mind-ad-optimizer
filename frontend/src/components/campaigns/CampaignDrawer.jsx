@@ -27,7 +27,7 @@ const TYPE_COLOR = {
 
 function SectionLabel({ children }) {
   return (
-    <p style={{ fontSize: 9, fontWeight: 800, color: 'var(--bg-panel)', textTransform: 'uppercase', letterSpacing: '0.14em', margin: '0 0 10px' }}>
+    <p style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.14em', margin: '0 0 10px' }}>
       {children}
     </p>
   );
@@ -104,7 +104,7 @@ export default function CampaignDrawer({
                   {st.label}
                 </span>
                 {campaign.budget != null && campaign.budget > 0 && (
-                  <span style={{ fontSize: 10, color: 'var(--border-med)', fontWeight: 600 }}>
+                  <span style={{ fontSize: 10, color: 'var(--text-faint)', fontWeight: 600 }}>
                     ${campaign.budget.toFixed(2)}/day
                   </span>
                 )}
@@ -163,7 +163,7 @@ export default function CampaignDrawer({
         <div style={{ padding: '14px 22px', borderTop: '1px solid var(--overlay-5)', flexShrink: 0 }}>
           <button
             onClick={onGoToCampaigns}
-            style={{ background: 'none', border: 'none', color: 'var(--border-med)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, padding: 0 }}
+            style={{ background: 'none', border: 'none', color: 'var(--text-faint)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, padding: 0 }}
             onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}
             onMouseLeave={e => { e.currentTarget.style.color = 'var(--border-med)'; }}
           >

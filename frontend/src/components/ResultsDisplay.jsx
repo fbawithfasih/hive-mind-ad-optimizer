@@ -25,7 +25,7 @@ export default function ResultsDisplay({ result }) {
         .ai-body th           { padding:9px 14px; text-align:left; font-size:11px; font-weight:700;
                                 text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted);
                                 border-bottom:2px solid var(--border-strong); white-space:nowrap; }
-        .ai-body td           { padding:10px 14px; font-size:13px; color:var(--text-strong); border-bottom:1px solid var(--bg-panel); white-space:nowrap; }
+        .ai-body td           { padding:10px 14px; font-size:13px; color:var(--text-strong); border-bottom:1px solid var(--text-faint); white-space:nowrap; }
         .ai-body tbody tr:last-child td { border-bottom:none; }
         .ai-body tbody tr:hover td      { background:var(--bg-panel-2); }
         .ai-body tbody tr:nth-child(even) td { background:var(--bg-panel-3); }

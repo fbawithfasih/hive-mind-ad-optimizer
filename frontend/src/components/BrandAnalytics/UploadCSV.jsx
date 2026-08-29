@@ -64,14 +64,14 @@ function DropZone({ type, label, desc, icon, color, onFile, status }) {
           </div>
           <div>
             <p style={{ fontSize: 13, fontWeight: 700, color: isDone ? accent : 'var(--text-primary)', margin: 0 }}>{label}</p>
-            <p style={{ fontSize: 11, color: 'var(--border-strong)', margin: '3px 0 0', lineHeight: 1.4 }}>{desc}</p>
+            <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '3px 0 0', lineHeight: 1.4 }}>{desc}</p>
           </div>
         </div>
         <div style={{ flexShrink: 0 }}>
           {isDone ? (
             <span style={{ fontSize: 11, fontWeight: 800, color: accent, background: `${accent}18`, padding: '3px 10px', borderRadius: 999, border: `1px solid ${accent}30` }}>✓ Uploaded</span>
           ) : (
-            <span style={{ fontSize: 11, color: 'var(--border-strong)', fontWeight: 600 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-faint)', fontWeight: 600 }}>
               {dragging ? 'Drop it!' : 'Click or drag CSV'}
             </span>
           )}
@@ -89,7 +89,7 @@ function DropZone({ type, label, desc, icon, color, onFile, status }) {
       )}
 
       {status?.filename && (
-        <p style={{ fontSize: 10, color: 'var(--border-med)', margin: 0, fontFamily: 'monospace' }}>{status.filename}</p>
+        <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: 0, fontFamily: 'monospace' }}>{status.filename}</p>
       )}
     </div>
   );
@@ -151,8 +151,8 @@ export default function UploadCSV({ brand, onRefreshNeeded }) {
       <div style={{ position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <div>
-            <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>Manual CSV upload (fallback)</p>
-            <p style={{ fontSize: 11, color: 'var(--border-med)', margin: '3px 0 0' }}>
+            <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>Manual CSV upload (fallback)</p>
+            <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '3px 0 0' }}>
               Download from Seller Central → Brand Analytics → Search Analytics, then drop the files here
             </p>
           </div>

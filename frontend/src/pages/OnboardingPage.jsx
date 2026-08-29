@@ -133,7 +133,7 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-app-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: 'var(--border-med)', fontSize: 14 }}>Loading…</p>
+      <p style={{ color: 'var(--text-faint)', fontSize: 14 }}>Loading…</p>
     </div>
   );
 
@@ -240,7 +240,7 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
             })}
           </div>
 
-          <p style={{ textAlign: 'center', marginTop: 24, fontSize: 13, color: 'var(--border-med)' }}>
+          <p style={{ textAlign: 'center', marginTop: 24, fontSize: 13, color: 'var(--text-faint)' }}>
             <Link to="/" style={{ color: 'var(--text-subtle)', textDecoration: 'none' }}>Skip setup and go to dashboard →</Link>
           </p>
         </div>

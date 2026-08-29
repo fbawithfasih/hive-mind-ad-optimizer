@@ -438,20 +438,20 @@ ${htmlBrandingFooter()}
                   })}
                 </div>
 
-                <span style={{ color: 'var(--border-strong)', fontSize: 12 }}>|</span>
+                <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>|</span>
 
                 {/* Custom date range */}
                 <input type="date" value={dateFrom} max={dateTo}
                   onChange={e => setDateFrom(e.target.value)}
                   style={{ background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)',
                     borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none' }} />
-                <span style={{ color: 'var(--border-med)', fontSize: 12 }}>→</span>
+                <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>→</span>
                 <input type="date" value={dateTo} min={dateFrom} max={today}
                   onChange={e => setDateTo(e.target.value)}
                   style={{ background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)',
                     borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none' }} />
 
-                <span style={{ color: 'var(--border-strong)', fontSize: 12 }}>|</span>
+                <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>|</span>
 
                 {/* Model toggle */}
                 <div style={{ display: 'flex', gap: 4, background: 'var(--bg-panel-2)', borderRadius: 8,
@@ -547,7 +547,7 @@ ${htmlBrandingFooter()}
               <p style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
                 {fmtElapsed(elapsed)}
               </p>
-              <p style={{ margin: 0, fontSize: 10, color: 'var(--border-med)' }}>elapsed</p>
+              <p style={{ margin: 0, fontSize: 10, color: 'var(--text-faint)' }}>elapsed</p>
             </div>
           </div>
 
@@ -585,7 +585,7 @@ ${htmlBrandingFooter()}
                   {/* Label */}
                   <div style={{ flex: 1 }}>
                     <p style={{ margin: 0, fontSize: 13, fontWeight: active ? 600 : 500,
-                      color: done ? '#10B981' : active ? 'var(--text-primary)' : 'var(--border-med)' }}>
+                      color: done ? '#10B981' : active ? 'var(--text-primary)' : 'var(--text-faint)' }}>
                       {step.label}
                     </p>
                     {active && jobProgress && (
@@ -725,7 +725,7 @@ ${htmlBrandingFooter()}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{typeLabel}</span>
-                      <span style={{ fontSize: 11, color: 'var(--border-med)' }}>{from} → {to}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{from} → {to}</span>
                       {h.brandEnriched && h.brandName && (
                         <span style={{
                           fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 999,
@@ -736,7 +736,7 @@ ${htmlBrandingFooter()}
                         </span>
                       )}
                     </div>
-                    <span style={{ fontSize: 10, color: 'var(--border-strong)' }}>{created}</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{created}</span>
                   </div>
                   <span style={{ fontSize: 10, fontWeight: 600, color: statusColor, flexShrink: 0 }}>
                     {h.status === 'COMPLETED' ? 'Done' : h.status === 'FAILED' ? 'Failed' : h.status}

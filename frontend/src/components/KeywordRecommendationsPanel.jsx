@@ -255,13 +255,13 @@ export default function KeywordRecommendationsPanel({ profileId }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18, alignItems: 'center' }}>
         <input type="text" placeholder="ASIN" value={asin} onChange={e => setAsin(e.target.value)}
           style={{ background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', borderRadius: 7, color: 'var(--text-primary)', padding: '8px 12px', fontSize: 12, outline: 'none', width: 140, fontFamily: 'monospace' }} />
-        <span style={{ color: 'var(--border-med)', fontSize: 11 }}>or</span>
+        <span style={{ color: 'var(--text-faint)', fontSize: 11 }}>or</span>
         <input type="text" placeholder="SKU" value={sku} onChange={e => setSku(e.target.value)}
           style={{ background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', borderRadius: 7, color: 'var(--text-primary)', padding: '8px 12px', fontSize: 12, outline: 'none', width: 160, fontFamily: 'monospace' }} />
         <span style={{ width: 1, height: 20, background: 'var(--border-strong)' }} />
         <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} max={endDate}
           style={{ background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', borderRadius: 7, color: 'var(--text-primary)', padding: '8px 12px', fontSize: 12, outline: 'none' }} />
-        <span style={{ color: 'var(--border-med)', fontSize: 12 }}>→</span>
+        <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>→</span>
         <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} min={startDate} max={today}
           style={{ background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', borderRadius: 7, color: 'var(--text-primary)', padding: '8px 12px', fontSize: 12, outline: 'none' }} />
         <button onClick={handleLoad} disabled={loading}

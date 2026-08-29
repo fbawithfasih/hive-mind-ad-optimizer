@@ -84,12 +84,12 @@ export default function WeeklyScoreCard({ metricsSummary, metricsHistory }) {
                 display: 'flex', flexDirection: 'column', gap: 6,
               }}
             >
-              <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--bg-panel)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+              <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
                 {card.label}
               </span>
               <span style={{
                 fontSize: 20, fontWeight: 900, lineHeight: 1,
-                color: card.value != null ? card.color : 'var(--bg-panel)',
+                color: card.value != null ? card.color : 'var(--text-faint)',
                 fontFamily: 'ui-monospace, monospace',
               }}>
                 {card.value != null ? fmt[card.format](card.value) : '—'}
@@ -97,7 +97,7 @@ export default function WeeklyScoreCard({ metricsSummary, metricsHistory }) {
               {card.betterWhenHigher != null && delta != null ? (
                 <DeltaBadge delta={delta} betterWhenHigher={card.betterWhenHigher} />
               ) : (
-                <span style={{ fontSize: 9, color: 'var(--bg-panel)' }}>
+                <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>
                   {!hasAnyValue ? 'Load metrics' : prevRoas == null ? 'Load again to see delta' : '—'}
                 </span>
               )}

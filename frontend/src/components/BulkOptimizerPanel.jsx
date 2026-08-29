@@ -62,9 +62,9 @@ function StatCard({ label, value, sub, gradient, glow, accentColor, icon, spark 
       <GlowBlob color={glow} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
         <div>
-          <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 8px' }}>{label}</p>
+          <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 8px' }}>{label}</p>
           <p style={{ fontSize: 28, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1, letterSpacing: '-0.5px' }}>{value}</p>
-          {sub && <p style={{ fontSize: 11, color: 'var(--border-med)', margin: '5px 0 0', fontWeight: 500 }}>{sub}</p>}
+          {sub && <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '5px 0 0', fontWeight: 500 }}>{sub}</p>}
         </div>
         <div style={{ width: 42, height: 42, borderRadius: 13, background: gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 4px 14px ${glow}` }}>
           <div style={{ color: '#fff' }}>{icon}</div>
@@ -85,7 +85,7 @@ function VibrantProgressBar({ completed, total, failed }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', align: 'center', gap: 16 }}>
-          <span style={{ fontSize: 12, color: 'var(--border-med)', fontWeight: 500 }}>{processed} / {total} processed</span>
+          <span style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 500 }}>{processed} / {total} processed</span>
           {completed > 0 && <span style={{ fontSize: 12, color: '#10B981', fontWeight: 700 }}>✓ {completed} done</span>}
           {failed > 0    && <span style={{ fontSize: 12, color: '#F43F5E', fontWeight: 700 }}>✗ {failed} failed</span>}
         </div>
@@ -136,7 +136,7 @@ function CopyBtn({ text }) {
   const [copied, setCopied] = useState(false);
   return (
     <button onClick={() => { navigator.clipboard.writeText(text ?? ''); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      style={{ fontSize: 10, padding: '3px 10px', borderRadius: 6, border: `1px solid ${copied ? '#10B981' : 'var(--overlay-8)'}`, background: copied ? 'rgba(16,185,129,0.1)' : 'var(--overlay-3)', cursor: 'pointer', color: copied ? '#10B981' : 'var(--border-med)', transition: 'all .15s', whiteSpace: 'nowrap' }}>
+      style={{ fontSize: 10, padding: '3px 10px', borderRadius: 6, border: `1px solid ${copied ? '#10B981' : 'var(--overlay-8)'}`, background: copied ? 'rgba(16,185,129,0.1)' : 'var(--overlay-3)', cursor: 'pointer', color: copied ? '#10B981' : 'var(--text-faint)', transition: 'all .15s', whiteSpace: 'nowrap' }}>
       {copied ? '✓ Copied' : 'Copy'}
     </button>
   );
@@ -160,7 +160,7 @@ function ItemCard({ item, index }) {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: done && item.optimizedTitle ? 12 : 0, position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--border-strong)', background: 'var(--overlay-3)', padding: '2px 8px', borderRadius: 6, fontFamily: 'monospace' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-faint)', background: 'var(--overlay-3)', padding: '2px 8px', borderRadius: 6, fontFamily: 'monospace' }}>
             #{String(index + 1).padStart(2, '0')}
           </span>
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace', letterSpacing: '0.03em' }}>{item.asin || item.sku}</span>
@@ -180,7 +180,7 @@ function ItemCard({ item, index }) {
       {done && item.optimizedTitle && (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--border-strong)' }}>Optimized Title</span>
+            <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-faint)' }}>Optimized Title</span>
             <CopyBtn text={item.optimizedTitle} />
           </div>
           <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, background: 'var(--overlay-1)', borderRadius: 8, padding: '8px 10px', border: '1px solid var(--overlay-3)' }}>
@@ -188,18 +188,18 @@ function ItemCard({ item, index }) {
           </p>
           {item.optimizedBullets?.length > 0 && (
             <details style={{ marginTop: 8 }}>
-              <summary style={{ fontSize: 11, color: 'var(--border-med)', cursor: 'pointer', fontWeight: 600 }}>
+              <summary style={{ fontSize: 11, color: 'var(--text-faint)', cursor: 'pointer', fontWeight: 600 }}>
                 View bullets & description
               </summary>
               <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {item.optimizedBullets.filter(Boolean).map((b, bi) => (
                   <div key={bi} style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, background: 'var(--overlay-1)', borderRadius: 6, padding: '6px 10px', border: '1px solid var(--overlay-3)' }}>
-                    <span style={{ color: 'var(--border-med)', fontWeight: 700 }}>• </span>{b}
+                    <span style={{ color: 'var(--text-faint)', fontWeight: 700 }}>• </span>{b}
                   </div>
                 ))}
                 {item.optimizedDescription && (
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, background: 'var(--overlay-1)', borderRadius: 6, padding: '8px 10px', border: '1px solid var(--overlay-3)', marginTop: 4 }}>
-                    <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--border-strong)', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Description</span>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-faint)', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Description</span>
                     {item.optimizedDescription}
                   </div>
                 )}
@@ -301,7 +301,7 @@ export default function BulkOptimizerPanel({ aiModel }) {
                 </span>
               )}
             </p>
-            <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--border-strong)' }}>
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-faint)' }}>
               Paste up to 50 ASINs — one per line. AI optimizes each listing asynchronously in parallel.
             </p>
           </div>
@@ -327,8 +327,8 @@ export default function BulkOptimizerPanel({ aiModel }) {
               <GradientBar top="linear-gradient(90deg,#3B82F6,#6366F1)" />
               <div style={{ position: 'relative' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>ASINs / SKUs</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: itemCount > 0 ? '#6366F1' : 'var(--border-strong)', background: itemCount > 0 ? 'rgba(99,102,241,0.12)' : 'var(--overlay-3)', padding: '2px 10px', borderRadius: 99, border: `1px solid ${itemCount > 0 ? 'rgba(99,102,241,0.25)' : 'var(--overlay-5)'}`, transition: 'all 0.2s' }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>ASINs / SKUs</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: itemCount > 0 ? '#6366F1' : 'var(--text-faint)', background: itemCount > 0 ? 'rgba(99,102,241,0.12)' : 'var(--overlay-3)', padding: '2px 10px', borderRadius: 99, border: `1px solid ${itemCount > 0 ? 'rgba(99,102,241,0.25)' : 'var(--overlay-5)'}`, transition: 'all 0.2s' }}>
                     {itemCount} / 50 items
                   </span>
                 </div>
@@ -354,7 +354,7 @@ export default function BulkOptimizerPanel({ aiModel }) {
                   <button key={id} type="button" onClick={() => setModel(id)}
                     style={{ fontSize: 12, fontWeight: 700, padding: '7px 16px', borderRadius: 9, border: 'none', cursor: 'pointer', transition: 'all .15s',
                       background: model === id ? `linear-gradient(135deg,${color},${color}cc)` : 'transparent',
-                      color: model === id ? '#fff' : 'var(--border-med)',
+                      color: model === id ? '#fff' : 'var(--text-faint)',
                       boxShadow: model === id ? `0 2px 12px ${glow}` : 'none',
                     }}>
                     {label}
@@ -438,13 +438,13 @@ export default function BulkOptimizerPanel({ aiModel }) {
           <GlowBlob color={isDone && failed === 0 ? 'rgba(16,185,129,0.2)' : 'rgba(99,102,241,0.2)'} />
           <div style={{ position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                 {isDone ? (failed === 0 ? '✦ Batch Complete' : '⚠ Batch Complete with Errors') : '⚡ Processing…'}
               </p>
               {isRunning && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Spinner size={12} />
-                  <span style={{ fontSize: 11, color: 'var(--border-med)' }}>results appear as they complete</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>results appear as they complete</span>
                 </div>
               )}
             </div>
@@ -464,7 +464,7 @@ export default function BulkOptimizerPanel({ aiModel }) {
       {items.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
-            <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
               Results ({items.length})
             </p>
             {isDone && completed > 0 && (

@@ -88,7 +88,7 @@ const S = {
     color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', textDecoration: 'none',
   },
   link: { display: 'inline-block', marginTop: 16, fontSize: 13, color: '#3B82F6', textDecoration: 'none' },
-  ref: { marginTop: 22, fontSize: 11, color: 'var(--border-med)', fontFamily: 'monospace' },
+  ref: { marginTop: 22, fontSize: 11, color: 'var(--text-faint)', fontFamily: 'monospace' },
 };
 
 export default function SpApiOAuthError() {

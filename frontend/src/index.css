@@ -41,6 +41,13 @@
   --text-faint:    #475569;
   --text-invert:   #0F172A;    /* text on colored gradient buttons */
 
+  /* Gradient-clipped display text. These are foreground colours, so they need a
+     per-theme definition — the dark set is light-on-dark by construction and
+     turns invisible against a white page. */
+  --grad-hero:   linear-gradient(135deg, #FFFFFF 0%, #A78BFA 40%, #60A5FA 70%, #F472B6 100%);
+  --grad-accent: linear-gradient(135deg, #A78BFA, #60A5FA);
+  --grad-accent-90: linear-gradient(90deg, #A78BFA, #60A5FA);
+
   /* Legacy tailwind semantic aliases still exported */
   --color-ink:     #0F172A;
   --color-surface: #1E293B;
@@ -84,8 +91,14 @@ html.light {
   --text-strong:   #1F2937;
   --text-muted:    #4B5563;
   --text-subtle:   #6B7280;
-  --text-faint:    #9CA3AF;
+  /* 4.51:1 on white — the dimmest step that still clears WCAG AA for body
+     text. #9CA3AF (the obvious slate-400 pick) is only 2.54:1. */
+  --text-faint:    #6F7785;
   --text-invert:   #FFFFFF;
+
+  --grad-hero:   linear-gradient(135deg, #4C1D95 0%, #7C3AED 40%, #2563EB 70%, #DB2777 100%);
+  --grad-accent: linear-gradient(135deg, #7C3AED, #2563EB);
+  --grad-accent-90: linear-gradient(90deg, #7C3AED, #2563EB);
 
   /* Legacy tailwind aliases */
   --color-ink:     #F5F5F7;

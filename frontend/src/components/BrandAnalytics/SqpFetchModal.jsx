@@ -102,7 +102,7 @@ export default function SqpFetchModal({ onClose, onSubmitted }) {
               </p>
             </div>
             <button onClick={onClose} aria-label="Close" style={{
-              background: 'transparent', border: 'none', color: 'var(--border-med)', cursor: 'pointer',
+              background: 'transparent', border: 'none', color: 'var(--text-faint)', cursor: 'pointer',
               fontSize: 22, lineHeight: 1, padding: '0 4px',
             }}>×</button>
           </div>
@@ -113,7 +113,7 @@ export default function SqpFetchModal({ onClose, onSubmitted }) {
           {loading ? (
             <div style={{ padding: 40, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
               <Spinner size={24} />
-              <p style={{ fontSize: 12, color: 'var(--border-med)', margin: 0 }}>Loading ASINs from latest Catalog report…</p>
+              <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>Loading ASINs from latest Catalog report…</p>
             </div>
           ) : error && asins.length === 0 ? (
             <div style={{ padding: 30, textAlign: 'center' }}>
@@ -151,7 +151,7 @@ export default function SqpFetchModal({ onClose, onSubmitted }) {
               {/* List */}
               <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
                 {sorted.length === 0 ? (
-                  <p style={{ padding: 30, textAlign: 'center', fontSize: 12, color: 'var(--border-med)', margin: 0 }}>No ASINs match the filter.</p>
+                  <p style={{ padding: 30, textAlign: 'center', fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>No ASINs match the filter.</p>
                 ) : sorted.map(r => {
                   const isSelected = selected.has(r.asin);
                   const isDisabled = !isSelected && selected.size >= MAX_ASINS;
@@ -173,7 +173,7 @@ export default function SqpFetchModal({ onClose, onSubmitted }) {
                       <div style={{ minWidth: 0 }}>
                         <p style={{ margin: 0, fontFamily: 'monospace', fontSize: 11.5, color: COLORS.purple.accent, fontWeight: 700 }}>{r.asin}</p>
                         <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {r.title || <em style={{ color: 'var(--border-med)' }}>untitled</em>}
+                          {r.title || <em style={{ color: 'var(--text-faint)' }}>untitled</em>}
                         </p>
                       </div>
                       <span style={{ fontSize: 11, color: COLORS.green.accent, fontWeight: 700, fontFamily: 'monospace' }}>${fmtN(Math.round(r.revenue ?? 0))}</span>
@@ -190,7 +190,7 @@ export default function SqpFetchModal({ onClose, onSubmitted }) {
         <div style={{ padding: '14px 20px', borderTop: '1px solid var(--overlay-4)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: selected.size === MAX_ASINS ? COLORS.amber.accent : 'var(--text-muted)' }}>
             {selected.size}/{MAX_ASINS} ASINs selected
-            {period && <span style={{ color: 'var(--border-med)' }}> · from Catalog {new Date(period.start).toLocaleDateString('en-US', { month: 'short' })}–{new Date(period.end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
+            {period && <span style={{ color: 'var(--text-faint)' }}> · from Catalog {new Date(period.start).toLocaleDateString('en-US', { month: 'short' })}–{new Date(period.end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
           </span>
           {error && asins.length > 0 && (
             <span style={{ fontSize: 11, color: '#F87171', flexBasis: '100%' }}>{error}</span>
@@ -208,7 +208,7 @@ export default function SqpFetchModal({ onClose, onSubmitted }) {
                 fontSize: 12, fontWeight: 700, padding: '8px 18px', borderRadius: 8, border: 'none',
                 cursor: (submitting || selected.size === 0 || loading) ? 'not-allowed' : 'pointer',
                 background: (submitting || selected.size === 0 || loading) ? 'var(--overlay-5)' : COLORS.purple.gradient,
-                color: (submitting || selected.size === 0 || loading) ? 'var(--border-med)' : '#fff',
+                color: (submitting || selected.size === 0 || loading) ? 'var(--text-faint)' : '#fff',
                 boxShadow: (selected.size > 0 && !submitting && !loading) ? `0 4px 16px ${COLORS.purple.glow}` : 'none',
               }}>
               {submitting ? <><Spinner size={11} /> Enqueuing…</> : 'Fetch SQP report'}

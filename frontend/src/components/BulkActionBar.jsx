@@ -132,7 +132,7 @@ export default function BulkActionBar({ count, campaigns, selectedIds, onAction,
                   color: 'var(--text-primary)', fontSize: 13, outline: 'none',
                 }}
               />
-              <span style={{ fontSize: 11, color: 'var(--border-med)' }}>
+              <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>
                 {budgetMode === 'pct' ? '%' : '/day'}
               </span>
             </div>

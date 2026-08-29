@@ -132,7 +132,7 @@ function BudgetBars({ campaigns }) {
     .sort((a, b) => (b.budget ?? 0) - (a.budget ?? 0))
     .slice(0, 7);
   if (!top.length) return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 140, color: 'var(--border-strong)', fontSize: 13 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 140, color: 'var(--text-faint)', fontSize: 13 }}>
       <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ opacity: .3, marginBottom: 8 }}>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
@@ -204,9 +204,9 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, position: 'relative' }}>
         <div>
-          <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 10px' }}>{label}</p>
+          <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 10px' }}>{label}</p>
           <p style={{ fontSize: 30, fontWeight: 900, color: '#FFFFFF', margin: 0, lineHeight: 1, letterSpacing: '-1px' }}>{value}</p>
-          {sub && <p style={{ fontSize: 11, color: 'var(--border-med)', margin: '6px 0 0', fontWeight: 500 }}>{sub}</p>}
+          {sub && <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '6px 0 0', fontWeight: 500 }}>{sub}</p>}
         </div>
 
         {ringPct !== undefined ? (
@@ -536,7 +536,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                 {f.alertName} · {f.campaignName}
               </span>
             ))}
-            {alertBanner.count > 2 && <span style={{ fontSize: 11, color: 'var(--border-med)' }}>+{alertBanner.count - 2} more</span>}
+            {alertBanner.count > 2 && <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>+{alertBanner.count - 2} more</span>}
           </span>
           <button onClick={() => { setActiveTab('alerts'); resetAlertPolling(); markFiresReadApi().catch(() => {}); }}
             style={{ fontSize: 12, fontWeight: 700, color: '#F43F5E', background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', flexShrink: 0 }}>
@@ -554,14 +554,14 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               {MODULE_LABELS[activeTab] ?? '📊 Campaigns'}
             </h1>
             {activeTab === 'campaigns' && selectedProfile && (
-              <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--border-strong)', fontWeight: 500 }}>
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-faint)', fontWeight: 500 }}>
                 {FLAG(selectedProfile.countryCode)} {selectedProfile.profileName ?? selectedProfile.accountName} · {selectedProfile.countryCode} marketplace
               </p>
             )}
           </div>
           {activeTab === 'campaigns' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 11, color: 'var(--border-strong)' }}>
+              <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>
                 {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
               </span>
             </div>
@@ -723,7 +723,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               position: 'relative', overflow: 'hidden',
             }}>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #6366F1, #8B5CF6, #A78BFA)' }} />
-              <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 20px' }}>Campaign Status</p>
+              <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 20px' }}>Campaign Status</p>
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <DonutChart enabled={stats.enabled} paused={stats.paused} archived={stats.archived} total={stats.total} size={160} />
               </div>
@@ -741,8 +741,8 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             }}>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #8B5CF6, #3B82F6, #10B981)' }} />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>Top Budget Campaigns</p>
-                <span style={{ fontSize: 10, color: 'var(--border-strong)', fontWeight: 600 }}>Daily spend</span>
+                <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>Top Budget Campaigns</p>
+                <span style={{ fontSize: 10, color: 'var(--text-faint)', fontWeight: 600 }}>Daily spend</span>
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <BudgetBars campaigns={campaigns} />
@@ -771,7 +771,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                 </div>
                 <div>
                   <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)' }}>AI Command</span>
-                  <span style={{ display: 'block', fontSize: 10, color: 'var(--border-med)', fontWeight: 500 }}>Ask anything about your campaigns</span>
+                  <span style={{ display: 'block', fontSize: 10, color: 'var(--text-faint)', fontWeight: 500 }}>Ask anything about your campaigns</span>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 4, background: 'var(--overlay-3)', borderRadius: 10, padding: 3, border: '1px solid var(--overlay-5)' }}>
@@ -783,7 +783,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                     fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 7,
                     border: 'none', cursor: 'pointer', transition: 'all .15s',
                     background: aiModel === id ? color : 'transparent',
-                    color: aiModel === id ? '#fff' : 'var(--border-med)',
+                    color: aiModel === id ? '#fff' : 'var(--text-faint)',
                     boxShadow: aiModel === id ? `0 2px 12px ${glow}` : 'none',
                   }}>
                     {label}
@@ -813,7 +813,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                 <div>
                   <p style={{ fontWeight: 800, fontSize: 15, color: 'var(--text-primary)', margin: 0 }}>Campaigns</p>
-                  <p style={{ fontSize: 11, color: 'var(--border-strong)', margin: '3px 0 0', fontWeight: 500 }}>
+                  <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '3px 0 0', fontWeight: 500 }}>
                     {filtered.length} of {stats.total} shown
                     {metricsDateRange.start && (
                       <span style={{ color: '#10B981', marginLeft: 8 }}>
@@ -841,12 +841,12 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                       {key === 'L7' ? '7d' : key === 'L30' ? '30d' : key}
                     </button>
                   ))}
-                  <span style={{ color: 'var(--overlay-8)', fontSize: 14 }}>|</span>
+                  <span style={{ color: 'var(--text-faint)', fontSize: 14 }}>|</span>
                   <input type="date" value={dateFrom}
                     onChange={e => { handleDateFromChange(e.target.value); setActivePreset(null); }}
                     min={sixtyDaysAgo} max={dateTo}
                     style={{ background: 'var(--overlay-3)', border: '1px solid var(--overlay-7)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none' }} />
-                  <span style={{ color: 'var(--border-strong)', fontSize: 12 }}>→</span>
+                  <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>→</span>
                   <input type="date" value={dateTo}
                     onChange={e => { handleDateToChange(e.target.value); setActivePreset(null); }}
                     min={dateFrom} max={today}

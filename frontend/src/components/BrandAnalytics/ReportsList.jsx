@@ -101,7 +101,7 @@ export default function ReportsList() {
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
             <p style={{ margin: 0, fontWeight: 900, fontSize: 16, color: 'var(--text-primary)', letterSpacing: '-0.4px' }}>Brand Analytics Reports</p>
-            <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--border-med)' }}>
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-faint)' }}>
               Auto-fetched from Amazon SP-API on a tier-based cadence. Manually trigger a refresh below if you need fresher data.
             </p>
           </div>
@@ -127,7 +127,7 @@ export default function ReportsList() {
           display: 'grid', gridTemplateColumns: '2fr 2.2fr 1.2fr 1.1fr 0.9fr',
           gap: 0, padding: '12px 20px', background: 'rgba(255,255,255,0.025)',
           borderBottom: '1px solid var(--overlay-4)',
-          fontSize: 10, fontWeight: 800, color: 'var(--border-med)', textTransform: 'uppercase', letterSpacing: '0.1em',
+          fontSize: 10, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em',
         }}>
           <div>Report</div>
           <div>Latest period</div>
@@ -137,13 +137,13 @@ export default function ReportsList() {
         </div>
 
         {loading && !reports && (
-          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--border-med)', fontSize: 13 }}>
+          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
             <Spinner /> Loading reports…
           </div>
         )}
 
         {reports?.length === 0 && !loading && (
-          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--border-med)', fontSize: 13 }}>
+          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
             No reports yet — trigger a fetch below to start, or wait for the next scheduled sweep.
           </div>
         )}
@@ -164,10 +164,10 @@ export default function ReportsList() {
             }}>
               <div>
                 <p style={{ margin: 0, fontWeight: 700, color: 'var(--text-strong)', fontSize: 12.5 }}>{meta.label}</p>
-                <p style={{ margin: '3px 0 0', color: 'var(--border-med)', fontSize: 11 }}>{meta.desc}</p>
+                <p style={{ margin: '3px 0 0', color: 'var(--text-faint)', fontSize: 11 }}>{meta.desc}</p>
               </div>
               <div style={{ color: 'var(--text-muted)' }}>
-                {latest ? fmtPeriod(latest.periodStart, latest.periodEnd) : <span style={{ color: 'var(--border-med)' }}>never fetched</span>}
+                {latest ? fmtPeriod(latest.periodStart, latest.periodEnd) : <span style={{ color: 'var(--text-faint)' }}>never fetched</span>}
                 {latest?.error && (
                   <p title={latest.error} style={{ margin: '3px 0 0', fontSize: 10.5, color: '#F87171', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {latest.error.length > 70 ? latest.error.slice(0, 70) + '…' : latest.error}
@@ -184,7 +184,7 @@ export default function ReportsList() {
                     {inFlight && <Spinner size={9} />}
                     {stStyle.label}
                   </span>
-                ) : <span style={{ color: 'var(--border-med)' }}>—</span>}
+                ) : <span style={{ color: 'var(--text-faint)' }}>—</span>}
               </div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11.5 }}>{fmtFetchedAt(latest?.fetchedAt)}</div>
               <div style={{ textAlign: 'right' }}>
@@ -201,7 +201,7 @@ export default function ReportsList() {
                     border: '1px solid rgba(139,92,246,0.25)',
                     cursor: (triggering || inFlight) ? 'not-allowed' : 'pointer',
                     background: triggering ? 'var(--overlay-5)' : 'rgba(139,92,246,0.10)',
-                    color: (triggering || inFlight) ? 'var(--border-med)' : '#A78BFA',
+                    color: (triggering || inFlight) ? 'var(--text-faint)' : '#A78BFA',
                   }}>
                   {triggering ? <Spinner size={10} /> : inFlight ? 'Running…' : (type === 'SQP_BRAND' ? 'Pick ASINs…' : 'Fetch now')}
                 </button>
@@ -211,7 +211,7 @@ export default function ReportsList() {
         })}
       </div>
 
-      <p style={{ fontSize: 11, color: 'var(--border-med)', textAlign: 'center', margin: 0 }}>
+      <p style={{ fontSize: 11, color: 'var(--text-faint)', textAlign: 'center', margin: 0 }}>
         Auto-refreshing while any report is processing. Period coverage is determined by your subscription tier.
       </p>
 

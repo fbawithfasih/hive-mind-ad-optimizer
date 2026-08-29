@@ -10,13 +10,13 @@ function MetricPill({ label, value, color, sub }) {
       gap: 2,
       minWidth: 100,
     }}>
-      <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--bg-panel)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+      <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
         {label}
       </span>
       <span style={{ fontSize: 18, fontWeight: 900, color: color ?? 'var(--text-primary)', fontFamily: 'ui-monospace, monospace', lineHeight: 1.2 }}>
         {value}
       </span>
-      {sub && <span style={{ fontSize: 9, color: 'var(--border-strong)', fontWeight: 500 }}>{sub}</span>}
+      {sub && <span style={{ fontSize: 9, color: 'var(--text-faint)', fontWeight: 500 }}>{sub}</span>}
     </div>
   );
 }

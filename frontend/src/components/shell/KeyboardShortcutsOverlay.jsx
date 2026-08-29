@@ -88,7 +88,7 @@ export default function KeyboardShortcutsOverlay({ open, onClose }) {
         <div style={{ padding: '16px 22px 12px', borderBottom: '1px solid var(--overlay-5)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>Keyboard Shortcuts</p>
-            <p style={{ margin: '3px 0 0', fontSize: 11, color: 'var(--border-strong)' }}>Press <Kbd>?</Kbd> anytime to show / hide</p>
+            <p style={{ margin: '3px 0 0', fontSize: 11, color: 'var(--text-faint)' }}>Press <Kbd>?</Kbd> anytime to show / hide</p>
           </div>
           <button
             onClick={onClose}
@@ -102,7 +102,7 @@ export default function KeyboardShortcutsOverlay({ open, onClose }) {
         <div style={{ padding: '16px 22px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0 24px' }}>
           {SECTIONS.map(section => (
             <div key={section.title}>
-              <p style={{ margin: '0 0 10px', fontSize: 9, fontWeight: 800, color: 'var(--bg-panel)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              <p style={{ margin: '0 0 10px', fontSize: 9, fontWeight: 800, color: 'var(--text-faint)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
                 {section.title}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -111,7 +111,7 @@ export default function KeyboardShortcutsOverlay({ open, onClose }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 68 }}>
                       {keys.map((k, i) => (
                         <React.Fragment key={i}>
-                          {i > 0 && <span style={{ fontSize: 9, color: 'var(--border-strong)' }}>then</span>}
+                          {i > 0 && <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>then</span>}
                           <Kbd>{k}</Kbd>
                         </React.Fragment>
                       ))}

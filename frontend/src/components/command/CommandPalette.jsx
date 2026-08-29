@@ -106,7 +106,7 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
               }}
             />
             <kbd style={{
-              fontSize: 10, fontWeight: 700, color: 'var(--border-strong)',
+              fontSize: 10, fontWeight: 700, color: 'var(--text-faint)',
               background: 'var(--overlay-4)', border: '1px solid var(--overlay-7)',
               borderRadius: 5, padding: '2px 6px', letterSpacing: '0.04em', flexShrink: 0,
             }}>
@@ -121,7 +121,7 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
             scrollbarWidth: 'thin',
             scrollbarColor: 'var(--bg-panel) transparent',
           }}>
-            <Command.Empty style={{ padding: '28px 18px', textAlign: 'center', fontSize: 13, color: 'var(--border-strong)' }}>
+            <Command.Empty style={{ padding: '28px 18px', textAlign: 'center', fontSize: 13, color: 'var(--text-faint)' }}>
               No results for "{query}"
             </Command.Empty>
 
@@ -138,7 +138,7 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
                   <span style={iconStyle}>{cmd.icon}</span>
                   <span style={{ flex: 1 }}>
                     <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{cmd.label}</span>
-                    {cmd.hint && <span style={{ color: 'var(--border-strong)', fontSize: 11, marginLeft: 8 }}>{cmd.hint}</span>}
+                    {cmd.hint && <span style={{ color: 'var(--text-faint)', fontSize: 11, marginLeft: 8 }}>{cmd.hint}</span>}
                   </span>
                   <span style={enterStyle}>↵</span>
                 </Command.Item>
@@ -224,13 +224,13 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
           }}>
             {[['↑↓', 'navigate'], ['↵', 'select'], ['esc', 'close']].map(([key, label]) => (
               <span key={key} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <kbd style={{ fontSize: 10, color: 'var(--bg-panel)', background: 'var(--overlay-5)', border: '1px solid var(--overlay-7)', borderRadius: 4, padding: '1px 5px' }}>
+                <kbd style={{ fontSize: 10, color: 'var(--text-faint)', background: 'var(--overlay-5)', border: '1px solid var(--overlay-7)', borderRadius: 4, padding: '1px 5px' }}>
                   {key}
                 </kbd>
-                <span style={{ fontSize: 10, color: 'var(--bg-panel)' }}>{label}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{label}</span>
               </span>
             ))}
-            <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--bg-panel)', letterSpacing: '0.04em' }}>
+            <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-faint)', letterSpacing: '0.04em' }}>
               ⌘K to toggle
             </span>
           </div>
@@ -246,7 +246,7 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
           font-weight: 800;
           letter-spacing: 0.10em;
           text-transform: uppercase;
-          color: var(--bg-panel);
+          color: var(--text-faint);
         }
         [cmdk-list-sizer] { padding: 0; }
       `}</style>
@@ -270,7 +270,7 @@ const iconStyle = {
 };
 
 const enterStyle = {
-  fontSize: 11, color: 'var(--bg-panel)', opacity: 0, transition: 'opacity 0.1s',
+  fontSize: 11, color: 'var(--text-faint)', opacity: 0, transition: 'opacity 0.1s',
 };
 
 const dividerStyle = {

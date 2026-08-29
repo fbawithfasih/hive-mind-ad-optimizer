@@ -164,7 +164,7 @@ function DeepDive({ competitor, brandAppearances }) {
       {/* Shared */}
       {tab === 'shared' && (
         shared.length === 0
-          ? <p style={{ fontSize: 12, color: 'var(--border-med)', margin: 0 }}>No shared keywords found.</p>
+          ? <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>No shared keywords found.</p>
           : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -191,7 +191,7 @@ function DeepDive({ competitor, brandAppearances }) {
                   ))}
                 </tbody>
               </table>
-              {shared.length > 20 && <p style={{ fontSize: 11, color: 'var(--border-med)', padding: '8px 10px 0', margin: 0 }}>+{shared.length - 20} more</p>}
+              {shared.length > 20 && <p style={{ fontSize: 11, color: 'var(--text-faint)', padding: '8px 10px 0', margin: 0 }}>+{shared.length - 20} more</p>}
             </div>
           )
       )}
@@ -199,7 +199,7 @@ function DeepDive({ competitor, brandAppearances }) {
       {/* Threats */}
       {tab === 'threats' && (
         threats.length === 0
-          ? <p style={{ fontSize: 12, color: 'var(--border-med)', margin: 0 }}>Your brand appears everywhere this competitor does.</p>
+          ? <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>Your brand appears everywhere this competitor does.</p>
           : (
             <>
               <p style={{ fontSize: 11, color: 'var(--text-subtle)', margin: '0 0 12px' }}>
@@ -226,7 +226,7 @@ function DeepDive({ competitor, brandAppearances }) {
                     ))}
                   </tbody>
                 </table>
-                {threats.length > 20 && <p style={{ fontSize: 11, color: 'var(--border-med)', padding: '8px 10px 0', margin: 0 }}>+{threats.length - 20} more</p>}
+                {threats.length > 20 && <p style={{ fontSize: 11, color: 'var(--text-faint)', padding: '8px 10px 0', margin: 0 }}>+{threats.length - 20} more</p>}
               </div>
             </>
           )
@@ -235,7 +235,7 @@ function DeepDive({ competitor, brandAppearances }) {
       {/* Brand exclusive */}
       {tab === 'exclusive' && (
         brandOnly.length === 0
-          ? <p style={{ fontSize: 12, color: 'var(--border-med)', margin: 0 }}>This competitor appears in all keywords your brand does.</p>
+          ? <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>This competitor appears in all keywords your brand does.</p>
           : (
             <>
               <p style={{ fontSize: 11, color: 'var(--text-subtle)', margin: '0 0 12px' }}>
@@ -262,7 +262,7 @@ function DeepDive({ competitor, brandAppearances }) {
                     ))}
                   </tbody>
                 </table>
-                {brandOnly.length > 20 && <p style={{ fontSize: 11, color: 'var(--border-med)', padding: '8px 10px 0', margin: 0 }}>+{brandOnly.length - 20} more</p>}
+                {brandOnly.length > 20 && <p style={{ fontSize: 11, color: 'var(--text-faint)', padding: '8px 10px 0', margin: 0 }}>+{brandOnly.length - 20} more</p>}
               </div>
             </>
           )
@@ -276,7 +276,7 @@ function DeepDive({ competitor, brandAppearances }) {
 function NoOverlapMessage({ competitor }) {
   return (
     <div style={{ borderTop: '1px solid var(--overlay-3)', background: 'rgba(8,12,20,0.60)', padding: '12px 16px 12px 40px' }}>
-      <p style={{ fontSize: 11, color: 'var(--border-med)', margin: '0 0 10px' }}>
+      <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '0 0 10px' }}>
         Overlap analysis requires brand data. Enter a brand name and click Analyse Brand.
       </p>
       {competitor.keywords?.length > 0 && (
@@ -289,7 +289,7 @@ function NoOverlapMessage({ competitor }) {
               </span>
             );
           })}
-          {competitor.keywords.length > 15 && <span style={{ fontSize: 11, color: 'var(--border-med)' }}>+{competitor.keywords.length - 15} more</span>}
+          {competitor.keywords.length > 15 && <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>+{competitor.keywords.length - 15} more</span>}
         </div>
       )}
     </div>
@@ -314,10 +314,10 @@ export default function CompetitorsList({ competitors = [], marketConcentration,
           <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
             Top Competitors
           </p>
-          <p style={{ fontSize: 12, color: 'var(--border-med)', margin: '2px 0 0' }}>
+          <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: '2px 0 0' }}>
             <span style={{ fontVariantNumeric: 'tabular-nums' }}>{totalCompetitors ?? competitors.length}</span> unique ASINs
             {marketConcentration != null && <> · top-3 concentration <span style={{ fontVariantNumeric: 'tabular-nums' }}>{marketConcentration}%</span></>}
-            {hasBrandData && <span style={{ color: 'var(--border-strong)' }}> · click a row to see keyword overlap</span>}
+            {hasBrandData && <span style={{ color: 'var(--text-faint)' }}> · click a row to see keyword overlap</span>}
           </p>
         </div>
         <Badge text={`${competitors.length} ranked`} color={COLORS.red.accent} />
@@ -326,7 +326,7 @@ export default function CompetitorsList({ competitors = [], marketConcentration,
       {/* ── Click-share overview chart ── */}
       {competitors.length > 0 && (
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--overlay-5)' }}>
-          <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--border-med)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>
+          <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>
             Avg Click Share — Top 10
           </p>
           <ResponsiveContainer width="100%" height={competitors.slice(0, 10).length * 26 + 16}>
@@ -396,7 +396,7 @@ export default function CompetitorsList({ competitors = [], marketConcentration,
                         onMouseEnter={e => { if (!isOpen) e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}
                         onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background = 'transparent'; }}
                       >
-                        <td style={{ ...TD, color: 'var(--border-med)', fontVariantNumeric: 'tabular-nums', fontSize: 11 }}>
+                        <td style={{ ...TD, color: 'var(--text-faint)', fontVariantNumeric: 'tabular-nums', fontSize: 11 }}>
                           {i + 1}
                         </td>
                         <td style={{ ...TD, fontFamily: 'ui-monospace, monospace', color: 'var(--text-muted)', fontSize: 11, fontWeight: 600 }}>
@@ -407,7 +407,7 @@ export default function CompetitorsList({ competitors = [], marketConcentration,
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>
                               {c.title || '—'}
                             </span>
-                            <svg style={{ width: 12, height: 12, color: 'var(--border-strong)', flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg style={{ width: 12, height: 12, color: 'var(--text-faint)', flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
                           </div>

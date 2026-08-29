@@ -289,7 +289,7 @@ export default function ImageOptimizerPanel() {
           {!loading && !result && (
             <div style={{
               border: '1px dashed var(--overlay-7)', borderRadius: 12, padding: '40px 20px',
-              textAlign: 'center', color: 'var(--border-med)', fontSize: 13,
+              textAlign: 'center', color: 'var(--text-faint)', fontSize: 13,
             }}>
               Optimized image will appear here.
             </div>

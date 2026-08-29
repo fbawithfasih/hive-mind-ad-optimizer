@@ -53,7 +53,7 @@ export default function CampaignDetailChart({ campaign }) {
         <svg width="28" height="28" fill="none" stroke="var(--border-strong)" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4v16" />
         </svg>
-        <span style={{ fontSize: 12, color: 'var(--border-strong)' }}>Load metrics to see chart</span>
+        <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>Load metrics to see chart</span>
       </div>
     );
   }

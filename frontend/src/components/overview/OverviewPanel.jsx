@@ -14,7 +14,7 @@ const PIE_COLORS = { enabled: '#10B981', paused: '#F59E0B', archived: '#6366F1' 
 function SectionLabel({ children }) {
   return (
     <p style={{
-      fontSize: 9, fontWeight: 800, color: 'var(--bg-panel)',
+      fontSize: 9, fontWeight: 800, color: 'var(--text-faint)',
       textTransform: 'uppercase', letterSpacing: '0.14em',
       margin: '0 0 12px',
     }}>
@@ -245,8 +245,8 @@ export default function OverviewPanel({
               <svg width="32" height="32" fill="none" stroke="var(--bg-panel)" viewBox="0 0 24 24" style={{ opacity: 0.4 }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4v16" />
               </svg>
-              <span style={{ fontSize: 12, color: 'var(--border-strong)' }}>Load metrics to see trend</span>
-              <span style={{ fontSize: 10, color: 'var(--bg-panel)' }}>Multiple loads build the chart</span>
+              <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>Load metrics to see trend</span>
+              <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>Multiple loads build the chart</span>
             </div>
           )}
           {spendRevenueData.length >= 2 && (
@@ -254,7 +254,7 @@ export default function OverviewPanel({
               {[{ color: '#3B82F6', label: 'Revenue' }, { color: '#8B5CF6', label: 'Spend' }].map(l => (
                 <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <div style={{ width: 8, height: 2, background: l.color, borderRadius: 1 }} />
-                  <span style={{ fontSize: 10, color: 'var(--border-strong)', fontWeight: 600 }}>{l.label}</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-faint)', fontWeight: 600 }}>{l.label}</span>
                 </div>
               ))}
             </div>
@@ -297,14 +297,14 @@ export default function OverviewPanel({
                   iconType="circle"
                   iconSize={7}
                   formatter={(v, e) => (
-                    <span style={{ fontSize: 10, color: 'var(--border-med)', fontWeight: 600 }}>{v} ({e.payload.value})</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-faint)', fontWeight: 600 }}>{v} ({e.payload.value})</span>
                   )}
                 />
               </PieChart>
             </ResponsiveContainer>
           ) : (
             <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 12, color: 'var(--border-strong)' }}>No campaigns loaded</span>
+              <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>No campaigns loaded</span>
             </div>
           )}
         </ChartCard>
