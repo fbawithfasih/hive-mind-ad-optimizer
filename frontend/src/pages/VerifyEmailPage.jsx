@@ -3,15 +3,15 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { verifyEmailApi, resendVerificationApi } from '../services/api.js';
 
 const S = {
-  page: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#0F172A 0%,#1E293B 100%)' },
-  card: { width: '100%', maxWidth: 420, padding: '48px 36px', background: '#1E293B', borderRadius: 16, border: '1px solid #334155', boxShadow: '0 25px 60px rgba(0,0,0,0.5)', textAlign: 'center' },
+  page: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,var(--bg-app-2) 0%,var(--bg-panel) 100%)' },
+  card: { width: '100%', maxWidth: 420, padding: '48px 36px', background: 'var(--bg-panel)', borderRadius: 16, border: '1px solid var(--border-strong)', boxShadow: '0 25px 60px var(--bg-overlay-lo)', textAlign: 'center' },
   icon: { fontSize: 48, marginBottom: 16 },
-  h1: { margin: '0 0 8px', fontSize: 20, fontWeight: 700, color: '#F1F5F9' },
-  p: { margin: '0 0 24px', fontSize: 14, color: '#94A3B8', lineHeight: 1.6 },
-  btn: { display: 'inline-block', padding: '11px 24px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', textDecoration: 'none' },
-  linkBtn: { background: 'none', border: 'none', color: '#3B82F6', fontSize: 13, cursor: 'pointer', padding: 0 },
-  err: { background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#F87171', marginBottom: 16 },
-  ok: { background: '#10B98118', border: '1px solid #10B98144', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#34D399', marginBottom: 16 },
+  h1: { margin: '0 0 8px', fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' },
+  p: { margin: '0 0 24px', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 },
+  btn: { display: 'inline-block', padding: '11px 24px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', textDecoration: 'none' },
+  linkBtn: { background: 'none', border: 'none', color: 'var(--info-strong)', fontSize: 13, cursor: 'pointer', padding: 0 },
+  err: { background: 'color-mix(in srgb, var(--rose) 9%, transparent)', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)', marginBottom: 16 },
+  ok: { background: 'color-mix(in srgb, var(--success) 9%, transparent)', border: '1px solid #10B98144', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--success-2)', marginBottom: 16 },
 };
 
 export default function VerifyEmailPage() {
@@ -69,7 +69,7 @@ export default function VerifyEmailPage() {
         : <button style={S.linkBtn} onClick={handleResend}>Resend verification email</button>
       }
       <div style={{ marginTop: 16 }}>
-        <Link to="/login" style={{ fontSize: 13, color: '#64748B' }}>Back to login</Link>
+        <Link to="/login" style={{ fontSize: 13, color: 'var(--text-subtle)' }}>Back to login</Link>
       </div>
     </div></div>
   );
@@ -85,7 +85,7 @@ export default function VerifyEmailPage() {
         : <button style={S.linkBtn} onClick={handleResend}>Didn't get it? Resend</button>
       }
       <div style={{ marginTop: 20 }}>
-        <Link to="/login" style={{ fontSize: 13, color: '#64748B' }}>Back to login</Link>
+        <Link to="/login" style={{ fontSize: 13, color: 'var(--text-subtle)' }}>Back to login</Link>
       </div>
     </div></div>
   );

@@ -66,7 +66,7 @@ function RingProgress({ pct, color, glow, size = 88, stroke = 9, children }) {
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', display: 'block' }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--overlay-5)" strokeWidth={stroke} />
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
           strokeDasharray={`${filled} ${circ}`} strokeLinecap="round"
           style={{ filter: `drop-shadow(0 0 6px ${glow ?? color})`, transition: 'stroke-dasharray 1.2s ease' }} />
@@ -84,16 +84,16 @@ function DonutChart({ enabled, paused, archived, total, size = 160 }) {
   const circ = 2 * Math.PI * r;
   const tot = Math.max(total, 1);
   const segments = [
-    { value: enabled,  color: '#10B981', glow: 'rgba(16,185,129,0.6)',  label: 'Active'   },
-    { value: paused,   color: '#F59E0B', glow: 'rgba(245,158,11,0.6)',  label: 'Paused'   },
-    { value: archived, color: '#6366F1', glow: 'rgba(99,102,241,0.5)',  label: 'Archived' },
+    { value: enabled,  color: 'var(--success)', glow: 'rgba(16,185,129,0.6)',  label: 'Active'   },
+    { value: paused,   color: 'var(--warning)', glow: 'rgba(245,158,11,0.6)',  label: 'Paused'   },
+    { value: archived, color: 'var(--indigo)', glow: 'rgba(99,102,241,0.5)',  label: 'Archived' },
   ];
   let dashOffset = 0;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
       <div style={{ position: 'relative', width: size, height: size }}>
         <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', display: 'block' }}>
-          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={stroke} />
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--overlay-3)" strokeWidth={stroke} />
           {segments.map((seg, i) => {
             const dash = (seg.value / tot) * circ;
             const gap  = circ - dash;
@@ -111,14 +111,14 @@ function DonutChart({ enabled, paused, archived, total, size = 160 }) {
         </svg>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ fontSize: 26, fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>{total}</span>
-          <span style={{ fontSize: 10, fontWeight: 600, color: '#64748B', letterSpacing: '0.05em', marginTop: 2 }}>TOTAL</span>
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-subtle)', letterSpacing: '0.05em', marginTop: 2 }}>TOTAL</span>
         </div>
       </div>
       <div style={{ display: 'flex', gap: 14 }}>
         {segments.map(seg => (
           <div key={seg.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: seg.color, boxShadow: `0 0 6px ${seg.color}` }} />
-            <span style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{seg.label} <strong style={{ color: '#94A3B8' }}>{seg.value}</strong></span>
+            <span style={{ fontSize: 11, color: 'var(--text-subtle)', fontWeight: 600 }}>{seg.label} <strong style={{ color: 'var(--text-muted)' }}>{seg.value}</strong></span>
           </div>
         ))}
       </div>
@@ -132,7 +132,7 @@ function BudgetBars({ campaigns }) {
     .sort((a, b) => (b.budget ?? 0) - (a.budget ?? 0))
     .slice(0, 7);
   if (!top.length) return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 140, color: '#334155', fontSize: 13 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 140, color: 'var(--text-faint)', fontSize: 13 }}>
       <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ opacity: .3, marginBottom: 8 }}>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
@@ -140,15 +140,15 @@ function BudgetBars({ campaigns }) {
     </div>
   );
   const max = top[0].budget;
-  const colors = ['#6366F1','#8B5CF6','#A78BFA','#3B82F6','#60A5FA','#10B981','#34D399'];
+  const colors = ['var(--indigo)','var(--accent-strong)','var(--accent)','var(--info-strong)','var(--info)','var(--success)','var(--success-2)'];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {top.map((c, i) => (
         <div key={c.campaignId ?? c.id ?? i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 120, fontSize: 11, color: '#64748B', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
+          <div style={{ width: 120, fontSize: 11, color: 'var(--text-subtle)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
             {c.name}
           </div>
-          <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 99, overflow: 'hidden', position: 'relative' }}>
+          <div style={{ flex: 1, height: 8, background: 'var(--overlay-4)', borderRadius: 99, overflow: 'hidden', position: 'relative' }}>
             <div style={{
               position: 'absolute', left: 0, top: 0, bottom: 0,
               width: `${(c.budget / max) * 100}%`,
@@ -190,8 +190,8 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
   return (
     <div style={{
       padding: '20px 22px', borderRadius: 20,
-      background: 'rgba(10,14,30,0.85)',
-      border: `1px solid ${accentColor}25`,
+      background: 'var(--bg-overlay-hi)',
+      border: `1px solid color-mix(in srgb, ${accentColor} 15%, transparent)`,
       backdropFilter: 'blur(16px)',
       position: 'relative', overflow: 'hidden',
       boxShadow: `0 4px 32px ${glow}20`,
@@ -204,9 +204,9 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, position: 'relative' }}>
         <div>
-          <p style={{ fontSize: 10, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 10px' }}>{label}</p>
+          <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 10px' }}>{label}</p>
           <p style={{ fontSize: 30, fontWeight: 900, color: '#FFFFFF', margin: 0, lineHeight: 1, letterSpacing: '-1px' }}>{value}</p>
-          {sub && <p style={{ fontSize: 11, color: '#475569', margin: '6px 0 0', fontWeight: 500 }}>{sub}</p>}
+          {sub && <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '6px 0 0', fontWeight: 500 }}>{sub}</p>}
         </div>
 
         {ringPct !== undefined ? (
@@ -479,13 +479,13 @@ export default function Dashboard({ user, onboarded, onLogout }) {
           display: 'flex', alignItems: 'center', gap: 12,
         }}>
           <span style={{ fontSize: 15 }}>{user.currentOrg.trialDaysLeft <= 1 ? '🚨' : '⏳'}</span>
-          <span style={{ fontSize: 13, color: user.currentOrg.trialDaysLeft <= 1 ? '#FCA5A5' : '#FCD34D', flex: 1 }}>
+          <span style={{ fontSize: 13, color: user.currentOrg.trialDaysLeft <= 1 ? 'var(--danger-soft)' : 'var(--warning-2)', flex: 1 }}>
             <strong>{user.currentOrg.trialDaysLeft === 0 ? 'Last day' : `${user.currentOrg.trialDaysLeft} day${user.currentOrg.trialDaysLeft > 1 ? 's' : ''} left`}</strong> on your free trial.
             Subscribe to keep full access.
           </span>
           <a href="/billing" style={{
             fontSize: 12, fontWeight: 800, padding: '5px 16px', borderRadius: 8,
-            background: user.currentOrg.trialDaysLeft <= 1 ? 'linear-gradient(135deg,#EF4444,#DC2626)' : 'linear-gradient(135deg,#F59E0B,#D97706)',
+            background: user.currentOrg.trialDaysLeft <= 1 ? 'linear-gradient(135deg,var(--danger-strong),#DC2626)' : 'linear-gradient(135deg,var(--warning),#D97706)',
             color: '#fff', textDecoration: 'none', flexShrink: 0,
           }}>
             Upgrade →
@@ -496,11 +496,11 @@ export default function Dashboard({ user, onboarded, onLogout }) {
       {/* ── Multiple-account warning banner ── */}
       {nameMatchFailed && (
         <div style={{ background: 'rgba(245,158,11,0.08)', borderBottom: '1px solid rgba(245,158,11,0.2)', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <span style={{ fontSize: 13, color: '#FCD34D' }}>
+          <span style={{ fontSize: 13, color: 'var(--warning-2)' }}>
             ⚠️ Multiple Amazon accounts detected. The dropdown shows all accounts — please select your marketplace and then set it as default in <strong>Profiles</strong> settings.
           </span>
           <button onClick={() => setActiveTab('profiles')}
-            style={{ fontSize: 12, fontWeight: 700, color: '#F59E0B', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', flexShrink: 0 }}>
+            style={{ fontSize: 12, fontWeight: 700, color: 'var(--warning)', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', flexShrink: 0 }}>
             Go to Profiles →
           </button>
         </div>
@@ -509,18 +509,18 @@ export default function Dashboard({ user, onboarded, onLogout }) {
       {/* ── Setup banner ── */}
       {onboarded === false && profiles.length === 0 && (
         <div style={{ background: 'rgba(59,130,246,0.08)', borderBottom: '1px solid rgba(59,130,246,0.2)', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <span style={{ fontSize: 13, color: '#93C5FD' }}>Connect your Amazon account to unlock all features.</span>
-          <a href="/onboarding" style={{ fontSize: 12, fontWeight: 700, color: '#3B82F6', textDecoration: 'none', padding: '4px 12px', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 6 }}>Continue setup →</a>
+          <span style={{ fontSize: 13, color: 'var(--info-2)' }}>Connect your Amazon account to unlock all features.</span>
+          <a href="/onboarding" style={{ fontSize: 12, fontWeight: 700, color: 'var(--info-strong)', textDecoration: 'none', padding: '4px 12px', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 6 }}>Continue setup →</a>
         </div>
       )}
 
       {/* ── Email verify banner ── */}
       {showVerifyBanner && (
         <div style={{ background: 'rgba(245,158,11,0.08)', borderBottom: '1px solid rgba(245,158,11,0.2)', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <span style={{ fontSize: 13, color: '#FCD34D' }}>
+          <span style={{ fontSize: 13, color: 'var(--warning-2)' }}>
             ✉️ Please verify your email.
-            {resentVerify ? <span style={{ marginLeft: 8, color: '#10B981' }}>Email sent!</span>
-              : <button onClick={handleResendVerify} style={{ marginLeft: 8, background: 'none', border: 'none', color: '#F59E0B', fontWeight: 700, fontSize: 13, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Resend</button>}
+            {resentVerify ? <span style={{ marginLeft: 8, color: 'var(--success)' }}>Email sent!</span>
+              : <button onClick={handleResendVerify} style={{ marginLeft: 8, background: 'none', border: 'none', color: 'var(--warning)', fontWeight: 700, fontSize: 13, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Resend</button>}
           </span>
           <button onClick={() => setVerifyBannerDismissed(true)} style={{ background: 'none', border: 'none', color: '#92400E', fontSize: 18, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
         </div>
@@ -529,17 +529,17 @@ export default function Dashboard({ user, onboarded, onLogout }) {
       {/* ── Alert fired banner ── */}
       {alertBanner && (
         <div style={{ background: 'rgba(244,63,94,0.1)', borderBottom: '1px solid rgba(244,63,94,0.3)', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <span style={{ fontSize: 13, color: '#F87171', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 13, color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: 8 }}>
             🔔 <strong>{alertBanner.count} alert{alertBanner.count !== 1 ? 's' : ''} fired</strong>
             {alertBanner.fires.slice(0, 2).map((f, i) => (
               <span key={i} style={{ fontSize: 11, color: '#FDA4AF', background: 'rgba(244,63,94,0.12)', padding: '2px 8px', borderRadius: 99, border: '1px solid rgba(244,63,94,0.2)' }}>
                 {f.alertName} · {f.campaignName}
               </span>
             ))}
-            {alertBanner.count > 2 && <span style={{ fontSize: 11, color: '#475569' }}>+{alertBanner.count - 2} more</span>}
+            {alertBanner.count > 2 && <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>+{alertBanner.count - 2} more</span>}
           </span>
           <button onClick={() => { setActiveTab('alerts'); resetAlertPolling(); markFiresReadApi().catch(() => {}); }}
-            style={{ fontSize: 12, fontWeight: 700, color: '#F43F5E', background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', flexShrink: 0 }}>
+            style={{ fontSize: 12, fontWeight: 700, color: 'var(--rose)', background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', flexShrink: 0 }}>
             View alerts →
           </button>
         </div>
@@ -550,18 +550,18 @@ export default function Dashboard({ user, onboarded, onLogout }) {
         {/* ── Module title ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 900, margin: 0, letterSpacing: '-0.5px', background: 'linear-gradient(135deg, #F1F5F9, #A78BFA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <h1 style={{ fontSize: 24, fontWeight: 900, margin: 0, letterSpacing: '-0.5px', background: 'linear-gradient(135deg, var(--text-primary), var(--accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               {MODULE_LABELS[activeTab] ?? '📊 Campaigns'}
             </h1>
             {activeTab === 'campaigns' && selectedProfile && (
-              <p style={{ margin: '4px 0 0', fontSize: 12, color: '#334155', fontWeight: 500 }}>
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-faint)', fontWeight: 500 }}>
                 {FLAG(selectedProfile.countryCode)} {selectedProfile.profileName ?? selectedProfile.accountName} · {selectedProfile.countryCode} marketplace
               </p>
             )}
           </div>
           {activeTab === 'campaigns' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 11, color: '#334155' }}>
+              <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>
                 {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
               </span>
             </div>
@@ -570,7 +570,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
 
         {/* ── Error (campaigns tab only — other tabs have their own UX) ── */}
         {error && activeTab === 'campaigns' && (
-          <div style={{ padding: '12px 16px', borderRadius: 12, background: 'rgba(244,63,94,0.10)', border: '1px solid rgba(244,63,94,0.25)', color: '#F43F5E', fontSize: 13, display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ padding: '12px 16px', borderRadius: 12, background: 'rgba(244,63,94,0.10)', border: '1px solid rgba(244,63,94,0.25)', color: 'var(--rose)', fontSize: 13, display: 'flex', gap: 8, alignItems: 'center' }}>
             <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style={{ flexShrink: 0 }}>
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
             </svg>
@@ -603,9 +603,9 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               label="Total Campaigns"
               value={stats.total}
               sub={`Across all types`}
-              gradient="linear-gradient(135deg, #3B82F6, #2563EB)"
+              gradient="linear-gradient(135deg, var(--info-strong), #2563EB)"
               glow="rgba(59,130,246,0.5)"
-              accentColor="#3B82F6"
+              accentColor="var(--info-strong)"
               sparkValues={budgetSpark}
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>}
             />
@@ -613,9 +613,9 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               label="Active Campaigns"
               value={stats.enabled}
               sub={`of ${stats.total} total`}
-              gradient="linear-gradient(135deg, #10B981, #059669)"
+              gradient="linear-gradient(135deg, var(--success), #059669)"
               glow="rgba(16,185,129,0.5)"
-              accentColor="#10B981"
+              accentColor="var(--success)"
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9V3z"/></svg>}
             />
             <VibrantStatCard
@@ -635,18 +635,18 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               label="Paused"
               value={stats.paused}
               sub={`${stats.archived} ended / archived`}
-              gradient="linear-gradient(135deg, #F59E0B, #D97706)"
+              gradient="linear-gradient(135deg, var(--warning), #D97706)"
               glow="rgba(245,158,11,0.5)"
-              accentColor="#F59E0B"
+              accentColor="var(--warning)"
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>}
             />
             <VibrantStatCard
               label="Daily Budget"
               value={`$${stats.budget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               sub="Active campaigns only"
-              gradient="linear-gradient(135deg, #8B5CF6, #7C3AED)"
+              gradient="linear-gradient(135deg, var(--accent-strong), #7C3AED)"
               glow="rgba(139,92,246,0.5)"
-              accentColor="#8B5CF6"
+              accentColor="var(--accent-strong)"
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>}
             />
             <VibrantStatCard
@@ -657,9 +657,9 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               sub={metricsSummary.hasMetrics
                 ? (metricsDateRange.start ? `${metricsDateRange.start} → ${metricsDateRange.end}${metricsSummary.selectionLabel}` : `From loaded metrics${metricsSummary.selectionLabel}`)
                 : 'Load metrics to see ad revenue'}
-              gradient="linear-gradient(135deg, #10B981, #0D9488)"
+              gradient="linear-gradient(135deg, var(--success), #0D9488)"
               glow="rgba(16,185,129,0.5)"
-              accentColor="#10B981"
+              accentColor="var(--success)"
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>}
             />
             <VibrantStatCard
@@ -670,7 +670,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               sub={metricsSummary.hasMetrics
                 ? `${metricsSummary.roas != null ? `ROAS ${metricsSummary.roas.toFixed(2)}×` : 'From loaded metrics'}${metricsSummary.selectionLabel}`
                 : 'Load metrics to see spend'}
-              gradient="linear-gradient(135deg, #F97316, #EF4444)"
+              gradient="linear-gradient(135deg, #F97316, var(--danger-strong))"
               glow="rgba(249,115,22,0.5)"
               accentColor="#F97316"
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>}
@@ -679,9 +679,9 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               label="ACoS"
               value={metricsSummary.hasMetrics && metricsSummary.acos != null ? `${metricsSummary.acos.toFixed(2)}%` : '—'}
               sub={metricsSummary.hasMetrics ? `Ad Spend ÷ Ad Revenue${metricsSummary.selectionLabel}` : 'Load metrics to see ACoS'}
-              gradient="linear-gradient(135deg, #6366F1, #4F46E5)"
+              gradient="linear-gradient(135deg, var(--indigo), #4F46E5)"
               glow="rgba(99,102,241,0.5)"
-              accentColor="#6366F1"
+              accentColor="var(--indigo)"
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>}
             />
             <VibrantStatCard
@@ -693,9 +693,9 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                   : metricsSummary.tacos != null ? 'Ad Spend ÷ Total Revenue (organic + ads)'
                   : (loadingSales ? 'Waiting for SP-API sales…' : 'SP-API sales required')
               }
-              gradient="linear-gradient(135deg, #F59E0B, #D97706)"
+              gradient="linear-gradient(135deg, var(--warning), #D97706)"
               glow="rgba(245,158,11,0.5)"
-              accentColor="#F59E0B"
+              accentColor="var(--warning)"
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>}
             />
             <VibrantStatCard
@@ -715,15 +715,15 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             {/* Donut chart */}
             <div style={{
               padding: '24px', borderRadius: 20,
-              background: 'rgba(10,14,30,0.85)',
+              background: 'var(--bg-overlay-hi)',
               border: '1px solid rgba(99,102,241,0.2)',
               backdropFilter: 'blur(16px)',
               display: 'flex', flexDirection: 'column',
               boxShadow: '0 4px 32px rgba(99,102,241,0.12)',
               position: 'relative', overflow: 'hidden',
             }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #6366F1, #8B5CF6, #A78BFA)' }} />
-              <p style={{ fontSize: 11, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 20px' }}>Campaign Status</p>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, var(--indigo), var(--accent-strong), var(--accent))' }} />
+              <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 20px' }}>Campaign Status</p>
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <DonutChart enabled={stats.enabled} paused={stats.paused} archived={stats.archived} total={stats.total} size={160} />
               </div>
@@ -732,17 +732,17 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             {/* Budget distribution */}
             <div style={{
               padding: '24px', borderRadius: 20,
-              background: 'rgba(10,14,30,0.85)',
+              background: 'var(--bg-overlay-hi)',
               border: '1px solid rgba(139,92,246,0.2)',
               backdropFilter: 'blur(16px)',
               display: 'flex', flexDirection: 'column',
               boxShadow: '0 4px 32px rgba(139,92,246,0.10)',
               position: 'relative', overflow: 'hidden',
             }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #8B5CF6, #3B82F6, #10B981)' }} />
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, var(--accent-strong), var(--info-strong), var(--success))' }} />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                <p style={{ fontSize: 11, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>Top Budget Campaigns</p>
-                <span style={{ fontSize: 10, color: '#334155', fontWeight: 600 }}>Daily spend</span>
+                <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>Top Budget Campaigns</p>
+                <span style={{ fontSize: 10, color: 'var(--text-faint)', fontWeight: 600 }}>Daily spend</span>
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <BudgetBars campaigns={campaigns} />
@@ -753,37 +753,37 @@ export default function Dashboard({ user, onboarded, onLogout }) {
           {/* ── AI Command ── */}
           <div style={{
             padding: '22px 24px', borderRadius: 20,
-            background: 'rgba(10,14,30,0.85)',
+            background: 'var(--bg-overlay-hi)',
             border: '1px solid rgba(139,92,246,0.25)',
             backdropFilter: 'blur(16px)',
             position: 'relative', overflow: 'hidden',
             boxShadow: '0 4px 32px rgba(139,92,246,0.12)',
           }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #8B5CF6, #3B82F6)' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, var(--accent-strong), var(--info-strong))' }} />
             <div style={{ position: 'absolute', bottom: -40, right: -40, width: 160, height: 160, background: 'radial-gradient(circle, rgba(139,92,246,0.10) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, position: 'relative' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#8B5CF6,#3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(139,92,246,0.4)' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,var(--accent-strong),var(--info-strong))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(139,92,246,0.4)' }}>
                   <svg width="16" height="16" fill="none" stroke="white" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
                   </svg>
                 </div>
                 <div>
-                  <span style={{ fontWeight: 800, fontSize: 14, color: '#F1F5F9' }}>AI Command</span>
-                  <span style={{ display: 'block', fontSize: 10, color: '#475569', fontWeight: 500 }}>Ask anything about your campaigns</span>
+                  <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)' }}>AI Command</span>
+                  <span style={{ display: 'block', fontSize: 10, color: 'var(--text-faint)', fontWeight: 500 }}>Ask anything about your campaigns</span>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ display: 'flex', gap: 4, background: 'var(--overlay-3)', borderRadius: 10, padding: 3, border: '1px solid var(--overlay-5)' }}>
                 {[
-                  { id: 'gemini', label: 'Gemini 2.5 Flash', color: '#3B82F6', glow: 'rgba(59,130,246,0.4)' },
-                  { id: 'claude', label: 'Claude Sonnet',    color: '#8B5CF6', glow: 'rgba(139,92,246,0.4)' },
+                  { id: 'gemini', label: 'Gemini 2.5 Flash', color: 'var(--info-strong)', glow: 'rgba(59,130,246,0.4)' },
+                  { id: 'claude', label: 'Claude Sonnet',    color: 'var(--accent-strong)', glow: 'rgba(139,92,246,0.4)' },
                 ].map(({ id, label, color, glow }) => (
                   <button key={id} onClick={() => setAiModel(id)} style={{
                     fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 7,
                     border: 'none', cursor: 'pointer', transition: 'all .15s',
                     background: aiModel === id ? color : 'transparent',
-                    color: aiModel === id ? '#fff' : '#475569',
+                    color: aiModel === id ? '#fff' : 'var(--text-faint)',
                     boxShadow: aiModel === id ? `0 2px 12px ${glow}` : 'none',
                   }}>
                     {label}
@@ -800,23 +800,23 @@ export default function Dashboard({ user, onboarded, onLogout }) {
           {/* ── Campaign Table ── */}
           <div style={{
             borderRadius: 20, overflow: 'hidden',
-            background: 'rgba(10,14,30,0.85)',
+            background: 'var(--bg-overlay-hi)',
             border: '1px solid rgba(59,130,246,0.2)',
             backdropFilter: 'blur(16px)',
             boxShadow: '0 4px 32px rgba(59,130,246,0.08)',
             position: 'relative',
           }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #3B82F6, #8B5CF6, #10B981)' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, var(--info-strong), var(--accent-strong), var(--success))' }} />
 
-            <div style={{ padding: '18px 22px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--overlay-4)', display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* Row 1: title + date range + Load Metrics */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                 <div>
-                  <p style={{ fontWeight: 800, fontSize: 15, color: '#F1F5F9', margin: 0 }}>Campaigns</p>
-                  <p style={{ fontSize: 11, color: '#334155', margin: '3px 0 0', fontWeight: 500 }}>
+                  <p style={{ fontWeight: 800, fontSize: 15, color: 'var(--text-primary)', margin: 0 }}>Campaigns</p>
+                  <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '3px 0 0', fontWeight: 500 }}>
                     {filtered.length} of {stats.total} shown
                     {metricsDateRange.start && (
-                      <span style={{ color: '#10B981', marginLeft: 8 }}>
+                      <span style={{ color: 'var(--success)', marginLeft: 8 }}>
                         · metrics {metricsDateRange.start} → {metricsDateRange.end}
                       </span>
                     )}
@@ -831,9 +831,9 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                         padding: '5px 10px', borderRadius: 6, border: 'none', fontSize: 11, fontWeight: 700,
                         cursor: isLoadingMetrics ? 'not-allowed' : 'pointer',
                         background: activePreset === key
-                          ? 'linear-gradient(135deg, #10B981, #3B82F6)'
-                          : 'rgba(255,255,255,0.06)',
-                        color: activePreset === key ? '#fff' : '#64748B',
+                          ? 'linear-gradient(135deg, var(--success), var(--info-strong))'
+                          : 'var(--overlay-5)',
+                        color: activePreset === key ? '#fff' : 'var(--text-subtle)',
                         boxShadow: activePreset === key ? '0 2px 8px rgba(16,185,129,0.3)' : 'none',
                         transition: 'all 0.15s',
                         whiteSpace: 'nowrap',
@@ -841,24 +841,24 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                       {key === 'L7' ? '7d' : key === 'L30' ? '30d' : key}
                     </button>
                   ))}
-                  <span style={{ color: 'rgba(255,255,255,0.1)', fontSize: 14 }}>|</span>
+                  <span style={{ color: 'var(--text-faint)', fontSize: 14 }}>|</span>
                   <input type="date" value={dateFrom}
                     onChange={e => { handleDateFromChange(e.target.value); setActivePreset(null); }}
                     min={sixtyDaysAgo} max={dateTo}
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#94A3B8', borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none' }} />
-                  <span style={{ color: '#334155', fontSize: 12 }}>→</span>
+                    style={{ background: 'var(--overlay-3)', border: '1px solid var(--overlay-7)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none' }} />
+                  <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>→</span>
                   <input type="date" value={dateTo}
                     onChange={e => { handleDateToChange(e.target.value); setActivePreset(null); }}
                     min={dateFrom} max={today}
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#94A3B8', borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none' }} />
+                    style={{ background: 'var(--overlay-3)', border: '1px solid var(--overlay-7)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none' }} />
                   <button onClick={handleLoadMetrics} disabled={isLoadingMetrics} style={{
                     position: 'relative', overflow: 'hidden',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     padding: '7px 16px', borderRadius: 8, border: 'none',
                     cursor: isLoadingMetrics ? 'not-allowed' : 'pointer',
-                    background: isLoadingMetrics ? '#0F172A' : 'linear-gradient(135deg, #10B981, #3B82F6)',
+                    background: isLoadingMetrics ? 'var(--bg-app-2)' : 'linear-gradient(135deg, var(--success), var(--info-strong))',
                     color: '#fff', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap',
-                    boxShadow: isLoadingMetrics ? '0 0 0 1px rgba(255,255,255,0.08)' : '0 4px 16px rgba(16,185,129,0.35)',
+                    boxShadow: isLoadingMetrics ? '0 0 0 1px var(--overlay-7)' : '0 4px 16px rgba(16,185,129,0.35)',
                     minWidth: 180,
                   }}>
                     {/* progress fill */}
@@ -866,10 +866,10 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                       <span style={{
                         position: 'absolute', inset: 0, width: `${metricsProgress}%`,
                         background: metricsProgress < 33
-                          ? 'linear-gradient(90deg, #059669, #10B981)'
+                          ? 'linear-gradient(90deg, #059669, var(--success))'
                           : metricsProgress < 66
-                          ? 'linear-gradient(90deg, #10B981, #3B82F6)'
-                          : 'linear-gradient(90deg, #3B82F6, #8B5CF6)',
+                          ? 'linear-gradient(90deg, var(--success), var(--info-strong))'
+                          : 'linear-gradient(90deg, var(--info-strong), var(--accent-strong))',
                         transition: 'width 0.6s ease, background 0.8s ease',
                         borderRadius: 8,
                       }}/>
@@ -909,7 +909,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                     <button onClick={handleCheckAgain} style={{
                       display: 'flex', alignItems: 'center', gap: 5,
                       padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(251,191,36,0.4)',
-                      background: 'rgba(251,191,36,0.1)', color: '#FCD34D',
+                      background: 'rgba(251,191,36,0.1)', color: 'var(--warning-2)',
                       fontWeight: 700, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap',
                     }}>
                       <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -924,15 +924,15 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               {/* Row 2: search + status filter */}
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-                  <svg width="14" height="14" fill="none" stroke="#334155" viewBox="0 0 24 24"
+                  <svg width="14" height="14" fill="none" stroke="var(--border-strong)" viewBox="0 0 24 24"
                     style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                   </svg>
                   <input type="text" placeholder="Search campaigns…" value={search} onChange={e => setSearch(e.target.value)}
-                    style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 32, paddingRight: 12, paddingTop: 7, paddingBottom: 7, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#F1F5F9', borderRadius: 8, fontSize: 12, outline: 'none' }} />
+                    style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 32, paddingRight: 12, paddingTop: 7, paddingBottom: 7, background: 'var(--overlay-3)', border: '1px solid var(--overlay-7)', color: 'var(--text-primary)', borderRadius: 8, fontSize: 12, outline: 'none' }} />
                 </div>
                 <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#94A3B8', borderRadius: 8, padding: '7px 12px', fontSize: 12, outline: 'none', cursor: 'pointer' }}>
+                  style={{ background: 'var(--overlay-3)', border: '1px solid var(--overlay-7)', color: 'var(--text-muted)', borderRadius: 8, padding: '7px 12px', fontSize: 12, outline: 'none', cursor: 'pointer' }}>
                   <option value="all">All Status</option>
                   <option value="enabled">Active</option>
                   <option value="paused">Paused</option>
@@ -952,8 +952,8 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               lastResult={bulkResult}
             />
             {isRefreshing && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 600, color: '#94A3B8', padding: '6px 12px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 6, marginBottom: 8, width: 'fit-content' }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3B82F6', animation: 'pulse 1.4s ease-in-out infinite' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', padding: '6px 12px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 6, marginBottom: 8, width: 'fit-content' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--info-strong)', animation: 'pulse 1.4s ease-in-out infinite' }} />
                 Refreshing — showing last cached data
               </div>
             )}

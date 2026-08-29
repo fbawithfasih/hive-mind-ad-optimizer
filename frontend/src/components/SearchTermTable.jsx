@@ -1,15 +1,15 @@
 import React, { useState, useMemo } from 'react';
 
 const REC_STYLE = {
-  SCALE_UP:     { label: 'Scale Up',     bg: '#10B98118', color: '#10B981', border: '#10B98140' },
-  ADD_EXACT:    { label: 'Add as Exact', bg: '#3B82F618', color: '#3B82F6', border: '#3B82F640' },
-  ADD_NEGATIVE: { label: 'Add Negative', bg: '#F43F5E18', color: '#F43F5E', border: '#F43F5E40' },
-  WATCH:        { label: 'Watch',        bg: '#F59E0B18', color: '#F59E0B', border: '#F59E0B40' },
+  SCALE_UP:     { label: 'Scale Up',     bg: 'color-mix(in srgb, var(--success) 9%, transparent)', color: 'var(--success)', border: 'color-mix(in srgb, var(--success) 25%, transparent)' },
+  ADD_EXACT:    { label: 'Add as Exact', bg: 'color-mix(in srgb, var(--info-strong) 9%, transparent)', color: 'var(--info-strong)', border: 'color-mix(in srgb, var(--info-strong) 25%, transparent)' },
+  ADD_NEGATIVE: { label: 'Add Negative', bg: 'color-mix(in srgb, var(--rose) 9%, transparent)', color: 'var(--rose)', border: 'color-mix(in srgb, var(--rose) 25%, transparent)' },
+  WATCH:        { label: 'Watch',        bg: 'color-mix(in srgb, var(--warning) 9%, transparent)', color: 'var(--warning)', border: 'color-mix(in srgb, var(--warning) 25%, transparent)' },
 };
 
 const REC_ORDER = { SCALE_UP: 0, ADD_EXACT: 1, ADD_NEGATIVE: 2, WATCH: 3 };
 
-const dash = <span style={{ color: '#475569' }}>—</span>;
+const dash = <span style={{ color: 'var(--text-faint)' }}>—</span>;
 const fmtN = (v, dec = 2) => v == null ? dash : Number(v).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 const pct  = (v, dec = 2) => v == null ? dash : `${Number(v).toFixed(dec)}%`;
 
@@ -86,7 +86,7 @@ export default function SearchTermTable({ searchTerms = [], isLoading = false, s
   }
 
   if (isLoading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 64, gap: 10, color: '#94A3B8' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 64, gap: 10, color: 'var(--text-muted)' }}>
       <svg style={{ width: 20, height: 20, animation: 'spin 1s linear infinite' }} fill="none" viewBox="0 0 24 24">
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         <circle style={{ opacity: .25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
@@ -97,7 +97,7 @@ export default function SearchTermTable({ searchTerms = [], isLoading = false, s
   );
 
   if (!searchTerms.length) return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 64, gap: 8, color: '#94A3B8' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 64, gap: 8, color: 'var(--text-muted)' }}>
       <svg style={{ width: 40, height: 40, opacity: .3 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
       </svg>
@@ -107,8 +107,8 @@ export default function SearchTermTable({ searchTerms = [], isLoading = false, s
 
   const thBase = {
     padding: '10px 12px', fontSize: 11, fontWeight: 600,
-    textTransform: 'uppercase', letterSpacing: '0.07em', color: '#94A3B8',
-    background: '#263348', borderBottom: '1px solid #334155', whiteSpace: 'nowrap',
+    textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)',
+    background: 'var(--bg-panel-2)', borderBottom: '1px solid var(--border-strong)', whiteSpace: 'nowrap',
     cursor: 'pointer', userSelect: 'none',
   };
   const thCheck = { ...thBase, width: 36, cursor: 'default', padding: '10px 8px 10px 16px' };
@@ -125,7 +125,7 @@ export default function SearchTermTable({ searchTerms = [], isLoading = false, s
                   checked={allChecked}
                   ref={el => { if (el) el.indeterminate = someChecked; }}
                   onChange={toggleAll}
-                  style={{ accentColor: '#6366F1', width: 14, height: 14, cursor: 'pointer' }}
+                  style={{ accentColor: 'var(--indigo)', width: 14, height: 14, cursor: 'pointer' }}
                 />
               </th>
             )}
@@ -144,17 +144,17 @@ export default function SearchTermTable({ searchTerms = [], isLoading = false, s
         <tbody>
           {sorted.map((t, i) => {
             const rec = REC_STYLE[t.recommendation] ?? REC_STYLE.WATCH;
-            const acosColor = t.acos == null ? '#94A3B8' : t.acos < 20 ? '#10B981' : t.acos <= 30 ? '#F59E0B' : '#F43F5E';
-            const rowBg = i % 2 === 0 ? 'transparent' : '#1a2535';
+            const acosColor = t.acos == null ? 'var(--text-muted)' : t.acos < 20 ? 'var(--success)' : t.acos <= 30 ? 'var(--warning)' : 'var(--rose)';
+            const rowBg = i % 2 === 0 ? 'transparent' : 'var(--bg-panel-3)';
             const isSelected = selectable && selected?.has(termKey(t));
             const bg = isSelected ? 'rgba(99,102,241,0.12)' : rowBg;
-            const td  = { padding: '10px 12px', borderBottom: '1px solid #1E293B', color: '#F1F5F9', background: bg, verticalAlign: 'middle' };
+            const td  = { padding: '10px 12px', borderBottom: '1px solid var(--bg-panel)', color: 'var(--text-primary)', background: bg, verticalAlign: 'middle' };
             const tdR = { ...td, textAlign: 'right', fontFamily: 'monospace', fontSize: 11 };
             const tdC = { ...td, textAlign: 'center' };
 
             return (
               <tr key={i}
-                onMouseEnter={e => { if (!isSelected) Array.from(e.currentTarget.cells).forEach(x => x.style.background = '#263348'); }}
+                onMouseEnter={e => { if (!isSelected) Array.from(e.currentTarget.cells).forEach(x => x.style.background = 'var(--bg-panel-2)'); }}
                 onMouseLeave={e => { if (!isSelected) Array.from(e.currentTarget.cells).forEach(x => x.style.background = bg); }}>
                 {selectable && (
                   <td style={{ ...td, padding: '10px 8px 10px 16px', width: 36 }} onClick={() => toggleRow(t)}>
@@ -162,21 +162,21 @@ export default function SearchTermTable({ searchTerms = [], isLoading = false, s
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => toggleRow(t)}
-                      style={{ accentColor: '#6366F1', width: 14, height: 14, cursor: 'pointer' }}
+                      style={{ accentColor: 'var(--indigo)', width: 14, height: 14, cursor: 'pointer' }}
                     />
                   </td>
                 )}
                 <td style={{ ...td, maxWidth: 200 }}>
-                  <p style={{ margin: 0, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#F1F5F9' }}>{t.searchTerm || '—'}</p>
+                  <p style={{ margin: 0, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>{t.searchTerm || '—'}</p>
                 </td>
                 <td style={{ ...td, maxWidth: 180 }}>
-                  <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11, color: '#CBD5E1' }}>{t.campaignName}</p>
+                  <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11, color: 'var(--text-muted)' }}>{t.campaignName}</p>
                 </td>
                 <td style={{ ...td, maxWidth: 160 }}>
-                  <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11, color: '#94A3B8' }}>{t.adGroupName}</p>
+                  <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11, color: 'var(--text-muted)' }}>{t.adGroupName}</p>
                 </td>
                 <td style={td}>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>{t.matchType || '—'}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t.matchType || '—'}</span>
                 </td>
                 <td style={tdR}>{t.impressions == null ? dash : t.impressions.toLocaleString()}</td>
                 <td style={tdR}>{t.clicks == null ? dash : t.clicks.toLocaleString()}</td>

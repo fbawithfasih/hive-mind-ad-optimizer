@@ -21,9 +21,9 @@ export default function CommandInput({ onSubmit, isLoading }) {
         {EXAMPLES.map(ex => (
           <button key={ex} onClick={() => setCommand(ex)}
             style={{ fontSize:11, padding:'4px 10px', borderRadius:999, cursor:'pointer', transition:'all .15s',
-                     background:'#263348', border:'1px solid #334155', color:'#94A3B8' }}
-            onMouseEnter={e => { e.currentTarget.style.color='#F1F5F9'; e.currentTarget.style.borderColor='#3B82F6'; }}
-            onMouseLeave={e => { e.currentTarget.style.color='#94A3B8'; e.currentTarget.style.borderColor='#334155'; }}>
+                     background:'var(--bg-panel-2)', border:'1px solid var(--border-strong)', color:'var(--text-muted)' }}
+            onMouseEnter={e => { e.currentTarget.style.color='var(--text-primary)'; e.currentTarget.style.borderColor='var(--info-strong)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color='var(--text-muted)'; e.currentTarget.style.borderColor='var(--text-faint)'; }}>
             {ex}
           </button>
         ))}
@@ -37,16 +37,16 @@ export default function CommandInput({ onSubmit, isLoading }) {
           onChange={e => setCommand(e.target.value)}
           onKeyDown={e => (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) && submit(command)}
           placeholder="e.g., Show campaigns with ACoS > 25%"
-          style={{ flex:1, background:'#263348', border:'1px solid #334155', color:'#F1F5F9',
+          style={{ flex:1, background:'var(--bg-panel-2)', border:'1px solid var(--border-strong)', color:'var(--text-primary)',
                    borderRadius:8, padding:'10px 14px', fontSize:13, outline:'none' }}
-          onFocus={e => e.target.style.borderColor='#3B82F6'}
-          onBlur={e => e.target.style.borderColor='#334155'}
+          onFocus={e => e.target.style.borderColor='var(--info-strong)'}
+          onBlur={e => e.target.style.borderColor='var(--text-faint)'}
         />
         <button
           onClick={() => submit(command)}
           disabled={isLoading || !command.trim()}
           style={{ padding:'10px 20px', borderRadius:8, border:'none', cursor: isLoading||!command.trim() ? 'not-allowed':'pointer',
-                   background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color:'#fff', fontWeight:600, fontSize:13,
+                   background: 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))', color:'#fff', fontWeight:600, fontSize:13,
                    opacity: isLoading||!command.trim() ? 0.45 : 1, display:'flex', alignItems:'center', gap:6, whiteSpace:'nowrap',
                    transition:'opacity .15s' }}
         >

@@ -4,8 +4,8 @@ import { getListingsHistory } from '../services/api.js';
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
 const glass = {
-  background: 'rgba(10,14,30,0.85)',
-  border: '1px solid rgba(255,255,255,0.06)',
+  background: 'var(--bg-overlay-hi)',
+  border: '1px solid var(--overlay-5)',
   borderRadius: 20,
   backdropFilter: 'blur(16px)',
   position: 'relative',
@@ -13,9 +13,9 @@ const glass = {
 };
 
 const inputSt = {
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.08)',
-  color: '#F1F5F9',
+  background: 'var(--overlay-3)',
+  border: '1px solid var(--overlay-7)',
+  color: 'var(--text-primary)',
   borderRadius: 10,
   padding: '8px 13px',
   fontSize: 13,
@@ -39,10 +39,10 @@ function Spinner({ size = 14 }) {
 }
 
 const STATUS_META = {
-  COMPLETED:  { label: 'Optimized',  color: '#3B82F6', bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.3)'  },
-  PUBLISHED:  { label: 'Published',  color: '#10B981', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.3)'  },
-  PENDING:    { label: 'Pending',    color: '#F59E0B', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.3)'  },
-  FAILED:     { label: 'Failed',     color: '#EF4444', bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.3)'   },
+  COMPLETED:  { label: 'Optimized',  color: 'var(--info-strong)', bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.3)'  },
+  PUBLISHED:  { label: 'Published',  color: 'var(--success)', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.3)'  },
+  PENDING:    { label: 'Pending',    color: 'var(--warning)', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.3)'  },
+  FAILED:     { label: 'Failed',     color: 'var(--danger-strong)', bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.3)'   },
 };
 
 function StatusBadge({ status }) {
@@ -57,7 +57,7 @@ function StatusBadge({ status }) {
 function ModelBadge({ model }) {
   const isGemini = model === 'gemini';
   return (
-    <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: isGemini ? 'rgba(139,92,246,0.1)' : 'rgba(245,158,11,0.1)', color: isGemini ? '#A78BFA' : '#FCD34D', border: `1px solid ${isGemini ? 'rgba(139,92,246,0.25)' : 'rgba(245,158,11,0.25)'}` }}>
+    <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: isGemini ? 'rgba(139,92,246,0.1)' : 'rgba(245,158,11,0.1)', color: isGemini ? 'var(--accent)' : 'var(--warning-2)', border: `1px solid ${isGemini ? 'rgba(139,92,246,0.25)' : 'rgba(245,158,11,0.25)'}` }}>
       {isGemini ? 'Gemini' : 'Claude'}
     </span>
   );
@@ -67,7 +67,7 @@ function CharBadge({ text, limit }) {
   const len = (text ?? '').length;
   const over = len > limit;
   return (
-    <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 6, background: over ? 'rgba(244,63,94,0.12)' : 'rgba(255,255,255,0.05)', color: over ? '#F87171' : '#475569' }}>
+    <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 6, background: over ? 'rgba(244,63,94,0.12)' : 'var(--overlay-4)', color: over ? 'var(--danger)' : 'var(--text-faint)' }}>
       {len}/{limit}
     </span>
   );
@@ -78,21 +78,21 @@ function FieldDiff({ label, original, optimized, limit }) {
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-        <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#334155' }}>{label}</span>
+        <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-faint)' }}>{label}</span>
         {optimized && limit && <CharBadge text={optimized} limit={limit} />}
-        {changed && <span style={{ fontSize: 10, fontWeight: 600, color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '1px 7px', borderRadius: 6, border: '1px solid rgba(16,185,129,0.2)' }}>Changed</span>}
-        {!changed && optimized && <span style={{ fontSize: 10, color: '#334155' }}>Unchanged</span>}
+        {changed && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--success)', background: 'rgba(16,185,129,0.1)', padding: '1px 7px', borderRadius: 6, border: '1px solid rgba(16,185,129,0.2)' }}>Changed</span>}
+        {!changed && optimized && <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>Unchanged</span>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div>
-          <div style={{ fontSize: 9, fontWeight: 700, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Original</div>
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 10px', fontSize: 11, color: '#64748B', maxHeight: 80, overflow: 'auto', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Original</div>
+          <div style={{ background: 'var(--overlay-1)', border: '1px solid var(--overlay-4)', borderRadius: 8, padding: '8px 10px', fontSize: 11, color: 'var(--text-subtle)', maxHeight: 80, overflow: 'auto', lineHeight: 1.5 }}>
             {original || <em style={{ opacity: 0.4 }}>empty</em>}
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 9, fontWeight: 700, color: changed ? '#A78BFA' : '#1E293B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Optimized</div>
-          <div style={{ background: changed ? 'rgba(139,92,246,0.05)' : 'rgba(255,255,255,0.02)', border: `1px solid ${changed ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.05)'}`, borderRadius: 8, padding: '8px 10px', fontSize: 11, color: changed ? '#C4B5FD' : '#475569', maxHeight: 80, overflow: 'auto', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: changed ? 'var(--accent)' : 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Optimized</div>
+          <div style={{ background: changed ? 'rgba(139,92,246,0.05)' : 'var(--overlay-1)', border: `1px solid ${changed ? 'rgba(139,92,246,0.2)' : 'var(--overlay-4)'}`, borderRadius: 8, padding: '8px 10px', fontSize: 11, color: changed ? 'var(--accent-soft)' : 'var(--text-faint)', maxHeight: 80, overflow: 'auto', lineHeight: 1.5 }}>
             {optimized || <em style={{ opacity: 0.4 }}>empty</em>}
           </div>
         </div>
@@ -117,39 +117,39 @@ function HistoryRow({ record, isExpanded, onToggle }) {
           gap: 12,
           alignItems: 'center',
           padding: '12px 18px',
-          borderBottom: '1px solid rgba(255,255,255,0.04)',
+          borderBottom: '1px solid var(--overlay-3)',
           cursor: 'pointer',
           background: isExpanded ? 'rgba(139,92,246,0.06)' : 'transparent',
           transition: 'background 0.15s',
         }}
-        onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
+        onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = 'var(--overlay-1)'; }}
         onMouseLeave={e => { if (!isExpanded) e.currentTarget.style.background = 'transparent'; }}
       >
         <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#F1F5F9' }}>{dateStr}</div>
-          <div style={{ fontSize: 10, color: '#334155', marginTop: 1 }}>{timeStr}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{dateStr}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 1 }}>{timeStr}</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {record.asin && <span style={{ fontSize: 11, fontWeight: 600, color: '#8B5CF6' }}>{record.asin}</span>}
-          {record.sku  && <span style={{ fontSize: 11, color: '#475569' }}>{record.sku}</span>}
+          {record.asin && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent-strong)' }}>{record.asin}</span>}
+          {record.sku  && <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{record.sku}</span>}
         </div>
-        <div style={{ fontSize: 11, color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: 11, color: 'var(--text-subtle)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {record.optimizedTitle || record.originalTitle || '—'}
         </div>
         <StatusBadge status={record.status} />
         <ModelBadge model={record.aiModel} />
-        <div style={{ fontSize: 11, color: '#334155', textAlign: 'center' }}>
+        <div style={{ fontSize: 11, color: 'var(--text-faint)', textAlign: 'center' }}>
           {kwCount > 0 ? kwCount : '—'}
         </div>
-        <div style={{ color: isExpanded ? '#A78BFA' : '#334155', fontSize: 14, textAlign: 'center', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+        <div style={{ color: isExpanded ? 'var(--accent)' : 'var(--text-faint)', fontSize: 14, textAlign: 'center', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
           ▼
         </div>
       </div>
 
       {isExpanded && (
-        <div style={{ padding: '18px 22px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(139,92,246,0.03)' }}>
+        <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--overlay-4)', background: 'rgba(139,92,246,0.03)' }}>
           {record.status === 'PUBLISHED' && record.publishedAt && (
-            <div style={{ marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#34D399', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8, padding: '5px 12px' }}>
+            <div style={{ marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--success-2)', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8, padding: '5px 12px' }}>
               ✓ Published {new Date(record.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
             </div>
           )}
@@ -167,16 +167,16 @@ function HistoryRow({ record, isExpanded, onToggle }) {
 
           {kwCount > 0 && (
             <div style={{ marginTop: 6 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#334155', marginBottom: 6 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-faint)', marginBottom: 6 }}>
                 Keywords used ({kwCount})
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                 {record.keywords.slice(0, 40).map((kw, i) => (
-                  <span key={i} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: 'rgba(255,255,255,0.04)', color: '#475569', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <span key={i} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: 'var(--overlay-3)', color: 'var(--text-faint)', border: '1px solid var(--overlay-6)' }}>
                     {kw}
                   </span>
                 ))}
-                {kwCount > 40 && <span style={{ fontSize: 10, color: '#334155', padding: '2px 0' }}>+{kwCount - 40} more</span>}
+                {kwCount > 40 && <span style={{ fontSize: 10, color: 'var(--text-faint)', padding: '2px 0' }}>+{kwCount - 40} more</span>}
               </div>
             </div>
           )}
@@ -248,27 +248,27 @@ export default function ListingHistoryPanel() {
 
       {/* ── HEADER ── */}
       <div style={{ ...glass, padding: '22px 24px', borderColor: 'rgba(99,102,241,0.2)', boxShadow: '0 4px 40px rgba(99,102,241,0.08)' }}>
-        <GradientBar top="linear-gradient(90deg,#6366F1,#8B5CF6,#10B981)" />
+        <GradientBar top="linear-gradient(90deg,var(--indigo),var(--accent-strong),var(--success))" />
         <div style={{ position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14, marginBottom: 18 }}>
             <div>
-              <p style={{ margin: 0, fontWeight: 900, fontSize: 17, color: '#F1F5F9', letterSpacing: '-0.4px' }}>Optimization History</p>
-              <p style={{ margin: '3px 0 0', fontSize: 12, color: '#334155' }}>
+              <p style={{ margin: 0, fontWeight: 900, fontSize: 17, color: 'var(--text-primary)', letterSpacing: '-0.4px' }}>Optimization History</p>
+              <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--text-faint)' }}>
                 Browse all past AI optimizations — see what changed, when it was published, and which keywords were used
               </p>
             </div>
             <div style={{ display: 'flex', gap: 16 }}>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 900, color: '#6366F1', lineHeight: 1 }}>{counts.total}</div>
-                <div style={{ fontSize: 10, color: '#334155', marginTop: 2 }}>Total runs</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--indigo)', lineHeight: 1 }}>{counts.total}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2 }}>Total runs</div>
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 900, color: '#10B981', lineHeight: 1 }}>{counts.published}</div>
-                <div style={{ fontSize: 10, color: '#334155', marginTop: 2 }}>Published</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--success)', lineHeight: 1 }}>{counts.published}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2 }}>Published</div>
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 900, color: '#3B82F6', lineHeight: 1 }}>{counts.completed}</div>
-                <div style={{ fontSize: 10, color: '#334155', marginTop: 2 }}>Completed</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--info-strong)', lineHeight: 1 }}>{counts.completed}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2 }}>Completed</div>
               </div>
             </div>
           </div>
@@ -280,11 +280,11 @@ export default function ListingHistoryPanel() {
               onChange={e => setSearchInput(e.target.value)}
               placeholder="Filter by ASIN or SKU…"
               style={{ ...inputSt, width: 220 }}
-              onFocus={e => e.target.style.borderColor = '#6366F1'}
-              onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+              onFocus={e => e.target.style.borderColor = 'var(--indigo)'}
+              onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'}
             />
             <button type="submit"
-              style={{ padding: '8px 18px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+              style={{ padding: '8px 18px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,var(--indigo),var(--accent-strong))', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
               Search
             </button>
 
@@ -299,20 +299,20 @@ export default function ListingHistoryPanel() {
 
             {(asinFilter || skuFilter || statusFilter) && (
               <button type="button" onClick={clearFilters}
-                style={{ padding: '8px 14px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#475569', fontSize: 12, cursor: 'pointer' }}>
+                style={{ padding: '8px 14px', borderRadius: 9, border: '1px solid var(--overlay-7)', background: 'transparent', color: 'var(--text-faint)', fontSize: 12, cursor: 'pointer' }}>
                 ✕ Clear
               </button>
             )}
 
             {(asinFilter || skuFilter) && (
-              <span style={{ fontSize: 11, color: '#6366F1', background: 'rgba(99,102,241,0.1)', padding: '4px 12px', borderRadius: 99, border: '1px solid rgba(99,102,241,0.25)' }}>
+              <span style={{ fontSize: 11, color: 'var(--indigo)', background: 'rgba(99,102,241,0.1)', padding: '4px 12px', borderRadius: 99, border: '1px solid rgba(99,102,241,0.25)' }}>
                 {asinFilter ? `ASIN: ${asinFilter}` : `SKU: ${skuFilter}`}
               </span>
             )}
 
             <button type="button" onClick={() => load({ asin: asinFilter || undefined, sku: skuFilter || undefined })}
               disabled={isLoading}
-              style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#475569', fontSize: 12, cursor: isLoading ? 'default' : 'pointer', opacity: isLoading ? 0.5 : 1 }}>
+              style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, border: '1px solid var(--overlay-7)', background: 'transparent', color: 'var(--text-faint)', fontSize: 12, cursor: isLoading ? 'default' : 'pointer', opacity: isLoading ? 0.5 : 1 }}>
               {isLoading ? <Spinner size={12} /> : (
                 <svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -326,30 +326,30 @@ export default function ListingHistoryPanel() {
 
       {/* ── ERROR ── */}
       {error && (
-        <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', color: '#F87171', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
+        <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', color: 'var(--danger)', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
           {error}
         </div>
       )}
 
       {/* ── TABLE ── */}
       <div style={{ ...glass, padding: 0, borderColor: 'rgba(99,102,241,0.12)' }}>
-        <GradientBar top="linear-gradient(90deg,#6366F1,#8B5CF6)" />
+        <GradientBar top="linear-gradient(90deg,var(--indigo),var(--accent-strong))" />
 
         {/* Header row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '140px 140px 1fr 80px 80px 60px 36px', gap: 12, padding: '10px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '140px 140px 1fr 80px 80px 60px 36px', gap: 12, padding: '10px 18px', borderBottom: '1px solid var(--overlay-5)' }}>
           {['Date', 'ASIN / SKU', 'Title Preview', 'Status', 'Model', 'KWs', ''].map((col, i) => (
-            <span key={i} style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#1E293B' }}>{col}</span>
+            <span key={i} style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-faint)' }}>{col}</span>
           ))}
         </div>
 
         {isLoading && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '40px 0', color: '#334155', fontSize: 13 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '40px 0', color: 'var(--text-faint)', fontSize: 13 }}>
             <Spinner size={16} /> Loading history…
           </div>
         )}
 
         {!isLoading && filtered.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '48px 0', color: '#1E293B', fontSize: 13 }}>
+          <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-faint)', fontSize: 13 }}>
             {records.length === 0
               ? 'No optimizations yet — run the Listing Optimizer to get started'
               : 'No results match the current filters'}

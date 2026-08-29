@@ -2,20 +2,20 @@ import React from 'react';
 import { fmtN, fmt2 } from '../utils/formatting.js';
 
 const STATUS_STYLE = {
-  enabled:  { label: 'Active',    bg: '#10B98118', color: '#10B981', border: '#10B98140' },
-  active:   { label: 'Active',    bg: '#10B98118', color: '#10B981', border: '#10B98140' },
-  paused:   { label: 'Paused',    bg: '#F59E0B18', color: '#F59E0B', border: '#F59E0B40' },
-  ended:    { label: 'Ended',     bg: '#F43F5E18', color: '#F43F5E', border: '#F43F5E40' },
-  archived: { label: 'Archived',  bg: '#94A3B818', color: '#94A3B8', border: '#94A3B840' },
+  enabled:  { label: 'Active',    bg: 'color-mix(in srgb, var(--success) 9%, transparent)', color: 'var(--success)', border: 'color-mix(in srgb, var(--success) 25%, transparent)' },
+  active:   { label: 'Active',    bg: 'color-mix(in srgb, var(--success) 9%, transparent)', color: 'var(--success)', border: 'color-mix(in srgb, var(--success) 25%, transparent)' },
+  paused:   { label: 'Paused',    bg: 'color-mix(in srgb, var(--warning) 9%, transparent)', color: 'var(--warning)', border: 'color-mix(in srgb, var(--warning) 25%, transparent)' },
+  ended:    { label: 'Ended',     bg: 'color-mix(in srgb, var(--rose) 9%, transparent)', color: 'var(--rose)', border: 'color-mix(in srgb, var(--rose) 25%, transparent)' },
+  archived: { label: 'Archived',  bg: 'var(--text-muted)18', color: 'var(--text-muted)', border: 'var(--text-muted)40' },
 };
 
 const TYPE_COLOR = {
-  sponsoredProducts: '#3B82F6',
-  sponsoredBrands:   '#8B5CF6',
-  sponsoredDisplay:  '#10B981',
+  sponsoredProducts: 'var(--info-strong)',
+  sponsoredBrands:   'var(--accent-strong)',
+  sponsoredDisplay:  'var(--success)',
 };
 
-const dash = <span style={{ color: '#475569' }}>—</span>;
+const dash = <span style={{ color: 'var(--text-faint)' }}>—</span>;
 
 const fmtDate = s => s?.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') ?? '';
 
@@ -38,7 +38,7 @@ export default function CampaignTable({
     return bd.localeCompare(ad);
   });
   if (isLoading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 64, gap: 10, color: '#94A3B8' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 64, gap: 10, color: 'var(--text-muted)' }}>
       <svg style={{ width: 20, height: 20, animation: 'spin 1s linear infinite' }} fill="none" viewBox="0 0 24 24">
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         <circle style={{ opacity: .25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
@@ -49,7 +49,7 @@ export default function CampaignTable({
   );
 
   if (!campaigns.length) return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 64, gap: 8, color: '#94A3B8' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 64, gap: 8, color: 'var(--text-muted)' }}>
       <svg style={{ width: 40, height: 40, opacity: .3 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
       </svg>
@@ -66,14 +66,14 @@ export default function CampaignTable({
 
   const thStyle = {
     padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600,
-    textTransform: 'uppercase', letterSpacing: '0.07em', color: '#94A3B8',
-    background: '#263348', borderBottom: '1px solid #334155', whiteSpace: 'nowrap',
+    textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)',
+    background: 'var(--bg-panel-2)', borderBottom: '1px solid var(--border-strong)', whiteSpace: 'nowrap',
   };
   const thR = { ...thStyle, textAlign: 'right' };
   const thC = { ...thStyle, padding: '10px 10px', width: 36, textAlign: 'center' };
 
   const checkboxStyle = {
-    width: 14, height: 14, accentColor: '#3B82F6', cursor: 'pointer',
+    width: 14, height: 14, accentColor: 'var(--info-strong)', cursor: 'pointer',
   };
 
   return (
@@ -113,15 +113,15 @@ export default function CampaignTable({
           {campaigns.map((c, i) => {
             const rowId    = c.id ?? c.campaignId;
             const isSelected = showCheckbox && selectedIds.has(rowId);
-            const st       = STATUS_STYLE[c.status] ?? { label: c.status, bg: '#94A3B818', color: '#94A3B8', border: '#94A3B840' };
-            const typeColor = TYPE_COLOR[c.campaignType] ?? '#94A3B8';
+            const st       = STATUS_STYLE[c.status] ?? { label: c.status, bg: 'var(--text-muted)18', color: 'var(--text-muted)', border: 'var(--text-muted)40' };
+            const typeColor = TYPE_COLOR[c.campaignType] ?? 'var(--text-muted)';
             const acos     = c.acos;
-            const acosColor = acos == null ? '#94A3B8' : acos < 20 ? '#10B981' : acos <= 30 ? '#F59E0B' : '#F43F5E';
+            const acosColor = acos == null ? 'var(--text-muted)' : acos < 20 ? 'var(--success)' : acos <= 30 ? 'var(--warning)' : 'var(--rose)';
             const rowBg    = isSelected
               ? 'rgba(59,130,246,0.10)'
-              : i % 2 === 0 ? 'transparent' : '#1a2535';
+              : i % 2 === 0 ? 'transparent' : 'var(--bg-panel-3)';
 
-            const td  = { padding: '11px 12px', borderBottom: '1px solid #1E293B', color: '#F1F5F9', background: rowBg, verticalAlign: 'middle' };
+            const td  = { padding: '11px 12px', borderBottom: '1px solid var(--bg-panel)', color: 'var(--text-primary)', background: rowBg, verticalAlign: 'middle' };
             const tdR = { ...td, textAlign: 'right', fontFamily: 'monospace', fontSize: 11 };
             const tdC = { ...td, padding: '11px 10px', textAlign: 'center' };
 
@@ -129,7 +129,7 @@ export default function CampaignTable({
               <tr key={rowId ?? i}
                 onClick={onRowClick ? () => onRowClick(c) : undefined}
                 style={{ cursor: onRowClick ? 'pointer' : undefined }}
-                onMouseEnter={e => Array.from(e.currentTarget.cells).forEach(x => x.style.background = isSelected ? 'rgba(59,130,246,0.18)' : '#263348')}
+                onMouseEnter={e => Array.from(e.currentTarget.cells).forEach(x => x.style.background = isSelected ? 'rgba(59,130,246,0.18)' : 'var(--bg-panel-2)')}
                 onMouseLeave={e => Array.from(e.currentTarget.cells).forEach(x => x.style.background = rowBg)}>
 
                 {showCheckbox && (
@@ -157,8 +157,8 @@ export default function CampaignTable({
                     {c.name}
                   </p>
                   <div style={{ display: 'flex', gap: 8, marginTop: 2, flexWrap: 'wrap' }}>
-                    {c.startDate && <span style={{ fontSize: 10, color: '#64748B' }}>Start {fmtDate(c.startDate)}</span>}
-                    {c.biddingStrategy && <span style={{ fontSize: 10, color: '#64748B' }}>{c.biddingStrategy}</span>}
+                    {c.startDate && <span style={{ fontSize: 10, color: 'var(--text-subtle)' }}>Start {fmtDate(c.startDate)}</span>}
+                    {c.biddingStrategy && <span style={{ fontSize: 10, color: 'var(--text-subtle)' }}>{c.biddingStrategy}</span>}
                   </div>
                 </td>
 
@@ -169,7 +169,7 @@ export default function CampaignTable({
                       : c.campaignType === 'sponsoredDisplay' ? 'SD'
                       : (c.campaignType ?? '—')}
                   </span>
-                  {c.targetingType && <p style={{ margin: '2px 0 0', fontSize: 10, color: '#64748B', textTransform: 'capitalize' }}>{c.targetingType}</p>}
+                  {c.targetingType && <p style={{ margin: '2px 0 0', fontSize: 10, color: 'var(--text-subtle)', textTransform: 'capitalize' }}>{c.targetingType}</p>}
                 </td>
 
                 <td style={td}>

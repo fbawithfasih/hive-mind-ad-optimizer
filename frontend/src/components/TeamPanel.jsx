@@ -7,8 +7,8 @@ import {
 const ROLES = ['ADMIN', 'MEMBER', 'VIEWER'];
 
 const ROLE_COLOR = {
-  ADMIN:  '#8B5CF6',
-  MEMBER: '#3B82F6',
+  ADMIN:  'var(--accent-strong)',
+  MEMBER: 'var(--info-strong)',
   VIEWER: 'var(--text-subtle)',
 };
 
@@ -17,16 +17,16 @@ const S = {
   header: { padding: '16px 20px', borderBottom: '1px solid var(--border-strong)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 },
   label:  { fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' },
   sub:    { fontSize: 12, color: 'var(--text-subtle)', marginTop: 2 },
-  btn:    (active, color = 'linear-gradient(135deg,#3B82F6,#8B5CF6)') => ({
+  btn:    (active, color = 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))') => ({
     padding: '7px 14px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600,
     cursor: active ? 'pointer' : 'not-allowed',
     background: active ? color : 'var(--bg-panel-2)',
-    color: active ? '#fff' : 'var(--border-med)',
+    color: active ? '#fff' : 'var(--text-faint)',
   }),
   ghost:  (color = 'var(--text-muted)') => ({ padding: '4px 10px', borderRadius: 6, border: `1px solid ${color}40`, background: 'transparent', fontSize: 11, fontWeight: 600, color, cursor: 'pointer' }),
-  badge:  (role) => ({ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: ROLE_COLOR[role] + '20', color: ROLE_COLOR[role], border: `1px solid ${ROLE_COLOR[role]}40` }),
+  badge:  (role) => ({ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: `color-mix(in srgb, ${ROLE_COLOR[role]} 13%, transparent)`, color: ROLE_COLOR[role], border: `1px solid color-mix(in srgb, ${ROLE_COLOR[role]} 25%, transparent)` }),
   row:    { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: '1px solid var(--border-strong)' },
-  empty:  { padding: '32px 20px', textAlign: 'center', color: 'var(--border-med)', fontSize: 13 },
+  empty:  { padding: '32px 20px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 },
   input:  { background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', borderRadius: 6, padding: '8px 12px', fontSize: 12, color: 'var(--text-primary)', outline: 'none' },
   select: { background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', borderRadius: 6, padding: '7px 10px', fontSize: 12, color: 'var(--text-primary)', outline: 'none' },
 };
@@ -191,7 +191,7 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
       </div>
 
       {(error || msg) && (
-        <div style={{ padding: '10px 20px', fontSize: 12, color: error ? '#F43F5E' : '#10B981', borderBottom: '1px solid var(--border-strong)' }}>
+        <div style={{ padding: '10px 20px', fontSize: 12, color: error ? 'var(--rose)' : 'var(--success)', borderBottom: '1px solid var(--border-strong)' }}>
           {error || msg}
         </div>
       )}
@@ -246,7 +246,7 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
           <button type="submit" disabled={adding || !addEmail.trim()} style={S.btn(!adding && !!addEmail.trim())}>
             {adding ? <><Spinner /> Sending…</> : 'Send invite'}
           </button>
-          {addError && <p style={{ width: '100%', margin: 0, fontSize: 11, color: '#F43F5E' }}>{addError}</p>}
+          {addError && <p style={{ width: '100%', margin: 0, fontSize: 11, color: 'var(--rose)' }}>{addError}</p>}
         </form>
       )}
 
@@ -289,9 +289,9 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
             const isChanging = changingRole === m.user.id;
             const isRemoving = removing === m.user.id;
             return (
-              <div key={m.id} style={{ ...S.row, background: isSelf ? '#3B82F608' : 'transparent' }}>
+              <div key={m.id} style={{ ...S.row, background: isSelf ? 'color-mix(in srgb, var(--info-strong) 3%, transparent)' : 'transparent' }}>
                 {/* Avatar */}
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: ROLE_COLOR[m.role] + '30', border: `2px solid ${ROLE_COLOR[m.role]}50`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: ROLE_COLOR[m.role], flexShrink: 0 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: `color-mix(in srgb, ${ROLE_COLOR[m.role]} 19%, transparent)`, border: `2px solid color-mix(in srgb, ${ROLE_COLOR[m.role]} 31%, transparent)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: ROLE_COLOR[m.role], flexShrink: 0 }}>
                   {memberName(m).charAt(0).toUpperCase()}
                 </div>
 
@@ -327,7 +327,7 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
                   <button
                     onClick={() => handleRemove(m.user.id, m.user.email)}
                     disabled={isRemoving}
-                    style={S.ghost('#F43F5E')}
+                    style={S.ghost('var(--rose)')}
                   >
                     {isRemoving ? 'Removing…' : isSelf ? 'Leave' : 'Remove'}
                   </button>

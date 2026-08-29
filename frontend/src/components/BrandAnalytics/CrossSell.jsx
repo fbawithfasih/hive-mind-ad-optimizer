@@ -68,20 +68,20 @@ export default function CrossSell() {
             <svg width="26" height="26" fill="none" stroke="#fff" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
           </div>
           <div>
-            <p style={{ fontSize: 15, fontWeight: 800, color: '#F1F5F9', margin: 0 }}>No cross-sell data yet</p>
-            <p style={{ fontSize: 12.5, color: '#94A3B8', margin: '6px 0 0', maxWidth: 460 }}>
+            <p style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>No cross-sell data yet</p>
+            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', margin: '6px 0 0', maxWidth: 460 }}>
               Market Basket identifies pairs of products that customers buy together — directly usable as Sponsored Display product-targeting lists or A+ comparison charts.
             </p>
           </div>
           {isFetchError && (
-            <div style={{ background: 'rgba(244,63,94,0.10)', border: '1px solid rgba(244,63,94,0.25)', color: '#F87171', borderRadius: 8, padding: '8px 14px', fontSize: 12, maxWidth: 460 }}>
+            <div style={{ background: 'rgba(244,63,94,0.10)', border: '1px solid rgba(244,63,94,0.25)', color: 'var(--danger)', borderRadius: 8, padding: '8px 14px', fontSize: 12, maxWidth: 460 }}>
               {error}
             </div>
           )}
           <button onClick={handleFetch} disabled={triggering} style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 10, border: 'none',
             cursor: triggering ? 'wait' : 'pointer',
-            background: triggering ? 'rgba(255,255,255,0.07)' : COLORS.indigo.gradient,
+            background: triggering ? 'var(--overlay-6)' : COLORS.indigo.gradient,
             color: '#fff', fontWeight: 700, fontSize: 13,
             boxShadow: triggering ? 'none' : `0 4px 20px ${COLORS.indigo.glow}`,
           }}>
@@ -96,7 +96,7 @@ export default function CrossSell() {
     return (
       <div style={{ ...glass(), padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
         <Spinner size={28} />
-        <p style={{ fontSize: 12, color: '#475569', margin: 0 }}>Loading cross-sell pairs…</p>
+        <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>Loading cross-sell pairs…</p>
       </div>
     );
   }
@@ -122,11 +122,11 @@ export default function CrossSell() {
         <GlowBlob color={COLORS.indigo.glow} />
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
           <div>
-            <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
               {activeAnchor ? `Pairs for ${activeAnchor}` : 'Frequently bought together'}
             </p>
-            <p style={{ margin: '4px 0 0', fontSize: 36, fontWeight: 900, color: '#F1F5F9', lineHeight: 1, letterSpacing: '-1px' }}>{fmtN(pairs.length)}</p>
-            <p style={{ margin: '6px 0 0', fontSize: 11, color: '#94A3B8' }}>
+            <p style={{ margin: '4px 0 0', fontSize: 36, fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1, letterSpacing: '-1px' }}>{fmtN(pairs.length)}</p>
+            <p style={{ margin: '6px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>
               ranked by lift / co-occurrence count
             </p>
           </div>
@@ -141,14 +141,14 @@ export default function CrossSell() {
       {/* ── Anchor filter ── */}
       <div style={{ ...glass(), padding: '14px 18px' }}>
         <form onSubmit={handleAnchorSubmit} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Filter by ASIN</p>
+          <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Filter by ASIN</p>
           <input
             value={anchorInput}
             onChange={e => setAnchorInput(e.target.value)}
             placeholder="e.g. B0DW46MR5R"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#F1F5F9', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontFamily: 'monospace', outline: 'none', width: 160 }}
+            style={{ background: 'var(--overlay-3)', border: '1px solid var(--overlay-7)', color: 'var(--text-primary)', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontFamily: 'monospace', outline: 'none', width: 160 }}
             onFocus={e => e.target.style.borderColor = COLORS.indigo.accent}
-            onBlur={e  => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+            onBlur={e  => e.target.style.borderColor = 'var(--overlay-7)'}
           />
           <button type="submit" style={{
             fontSize: 11, fontWeight: 700, padding: '7px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
@@ -156,12 +156,12 @@ export default function CrossSell() {
           }}>Apply</button>
           {activeAnchor && (
             <button type="button" onClick={() => { setAnchorInput(''); load(null); }} style={{
-              fontSize: 11, fontWeight: 700, padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer',
-              background: 'rgba(255,255,255,0.03)', color: '#94A3B8',
+              fontSize: 11, fontWeight: 700, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--overlay-7)', cursor: 'pointer',
+              background: 'var(--overlay-2)', color: 'var(--text-muted)',
             }}>Clear</button>
           )}
           {uniqueAnchors.length > 0 && uniqueAnchors.length <= 8 && !activeAnchor && (
-            <span style={{ fontSize: 11, color: '#475569' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>
               quick: {uniqueAnchors.slice(0, 5).map(a => (
                 <button key={a} type="button" onClick={() => { setAnchorInput(a); load(a); }} style={{ background: 'none', border: 'none', color: COLORS.indigo.accent, fontFamily: 'monospace', cursor: 'pointer', fontSize: 11, padding: '0 4px' }}>{a}</button>
               ))}
@@ -176,12 +176,12 @@ export default function CrossSell() {
           <GradientBar top={COLORS.green.gradient} />
           <GlowBlob color={COLORS.green.glow} />
           <div style={{ position: 'relative' }}>
-            <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+            <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
               🥇 Strongest combination
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
               <PairChip asin={pairs[0].anchorAsin} title={pairs[0].anchorTitle} accent={COLORS.green.accent} />
-              <span style={{ fontSize: 18, color: '#475569' }}>+</span>
+              <span style={{ fontSize: 18, color: 'var(--text-faint)' }}>+</span>
               <PairChip asin={pairs[0].partnerAsin} title={pairs[0].partnerTitle} accent={COLORS.indigo.accent} />
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 14, alignItems: 'center' }}>
                 <Mini label="Lift"  value={fmtIdx(pairs[0].combinationIndex)} />
@@ -197,8 +197,8 @@ export default function CrossSell() {
         <div style={{
           display: 'grid', gridTemplateColumns: '1.2fr 1.8fr 1.2fr 1.8fr 0.6fr 0.6fr',
           padding: '10px 20px', background: 'rgba(255,255,255,0.025)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
-          fontSize: 10, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em',
+          borderBottom: '1px solid var(--overlay-4)',
+          fontSize: 10, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em',
         }}>
           <div>Anchor ASIN</div>
           <div>Anchor title</div>
@@ -208,30 +208,30 @@ export default function CrossSell() {
           <div style={{ textAlign: 'right' }}>Count</div>
         </div>
         {pairs.length === 0 ? (
-          <div style={{ padding: '36px', textAlign: 'center', color: '#475569', fontSize: 12 }}>
+          <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 12 }}>
             {activeAnchor ? `No pairs found for ${activeAnchor}.` : 'No pairs available.'}
           </div>
         ) : pairs.map((p, i) => (
           <div key={`${p.anchorAsin}-${p.partnerAsin}-${i}`} style={{
             display: 'grid', gridTemplateColumns: '1.2fr 1.8fr 1.2fr 1.8fr 0.6fr 0.6fr',
             padding: '11px 20px', alignItems: 'center', fontSize: 12,
-            borderBottom: '1px solid rgba(255,255,255,0.04)',
+            borderBottom: '1px solid var(--overlay-3)',
           }}>
             <span style={{ fontFamily: 'monospace', fontSize: 11, color: COLORS.green.accent, fontWeight: 700 }}>{p.anchorAsin}</span>
-            <span title={p.anchorTitle} style={{ color: '#CBD5E1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 12 }}>
-              {p.anchorTitle || <em style={{ color: '#475569' }}>—</em>}
+            <span title={p.anchorTitle} style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 12 }}>
+              {p.anchorTitle || <em style={{ color: 'var(--text-faint)' }}>—</em>}
             </span>
             <span style={{ fontFamily: 'monospace', fontSize: 11, color: COLORS.indigo.accent, fontWeight: 700 }}>{p.partnerAsin}</span>
-            <span title={p.partnerTitle} style={{ color: '#CBD5E1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 12 }}>
-              {p.partnerTitle || <em style={{ color: '#475569' }}>—</em>}
+            <span title={p.partnerTitle} style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 12 }}>
+              {p.partnerTitle || <em style={{ color: 'var(--text-faint)' }}>—</em>}
             </span>
-            <span style={{ textAlign: 'right', color: p.combinationIndex >= 2 ? COLORS.green.accent : '#94A3B8', fontWeight: 700 }}>{fmtIdx(p.combinationIndex)}</span>
-            <span style={{ textAlign: 'right', color: '#94A3B8' }}>{fmtN(p.combinationCount)}</span>
+            <span style={{ textAlign: 'right', color: p.combinationIndex >= 2 ? COLORS.green.accent : 'var(--text-muted)', fontWeight: 700 }}>{fmtIdx(p.combinationIndex)}</span>
+            <span style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{fmtN(p.combinationCount)}</span>
           </div>
         ))}
       </div>
 
-      <p style={{ fontSize: 11, color: '#475569', textAlign: 'center', margin: 0 }}>
+      <p style={{ fontSize: 11, color: 'var(--text-faint)', textAlign: 'center', margin: 0 }}>
         Source: Amazon Brand Analytics Market Basket report · last fetched {fmtDate(period?.fetchedAt)}
       </p>
     </div>
@@ -240,19 +240,19 @@ export default function CrossSell() {
 
 function Stat({ label, value, sub, small }) {
   return (
-    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
-      <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</p>
+    <div style={{ background: 'var(--overlay-2)', border: '1px solid var(--overlay-4)', borderRadius: 10, padding: '10px 14px' }}>
+      <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</p>
       <p style={{ margin: '4px 0 0', fontSize: small ? 14 : 22, fontWeight: 900, color: COLORS.indigo.accent, lineHeight: 1.1 }}>{value}</p>
-      {sub && <p style={{ margin: '3px 0 0', fontSize: 10.5, color: '#475569' }}>{sub}</p>}
+      {sub && <p style={{ margin: '3px 0 0', fontSize: 10.5, color: 'var(--text-faint)' }}>{sub}</p>}
     </div>
   );
 }
 
 function PairChip({ asin, title, accent }) {
   return (
-    <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '8px 12px', display: 'flex', flexDirection: 'column', minWidth: 0, maxWidth: 240 }}>
+    <div style={{ background: 'var(--overlay-3)', border: '1px solid var(--overlay-7)', borderRadius: 10, padding: '8px 12px', display: 'flex', flexDirection: 'column', minWidth: 0, maxWidth: 240 }}>
       <span style={{ fontFamily: 'monospace', fontSize: 11, color: accent, fontWeight: 800 }}>{asin}</span>
-      <span style={{ fontSize: 11, color: '#CBD5E1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title || '—'}</span>
+      <span style={{ fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title || '—'}</span>
     </div>
   );
 }
@@ -260,8 +260,8 @@ function PairChip({ asin, title, accent }) {
 function Mini({ label, value }) {
   return (
     <div style={{ textAlign: 'center' }}>
-      <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</p>
-      <p style={{ margin: '2px 0 0', fontSize: 16, fontWeight: 900, color: '#F1F5F9' }}>{value}</p>
+      <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</p>
+      <p style={{ margin: '2px 0 0', fontSize: 16, fontWeight: 900, color: 'var(--text-primary)' }}>{value}</p>
     </div>
   );
 }

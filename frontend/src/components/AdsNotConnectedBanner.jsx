@@ -24,14 +24,14 @@ export default function AdsNotConnectedBanner() {
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: 16,
-      color: '#FCD34D',
+      color: 'var(--warning-2)',
       fontSize: 13,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
         <span style={{ fontSize: 18 }}>⚠️</span>
         <div>
           <div style={{ fontWeight: 700, color: '#FDE68A' }}>Amazon Ads not connected</div>
-          <div style={{ color: '#FCD34D', opacity: 0.85, marginTop: 2 }}>
+          <div style={{ color: 'var(--warning-2)', opacity: 0.85, marginTop: 2 }}>
             {message} Reports and campaign data require the Ads OAuth step.
           </div>
         </div>
@@ -40,7 +40,11 @@ export default function AdsNotConnectedBanner() {
         <a
           href="/api/sp-oauth/ads-start"
           style={{
-            background: 'linear-gradient(90deg, #F59E0B, #D97706)',
+            background: 'linear-gradient(90deg, var(--warning), #D97706)',
+            // Deliberately literal, not a token: the amber gradient behind this
+            // text is fixed, so the text must stay dark in both themes. Any
+            // theme-flipping token here (--bg-app-2, --text-invert) turns white
+            // in light mode and drops contrast on amber to ~2:1.
             color: '#0F172A',
             fontWeight: 700,
             fontSize: 12,
@@ -57,7 +61,7 @@ export default function AdsNotConnectedBanner() {
           style={{
             background: 'transparent',
             border: '1px solid rgba(252,211,77,0.3)',
-            color: '#FCD34D',
+            color: 'var(--warning-2)',
             borderRadius: 8,
             padding: '6px 10px',
             fontSize: 12,

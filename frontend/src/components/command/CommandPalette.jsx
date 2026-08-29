@@ -5,19 +5,19 @@ import { Command } from 'cmdk';
 import { NAV_COMMANDS, DATE_COMMANDS, ACTION_COMMANDS } from './commands.js';
 
 const BADGE_COLORS = {
-  sp: '#3B82F6', sb: '#8B5CF6', sd: '#10B981',
+  sp: 'var(--info-strong)', sb: 'var(--accent-strong)', sd: 'var(--success)',
 };
 
 function typeLabel(t) {
   if (t === 'sponsoredProducts') return { text: 'SP', color: BADGE_COLORS.sp };
   if (t === 'sponsoredBrands')   return { text: 'SB', color: BADGE_COLORS.sb };
   if (t === 'sponsoredDisplay')  return { text: 'SD', color: BADGE_COLORS.sd };
-  return { text: t ?? '—', color: '#94A3B8' };
+  return { text: t ?? '—', color: 'var(--text-muted)' };
 }
 
 const STATUS_COLOR = {
-  enabled: '#10B981', active: '#10B981',
-  paused: '#F59E0B', ended: '#F43F5E', archived: '#94A3B8',
+  enabled: 'var(--success)', active: 'var(--success)',
+  paused: 'var(--warning)', ended: 'var(--rose)', archived: 'var(--text-muted)',
 };
 
 export default function CommandPalette({ open, onOpenChange, actionsRef }) {
@@ -56,7 +56,7 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
         onClick={close}
         style={{
           position: 'fixed', inset: 0, zIndex: 200,
-          background: 'rgba(4,6,16,0.72)',
+          background: 'var(--scrim)',
           backdropFilter: 'blur(6px)',
         }}
       />
@@ -72,10 +72,10 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
           position: 'fixed', top: '15vh', left: '50%', transform: 'translateX(-50%)',
           width: 620, maxWidth: 'calc(100vw - 32px)',
           zIndex: 201,
-          background: 'rgba(8,12,26,0.98)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          background: 'var(--surface-raised)',
+          border: '1px solid var(--overlay-8)',
           borderRadius: 16,
-          boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(59,130,246,0.08)',
+          boxShadow: '0 32px 80px var(--bg-overlay-lo), 0 0 0 1px rgba(59,130,246,0.08)',
           overflow: 'hidden',
         }}
       >
@@ -90,9 +90,9 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10,
             padding: '14px 18px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid var(--overlay-5)',
           }}>
-            <svg width="15" height="15" fill="none" stroke="#475569" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+            <svg width="15" height="15" fill="none" stroke="var(--border-med)" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <Command.Input
@@ -101,13 +101,13 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
               placeholder="Search panels, campaigns, actions…"
               style={{
                 flex: 1, background: 'none', border: 'none', outline: 'none',
-                fontSize: 14, color: '#F1F5F9', caretColor: '#3B82F6',
+                fontSize: 14, color: 'var(--text-primary)', caretColor: 'var(--info-strong)',
                 fontFamily: 'inherit',
               }}
             />
             <kbd style={{
-              fontSize: 10, fontWeight: 700, color: '#334155',
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+              fontSize: 10, fontWeight: 700, color: 'var(--text-faint)',
+              background: 'var(--overlay-4)', border: '1px solid var(--overlay-7)',
               borderRadius: 5, padding: '2px 6px', letterSpacing: '0.04em', flexShrink: 0,
             }}>
               ESC
@@ -119,9 +119,9 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
             maxHeight: 420, overflowY: 'auto',
             padding: '6px 0 10px',
             scrollbarWidth: 'thin',
-            scrollbarColor: '#1E293B transparent',
+            scrollbarColor: 'var(--bg-panel) transparent',
           }}>
-            <Command.Empty style={{ padding: '28px 18px', textAlign: 'center', fontSize: 13, color: '#334155' }}>
+            <Command.Empty style={{ padding: '28px 18px', textAlign: 'center', fontSize: 13, color: 'var(--text-faint)' }}>
               No results for "{query}"
             </Command.Empty>
 
@@ -137,8 +137,8 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
                 >
                   <span style={iconStyle}>{cmd.icon}</span>
                   <span style={{ flex: 1 }}>
-                    <span style={{ color: '#F1F5F9', fontWeight: 600 }}>{cmd.label}</span>
-                    {cmd.hint && <span style={{ color: '#334155', fontSize: 11, marginLeft: 8 }}>{cmd.hint}</span>}
+                    <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{cmd.label}</span>
+                    {cmd.hint && <span style={{ color: 'var(--text-faint)', fontSize: 11, marginLeft: 8 }}>{cmd.hint}</span>}
                   </span>
                   <span style={enterStyle}>↵</span>
                 </Command.Item>
@@ -158,8 +158,8 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
                   className="cmdk-item"
                 >
                   <span style={iconStyle}>{cmd.icon}</span>
-                  <span style={{ flex: 1, color: '#F1F5F9', fontWeight: 600 }}>{cmd.label}</span>
-                  <span style={{ ...enterStyle, color: '#F59E0B' }}>{cmd.preset}</span>
+                  <span style={{ flex: 1, color: 'var(--text-primary)', fontWeight: 600 }}>{cmd.label}</span>
+                  <span style={{ ...enterStyle, color: 'var(--warning)' }}>{cmd.preset}</span>
                 </Command.Item>
               ))}
             </Command.Group>
@@ -177,7 +177,7 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
                   className="cmdk-item"
                 >
                   <span style={{ ...iconStyle, fontFamily: 'system-ui' }}>{cmd.icon}</span>
-                  <span style={{ flex: 1, color: '#F1F5F9', fontWeight: 600 }}>{cmd.label}</span>
+                  <span style={{ flex: 1, color: 'var(--text-primary)', fontWeight: 600 }}>{cmd.label}</span>
                   <span style={enterStyle}>↵</span>
                 </Command.Item>
               ))}
@@ -191,7 +191,7 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
                   {campaigns.slice(0, 50).map((c, i) => {
                     const cid = c.id ?? c.campaignId;
                     const tl = typeLabel(c.campaignType);
-                    const sColor = STATUS_COLOR[c.status] ?? '#94A3B8';
+                    const sColor = STATUS_COLOR[c.status] ?? 'var(--text-muted)';
                     return (
                       <Command.Item
                         key={cid ?? i}
@@ -201,7 +201,7 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
                         className="cmdk-item"
                       >
                         <span style={{ ...iconStyle, fontSize: 10, fontWeight: 800, color: tl.color }}>{tl.text}</span>
-                        <span style={{ flex: 1, color: '#CBD5E1', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ flex: 1, color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {c.name}
                         </span>
                         <span style={{ fontSize: 10, fontWeight: 700, color: sColor, marginRight: 8 }}>
@@ -219,18 +219,18 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
           {/* Footer hint */}
           <div style={{
             padding: '8px 18px',
-            borderTop: '1px solid rgba(255,255,255,0.05)',
+            borderTop: '1px solid var(--overlay-4)',
             display: 'flex', alignItems: 'center', gap: 16,
           }}>
             {[['↑↓', 'navigate'], ['↵', 'select'], ['esc', 'close']].map(([key, label]) => (
               <span key={key} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <kbd style={{ fontSize: 10, color: '#1E293B', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '1px 5px' }}>
+                <kbd style={{ fontSize: 10, color: 'var(--text-faint)', background: 'var(--overlay-5)', border: '1px solid var(--overlay-7)', borderRadius: 4, padding: '1px 5px' }}>
                   {key}
                 </kbd>
-                <span style={{ fontSize: 10, color: '#1E293B' }}>{label}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{label}</span>
               </span>
             ))}
-            <span style={{ marginLeft: 'auto', fontSize: 10, color: '#1E293B', letterSpacing: '0.04em' }}>
+            <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-faint)', letterSpacing: '0.04em' }}>
               ⌘K to toggle
             </span>
           </div>
@@ -246,7 +246,7 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
           font-weight: 800;
           letter-spacing: 0.10em;
           text-transform: uppercase;
-          color: #1E293B;
+          color: var(--text-faint);
         }
         [cmdk-list-sizer] { padding: 0; }
       `}</style>
@@ -270,9 +270,9 @@ const iconStyle = {
 };
 
 const enterStyle = {
-  fontSize: 11, color: '#1E293B', opacity: 0, transition: 'opacity 0.1s',
+  fontSize: 11, color: 'var(--text-faint)', opacity: 0, transition: 'opacity 0.1s',
 };
 
 const dividerStyle = {
-  height: 1, background: 'rgba(255,255,255,0.04)', margin: '4px 0',
+  height: 1, background: 'var(--overlay-3)', margin: '4px 0',
 };

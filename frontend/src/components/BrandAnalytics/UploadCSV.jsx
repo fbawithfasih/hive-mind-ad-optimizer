@@ -53,25 +53,25 @@ function DropZone({ type, label, desc, icon, color, onFile, status }) {
         boxShadow: dragging ? `0 4px 32px ${glow}40` : isDone ? `0 4px 24px ${glow}25` : 'none',
         display: 'flex', flexDirection: 'column', gap: 10,
       }}>
-      <GradientBar top={isDone ? gradient : 'rgba(255,255,255,0.05)'} />
+      <GradientBar top={isDone ? gradient : 'var(--overlay-4)'} />
       <input ref={inputRef} type="file" accept=".csv" style={{ display: 'none' }}
         onChange={e => { const f = e.target.files?.[0]; if (f) onFile(type, f); e.target.value = ''; }} />
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: isDone ? gradient : 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, transition: 'background 0.2s', boxShadow: isDone ? `0 4px 12px ${glow}` : 'none' }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: isDone ? gradient : 'var(--overlay-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, transition: 'background 0.2s', boxShadow: isDone ? `0 4px 12px ${glow}` : 'none' }}>
             {isPending ? <Spinner size={18} /> : icon}
           </div>
           <div>
-            <p style={{ fontSize: 13, fontWeight: 700, color: isDone ? accent : '#F1F5F9', margin: 0 }}>{label}</p>
-            <p style={{ fontSize: 11, color: '#334155', margin: '3px 0 0', lineHeight: 1.4 }}>{desc}</p>
+            <p style={{ fontSize: 13, fontWeight: 700, color: isDone ? accent : 'var(--text-primary)', margin: 0 }}>{label}</p>
+            <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '3px 0 0', lineHeight: 1.4 }}>{desc}</p>
           </div>
         </div>
         <div style={{ flexShrink: 0 }}>
           {isDone ? (
             <span style={{ fontSize: 11, fontWeight: 800, color: accent, background: `${accent}18`, padding: '3px 10px', borderRadius: 999, border: `1px solid ${accent}30` }}>✓ Uploaded</span>
           ) : (
-            <span style={{ fontSize: 11, color: '#334155', fontWeight: 600 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-faint)', fontWeight: 600 }}>
               {dragging ? 'Drop it!' : 'Click or drag CSV'}
             </span>
           )}
@@ -79,17 +79,17 @@ function DropZone({ type, label, desc, icon, color, onFile, status }) {
       </div>
 
       {isPending && (
-        <div style={{ height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 99, overflow: 'hidden' }}>
+        <div style={{ height: 4, background: 'var(--overlay-4)', borderRadius: 99, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${status.progress ?? 10}%`, background: gradient, borderRadius: 99, transition: 'width 0.3s ease' }} />
         </div>
       )}
 
       {status?.error && (
-        <p style={{ fontSize: 11, color: '#F87171', margin: 0 }}>⚠ {status.error}</p>
+        <p style={{ fontSize: 11, color: 'var(--danger)', margin: 0 }}>⚠ {status.error}</p>
       )}
 
       {status?.filename && (
-        <p style={{ fontSize: 10, color: '#475569', margin: 0, fontFamily: 'monospace' }}>{status.filename}</p>
+        <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: 0, fontFamily: 'monospace' }}>{status.filename}</p>
       )}
     </div>
   );
@@ -136,23 +136,23 @@ export default function UploadCSV({ brand, onRefreshNeeded }) {
       }}>
         <span style={{ fontSize: 18, lineHeight: 1.2, flexShrink: 0 }}>✨</span>
         <div style={{ flex: 1 }}>
-          <p style={{ margin: 0, fontSize: 12.5, color: '#34D399', fontWeight: 700 }}>
+          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--success-2)', fontWeight: 700 }}>
             Auto-fetch is now the recommended path
           </p>
-          <p style={{ margin: '4px 0 0', fontSize: 11.5, color: '#94A3B8', lineHeight: 1.5 }}>
+          <p style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             If your seller account has Brand Registry + SP-API access, the Reports tab pulls these reports automatically on a tier-based schedule — no manual exports needed. Use this CSV upload only as a fallback when API access isn't available.
           </p>
         </div>
       </div>
 
-    <div style={{ ...glass('rgba(255,255,255,0.06)'), padding: '22px 24px' }}>
-      <GradientBar top="linear-gradient(90deg,#8B5CF6,#3B82F6,#10B981)" />
+    <div style={{ ...glass('var(--overlay-5)'), padding: '22px 24px' }}>
+      <GradientBar top="linear-gradient(90deg,var(--accent-strong),var(--info-strong),var(--success))" />
       <GlowBlob color="rgba(139,92,246,0.12)" />
       <div style={{ position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <div>
-            <p style={{ fontSize: 11, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>Manual CSV upload (fallback)</p>
-            <p style={{ fontSize: 11, color: '#475569', margin: '3px 0 0' }}>
+            <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>Manual CSV upload (fallback)</p>
+            <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '3px 0 0' }}>
               Download from Seller Central → Brand Analytics → Search Analytics, then drop the files here
             </p>
           </div>
@@ -164,12 +164,12 @@ export default function UploadCSV({ brand, onRefreshNeeded }) {
           ))}
         </div>
 
-        <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px solid var(--overlay-4)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={handleRefresh} disabled={refreshing}
             style={{
               display: 'flex', alignItems: 'center', gap: 8, padding: '10px 22px', borderRadius: 10, border: 'none',
               cursor: refreshing ? 'not-allowed' : 'pointer',
-              background: refreshing ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
+              background: refreshing ? 'var(--overlay-4)' : 'linear-gradient(135deg,var(--accent-strong),var(--info-strong))',
               color: '#fff', fontWeight: 700, fontSize: 13,
               boxShadow: refreshing ? 'none' : '0 4px 18px rgba(139,92,246,0.4)',
               opacity: refreshing ? 0.7 : 1,
@@ -177,14 +177,14 @@ export default function UploadCSV({ brand, onRefreshNeeded }) {
             {refreshing ? <><Spinner /> Re-parsing…</> : '↻ Refresh Analytics Cache'}
           </button>
           {refreshMsg && (
-            <p style={{ fontSize: 12, color: refreshMsg.ok ? '#34D399' : '#F87171', margin: 0 }}>
+            <p style={{ fontSize: 12, color: refreshMsg.ok ? 'var(--success-2)' : 'var(--danger)', margin: 0 }}>
               {refreshMsg.ok ? '✓' : '⚠'} {refreshMsg.text}
             </p>
           )}
         </div>
 
-        <div style={{ marginTop: 14, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 10, padding: '10px 14px', fontSize: 11, color: '#94A3B8', lineHeight: 1.6 }}>
-          <strong style={{ color: '#60A5FA' }}>How to get these reports:</strong> Seller Central → Brand Analytics → Search Analytics → Select your brand → Download quarterly CSVs. The Top Search Terms file can exceed 400 MB — that's normal. First load will take 30–60 seconds while the backend streams it.
+        <div style={{ marginTop: 14, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 10, padding: '10px 14px', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+          <strong style={{ color: 'var(--info)' }}>How to get these reports:</strong> Seller Central → Brand Analytics → Search Analytics → Select your brand → Download quarterly CSVs. The Top Search Terms file can exceed 400 MB — that's normal. First load will take 30–60 seconds while the backend streams it.
         </div>
       </div>
     </div>

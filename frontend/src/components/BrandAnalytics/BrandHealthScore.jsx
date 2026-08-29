@@ -3,7 +3,7 @@ import { RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
 import { useMotionValue, useSpring, useMotionValueEvent } from 'framer-motion';
 import { scoreColor } from './shared.jsx';
 
-const CARD = { background: 'rgba(10,14,30,0.60)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden' };
+const CARD = { background: 'var(--bg-overlay-lo)', border: '1px solid var(--overlay-7)', borderRadius: 12, overflow: 'hidden' };
 
 function AnimatedScore({ target }) {
   const motionVal = useMotionValue(0);
@@ -14,7 +14,7 @@ function AnimatedScore({ target }) {
   useMotionValueEvent(spring, 'change', v => setCurrent(Math.round(v)));
 
   return (
-    <span style={{ fontSize: 26, fontWeight: 800, color: '#F1F5F9', lineHeight: 1, fontFamily: 'ui-monospace, monospace' }}>
+    <span style={{ fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1, fontFamily: 'ui-monospace, monospace' }}>
       {current}
     </span>
   );
@@ -33,7 +33,7 @@ function Ring({ score, size = 112 }) {
         style={{ filter: `drop-shadow(0 0 6px ${glow})` }}
       >
         <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
-        <RadialBar dataKey="value" cornerRadius={3} background={{ fill: 'rgba(255,255,255,0.05)' }} animationDuration={1200} animationBegin={100} />
+        <RadialBar dataKey="value" cornerRadius={3} background={{ fill: 'var(--overlay-4)' }} animationDuration={1200} animationBegin={100} />
       </RadialBarChart>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, pointerEvents: 'none' }}>
         <AnimatedScore target={score} />
@@ -47,8 +47,8 @@ function DimBar({ name, score }) {
   const { accent } = scoreColor(score);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <span style={{ fontSize: 11, color: '#64748B', width: 130, flexShrink: 0 }}>{name}</span>
-      <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 99, overflow: 'hidden' }}>
+      <span style={{ fontSize: 11, color: 'var(--text-subtle)', width: 130, flexShrink: 0 }}>{name}</span>
+      <div style={{ flex: 1, height: 5, background: 'var(--overlay-4)', borderRadius: 99, overflow: 'hidden' }}>
         <div style={{ width: `${score}%`, height: '100%', background: accent, borderRadius: 99, transition: 'width 1s ease' }} />
       </div>
       <span style={{ fontSize: 11, fontWeight: 700, color: accent, width: 28, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{score}</span>
@@ -80,8 +80,8 @@ export default function BrandHealthScore({ summary }) {
 
   return (
     <div style={CARD}>
-      <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Brand Health Score</p>
+      <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--overlay-5)' }}>
+        <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Brand Health Score</p>
       </div>
       <div style={{ padding: '18px 20px', display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>

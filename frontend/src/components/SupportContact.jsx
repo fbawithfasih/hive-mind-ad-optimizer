@@ -65,8 +65,8 @@ export default function SupportContact({ open, onClose }) {
   const action = {
     display: 'flex', alignItems: 'center', gap: 10, width: '100%',
     padding: '12px 14px', borderRadius: 10, marginBottom: 8,
-    border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.03)',
-    color: '#E2E8F0', fontSize: 13, fontWeight: 600,
+    border: '1px solid rgba(255,255,255,0.09)', background: 'var(--overlay-2)',
+    color: 'var(--text-strong)', fontSize: 13, fontWeight: 600,
     textDecoration: 'none', cursor: 'pointer', textAlign: 'left',
     fontFamily: 'inherit',
   };
@@ -75,7 +75,7 @@ export default function SupportContact({ open, onClose }) {
     <>
       <div
         onClick={onClose}
-        style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(4,6,16,0.75)', backdropFilter: 'blur(4px)' }}
+        style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'var(--scrim)', backdropFilter: 'blur(4px)' }}
       />
       <div
         role="dialog"
@@ -84,22 +84,22 @@ export default function SupportContact({ open, onClose }) {
         style={{
           position: 'fixed', top: '22vh', left: '50%', transform: 'translateX(-50%)',
           zIndex: 301, width: 'min(92vw, 380px)',
-          background: 'rgba(8,12,26,0.98)', border: '1px solid rgba(255,255,255,0.09)',
+          background: 'var(--surface-raised)', border: '1px solid rgba(255,255,255,0.09)',
           borderRadius: 16, padding: 22,
           boxShadow: '0 25px 60px rgba(0,0,0,0.55)',
         }}
       >
-        <h2 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 800, color: '#F1F5F9' }}>
+        <h2 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>
           Contact support
         </h2>
-        <p style={{ margin: '0 0 16px', fontSize: 13, color: '#64748B', lineHeight: 1.6 }}>
+        <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--text-subtle)', lineHeight: 1.6 }}>
           We usually reply within one business day.
         </p>
 
         <div style={{
           padding: '10px 12px', borderRadius: 10, marginBottom: 14,
-          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)',
-          fontFamily: 'monospace', fontSize: 13, color: '#F1F5F9',
+          background: 'var(--overlay-3)', border: '1px solid rgba(255,255,255,0.09)',
+          fontFamily: 'monospace', fontSize: 13, color: 'var(--text-primary)',
           overflowWrap: 'anywhere',
         }}>
           {SUPPORT_EMAIL}
@@ -125,7 +125,7 @@ export default function SupportContact({ open, onClose }) {
           style={{
             ...action, marginBottom: 0, marginTop: 4, justifyContent: 'center',
             background: 'transparent', border: '1px solid transparent',
-            color: '#64748B', fontWeight: 500,
+            color: 'var(--text-subtle)', fontWeight: 500,
           }}
         >
           Close

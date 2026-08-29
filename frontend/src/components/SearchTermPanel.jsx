@@ -101,10 +101,10 @@ const STATUS_TABS = [
 ];
 
 const REC_META = {
-  SCALE_UP:     { label: 'Scale Up',      color: '#10B981', glow: 'rgba(16,185,129,0.5)',  gradient: 'linear-gradient(135deg,#10B981,#059669)', icon: '↑' },
-  ADD_EXACT:    { label: 'Add as Exact',  color: '#3B82F6', glow: 'rgba(59,130,246,0.5)',  gradient: 'linear-gradient(135deg,#3B82F6,#2563EB)', icon: '⊕' },
-  ADD_NEGATIVE: { label: 'Add Negative',  color: '#F43F5E', glow: 'rgba(244,63,94,0.5)',   gradient: 'linear-gradient(135deg,#F43F5E,#E11D48)', icon: '−' },
-  WATCH:        { label: 'Watch',         color: '#F59E0B', glow: 'rgba(245,158,11,0.5)',  gradient: 'linear-gradient(135deg,#F59E0B,#D97706)', icon: '◎' },
+  SCALE_UP:     { label: 'Scale Up',      color: 'var(--success)', glow: 'rgba(16,185,129,0.5)',  gradient: 'linear-gradient(135deg,var(--success),#059669)', icon: '↑' },
+  ADD_EXACT:    { label: 'Add as Exact',  color: 'var(--info-strong)', glow: 'rgba(59,130,246,0.5)',  gradient: 'linear-gradient(135deg,var(--info-strong),#2563EB)', icon: '⊕' },
+  ADD_NEGATIVE: { label: 'Add Negative',  color: 'var(--rose)', glow: 'rgba(244,63,94,0.5)',   gradient: 'linear-gradient(135deg,var(--rose),#E11D48)', icon: '−' },
+  WATCH:        { label: 'Watch',         color: 'var(--warning)', glow: 'rgba(245,158,11,0.5)',  gradient: 'linear-gradient(135deg,var(--warning),#D97706)', icon: '◎' },
 };
 
 // ── Primitives ────────────────────────────────────────────────────────────────
@@ -133,7 +133,7 @@ function RingProgress({ pct, color, glow, size = 72, stroke = 8 }) {
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', display: 'block' }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--overlay-5)" strokeWidth={stroke} />
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
           strokeDasharray={`${filled} ${circ}`} strokeLinecap="round"
           style={{ filter: `drop-shadow(0 0 6px ${glow ?? color})`, transition: 'stroke-dasharray 1.2s ease' }} />
@@ -149,8 +149,8 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
   return (
     <div style={{
       padding: '20px 22px', borderRadius: 20,
-      background: 'rgba(10,14,30,0.85)',
-      border: `1px solid ${accentColor}25`,
+      background: 'var(--bg-overlay-hi)',
+      border: `1px solid color-mix(in srgb, ${accentColor} 15%, transparent)`,
       backdropFilter: 'blur(16px)',
       position: 'relative', overflow: 'hidden',
       boxShadow: `0 4px 32px ${glow}20`,
@@ -161,9 +161,9 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
       <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, background: `radial-gradient(circle, ${glow} 0%, transparent 70%)`, pointerEvents: 'none' }} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, position: 'relative' }}>
         <div>
-          <p style={{ fontSize: 10, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 10px' }}>{label}</p>
+          <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 10px' }}>{label}</p>
           <p style={{ fontSize: 30, fontWeight: 900, color: '#FFFFFF', margin: 0, lineHeight: 1, letterSpacing: '-1px' }}>{value}</p>
-          {sub && <p style={{ fontSize: 11, color: '#475569', margin: '6px 0 0', fontWeight: 500 }}>{sub}</p>}
+          {sub && <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '6px 0 0', fontWeight: 500 }}>{sub}</p>}
         </div>
         {ringPct !== undefined ? (
           <RingProgress pct={ringPct} color={accentColor} glow={glow} />
@@ -185,7 +185,7 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
 function TopTermsBar({ terms }) {
   const top = [...terms].sort((a, b) => (b.impressions ?? 0) - (a.impressions ?? 0)).slice(0, 7);
   if (!top.length) return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 160, color: '#334155', fontSize: 13 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 160, color: 'var(--text-faint)', fontSize: 13 }}>
       <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ opacity: .3, marginBottom: 8 }}>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
       </svg>
@@ -193,15 +193,15 @@ function TopTermsBar({ terms }) {
     </div>
   );
   const max = top[0].impressions ?? 1;
-  const colors = ['#6366F1','#8B5CF6','#A78BFA','#3B82F6','#60A5FA','#10B981','#34D399'];
+  const colors = ['var(--indigo)','var(--accent-strong)','var(--accent)','var(--info-strong)','var(--info)','var(--success)','var(--success-2)'];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
       {top.map((t, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 130, fontSize: 11, color: '#64748B', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
+          <div style={{ width: 130, fontSize: 11, color: 'var(--text-subtle)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
             {t.searchTerm}
           </div>
-          <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 99, overflow: 'hidden', position: 'relative' }}>
+          <div style={{ flex: 1, height: 8, background: 'var(--overlay-4)', borderRadius: 99, overflow: 'hidden', position: 'relative' }}>
             <div style={{
               position: 'absolute', left: 0, top: 0, bottom: 0,
               width: `${((t.impressions ?? 0) / max) * 100}%`,
@@ -224,17 +224,17 @@ function RecommendationDonut({ stats, total }) {
   const circ = 2 * Math.PI * r;
   const tot = Math.max(total, 1);
   const segments = [
-    { value: stats.scaleUp,     color: '#10B981', label: 'Scale Up'   },
-    { value: stats.addExact,    color: '#3B82F6', label: 'Add Exact'  },
-    { value: stats.addNegative, color: '#F43F5E', label: 'Negative'   },
-    { value: stats.watch,       color: '#F59E0B', label: 'Watch'      },
+    { value: stats.scaleUp,     color: 'var(--success)', label: 'Scale Up'   },
+    { value: stats.addExact,    color: 'var(--info-strong)', label: 'Add Exact'  },
+    { value: stats.addNegative, color: 'var(--rose)', label: 'Negative'   },
+    { value: stats.watch,       color: 'var(--warning)', label: 'Watch'      },
   ];
   let offset = 0;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
       <div style={{ position: 'relative', width: size, height: size }}>
         <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', display: 'block' }}>
-          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={stroke} />
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--overlay-3)" strokeWidth={stroke} />
           {segments.map((seg, i) => {
             const dash = (seg.value / tot) * circ;
             const el = (
@@ -242,7 +242,7 @@ function RecommendationDonut({ stats, total }) {
                 stroke={seg.value ? seg.color : 'transparent'} strokeWidth={stroke}
                 strokeDasharray={`${dash} ${circ - dash}`}
                 strokeDashoffset={-offset} strokeLinecap="butt"
-                style={{ filter: seg.value ? `drop-shadow(0 0 4px ${seg.color}80)` : 'none', transition: 'stroke-dasharray 1.2s ease' }} />
+                style={{ filter: seg.value ? `drop-shadow(0 0 4px color-mix(in srgb, ${seg.color} 50%, transparent))` : 'none', transition: 'stroke-dasharray 1.2s ease' }} />
             );
             offset += dash;
             return el;
@@ -250,14 +250,14 @@ function RecommendationDonut({ stats, total }) {
         </svg>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ fontSize: 26, fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>{total}</span>
-          <span style={{ fontSize: 10, fontWeight: 600, color: '#64748B', letterSpacing: '0.05em', marginTop: 2 }}>TERMS</span>
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-subtle)', letterSpacing: '0.05em', marginTop: 2 }}>TERMS</span>
         </div>
       </div>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
         {segments.map(seg => (
           <div key={seg.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: seg.color, boxShadow: `0 0 6px ${seg.color}` }} />
-            <span style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{seg.label} <strong style={{ color: '#94A3B8' }}>{seg.value}</strong></span>
+            <span style={{ fontSize: 11, color: 'var(--text-subtle)', fontWeight: 600 }}>{seg.label} <strong style={{ color: 'var(--text-muted)' }}>{seg.value}</strong></span>
           </div>
         ))}
       </div>
@@ -470,7 +470,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
   }
 
   const inputStyle = {
-    background: 'rgba(10,14,30,0.85)', border: '1px solid rgba(255,255,255,0.08)', color: '#F1F5F9',
+    background: 'var(--bg-overlay-hi)', border: '1px solid var(--overlay-7)', color: 'var(--text-primary)',
     borderRadius: 8, padding: '7px 12px', fontSize: 12, outline: 'none',
   };
 
@@ -481,7 +481,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
 
       {/* ══ CONTROL BAR ══ */}
       <div style={{
-        background: 'rgba(10,14,30,0.85)', border: '1px solid rgba(255,255,255,0.06)',
+        background: 'var(--bg-overlay-hi)', border: '1px solid var(--overlay-5)',
         borderRadius: 16, padding: '16px 20px', backdropFilter: 'blur(16px)',
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -489,8 +489,8 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           {/* Title + presets row */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
             <div>
-              <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: '#F1F5F9', letterSpacing: '-0.3px' }}>Search Term Intelligence</p>
-              <p style={{ margin: '2px 0 0', fontSize: 12, color: '#334155' }}>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Search Term Intelligence</p>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-faint)' }}>
                 {hasData
                   ? `${filtered.length} of ${searchTerms.length} terms · ${dateRange.start} → ${dateRange.end}`
                   : 'Select date range and campaigns, then load'}
@@ -501,8 +501,8 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
                 <button key={p.days} onClick={() => handlePreset(p.days)} style={{
                   padding: '5px 13px', borderRadius: 20, border: 'none', fontSize: 11, cursor: 'pointer',
                   fontWeight: activePreset === p.days ? 700 : 500,
-                  background: activePreset === p.days ? 'linear-gradient(135deg,#6366F1,#8B5CF6)' : 'rgba(255,255,255,0.05)',
-                  color: activePreset === p.days ? '#fff' : '#64748B',
+                  background: activePreset === p.days ? 'linear-gradient(135deg,var(--indigo),var(--accent-strong))' : 'var(--overlay-4)',
+                  color: activePreset === p.days ? '#fff' : 'var(--text-subtle)',
                   boxShadow: activePreset === p.days ? '0 2px 12px rgba(99,102,241,0.4)' : 'none',
                   transition: 'all 0.15s',
                 }}>
@@ -517,7 +517,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
             <input type="date" value={dateFrom}
               onChange={e => { setDateFrom(e.target.value); setActivePreset(null); }}
               max={dateTo} style={inputStyle} />
-            <span style={{ color: '#334155', fontSize: 12 }}>→</span>
+            <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>→</span>
             <input type="date" value={dateTo}
               onChange={e => { setDateTo(e.target.value); setActivePreset(null); }}
               min={dateFrom} max={getTodayISO()} style={inputStyle} />
@@ -525,7 +525,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
             <button onClick={handleLoad} disabled={isLoading} style={{
               display: 'flex', alignItems: 'center', gap: 7, padding: '8px 18px',
               borderRadius: 10, border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer',
-              background: isLoading ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#6366F1,#8B5CF6)',
+              background: isLoading ? 'var(--overlay-5)' : 'linear-gradient(135deg,var(--indigo),var(--accent-strong))',
               color: '#fff', fontWeight: 700, fontSize: 13,
               boxShadow: isLoading ? 'none' : '0 4px 20px rgba(99,102,241,0.4)',
               opacity: isLoading ? 0.7 : 1, whiteSpace: 'nowrap', transition: 'all 0.15s',
@@ -551,9 +551,9 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
             {hasData && (
               <button onClick={() => setShowThresholds(o => !o)} style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10,
-                border: `1px solid ${showThresholds ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`,
-                background: showThresholds ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.04)',
-                color: showThresholds ? '#A78BFA' : '#94A3B8', fontWeight: 600, fontSize: 12, cursor: 'pointer',
+                border: `1px solid ${showThresholds ? 'rgba(99,102,241,0.5)' : 'var(--overlay-7)'}`,
+                background: showThresholds ? 'rgba(99,102,241,0.1)' : 'var(--overlay-3)',
+                color: showThresholds ? 'var(--accent)' : 'var(--text-muted)', fontWeight: 600, fontSize: 12, cursor: 'pointer',
               }}>
                 <svg style={{ width: 13, height: 13 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
@@ -568,8 +568,8 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
                 <div style={{ position: 'relative', marginLeft: 'auto' }}>
                   <button onClick={() => setExportOpen(o => !o)} style={{
                     display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10,
-                    border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)',
-                    color: '#94A3B8', fontWeight: 600, fontSize: 12, cursor: 'pointer',
+                    border: '1px solid var(--overlay-7)', background: 'var(--overlay-3)',
+                    color: 'var(--text-muted)', fontWeight: 600, fontSize: 12, cursor: 'pointer',
                   }}>
                     <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
@@ -582,19 +582,19 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
                   {exportOpen && (
                     <div onMouseLeave={() => setExportOpen(false)} style={{
                       position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 50,
-                      background: '#0F172A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10,
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.5)', minWidth: 155, overflow: 'hidden',
+                      background: 'var(--bg-app-2)', border: '1px solid var(--overlay-7)', borderRadius: 10,
+                      boxShadow: '0 8px 32px var(--bg-overlay-lo)', minWidth: 155, overflow: 'hidden',
                     }}>
                       {[
-                        { label: 'Download CSV', color: '#10B981', action: () => { exportCsv(filtered, dateRange); setExportOpen(false); } },
-                        { label: isPdfExporting ? 'Generating…' : 'Download PDF', color: '#F43F5E', action: async () => { setExportOpen(false); setIsPdfExporting(true); await exportPdf(filtered, dateRange); setIsPdfExporting(false); } },
+                        { label: 'Download CSV', color: 'var(--success)', action: () => { exportCsv(filtered, dateRange); setExportOpen(false); } },
+                        { label: isPdfExporting ? 'Generating…' : 'Download PDF', color: 'var(--rose)', action: async () => { setExportOpen(false); setIsPdfExporting(true); await exportPdf(filtered, dateRange); setIsPdfExporting(false); } },
                       ].map(item => (
                         <button key={item.label} onClick={item.action} style={{
                           width: '100%', padding: '10px 16px', background: 'none', border: 'none',
-                          textAlign: 'left', color: '#F1F5F9', fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                          textAlign: 'left', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, cursor: 'pointer',
                           display: 'flex', alignItems: 'center', gap: 10,
                         }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                          onMouseEnter={e => e.currentTarget.style.background = 'var(--overlay-4)'}
                           onMouseLeave={e => e.currentTarget.style.background = 'none'}>
                           <div style={{ width: 7, height: 7, borderRadius: '50%', background: item.color, boxShadow: `0 0 6px ${item.color}` }} />
                           {item.label}
@@ -607,7 +607,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
                 {/* Ask AI */}
                 <button onClick={handleAskAI} style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, border: 'none',
-                  background: 'linear-gradient(135deg,#8B5CF6,#3B82F6)', color: '#fff', fontWeight: 700, fontSize: 12,
+                  background: 'linear-gradient(135deg,var(--accent-strong),var(--info-strong))', color: '#fff', fontWeight: 700, fontSize: 12,
                   cursor: 'pointer', boxShadow: '0 4px 16px rgba(139,92,246,0.4)', whiteSpace: 'nowrap',
                 }}>
                   <svg style={{ width: 13, height: 13 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -624,11 +624,11 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
       {/* ══ THRESHOLDS PANEL ══ */}
       {showThresholds && hasData && (
         <div style={{
-          background: 'rgba(10,14,30,0.85)', border: '1px solid rgba(99,102,241,0.25)',
+          background: 'var(--bg-overlay-hi)', border: '1px solid rgba(99,102,241,0.25)',
           borderRadius: 16, padding: '18px 20px', backdropFilter: 'blur(16px)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#A78BFA', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
               Classification Thresholds
             </p>
             <button
@@ -639,7 +639,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
               }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 10, border: 'none',
-                background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 12,
+                background: 'linear-gradient(135deg,var(--indigo),var(--accent-strong))', color: '#fff', fontWeight: 700, fontSize: 12,
                 cursor: 'pointer', boxShadow: '0 4px 16px rgba(99,102,241,0.35)',
               }}>
               Re-classify
@@ -650,63 +650,63 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
             {/* Scale Up */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#10B981' }}>Scale Up: ACoS &lt;</span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#10B981' }}>{thresholds.scaleUpAcos}%</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success)' }}>Scale Up: ACoS &lt;</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--success)' }}>{thresholds.scaleUpAcos}%</span>
               </div>
               <input type="range" min="5" max="60" step="1" value={thresholds.scaleUpAcos}
                 onChange={e => setThresholds(t => ({ ...t, scaleUpAcos: Number(e.target.value) }))}
-                style={{ width: '100%', accentColor: '#10B981' }} />
+                style={{ width: '100%', accentColor: 'var(--success)' }} />
             </div>
 
             {/* Add Exact min */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#3B82F6' }}>Add Exact: ACoS min</span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#3B82F6' }}>{thresholds.addExactAcosMin}%</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--info-strong)' }}>Add Exact: ACoS min</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--info-strong)' }}>{thresholds.addExactAcosMin}%</span>
               </div>
               <input type="range" min="5" max="80" step="1" value={thresholds.addExactAcosMin}
                 onChange={e => setThresholds(t => ({ ...t, addExactAcosMin: Number(e.target.value) }))}
-                style={{ width: '100%', accentColor: '#3B82F6' }} />
+                style={{ width: '100%', accentColor: 'var(--info-strong)' }} />
             </div>
 
             {/* Add Exact max */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#3B82F6' }}>Add Exact: ACoS max</span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#3B82F6' }}>{thresholds.addExactAcosMax}%</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--info-strong)' }}>Add Exact: ACoS max</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--info-strong)' }}>{thresholds.addExactAcosMax}%</span>
               </div>
               <input type="range" min="10" max="100" step="1" value={thresholds.addExactAcosMax}
                 onChange={e => setThresholds(t => ({ ...t, addExactAcosMax: Number(e.target.value) }))}
-                style={{ width: '100%', accentColor: '#3B82F6' }} />
+                style={{ width: '100%', accentColor: 'var(--info-strong)' }} />
             </div>
 
             {/* Add Negative clicks */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#F43F5E' }}>Add Negative: min clicks</span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#F43F5E' }}>{thresholds.addNegativeClicks}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--rose)' }}>Add Negative: min clicks</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--rose)' }}>{thresholds.addNegativeClicks}</span>
               </div>
               <input type="range" min="3" max="50" step="1" value={thresholds.addNegativeClicks}
                 onChange={e => setThresholds(t => ({ ...t, addNegativeClicks: Number(e.target.value) }))}
-                style={{ width: '100%', accentColor: '#F43F5E' }} />
+                style={{ width: '100%', accentColor: 'var(--rose)' }} />
             </div>
 
             {/* Add Negative spend */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#F43F5E' }}>Add Negative: min spend</span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#F43F5E' }}>${thresholds.addNegativeSpend}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--rose)' }}>Add Negative: min spend</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--rose)' }}>${thresholds.addNegativeSpend}</span>
               </div>
               <input type="range" min="1" max="50" step="1" value={thresholds.addNegativeSpend}
                 onChange={e => setThresholds(t => ({ ...t, addNegativeSpend: Number(e.target.value) }))}
-                style={{ width: '100%', accentColor: '#F43F5E' }} />
+                style={{ width: '100%', accentColor: 'var(--rose)' }} />
             </div>
 
             {/* Reset */}
             <div style={{ display: 'flex', alignItems: 'flex-end' }}>
               <button
                 onClick={() => setThresholds(DEFAULT_THRESHOLDS)}
-                style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid #334155', background: 'transparent', color: '#64748B', fontSize: 12, cursor: 'pointer' }}>
+                style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--text-subtle)', fontSize: 12, cursor: 'pointer' }}>
                 Reset defaults
               </button>
             </div>
@@ -716,7 +716,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
 
       {/* ══ ERROR ══ */}
       {error && (
-        <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', color: '#F87171', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
+        <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', color: 'var(--danger)', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
           {error}
         </div>
       )}
@@ -724,37 +724,37 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
       {/* ══ CAMPAIGN PICKER ══ */}
       {campaigns.length > 0 && (
         <div style={{
-          background: 'rgba(10,14,30,0.85)', border: '1px solid rgba(255,255,255,0.06)',
+          background: 'var(--bg-overlay-hi)', border: '1px solid var(--overlay-5)',
           borderRadius: 16, overflow: 'hidden', backdropFilter: 'blur(16px)',
         }}>
           <button onClick={() => setPickerOpen(o => !o)} style={{
             width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer', color: '#F1F5F9',
+            padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <svg style={{ width: 14, height: 14, color: '#6366F1' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg style={{ width: 14, height: 14, color: 'var(--indigo)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
               </svg>
-              <span style={{ fontWeight: 700, fontSize: 13, color: '#F1F5F9' }}>Campaign Filter</span>
+              <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>Campaign Filter</span>
               {selectedCampaignIds.size > 0
-                ? <span style={{ background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', borderRadius: 12, padding: '2px 10px', fontSize: 11, fontWeight: 700 }}>{selectedCampaignIds.size} selected</span>
-                : <span style={{ color: '#334155', fontSize: 12 }}>All campaigns</span>
+                ? <span style={{ background: 'linear-gradient(135deg,var(--indigo),var(--accent-strong))', color: '#fff', borderRadius: 12, padding: '2px 10px', fontSize: 11, fontWeight: 700 }}>{selectedCampaignIds.size} selected</span>
+                : <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>All campaigns</span>
               }
             </div>
-            <svg style={{ width: 14, height: 14, color: '#475569', transform: pickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg style={{ width: 14, height: 14, color: 'var(--text-faint)', transform: pickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
             </svg>
           </button>
 
           {pickerOpen && (
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ borderTop: '1px solid var(--overlay-5)' }}>
               {/* Status tabs */}
-              <div style={{ display: 'flex', padding: '0 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ display: 'flex', padding: '0 20px', borderBottom: '1px solid var(--overlay-5)' }}>
                 {STATUS_TABS.map(tab => (
                   <button key={tab.key} onClick={() => setCampaignStatusFilter(tab.key)} style={{
                     padding: '8px 14px', background: 'none', border: 'none',
-                    borderBottom: campaignStatusFilter === tab.key ? '2px solid #6366F1' : '2px solid transparent',
-                    color: campaignStatusFilter === tab.key ? '#A78BFA' : '#475569',
+                    borderBottom: campaignStatusFilter === tab.key ? '2px solid var(--indigo)' : '2px solid transparent',
+                    color: campaignStatusFilter === tab.key ? 'var(--accent)' : 'var(--text-faint)',
                     fontWeight: campaignStatusFilter === tab.key ? 700 : 500,
                     fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap',
                   }}>
@@ -764,26 +764,26 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
               </div>
 
               {/* Select all row */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                <button onClick={selectAll} style={{ fontSize: 11, color: '#6366F1', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Select all visible</button>
-                <span style={{ color: '#1E293B' }}>|</span>
-                <button onClick={deselectAll} style={{ fontSize: 11, color: '#475569', background: 'none', border: 'none', cursor: 'pointer' }}>Deselect all</button>
-                <span style={{ marginLeft: 'auto', fontSize: 11, color: '#334155' }}>{visibleCampaigns.length} campaigns</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 20px', borderBottom: '1px solid var(--overlay-3)' }}>
+                <button onClick={selectAll} style={{ fontSize: 11, color: 'var(--indigo)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Select all visible</button>
+                <span style={{ color: 'var(--text-faint)' }}>|</span>
+                <button onClick={deselectAll} style={{ fontSize: 11, color: 'var(--text-faint)', background: 'none', border: 'none', cursor: 'pointer' }}>Deselect all</button>
+                <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-faint)' }}>{visibleCampaigns.length} campaigns</span>
               </div>
 
               {/* Checkboxes */}
               <div style={{ maxHeight: 220, overflowY: 'auto', padding: '8px 20px 12px' }}>
                 {visibleCampaigns.length === 0 ? (
-                  <p style={{ margin: 0, fontSize: 12, color: '#334155', textAlign: 'center', padding: '16px 0' }}>No campaigns match this status</p>
+                  <p style={{ margin: 0, fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', padding: '16px 0' }}>No campaigns match this status</p>
                 ) : visibleCampaigns.map(c => {
                   const id = c.campaignId || c.id;
                   const checked = selectedCampaignIds.has(id);
                   const s = (c.status || '').toLowerCase();
-                  const statusColor = (s === 'active' || s === 'enabled') ? '#10B981' : s === 'paused' ? '#F59E0B' : '#475569';
+                  const statusColor = (s === 'active' || s === 'enabled') ? 'var(--success)' : s === 'paused' ? 'var(--warning)' : 'var(--text-faint)';
                   return (
                     <label key={id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0', cursor: 'pointer', userSelect: 'none' }}>
-                      <input type="checkbox" checked={checked} onChange={() => toggleCampaign(id)} style={{ accentColor: '#6366F1', width: 14, height: 14, flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, color: '#CBD5E1', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <input type="checkbox" checked={checked} onChange={() => toggleCampaign(id)} style={{ accentColor: 'var(--indigo)', width: 14, height: 14, flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: 'var(--text-muted)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {c.name || c.campaignName || id}
                       </span>
                       <span style={{ fontSize: 10, color: statusColor, textTransform: 'capitalize', flexShrink: 0 }}>
@@ -804,8 +804,8 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           label="Total Terms"
           value={hasData ? searchTerms.length.toLocaleString() : '—'}
           sub={hasData ? `${filtered.length} matching filters` : 'Load report to see data'}
-          gradient="linear-gradient(135deg,#6366F1,#4F46E5)"
-          glow="rgba(99,102,241,0.5)" accentColor="#6366F1"
+          gradient="linear-gradient(135deg,var(--indigo),#4F46E5)"
+          glow="rgba(99,102,241,0.5)" accentColor="var(--indigo)"
           sparkValues={imprSpark}
           icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>}
         />
@@ -813,8 +813,8 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           label="Scale Up"
           value={hasData ? stats.scaleUp : '—'}
           sub="High-performing terms"
-          gradient="linear-gradient(135deg,#10B981,#059669)"
-          glow="rgba(16,185,129,0.5)" accentColor="#10B981"
+          gradient="linear-gradient(135deg,var(--success),#059669)"
+          glow="rgba(16,185,129,0.5)" accentColor="var(--success)"
           sparkValues={hasData ? Array(10).fill(0).map((_, i) => i < stats.scaleUp ? stats.scaleUp - i : 0) : undefined}
           icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>}
         />
@@ -822,16 +822,16 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           label="Add Negative"
           value={hasData ? stats.addNegative : '—'}
           sub="Wasted spend terms"
-          gradient="linear-gradient(135deg,#F43F5E,#E11D48)"
-          glow="rgba(244,63,94,0.5)" accentColor="#F43F5E"
+          gradient="linear-gradient(135deg,var(--rose),#E11D48)"
+          glow="rgba(244,63,94,0.5)" accentColor="var(--rose)"
           ringPct={hasData ? negativePct : undefined}
         />
         <VibrantStatCard
           label="Total Spend"
           value={hasData ? `$${stats.totalSpend.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '—'}
           sub={hasData && stats.acos != null ? `ACoS ${stats.acos.toFixed(1)}%` : 'Across all terms'}
-          gradient="linear-gradient(135deg,#8B5CF6,#7C3AED)"
-          glow="rgba(139,92,246,0.5)" accentColor="#8B5CF6"
+          gradient="linear-gradient(135deg,var(--accent-strong),#7C3AED)"
+          glow="rgba(139,92,246,0.5)" accentColor="var(--accent-strong)"
           sparkValues={clicksSpark}
           icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>}
         />
@@ -839,8 +839,8 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           label="Total Sales"
           value={hasData ? `$${stats.totalSales.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '—'}
           sub={hasData ? `${stats.totalClicks.toLocaleString()} clicks` : 'Load report first'}
-          gradient="linear-gradient(135deg,#F59E0B,#D97706)"
-          glow="rgba(245,158,11,0.5)" accentColor="#F59E0B"
+          gradient="linear-gradient(135deg,var(--warning),#D97706)"
+          glow="rgba(245,158,11,0.5)" accentColor="var(--warning)"
           icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>}
         />
       </div>
@@ -850,23 +850,23 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
 
         {/* Recommendation donut */}
         <div style={{
-          background: 'rgba(10,14,30,0.85)', border: '1px solid rgba(255,255,255,0.06)',
+          background: 'var(--bg-overlay-hi)', border: '1px solid var(--overlay-5)',
           borderRadius: 20, padding: '20px 24px', backdropFilter: 'blur(16px)',
           position: 'relative', overflow: 'hidden',
         }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,#6366F1,#8B5CF6,#3B82F6)' }} />
-          <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Recommendation Breakdown</p>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,var(--indigo),var(--accent-strong),var(--info-strong))' }} />
+          <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Recommendation Breakdown</p>
           <RecommendationDonut stats={stats} total={searchTerms.length} />
         </div>
 
         {/* Top terms by impressions */}
         <div style={{
-          background: 'rgba(10,14,30,0.85)', border: '1px solid rgba(255,255,255,0.06)',
+          background: 'var(--bg-overlay-hi)', border: '1px solid var(--overlay-5)',
           borderRadius: 20, padding: '20px 24px', backdropFilter: 'blur(16px)',
           position: 'relative', overflow: 'hidden',
         }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,#F59E0B,#10B981,#3B82F6)' }} />
-          <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Top Search Terms by Impressions</p>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,var(--warning),var(--success),var(--info-strong))' }} />
+          <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Top Search Terms by Impressions</p>
           <TopTermsBar terms={filtered} />
         </div>
       </div>
@@ -874,17 +874,17 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
       {/* ══ RECOMMENDATION QUICK-FILTER PILLS ══ */}
       {hasData && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: '#334155', fontWeight: 600, marginRight: 4 }}>FILTER:</span>
-          {[{ key: 'all', label: `All (${searchTerms.length})`, color: '#64748B' },
+          <span style={{ fontSize: 11, color: 'var(--text-faint)', fontWeight: 600, marginRight: 4 }}>FILTER:</span>
+          {[{ key: 'all', label: `All (${searchTerms.length})`, color: 'var(--text-subtle)' },
             ...Object.entries(REC_META).map(([key, m]) => ({
               key, color: m.color,
               label: `${m.icon} ${m.label} (${stats[key === 'SCALE_UP' ? 'scaleUp' : key === 'ADD_EXACT' ? 'addExact' : key === 'ADD_NEGATIVE' ? 'addNegative' : 'watch']})`,
             }))
           ].map(item => (
             <button key={item.key} onClick={() => setRecFilter(item.key)} style={{
-              padding: '5px 14px', borderRadius: 20, border: `1px solid ${recFilter === item.key ? item.color : 'rgba(255,255,255,0.07)'}`,
-              background: recFilter === item.key ? `${item.color}20` : 'transparent',
-              color: recFilter === item.key ? item.color : '#475569',
+              padding: '5px 14px', borderRadius: 20, border: `1px solid ${recFilter === item.key ? item.color : 'var(--overlay-6)'}`,
+              background: recFilter === item.key ? `color-mix(in srgb, ${item.color} 13%, transparent)` : 'transparent',
+              color: recFilter === item.key ? item.color : 'var(--text-faint)',
               fontSize: 12, fontWeight: recFilter === item.key ? 700 : 500, cursor: 'pointer',
               transition: 'all 0.15s',
             }}>
@@ -896,8 +896,8 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           <input type="text" placeholder="Search terms, campaigns…"
             value={search} onChange={e => setSearch(e.target.value)}
             style={{ ...inputStyle, marginLeft: 'auto', minWidth: 220 }}
-            onFocus={e => e.target.style.borderColor = '#6366F1'}
-            onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+            onFocus={e => e.target.style.borderColor = 'var(--indigo)'}
+            onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'}
           />
         </div>
       )}
@@ -909,7 +909,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           borderRadius: 12, padding: '12px 18px',
           display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
         }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#A78BFA' }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>
             {selected.size} term{selected.size !== 1 ? 's' : ''} selected
           </span>
           <div style={{ display: 'flex', gap: 8, flex: 1, flexWrap: 'wrap' }}>
@@ -920,7 +920,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px',
                   borderRadius: 8, border: 'none', cursor: applying ? 'not-allowed' : 'pointer',
-                  background: applying ? '#475569' : 'linear-gradient(135deg,#F43F5E,#E11D48)',
+                  background: applying ? 'var(--border-med)' : 'linear-gradient(135deg,var(--rose),#E11D48)',
                   color: '#fff', fontWeight: 700, fontSize: 12,
                   boxShadow: applying ? 'none' : '0 4px 12px rgba(244,63,94,0.35)',
                 }}>
@@ -934,7 +934,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px',
                   borderRadius: 8, border: 'none', cursor: applying ? 'not-allowed' : 'pointer',
-                  background: applying ? '#475569' : 'linear-gradient(135deg,#3B82F6,#2563EB)',
+                  background: applying ? 'var(--border-med)' : 'linear-gradient(135deg,var(--info-strong),#2563EB)',
                   color: '#fff', fontWeight: 700, fontSize: 12,
                   boxShadow: applying ? 'none' : '0 4px 12px rgba(59,130,246,0.35)',
                 }}>
@@ -942,14 +942,14 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
               </button>
             )}
             {selectedNegatives.length === 0 && selectedExact.length === 0 && (
-              <span style={{ fontSize: 12, color: '#64748B', alignSelf: 'center' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-subtle)', alignSelf: 'center' }}>
                 Select ADD_NEGATIVE or ADD_EXACT terms to apply actions
               </span>
             )}
           </div>
           <button
             onClick={() => setSelected(new Set())}
-            style={{ background: 'none', border: 'none', color: '#64748B', fontSize: 12, cursor: 'pointer', padding: '4px 8px' }}>
+            style={{ background: 'none', border: 'none', color: 'var(--text-subtle)', fontSize: 12, cursor: 'pointer', padding: '4px 8px' }}>
             Clear
           </button>
         </div>
@@ -964,18 +964,18 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
         }}>
           {applyResult.error ? (
-            <span style={{ fontSize: 13, color: '#F87171' }}>Error: {applyResult.error}</span>
+            <span style={{ fontSize: 13, color: 'var(--danger)' }}>Error: {applyResult.error}</span>
           ) : (
-            <span style={{ fontSize: 13, color: '#34D399' }}>
+            <span style={{ fontSize: 13, color: 'var(--success-2)' }}>
               {applyResult.type === 'ADD_NEGATIVE' ? 'Negative keywords' : 'Exact match keywords'} applied —{' '}
               <b>{applyResult.added} added</b>
               {applyResult.duplicates > 0 && `, ${applyResult.duplicates} already exist`}
-              {applyResult.failed > 0 && <span style={{ color: '#F87171' }}>, {applyResult.failed} failed</span>}
+              {applyResult.failed > 0 && <span style={{ color: 'var(--danger)' }}>, {applyResult.failed} failed</span>}
             </span>
           )}
           <button
             onClick={() => setApplyResult(null)}
-            style={{ background: 'none', border: 'none', color: '#64748B', fontSize: 12, cursor: 'pointer' }}>
+            style={{ background: 'none', border: 'none', color: 'var(--text-subtle)', fontSize: 12, cursor: 'pointer' }}>
             ✕
           </button>
         </div>
@@ -983,7 +983,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
 
       {/* ══ TABLE ══ */}
       <div style={{
-        background: 'rgba(10,14,30,0.85)', border: '1px solid rgba(255,255,255,0.06)',
+        background: 'var(--bg-overlay-hi)', border: '1px solid var(--overlay-5)',
         borderRadius: 16, overflow: 'hidden', backdropFilter: 'blur(16px)',
       }}>
         <SearchTermTable

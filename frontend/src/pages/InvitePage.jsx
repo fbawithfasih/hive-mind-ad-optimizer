@@ -8,8 +8,8 @@ const S = {
   icon: { fontSize: 48, marginBottom: 16 },
   h1: { margin: '0 0 8px', fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' },
   p: { margin: '0 0 24px', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 },
-  btn: { display: 'inline-block', padding: '11px 24px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', textDecoration: 'none' },
-  err: { background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#F87171', marginBottom: 16 },
+  btn: { display: 'inline-block', padding: '11px 24px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', textDecoration: 'none' },
+  err: { background: 'color-mix(in srgb, var(--rose) 9%, transparent)', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)', marginBottom: 16 },
   meta: { fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 },
 };
 

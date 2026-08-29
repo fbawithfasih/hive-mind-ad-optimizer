@@ -1,10 +1,10 @@
 import React from 'react';
 
 const GRADES = [
-  { grade: 'A', color: '#10B981', glow: 'rgba(16,185,129,0.4)',  label: 'Excellent' },
-  { grade: 'B', color: '#3B82F6', glow: 'rgba(59,130,246,0.4)',  label: 'Good'      },
-  { grade: 'C', color: '#F59E0B', glow: 'rgba(245,158,11,0.4)',  label: 'Fair'      },
-  { grade: 'D', color: '#F43F5E', glow: 'rgba(244,63,94,0.4)',   label: 'Poor'      },
+  { grade: 'A', color: 'var(--success)', glow: 'rgba(16,185,129,0.4)',  label: 'Excellent' },
+  { grade: 'B', color: 'var(--info-strong)', glow: 'rgba(59,130,246,0.4)',  label: 'Good'      },
+  { grade: 'C', color: 'var(--warning)', glow: 'rgba(245,158,11,0.4)',  label: 'Fair'      },
+  { grade: 'D', color: 'var(--rose)', glow: 'rgba(244,63,94,0.4)',   label: 'Poor'      },
 ];
 
 export function computeGrade(roas, acos) {
@@ -29,8 +29,8 @@ export default function PerformanceGrade({ roas, acos, size = 'md' }) {
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
-      background: `${g.color}18`,
-      border: `1px solid ${g.color}40`,
+      background: `color-mix(in srgb, ${g.color} 9%, transparent)`,
+      border: `1px solid color-mix(in srgb, ${g.color} 25%, transparent)`,
       borderRadius: 8,
       padding: pad,
       boxShadow: `0 0 12px ${g.glow}`,

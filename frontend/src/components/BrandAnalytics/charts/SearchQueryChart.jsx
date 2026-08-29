@@ -4,20 +4,20 @@ import {
   ResponsiveContainer, Cell, LabelList,
 } from 'recharts';
 
-const POSITION_COLOR = { 1: '#10B981', 2: '#3B82F6', 3: '#8B5CF6' };
+const POSITION_COLOR = { 1: 'var(--success)', 2: 'var(--info-strong)', 3: 'var(--accent-strong)' };
 
 const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
     <div style={{
-      background: 'rgba(8,12,26,0.97)',
-      border: '1px solid rgba(255,255,255,0.10)',
+      background: 'var(--surface-card)',
+      border: '1px solid var(--overlay-8)',
       borderRadius: 10, padding: '10px 14px', fontSize: 11,
     }}>
-      <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#F1F5F9', maxWidth: 200 }}>{d.term}</p>
-      <p style={{ margin: 0, color: '#3B82F6' }}>Click share: <b>{d.clickShare?.toFixed(1)}%</b></p>
-      <p style={{ margin: 0, color: POSITION_COLOR[d.position] ?? '#94A3B8' }}>Position: #{d.position}</p>
+      <p style={{ margin: '0 0 4px', fontWeight: 700, color: 'var(--text-primary)', maxWidth: 200 }}>{d.term}</p>
+      <p style={{ margin: 0, color: 'var(--info-strong)' }}>Click share: <b>{d.clickShare?.toFixed(1)}%</b></p>
+      <p style={{ margin: 0, color: POSITION_COLOR[d.position] ?? 'var(--text-muted)' }}>Position: #{d.position}</p>
     </div>
   );
 };
@@ -39,7 +39,7 @@ export default function SearchQueryChart({ brandAppearances = [] }) {
   if (!data.length) {
     return (
       <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontSize: 12, color: '#334155' }}>No search query data — load brand analytics first</span>
+        <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>No search query data — load brand analytics first</span>
       </div>
     );
   }
@@ -55,7 +55,7 @@ export default function SearchQueryChart({ brandAppearances = [] }) {
         <XAxis
           type="number"
           domain={[0, 'dataMax']}
-          tick={{ fontSize: 9, fill: '#334155' }}
+          tick={{ fontSize: 9, fill: 'var(--border-strong)' }}
           tickFormatter={v => `${v}%`}
           axisLine={false}
           tickLine={false}
@@ -64,16 +64,16 @@ export default function SearchQueryChart({ brandAppearances = [] }) {
           type="category"
           dataKey="short"
           width={160}
-          tick={{ fontSize: 10, fill: '#64748B' }}
+          tick={{ fontSize: 10, fill: 'var(--text-subtle)' }}
           axisLine={false}
           tickLine={false}
         />
-        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--overlay-2)' }} />
         <Bar dataKey="clickShare" radius={[0, 4, 4, 0]} animationDuration={900}>
           {data.map((d, i) => (
             <Cell
               key={i}
-              fill={POSITION_COLOR[d.position] ?? '#8B5CF6'}
+              fill={POSITION_COLOR[d.position] ?? 'var(--accent-strong)'}
               fillOpacity={1 - i * 0.06}
             />
           ))}
@@ -81,7 +81,7 @@ export default function SearchQueryChart({ brandAppearances = [] }) {
             dataKey="clickShare"
             position="right"
             formatter={v => `${v.toFixed(1)}%`}
-            style={{ fontSize: 10, fill: '#64748B', fontFamily: 'monospace' }}
+            style={{ fontSize: 10, fill: 'var(--text-subtle)', fontFamily: 'monospace' }}
           />
         </Bar>
       </BarChart>

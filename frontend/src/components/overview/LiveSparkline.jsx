@@ -3,13 +3,15 @@ import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 
 const FALLBACK = [3, 5, 4, 7, 6, 8, 5, 9, 7, 10];
 
-export default function LiveSparkline({ data, color = '#3B82F6', height = 40 }) {
+export default function LiveSparkline({ data, color = 'var(--info-strong)', height = 40 }) {
   const points = useMemo(() => {
     const src = data && data.length >= 2 ? data : FALLBACK;
     return src.map((v, i) => ({ i, v }));
   }, [data]);
 
-  const gradId = `sg-${color.replace('#', '')}`;
+  // Colours may now be `var(--token)`, so strip everything that isn't
+  // id-safe rather than just the leading '#'.
+  const gradId = `sg-${String(color).replace(/[^a-zA-Z0-9]/g, '')}`;
 
   return (
     <ResponsiveContainer width="100%" height={height}>

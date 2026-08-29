@@ -9,8 +9,8 @@ import {
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const glass = {
-  background: 'rgba(10,14,30,0.85)',
-  border: '1px solid rgba(255,255,255,0.06)',
+  background: 'var(--bg-overlay-hi)',
+  border: '1px solid var(--overlay-5)',
   borderRadius: 20,
   backdropFilter: 'blur(16px)',
   position: 'relative',
@@ -18,9 +18,9 @@ const glass = {
 };
 
 const inputSt = {
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.08)',
-  color: '#F1F5F9',
+  background: 'var(--overlay-3)',
+  border: '1px solid var(--overlay-7)',
+  color: 'var(--text-primary)',
   borderRadius: 10,
   padding: '8px 13px',
   fontSize: 13,
@@ -63,8 +63,8 @@ const CONDITIONS = [
 
 const METRIC_UNITS = { acos: '%', spend: '$', roas: '×', ctr: '', clicks: '', impressions: '' };
 const METRIC_COLORS = {
-  acos: '#F43F5E', spend: '#F59E0B', roas: '#10B981',
-  ctr: '#3B82F6', clicks: '#8B5CF6', impressions: '#6366F1',
+  acos: 'var(--rose)', spend: 'var(--warning)', roas: 'var(--success)',
+  ctr: 'var(--info-strong)', clicks: 'var(--accent-strong)', impressions: 'var(--indigo)',
 };
 
 function metricLabel(m) { return METRICS.find(x => x.value === m)?.label ?? m; }
@@ -89,54 +89,54 @@ function AlertForm({ initial, onSave, onCancel, isSaving }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div>
-        <label style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#475569', display: 'block', marginBottom: 5 }}>Alert name</label>
+        <label style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-faint)', display: 'block', marginBottom: 5 }}>Alert name</label>
         <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. High ACoS warning"
           style={inputSt}
-          onFocus={e => e.target.style.borderColor = '#F43F5E'}
-          onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'} />
+          onFocus={e => e.target.style.borderColor = 'var(--rose)'}
+          onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px', gap: 10 }}>
         <div>
-          <label style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#475569', display: 'block', marginBottom: 5 }}>Metric</label>
+          <label style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-faint)', display: 'block', marginBottom: 5 }}>Metric</label>
           <select value={form.metric} onChange={e => set('metric', e.target.value)}
             style={{ ...inputSt, cursor: 'pointer' }}>
             {METRICS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
           </select>
         </div>
         <div>
-          <label style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#475569', display: 'block', marginBottom: 5 }}>Condition</label>
+          <label style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-faint)', display: 'block', marginBottom: 5 }}>Condition</label>
           <select value={form.condition} onChange={e => set('condition', e.target.value)}
             style={{ ...inputSt, cursor: 'pointer' }}>
             {CONDITIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
         </div>
         <div>
-          <label style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#475569', display: 'block', marginBottom: 5 }}>Threshold</label>
+          <label style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-faint)', display: 'block', marginBottom: 5 }}>Threshold</label>
           <input type="number" value={form.threshold} onChange={e => set('threshold', e.target.value)}
             placeholder="0" min="0"
             style={{ ...inputSt }}
-            onFocus={e => e.target.style.borderColor = '#F43F5E'}
-            onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'} />
+            onFocus={e => e.target.style.borderColor = 'var(--rose)'}
+            onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'} />
         </div>
       </div>
 
       <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 8, padding: '8px 12px', fontSize: 11, color: '#818CF8' }}>
-        Fire when: <strong style={{ color: '#A5B4FC' }}>{metricLabel(form.metric)}</strong>{' '}
-        <span style={{ color: '#6366F1' }}>{condLabel(form.condition)}</span>{' '}
-        <strong style={{ color: '#A5B4FC' }}>{form.threshold || '…'}{METRIC_UNITS[form.metric]}</strong>
+        Fire when: <strong style={{ color: 'var(--indigo-soft)' }}>{metricLabel(form.metric)}</strong>{' '}
+        <span style={{ color: 'var(--indigo)' }}>{condLabel(form.condition)}</span>{' '}
+        <strong style={{ color: 'var(--indigo-soft)' }}>{form.threshold || '…'}{METRIC_UNITS[form.metric]}</strong>
         {' '}across any campaign
       </div>
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         {onCancel && (
           <button onClick={onCancel}
-            style={{ padding: '7px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#475569', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+            style={{ padding: '7px 16px', borderRadius: 8, border: '1px solid var(--overlay-7)', background: 'transparent', color: 'var(--text-faint)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             Cancel
           </button>
         )}
         <button onClick={() => valid && onSave(form)} disabled={!valid || isSaving}
-          style={{ padding: '7px 20px', borderRadius: 8, border: 'none', background: valid && !isSaving ? 'linear-gradient(135deg,#F43F5E,#EF4444)' : 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: valid && !isSaving ? 'pointer' : 'not-allowed', opacity: valid && !isSaving ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+          style={{ padding: '7px 20px', borderRadius: 8, border: 'none', background: valid && !isSaving ? 'linear-gradient(135deg,var(--rose),var(--danger-strong))' : 'var(--overlay-4)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: valid && !isSaving ? 'pointer' : 'not-allowed', opacity: valid && !isSaving ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 6 }}>
           {isSaving ? <><Spinner size={12} /> Saving…</> : (initial ? 'Save changes' : '+ Create alert')}
         </button>
       </div>
@@ -150,7 +150,7 @@ function AlertCard({ alert, onToggle, onDelete, onEdit }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isEditing,   setIsEditing]   = useState(false);
   const [isSaving,    setIsSaving]    = useState(false);
-  const color = METRIC_COLORS[alert.metric] ?? '#6366F1';
+  const color = METRIC_COLORS[alert.metric] ?? 'var(--indigo)';
 
   async function handleSaveEdit(form) {
     setIsSaving(true);
@@ -159,8 +159,8 @@ function AlertCard({ alert, onToggle, onDelete, onEdit }) {
   }
 
   return (
-    <div style={{ ...glass, padding: 0, borderColor: alert.isActive ? `${color}20` : 'rgba(255,255,255,0.04)' }}>
-      <GradientBar top={alert.isActive ? `linear-gradient(90deg,${color},${color}88)` : 'rgba(255,255,255,0.04)'} />
+    <div style={{ ...glass, padding: 0, borderColor: alert.isActive ? `${color}20` : 'var(--overlay-3)' }}>
+      <GradientBar top={alert.isActive ? `linear-gradient(90deg,${color},${color}88)` : 'var(--overlay-3)'} />
       <div style={{ padding: '14px 16px', position: 'relative' }}>
         {isEditing ? (
           <AlertForm
@@ -174,16 +174,16 @@ function AlertCard({ alert, onToggle, onDelete, onEdit }) {
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: alert.isActive ? '#F1F5F9' : '#475569' }}>{alert.name}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: alert.isActive ? 'var(--text-primary)' : 'var(--text-faint)' }}>{alert.name}</span>
                   <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: `${color}18`, color, border: `1px solid ${color}35` }}>
                     {metricLabel(alert.metric)}
                   </span>
-                  <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: alert.isActive ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.04)', color: alert.isActive ? '#10B981' : '#334155', border: `1px solid ${alert.isActive ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.06)'}` }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: alert.isActive ? 'rgba(16,185,129,0.1)' : 'var(--overlay-3)', color: alert.isActive ? 'var(--success)' : 'var(--text-faint)', border: `1px solid ${alert.isActive ? 'rgba(16,185,129,0.25)' : 'var(--overlay-5)'}` }}>
                     {alert.isActive ? 'Active' : 'Paused'}
                   </span>
                 </div>
-                <p style={{ margin: 0, fontSize: 12, color: '#475569' }}>
-                  Fires when <strong style={{ color: '#94A3B8' }}>{metricLabel(alert.metric)}</strong>{' '}
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--text-faint)' }}>
+                  Fires when <strong style={{ color: 'var(--text-muted)' }}>{metricLabel(alert.metric)}</strong>{' '}
                   {condLabel(alert.condition)}{' '}
                   <strong style={{ color }}>{formatValue(alert.metric, alert.threshold)}</strong>
                 </p>
@@ -191,27 +191,27 @@ function AlertCard({ alert, onToggle, onDelete, onEdit }) {
 
               <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                 <button onClick={() => onToggle(alert.id, !alert.isActive)}
-                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 7, border: `1px solid ${alert.isActive ? 'rgba(245,158,11,0.3)' : 'rgba(16,185,129,0.3)'}`, background: alert.isActive ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)', color: alert.isActive ? '#F59E0B' : '#10B981', cursor: 'pointer', fontWeight: 600 }}>
+                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 7, border: `1px solid ${alert.isActive ? 'rgba(245,158,11,0.3)' : 'rgba(16,185,129,0.3)'}`, background: alert.isActive ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)', color: alert.isActive ? 'var(--warning)' : 'var(--success)', cursor: 'pointer', fontWeight: 600 }}>
                   {alert.isActive ? 'Pause' : 'Enable'}
                 </button>
                 <button onClick={() => setIsEditing(true)}
-                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#475569', cursor: 'pointer' }}>
+                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 7, border: '1px solid var(--overlay-7)', background: 'var(--overlay-3)', color: 'var(--text-faint)', cursor: 'pointer' }}>
                   Edit
                 </button>
                 {showConfirm ? (
                   <>
                     <button onClick={() => onDelete(alert.id)}
-                      style={{ fontSize: 11, padding: '4px 10px', borderRadius: 7, border: '1px solid rgba(244,63,94,0.35)', background: 'rgba(244,63,94,0.12)', color: '#F87171', cursor: 'pointer', fontWeight: 700 }}>
+                      style={{ fontSize: 11, padding: '4px 10px', borderRadius: 7, border: '1px solid rgba(244,63,94,0.35)', background: 'rgba(244,63,94,0.12)', color: 'var(--danger)', cursor: 'pointer', fontWeight: 700 }}>
                       Confirm
                     </button>
                     <button onClick={() => setShowConfirm(false)}
-                      style={{ fontSize: 11, padding: '4px 8px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#334155', cursor: 'pointer' }}>
+                      style={{ fontSize: 11, padding: '4px 8px', borderRadius: 7, border: '1px solid var(--overlay-7)', background: 'transparent', color: 'var(--text-faint)', cursor: 'pointer' }}>
                       ✕
                     </button>
                   </>
                 ) : (
                   <button onClick={() => setShowConfirm(true)}
-                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 7, border: '1px solid rgba(244,63,94,0.2)', background: 'transparent', color: '#F43F5E', cursor: 'pointer' }}>
+                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 7, border: '1px solid rgba(244,63,94,0.2)', background: 'transparent', color: 'var(--rose)', cursor: 'pointer' }}>
                     Delete
                   </button>
                 )}
@@ -229,7 +229,7 @@ function AlertCard({ alert, onToggle, onDelete, onEdit }) {
 function FireHistory({ fires, onMarkAllRead, isMarking }) {
   if (!fires.length) {
     return (
-      <div style={{ textAlign: 'center', padding: '40px 0', color: '#1E293B', fontSize: 13 }}>
+      <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-faint)', fontSize: 13 }}>
         No alerts have fired yet — they'll appear here when campaign metrics trigger a rule
       </div>
     );
@@ -238,25 +238,25 @@ function FireHistory({ fires, onMarkAllRead, isMarking }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       {fires.map(fire => {
-        const color = METRIC_COLORS[fire.alert?.metric] ?? '#6366F1';
+        const color = METRIC_COLORS[fire.alert?.metric] ?? 'var(--indigo)';
         const date  = new Date(fire.triggeredAt);
         return (
-          <div key={fire.id} style={{ display: 'grid', gridTemplateColumns: '8px 1fr auto', gap: 12, alignItems: 'center', padding: '11px 18px', borderBottom: '1px solid rgba(255,255,255,0.04)', background: fire.isRead ? 'transparent' : 'rgba(244,63,94,0.03)' }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: fire.isRead ? '#1E293B' : color, boxShadow: fire.isRead ? 'none' : `0 0 8px ${color}` }} />
+          <div key={fire.id} style={{ display: 'grid', gridTemplateColumns: '8px 1fr auto', gap: 12, alignItems: 'center', padding: '11px 18px', borderBottom: '1px solid var(--overlay-3)', background: fire.isRead ? 'transparent' : 'rgba(244,63,94,0.03)' }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: fire.isRead ? 'var(--bg-panel)' : color, boxShadow: fire.isRead ? 'none' : `0 0 8px ${color}` }} />
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: fire.isRead ? '#475569' : '#F1F5F9' }}>{fire.alert?.name ?? '—'}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: fire.isRead ? 'var(--text-faint)' : 'var(--text-primary)' }}>{fire.alert?.name ?? '—'}</span>
                 <span style={{ fontSize: 10, padding: '1px 7px', borderRadius: 99, background: `${color}14`, color, border: `1px solid ${color}30` }}>{metricLabel(fire.alert?.metric)}</span>
               </div>
-              <p style={{ margin: '2px 0 0', fontSize: 11, color: '#334155' }}>
-                <strong style={{ color: '#64748B' }}>{fire.campaignName}</strong>
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-faint)' }}>
+                <strong style={{ color: 'var(--text-subtle)' }}>{fire.campaignName}</strong>
                 {' · '}
                 {metricLabel(fire.alert?.metric)} was{' '}
                 <strong style={{ color }}>{formatValue(fire.alert?.metric, fire.metricValue)}</strong>
-                {fire.alert && <span style={{ color: '#334155' }}> (threshold: {formatValue(fire.alert.metric, fire.alert.threshold)})</span>}
+                {fire.alert && <span style={{ color: 'var(--text-faint)' }}> (threshold: {formatValue(fire.alert.metric, fire.alert.threshold)})</span>}
               </p>
             </div>
-            <div style={{ fontSize: 10, color: '#1E293B', textAlign: 'right', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-faint)', textAlign: 'right', whiteSpace: 'nowrap' }}>
               <div>{date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</div>
               <div>{date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</div>
             </div>
@@ -396,47 +396,47 @@ export default function AlertsPanel() {
 
       {/* ── Header ── */}
       <div style={{ ...glass, padding: '22px 24px', borderColor: 'rgba(244,63,94,0.2)', boxShadow: '0 4px 40px rgba(244,63,94,0.08)' }}>
-        <GradientBar top="linear-gradient(90deg,#F43F5E,#F59E0B,#8B5CF6)" />
+        <GradientBar top="linear-gradient(90deg,var(--rose),var(--warning),var(--accent-strong))" />
         <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
           <div>
-            <p style={{ margin: 0, fontWeight: 900, fontSize: 17, color: '#F1F5F9', letterSpacing: '-0.4px' }}>Campaign Alerts</p>
-            <p style={{ margin: '3px 0 0', fontSize: 12, color: '#334155' }}>
+            <p style={{ margin: 0, fontWeight: 900, fontSize: 17, color: 'var(--text-primary)', letterSpacing: '-0.4px' }}>Campaign Alerts</p>
+            <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--text-faint)' }}>
               Define metric thresholds — get notified when any campaign crosses them after loading performance data
             </p>
           </div>
           <div style={{ display: 'flex', gap: 20 }}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#10B981', lineHeight: 1 }}>{activeCount}</div>
-              <div style={{ fontSize: 10, color: '#334155', marginTop: 2 }}>Active</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--success)', lineHeight: 1 }}>{activeCount}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2 }}>Active</div>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#F59E0B', lineHeight: 1 }}>{pausedCount}</div>
-              <div style={{ fontSize: 10, color: '#334155', marginTop: 2 }}>Paused</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--warning)', lineHeight: 1 }}>{pausedCount}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2 }}>Paused</div>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: unread > 0 ? '#F43F5E' : '#334155', lineHeight: 1 }}>{unread}</div>
-              <div style={{ fontSize: 10, color: '#334155', marginTop: 2 }}>Unread</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: unread > 0 ? 'var(--rose)' : 'var(--text-faint)', lineHeight: 1 }}>{unread}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2 }}>Unread</div>
             </div>
           </div>
         </div>
       </div>
 
       {error && (
-        <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', color: '#F87171', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
+        <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', color: 'var(--danger)', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
           {error}
         </div>
       )}
 
       {/* ── Tabs ── */}
-      <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 4, border: '1px solid rgba(255,255,255,0.06)', width: 'fit-content' }}>
+      <div style={{ display: 'flex', gap: 4, background: 'var(--overlay-2)', borderRadius: 12, padding: 4, border: '1px solid var(--overlay-5)', width: 'fit-content' }}>
         {[
           { id: 'rules',   label: `Alert Rules (${alerts.length})` },
           { id: 'history', label: `Fire History${unread > 0 ? ` · ${unread} new` : ''}` },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
             padding: '7px 18px', borderRadius: 9, border: 'none', cursor: 'pointer',
-            background: tab === t.id ? 'linear-gradient(135deg,#F43F5E,#EF4444)' : 'transparent',
-            color: tab === t.id ? '#fff' : '#475569',
+            background: tab === t.id ? 'linear-gradient(135deg,var(--rose),var(--danger-strong))' : 'transparent',
+            color: tab === t.id ? '#fff' : 'var(--text-faint)',
             fontWeight: 700, fontSize: 12,
             boxShadow: tab === t.id ? '0 2px 12px rgba(244,63,94,0.4)' : 'none',
             transition: 'all 0.15s',
@@ -448,13 +448,13 @@ export default function AlertsPanel() {
 
       {/* ── Email-notification toggle (per-user) ── */}
       {notifyOnAlerts !== null && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, fontSize: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', background: 'rgba(255,255,255,0.025)', border: '1px solid var(--overlay-4)', borderRadius: 10, fontSize: 12 }}>
           <span style={{ fontSize: 16 }}>{notifyOnAlerts ? '📬' : '🔕'}</span>
           <div style={{ flex: 1 }}>
-            <p style={{ margin: 0, color: '#CBD5E1', fontWeight: 600 }}>
+            <p style={{ margin: 0, color: 'var(--text-muted)', fontWeight: 600 }}>
               Email me when alerts fire
             </p>
-            <p style={{ margin: '2px 0 0', color: '#475569', fontSize: 11 }}>
+            <p style={{ margin: '2px 0 0', color: 'var(--text-faint)', fontSize: 11 }}>
               {notifyOnAlerts
                 ? 'You\'ll get an email summarising new fires from each daily evaluation sweep.'
                 : 'Emails are off — alert fires still appear here in the dashboard.'}
@@ -466,9 +466,9 @@ export default function AlertsPanel() {
               checked={notifyOnAlerts}
               disabled={notifySaving}
               onChange={e => handleToggleNotify(e.target.checked)}
-              style={{ width: 14, height: 14, accentColor: '#F43F5E', cursor: notifySaving ? 'wait' : 'pointer' }}
+              style={{ width: 14, height: 14, accentColor: 'var(--rose)', cursor: notifySaving ? 'wait' : 'pointer' }}
             />
-            <span style={{ color: notifyOnAlerts ? '#F43F5E' : '#475569', fontWeight: 700, fontSize: 11 }}>
+            <span style={{ color: notifyOnAlerts ? 'var(--rose)' : 'var(--text-faint)', fontWeight: 700, fontSize: 11 }}>
               {notifySaving ? 'Saving…' : notifyOnAlerts ? 'On' : 'Off'}
             </span>
           </label>
@@ -477,17 +477,17 @@ export default function AlertsPanel() {
 
       {/* ── Slack webhook (admin only) ── */}
       {slackVisible && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 16px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, fontSize: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 16px', background: 'rgba(255,255,255,0.025)', border: '1px solid var(--overlay-4)', borderRadius: 10, fontSize: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ fontSize: 16 }}>{slackUrl ? '💬' : '💤'}</span>
             <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, color: '#CBD5E1', fontWeight: 600 }}>
+              <p style={{ margin: 0, color: 'var(--text-muted)', fontWeight: 600 }}>
                 Slack notifications {slackUrl && <span style={{ color: '#4ADE80', fontSize: 10.5, fontWeight: 800 }}>· ENABLED</span>}
               </p>
-              <p style={{ margin: '2px 0 0', color: '#475569', fontSize: 11 }}>
+              <p style={{ margin: '2px 0 0', color: 'var(--text-faint)', fontSize: 11 }}>
                 Org-level. When set, alert sweeps post a Block Kit summary to this channel alongside email.
                 {' '}
-                <a href="https://api.slack.com/messaging/webhooks" target="_blank" rel="noopener noreferrer" style={{ color: '#60A5FA', textDecoration: 'underline' }}>
+                <a href="https://api.slack.com/messaging/webhooks" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--info)', textDecoration: 'underline' }}>
                   How to create one
                 </a>
               </p>
@@ -499,31 +499,31 @@ export default function AlertsPanel() {
               onChange={e => setSlackInput(e.target.value)}
               placeholder="https://hooks.slack.com/services/T…/B…/…"
               spellCheck="false"
-              style={{ flex: 1, minWidth: 260, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#F1F5F9', borderRadius: 8, padding: '7px 12px', fontSize: 11, fontFamily: 'monospace', outline: 'none' }}
+              style={{ flex: 1, minWidth: 260, background: 'var(--overlay-3)', border: '1px solid var(--overlay-7)', color: 'var(--text-primary)', borderRadius: 8, padding: '7px 12px', fontSize: 11, fontFamily: 'monospace', outline: 'none' }}
             />
             <button onClick={handleSaveSlack} disabled={slackSaving || slackInput === (slackUrl ?? '')} style={{
               fontSize: 11, fontWeight: 700, padding: '7px 14px', borderRadius: 7, border: 'none',
               cursor: (slackSaving || slackInput === (slackUrl ?? '')) ? 'not-allowed' : 'pointer',
-              background: (slackSaving || slackInput === (slackUrl ?? '')) ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#F43F5E,#EF4444)',
-              color: (slackSaving || slackInput === (slackUrl ?? '')) ? '#475569' : '#fff',
+              background: (slackSaving || slackInput === (slackUrl ?? '')) ? 'var(--overlay-5)' : 'linear-gradient(135deg,var(--rose),var(--danger-strong))',
+              color: (slackSaving || slackInput === (slackUrl ?? '')) ? 'var(--text-faint)' : '#fff',
             }}>
               {slackSaving ? 'Saving…' : 'Save'}
             </button>
             {slackUrl && (
               <button onClick={() => { setSlackInput(''); handleSaveSlack(); }} disabled={slackSaving} style={{
-                fontSize: 11, fontWeight: 600, padding: '7px 12px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.08)',
-                background: 'transparent', color: '#94A3B8', cursor: slackSaving ? 'not-allowed' : 'pointer',
+                fontSize: 11, fontWeight: 600, padding: '7px 12px', borderRadius: 7, border: '1px solid var(--overlay-7)',
+                background: 'transparent', color: 'var(--text-muted)', cursor: slackSaving ? 'not-allowed' : 'pointer',
               }}>Disable</button>
             )}
             {slackMsg && (
-              <span style={{ fontSize: 11, color: slackMsg.ok ? '#34D399' : '#F87171' }}>{slackMsg.text}</span>
+              <span style={{ fontSize: 11, color: slackMsg.ok ? 'var(--success-2)' : 'var(--danger)' }}>{slackMsg.text}</span>
             )}
           </div>
         </div>
       )}
 
       {isLoading && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '24px 0', color: '#334155', fontSize: 13 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '24px 0', color: 'var(--text-faint)', fontSize: 13 }}>
           <Spinner size={16} /> Loading…
         </div>
       )}
@@ -535,15 +535,15 @@ export default function AlertsPanel() {
           {/* Create form */}
           {showForm ? (
             <div style={{ ...glass, padding: '18px 20px', borderColor: 'rgba(244,63,94,0.2)' }}>
-              <GradientBar top="linear-gradient(90deg,#F43F5E,#F59E0B)" />
+              <GradientBar top="linear-gradient(90deg,var(--rose),var(--warning))" />
               <div style={{ position: 'relative' }}>
-                <p style={{ margin: '0 0 14px', fontSize: 12, fontWeight: 700, color: '#F87171' }}>New Alert Rule</p>
+                <p style={{ margin: '0 0 14px', fontSize: 12, fontWeight: 700, color: 'var(--danger)' }}>New Alert Rule</p>
                 <AlertForm onSave={handleCreate} onCancel={() => setShowForm(false)} isSaving={isSaving} />
               </div>
             </div>
           ) : (
             <button onClick={() => setShowForm(true)}
-              style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#F43F5E,#EF4444)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 4px 18px rgba(244,63,94,0.4)' }}>
+              style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,var(--rose),var(--danger-strong))', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 4px 18px rgba(244,63,94,0.4)' }}>
               <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4"/>
               </svg>
@@ -552,7 +552,7 @@ export default function AlertsPanel() {
           )}
 
           {alerts.length === 0 && !showForm && (
-            <div style={{ ...glass, padding: '40px 0', textAlign: 'center', color: '#1E293B', fontSize: 13 }}>
+            <div style={{ ...glass, padding: '40px 0', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
               No alerts yet — create one above to start monitoring campaign metrics
             </div>
           )}
@@ -566,15 +566,15 @@ export default function AlertsPanel() {
       {/* ── History tab ── */}
       {!isLoading && tab === 'history' && (
         <div style={{ ...glass, padding: 0, borderColor: 'rgba(244,63,94,0.1)' }}>
-          <GradientBar top="linear-gradient(90deg,#F43F5E,#8B5CF6)" />
+          <GradientBar top="linear-gradient(90deg,var(--rose),var(--accent-strong))" />
 
-          <div style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#334155' }}>
+          <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--overlay-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-faint)' }}>
               Recent Fires {fires.length > 0 && `(${fires.length})`}
             </span>
             {unread > 0 && (
               <button onClick={handleMarkAllRead} disabled={isMarking}
-                style={{ fontSize: 11, padding: '4px 12px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#475569', cursor: isMarking ? 'default' : 'pointer', opacity: isMarking ? 0.6 : 1 }}>
+                style={{ fontSize: 11, padding: '4px 12px', borderRadius: 7, border: '1px solid var(--overlay-7)', background: 'var(--overlay-3)', color: 'var(--text-faint)', cursor: isMarking ? 'default' : 'pointer', opacity: isMarking ? 0.6 : 1 }}>
                 {isMarking ? <Spinner size={11} /> : `Mark all read (${unread})`}
               </button>
             )}

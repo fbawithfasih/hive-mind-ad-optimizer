@@ -13,9 +13,9 @@ export default function PerformanceBadges({ badges }) {
           style={{
             padding: '10px 12px',
             borderRadius: 10,
-            background: badge.earned ? `${badge.color}10` : 'rgba(255,255,255,0.02)',
-            border: `1px solid ${badge.earned ? `${badge.color}30` : 'rgba(255,255,255,0.05)'}`,
-            boxShadow: badge.earned ? `0 0 14px ${badge.color}18` : 'none',
+            background: badge.earned ? `color-mix(in srgb, ${badge.color} 6%, transparent)` : 'var(--overlay-1)',
+            border: `1px solid ${badge.earned ? `color-mix(in srgb, ${badge.color} 19%, transparent)` : 'var(--overlay-4)'}`,
+            boxShadow: badge.earned ? `0 0 14px color-mix(in srgb, ${badge.color} 9%, transparent)` : 'none',
             transition: 'box-shadow 0.3s',
           }}
         >
@@ -27,8 +27,8 @@ export default function PerformanceBadges({ badges }) {
                 animate={{ opacity: 1, scale: 1 }}
                 style={{
                   fontSize: 8, fontWeight: 900, color: badge.color,
-                  background: `${badge.color}18`,
-                  border: `1px solid ${badge.color}30`,
+                  background: `color-mix(in srgb, ${badge.color} 9%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${badge.color} 19%, transparent)`,
                   borderRadius: 4, padding: '1px 5px',
                   letterSpacing: '0.08em', textTransform: 'uppercase',
                 }}
@@ -37,10 +37,10 @@ export default function PerformanceBadges({ badges }) {
               </motion.span>
             )}
           </div>
-          <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 800, color: badge.earned ? '#F1F5F9' : '#334155', lineHeight: 1.2 }}>
+          <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 800, color: badge.earned ? 'var(--text-primary)' : 'var(--text-faint)', lineHeight: 1.2 }}>
             {badge.label}
           </p>
-          <p style={{ margin: 0, fontSize: 10, color: '#475569', lineHeight: 1.3 }}>
+          <p style={{ margin: 0, fontSize: 10, color: 'var(--text-faint)', lineHeight: 1.3 }}>
             {badge.desc}
           </p>
         </motion.div>

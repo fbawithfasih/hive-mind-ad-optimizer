@@ -18,8 +18,8 @@ const STATUS_STYLES = {
   COMPLETED:  { color: COLORS.green.accent,  bg: 'rgba(16,185,129,0.12)',  label: 'Completed' },
   PROCESSING: { color: COLORS.amber.accent,  bg: 'rgba(245,158,11,0.12)',  label: 'Processing' },
   PENDING:    { color: COLORS.blue.accent,   bg: 'rgba(59,130,246,0.12)',  label: 'Pending' },
-  FAILED:     { color: COLORS.red?.accent ?? '#F87171', bg: 'rgba(244,63,94,0.12)', label: 'Failed' },
-  CANCELLED:  { color: '#94A3B8',            bg: 'rgba(148,163,184,0.12)', label: 'Cancelled' },
+  FAILED:     { color: COLORS.red?.accent ?? 'var(--danger)', bg: 'rgba(244,63,94,0.12)', label: 'Failed' },
+  CANCELLED:  { color: 'var(--text-muted)',            bg: 'rgba(148,163,184,0.12)', label: 'Cancelled' },
 };
 
 function fmtPeriod(start, end) {
@@ -96,19 +96,19 @@ export default function ReportsList() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* ── Header ── */}
       <div style={{ ...glass('rgba(59,130,246,0.18)'), padding: '20px 24px' }}>
-        <GradientBar top="linear-gradient(90deg,#3B82F6,#8B5CF6)" />
+        <GradientBar top="linear-gradient(90deg,var(--info-strong),var(--accent-strong))" />
         <GlowBlob color="rgba(59,130,246,0.12)" />
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
-            <p style={{ margin: 0, fontWeight: 900, fontSize: 16, color: '#F1F5F9', letterSpacing: '-0.4px' }}>Brand Analytics Reports</p>
-            <p style={{ margin: '4px 0 0', fontSize: 12, color: '#475569' }}>
+            <p style={{ margin: 0, fontWeight: 900, fontSize: 16, color: 'var(--text-primary)', letterSpacing: '-0.4px' }}>Brand Analytics Reports</p>
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-faint)' }}>
               Auto-fetched from Amazon SP-API on a tier-based cadence. Manually trigger a refresh below if you need fresher data.
             </p>
           </div>
           <button onClick={refresh} disabled={loading} style={{
-            display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.08)',
+            display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 9, border: '1px solid var(--overlay-7)',
             cursor: loading ? 'wait' : 'pointer',
-            background: 'rgba(255,255,255,0.04)', color: '#CBD5E1', fontWeight: 700, fontSize: 12,
+            background: 'var(--overlay-3)', color: 'var(--text-muted)', fontWeight: 700, fontSize: 12,
           }}>
             {loading ? <><Spinner /> Refreshing…</> : '↻ Refresh list'}
           </button>
@@ -116,7 +116,7 @@ export default function ReportsList() {
       </div>
 
       {error && (
-        <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', color: '#F87171', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
+        <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', color: 'var(--danger)', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
           {error}
         </div>
       )}
@@ -126,8 +126,8 @@ export default function ReportsList() {
         <div style={{
           display: 'grid', gridTemplateColumns: '2fr 2.2fr 1.2fr 1.1fr 0.9fr',
           gap: 0, padding: '12px 20px', background: 'rgba(255,255,255,0.025)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
-          fontSize: 10, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em',
+          borderBottom: '1px solid var(--overlay-4)',
+          fontSize: 10, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em',
         }}>
           <div>Report</div>
           <div>Latest period</div>
@@ -137,13 +137,13 @@ export default function ReportsList() {
         </div>
 
         {loading && !reports && (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#475569', fontSize: 13 }}>
+          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
             <Spinner /> Loading reports…
           </div>
         )}
 
         {reports?.length === 0 && !loading && (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#475569', fontSize: 13 }}>
+          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
             No reports yet — trigger a fetch below to start, or wait for the next scheduled sweep.
           </div>
         )}
@@ -160,16 +160,16 @@ export default function ReportsList() {
             <div key={type} style={{
               display: 'grid', gridTemplateColumns: '2fr 2.2fr 1.2fr 1.1fr 0.9fr',
               gap: 0, padding: '14px 20px', alignItems: 'center',
-              borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: 12,
+              borderBottom: '1px solid var(--overlay-3)', fontSize: 12,
             }}>
               <div>
-                <p style={{ margin: 0, fontWeight: 700, color: '#E2E8F0', fontSize: 12.5 }}>{meta.label}</p>
-                <p style={{ margin: '3px 0 0', color: '#475569', fontSize: 11 }}>{meta.desc}</p>
+                <p style={{ margin: 0, fontWeight: 700, color: 'var(--text-strong)', fontSize: 12.5 }}>{meta.label}</p>
+                <p style={{ margin: '3px 0 0', color: 'var(--text-faint)', fontSize: 11 }}>{meta.desc}</p>
               </div>
-              <div style={{ color: '#94A3B8' }}>
-                {latest ? fmtPeriod(latest.periodStart, latest.periodEnd) : <span style={{ color: '#475569' }}>never fetched</span>}
+              <div style={{ color: 'var(--text-muted)' }}>
+                {latest ? fmtPeriod(latest.periodStart, latest.periodEnd) : <span style={{ color: 'var(--text-faint)' }}>never fetched</span>}
                 {latest?.error && (
-                  <p title={latest.error} style={{ margin: '3px 0 0', fontSize: 10.5, color: '#F87171', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p title={latest.error} style={{ margin: '3px 0 0', fontSize: 10.5, color: 'var(--danger)', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {latest.error.length > 70 ? latest.error.slice(0, 70) + '…' : latest.error}
                   </p>
                 )}
@@ -184,9 +184,9 @@ export default function ReportsList() {
                     {inFlight && <Spinner size={9} />}
                     {stStyle.label}
                   </span>
-                ) : <span style={{ color: '#475569' }}>—</span>}
+                ) : <span style={{ color: 'var(--text-faint)' }}>—</span>}
               </div>
-              <div style={{ color: '#94A3B8', fontSize: 11.5 }}>{fmtFetchedAt(latest?.fetchedAt)}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 11.5 }}>{fmtFetchedAt(latest?.fetchedAt)}</div>
               <div style={{ textAlign: 'right' }}>
                 <button
                   onClick={() => type === 'SQP_BRAND' ? setSqpModalOpen(true) : handleTrigger(type)}
@@ -200,8 +200,8 @@ export default function ReportsList() {
                     fontSize: 11, fontWeight: 700, padding: '6px 12px', borderRadius: 7,
                     border: '1px solid rgba(139,92,246,0.25)',
                     cursor: (triggering || inFlight) ? 'not-allowed' : 'pointer',
-                    background: triggering ? 'rgba(255,255,255,0.06)' : 'rgba(139,92,246,0.10)',
-                    color: (triggering || inFlight) ? '#475569' : '#A78BFA',
+                    background: triggering ? 'var(--overlay-5)' : 'rgba(139,92,246,0.10)',
+                    color: (triggering || inFlight) ? 'var(--text-faint)' : 'var(--accent)',
                   }}>
                   {triggering ? <Spinner size={10} /> : inFlight ? 'Running…' : (type === 'SQP_BRAND' ? 'Pick ASINs…' : 'Fetch now')}
                 </button>
@@ -211,7 +211,7 @@ export default function ReportsList() {
         })}
       </div>
 
-      <p style={{ fontSize: 11, color: '#475569', textAlign: 'center', margin: 0 }}>
+      <p style={{ fontSize: 11, color: 'var(--text-faint)', textAlign: 'center', margin: 0 }}>
         Auto-refreshing while any report is processing. Period coverage is determined by your subscription tier.
       </p>
 

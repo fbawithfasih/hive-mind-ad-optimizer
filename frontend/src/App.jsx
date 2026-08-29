@@ -18,7 +18,7 @@ import InvitePage       from './pages/InvitePage.jsx';
 function Spinner() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-app-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ color: 'var(--border-med)', fontSize: 14 }}>Loading…</div>
+      <div style={{ color: 'var(--text-faint)', fontSize: 14 }}>Loading…</div>
     </div>
   );
 }

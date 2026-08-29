@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { logoutApi, switchOrgApi, syncProfilesApi } from '../services/api.js';
+import { useTheme } from '../hooks/useTheme.jsx';
 import SupportContact from '../components/SupportContact.jsx';
 
 const Icon = ({ d, size = 18, stroke = 'currentColor', strokeWidth = 2 }) => (
@@ -37,7 +38,7 @@ const TOOLS = [
     glow: 'rgba(142,84,233,0.45)',
     bg: 'rgba(142,84,233,0.12)',
     border: 'rgba(142,84,233,0.35)',
-    color: '#A78BFA',
+    color: 'var(--accent)',
     icon: <Icon d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" size={22} />,
   },
   {
@@ -53,21 +54,21 @@ const TOOLS = [
   {
     tab: 'image-optimizer', name: 'Main Image Optimizer', badge: 'AI',
     desc: 'Upload your product photo, answer a short brief, and generate an Amazon-compliant main image with a pure-white background.',
-    gradient: 'linear-gradient(135deg, #8B5CF6, #3B82F6)',
+    gradient: 'linear-gradient(135deg, var(--accent-strong), var(--info-strong))',
     glow: 'rgba(139,92,246,0.40)',
     bg: 'rgba(139,92,246,0.10)',
     border: 'rgba(139,92,246,0.32)',
-    color: '#A78BFA',
+    color: 'var(--accent)',
     icon: <Icon d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" size={22} />,
   },
   {
     tab: 'listing-history', name: 'Optimization History', badge: 'DATA',
     desc: 'Browse every past AI optimization run — see before/after content, published status, and keywords used.',
-    gradient: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+    gradient: 'linear-gradient(135deg, var(--indigo), var(--accent-strong))',
     glow: 'rgba(99,102,241,0.40)',
     bg: 'rgba(99,102,241,0.10)',
     border: 'rgba(99,102,241,0.32)',
-    color: '#A5B4FC',
+    color: 'var(--indigo-soft)',
     icon: <Icon d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" size={22} />,
   },
   {
@@ -87,7 +88,7 @@ const TOOLS = [
     glow: 'rgba(11,163,96,0.42)',
     bg: 'rgba(11,163,96,0.10)',
     border: 'rgba(11,163,96,0.32)',
-    color: '#34D399',
+    color: 'var(--success-2)',
     icon: <Icon d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={22} />,
   },
   {
@@ -97,7 +98,7 @@ const TOOLS = [
     glow: 'rgba(247,151,30,0.45)',
     bg: 'rgba(247,151,30,0.10)',
     border: 'rgba(247,151,30,0.32)',
-    color: '#FBBF24',
+    color: 'var(--warning-3)',
     icon: <Icon d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" size={22} />,
   },
   {
@@ -113,11 +114,11 @@ const TOOLS = [
   {
     tab: 'alerts', name: 'Campaign Alerts', badge: 'NEW',
     desc: 'Set ACoS, spend, ROAS and other thresholds — get notified the moment any campaign crosses a limit.',
-    gradient: 'linear-gradient(135deg, #F43F5E, #EF4444)',
+    gradient: 'linear-gradient(135deg, var(--rose), var(--danger-strong))',
     glow: 'rgba(244,63,94,0.40)',
     bg: 'rgba(244,63,94,0.10)',
     border: 'rgba(244,63,94,0.32)',
-    color: '#F87171',
+    color: 'var(--danger)',
     icon: <Icon d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" size={22} />,
   },
   {
@@ -133,11 +134,11 @@ const TOOLS = [
   {
     tab: 'amazon', name: 'Amazon Connect', badge: 'SETUP',
     desc: 'Connect your Amazon Advertising and Seller Central accounts to unlock the complete suite.',
-    gradient: 'linear-gradient(135deg, #F59E0B, #D97706)',
+    gradient: 'linear-gradient(135deg, var(--warning), #D97706)',
     glow: 'rgba(245,158,11,0.42)',
     bg: 'rgba(245,158,11,0.10)',
     border: 'rgba(245,158,11,0.32)',
-    color: '#FCD34D',
+    color: 'var(--warning-2)',
     icon: <Icon d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" size={22} />,
   },
   {
@@ -153,8 +154,8 @@ const TOOLS = [
 ];
 
 const PLAN_CONFIG = {
-  STARTER: { label: 'Starter', color: '#60A5FA', glow: 'rgba(96,165,250,0.4)',  profiles: '2' },
-  GROWTH:  { label: 'Growth',  color: '#A78BFA', glow: 'rgba(167,139,250,0.4)', profiles: '6' },
+  STARTER: { label: 'Starter', color: 'var(--info)', glow: 'rgba(96,165,250,0.4)',  profiles: '2' },
+  GROWTH:  { label: 'Growth',  color: 'var(--accent)', glow: 'rgba(167,139,250,0.4)', profiles: '6' },
   SCALE:   { label: 'Scale',   color: '#FB923C', glow: 'rgba(251,146,60,0.4)',  profiles: 'Unlimited' },
 };
 
@@ -175,15 +176,15 @@ function ToolCard({ tool, onClick }) {
         padding: '24px',
         borderRadius: 20,
         background: hovered
-          ? `linear-gradient(145deg, ${tool.bg}, rgba(10,14,30,0.95))`
-          : 'rgba(10,14,30,0.75)',
-        border: `1px solid ${hovered ? tool.border : 'rgba(255,255,255,0.06)'}`,
+          ? `linear-gradient(145deg, ${tool.bg}, var(--bg-overlay-hi))`
+          : 'var(--bg-overlay-lo)',
+        border: `1px solid ${hovered ? tool.border : 'var(--overlay-5)'}`,
         cursor: 'pointer',
         transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
         transform: hovered ? 'translateY(-5px) scale(1.01)' : 'translateY(0) scale(1)',
         boxShadow: hovered
-          ? `0 20px 60px ${tool.glow}, 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07)`
-          : '0 2px 12px rgba(0,0,0,0.3)',
+          ? `0 20px 60px ${tool.glow}, 0 4px 16px var(--bg-overlay-lo), inset 0 1px 0 var(--overlay-6)`
+          : '0 2px 12px var(--overlay-8)',
         display: 'flex',
         flexDirection: 'column',
         backdropFilter: 'blur(16px)',
@@ -236,7 +237,7 @@ function ToolCard({ tool, onClick }) {
 
       <h3 style={{
         fontSize: 16, fontWeight: 800, margin: '0 0 8px',
-        color: hovered ? '#FFFFFF' : '#E2E8F0',
+        color: hovered ? '#FFFFFF' : 'var(--text-strong)',
         letterSpacing: '-0.2px',
         transition: 'color 0.2s',
       }}>
@@ -244,7 +245,7 @@ function ToolCard({ tool, onClick }) {
       </h3>
 
       <p style={{
-        fontSize: 13, color: hovered ? '#94A3B8' : '#475569',
+        fontSize: 13, color: hovered ? 'var(--text-muted)' : 'var(--text-faint)',
         lineHeight: 1.65, flex: 1, margin: '0 0 20px',
         transition: 'color 0.2s',
       }}>
@@ -254,7 +255,7 @@ function ToolCard({ tool, onClick }) {
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
         fontSize: 12, fontWeight: 800, letterSpacing: '0.02em',
-        color: hovered ? tool.color : '#334155',
+        color: hovered ? tool.color : 'var(--text-faint)',
         transition: 'color 0.2s',
       }}>
         Open tool
@@ -274,9 +275,9 @@ function NavItem({ label, icon, to, active, external, onClick }) {
     padding: '9px 12px', borderRadius: 10, marginBottom: 2,
     background: active
       ? 'linear-gradient(135deg, rgba(167,139,250,0.18), rgba(96,165,250,0.10))'
-      : hov ? 'rgba(255,255,255,0.05)' : 'transparent',
+      : hov ? 'var(--overlay-4)' : 'transparent',
     border: active ? '1px solid rgba(167,139,250,0.3)' : '1px solid transparent',
-    color: active ? '#C4B5FD' : hov ? '#E2E8F0' : '#64748B',
+    color: active ? 'var(--accent-soft)' : hov ? 'var(--text-strong)' : 'var(--text-subtle)',
     textDecoration: 'none', fontSize: 13, fontWeight: active ? 700 : 500,
     cursor: 'pointer', transition: 'all 0.15s',
     boxShadow: active ? '0 0 20px rgba(167,139,250,0.1)' : 'none',
@@ -327,13 +328,13 @@ function TrialBanner({ trialDaysLeft }) {
       display: 'flex', alignItems: 'center', gap: 12,
     }}>
       <span style={{ fontSize: 16 }}>{urgent ? '🚨' : '⏳'}</span>
-      <span style={{ fontSize: 13, color: urgent ? '#FCA5A5' : '#FCD34D', flex: 1 }}>
+      <span style={{ fontSize: 13, color: urgent ? 'var(--danger-soft)' : 'var(--warning-2)', flex: 1 }}>
         <strong>{trialDaysLeft === 0 ? 'Last day' : `${trialDaysLeft} day${trialDaysLeft > 1 ? 's' : ''} left`}</strong> on your free trial.
         Subscribe now to keep access to all tools.
       </span>
       <a href="/billing" style={{
         fontSize: 12, fontWeight: 800, padding: '5px 16px', borderRadius: 8,
-        background: urgent ? 'linear-gradient(135deg, #EF4444, #DC2626)' : 'linear-gradient(135deg, #F59E0B, #D97706)',
+        background: urgent ? 'linear-gradient(135deg, var(--danger-strong), #DC2626)' : 'linear-gradient(135deg, var(--warning), #D97706)',
         color: '#fff', textDecoration: 'none', flexShrink: 0,
         boxShadow: urgent ? '0 0 16px rgba(239,68,68,0.4)' : '0 0 16px rgba(245,158,11,0.4)',
       }}>
@@ -347,6 +348,8 @@ export default function HubPage({ user, onLogout }) {
   const [supportOpen, setSupportOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [switchingOrg, setSwitchingOrg] = useState(false);
   const [oauthStep, setOauthStep] = useState(null); // 'connecting-ads' | 'syncing' | 'done' | null
 
@@ -399,33 +402,30 @@ export default function HubPage({ user, onLogout }) {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex',
-      background: '#05080F',
+      background: 'var(--bg-app)',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif',
       position: 'relative', overflow: 'hidden',
-      color: '#F1F5F9',
+      color: 'var(--text-primary)',
     }}>
 
-      {/* ── Background atmosphere ── */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
-        {/* Big violet orb top-left */}
-        <div style={{ position: 'absolute', top: -300, left: -150, width: 900, height: 900, background: 'radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 60%)' }} />
-        {/* Orange orb bottom-right */}
-        <div style={{ position: 'absolute', bottom: -250, right: -150, width: 800, height: 800, background: 'radial-gradient(circle, rgba(249,115,22,0.14) 0%, transparent 60%)' }} />
-        {/* Cyan orb mid-right */}
-        <div style={{ position: 'absolute', top: '30%', right: '-5%', width: 600, height: 600, background: 'radial-gradient(circle, rgba(0,201,255,0.10) 0%, transparent 60%)' }} />
-        {/* Pink orb center */}
-        <div style={{ position: 'absolute', top: '55%', left: '35%', width: 500, height: 500, background: 'radial-gradient(circle, rgba(249,83,198,0.08) 0%, transparent 60%)' }} />
-        {/* Dot grid */}
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
-        {/* Vignette */}
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0,0,0,0.5) 100%)' }} />
-      </div>
+      {/* ── Background atmosphere (dark theme only — the orbs turn a light
+          theme muddy, so we skip them entirely and let the clean bg breathe) ── */}
+      {isDark && (
+        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+          <div style={{ position: 'absolute', top: -300, left: -150, width: 900, height: 900, background: 'radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 60%)' }} />
+          <div style={{ position: 'absolute', bottom: -250, right: -150, width: 800, height: 800, background: 'radial-gradient(circle, rgba(249,115,22,0.14) 0%, transparent 60%)' }} />
+          <div style={{ position: 'absolute', top: '30%', right: '-5%', width: 600, height: 600, background: 'radial-gradient(circle, rgba(0,201,255,0.10) 0%, transparent 60%)' }} />
+          <div style={{ position: 'absolute', top: '55%', left: '35%', width: 500, height: 500, background: 'radial-gradient(circle, rgba(249,83,198,0.08) 0%, transparent 60%)' }} />
+          <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 50%, transparent 40%, var(--bg-overlay-lo) 100%)' }} />
+        </div>
+      )}
 
       {/* ══════════════════ SIDEBAR ══════════════════ */}
       <aside style={{
         width: 265, flexShrink: 0,
-        background: 'rgba(5,8,20,0.92)',
-        borderRight: '1px solid rgba(255,255,255,0.06)',
+        background: 'var(--bg-app)',
+        borderRight: '1px solid var(--overlay-5)',
         display: 'flex', flexDirection: 'column',
         height: '100vh', position: 'sticky', top: 0,
         backdropFilter: 'blur(32px)',
@@ -435,11 +435,11 @@ export default function HubPage({ user, onLogout }) {
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(167,139,250,0.5), transparent)', pointerEvents: 'none' }} />
 
         {/* Logo */}
-        <div style={{ padding: '22px 18px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ padding: '22px 18px 18px', borderBottom: '1px solid var(--overlay-4)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
             <div style={{
               width: 40, height: 40, borderRadius: 12, overflow: 'hidden', flexShrink: 0,
-              background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
+              background: 'linear-gradient(135deg, #7C3AED, var(--info-strong))',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: '0 0 20px rgba(124,58,237,0.5)',
             }}>
@@ -448,14 +448,14 @@ export default function HubPage({ user, onLogout }) {
                 onError={e => { e.target.style.display = 'none'; }} />
             </div>
             <div>
-              <p style={{ fontWeight: 800, fontSize: 14, color: '#F1F5F9', lineHeight: 1.2, margin: 0, letterSpacing: '-0.2px' }}>Hive Mind</p>
-              <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: '#A78BFA', lineHeight: 1, margin: 0 }}>AD OPTIMIZER 360</p>
+              <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.2, margin: 0, letterSpacing: '-0.2px' }}>Hive Mind</p>
+              <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--accent)', lineHeight: 1, margin: 0 }}>AD OPTIMIZER 360</p>
             </div>
           </div>
         </div>
 
         {/* User card */}
-        <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--overlay-4)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
             <div style={{
               width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
@@ -467,16 +467,16 @@ export default function HubPage({ user, onLogout }) {
               {clientInitials}
             </div>
             <div style={{ minWidth: 0 }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: '#E2E8F0', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-strong)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {clientName}
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 6px #10B981' }} />
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', boxShadow: '0 0 6px var(--success)' }} />
                 <span style={{
                   fontSize: 9, fontWeight: 800, letterSpacing: '0.1em',
                   color: planCfg.color,
-                  background: `${planCfg.color}1A`,
-                  border: `1px solid ${planCfg.color}40`,
+                  background: `color-mix(in srgb, ${planCfg.color} 10%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${planCfg.color} 25%, transparent)`,
                   padding: '2px 7px', borderRadius: 100,
                   boxShadow: `0 0 8px ${planCfg.glow}`,
                 }}>
@@ -489,8 +489,8 @@ export default function HubPage({ user, onLogout }) {
             <select value={activeOrgId} onChange={e => handleSwitchOrg(e.target.value)} disabled={switchingOrg}
               style={{
                 marginTop: 11, width: '100%',
-                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                color: '#94A3B8', borderRadius: 8, padding: '6px 8px', fontSize: 12,
+                background: 'var(--overlay-3)', border: '1px solid var(--overlay-7)',
+                color: 'var(--text-muted)', borderRadius: 8, padding: '6px 8px', fontSize: 12,
                 cursor: 'pointer', outline: 'none',
               }}>
               {organizations.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
@@ -500,7 +500,7 @@ export default function HubPage({ user, onLogout }) {
 
         {/* Nav */}
         <nav style={{ flex: 1, padding: '16px 10px', overflowY: 'auto' }}>
-          <p style={{ fontSize: 9, fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.14em', padding: '0 10px', marginBottom: 8 }}>
+          <p style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.14em', padding: '0 10px', marginBottom: 8 }}>
             Main
           </p>
           <NavItem label="Home"             icon={<HomeIcon />}      to="/"               active />
@@ -510,16 +510,16 @@ export default function HubPage({ user, onLogout }) {
           <NavItem label="Team"             icon={<TeamIcon />}      to="/app?tab=team"   />
           <NavItem label="Settings"         icon={<SettingsIcon />}  to="/app?tab=amazon" />
 
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.04)', margin: '16px 0' }} />
+          <div style={{ height: 1, background: 'var(--overlay-3)', margin: '16px 0' }} />
 
-          <p style={{ fontSize: 9, fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.14em', padding: '0 10px', marginBottom: 8 }}>
+          <p style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.14em', padding: '0 10px', marginBottom: 8 }}>
             Support
           </p>
           <NavItem label="Email Support" icon={<EmailIcon />} onClick={() => setSupportOpen(true)} />
           <NavItem label="Website"       icon={<GlobeIcon />} to="https://www.hivemindnestor.com" external />
         </nav>
 
-        <div style={{ padding: '12px 10px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ padding: '12px 10px', borderTop: '1px solid var(--overlay-4)' }}>
           <SignOutButton onLogout={onLogout} />
         </div>
       </aside>
@@ -530,18 +530,18 @@ export default function HubPage({ user, onLogout }) {
         {/* Top bar */}
         <header style={{
           position: 'sticky', top: 0, zIndex: 10,
-          background: 'rgba(5,8,20,0.80)',
+          background: 'var(--bg-overlay-hi)',
           backdropFilter: 'blur(24px)',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: '1px solid var(--overlay-5)',
           padding: '14px 40px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-            <span style={{ color: '#1E293B' }}>Hive Mind Nestor</span>
-            <span style={{ color: '#0F172A' }}>/</span>
+            <span style={{ color: 'var(--text-muted)' }}>Hive Mind Nestor</span>
+            <span style={{ color: 'var(--text-faint)' }}>/</span>
             <span style={{
               fontSize: 13, fontWeight: 700,
-              background: 'linear-gradient(135deg, #A78BFA, #60A5FA)',
+              backgroundImage: 'var(--grad-accent)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             }}>Hub</span>
           </div>
@@ -554,13 +554,14 @@ export default function HubPage({ user, onLogout }) {
               border: '1px solid rgba(16,185,129,0.28)',
               boxShadow: '0 0 16px rgba(16,185,129,0.12)',
             }}>
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 8px #10B981' }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#34D399' }}>All systems live</span>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--success)', boxShadow: '0 0 8px var(--success)' }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success-2)' }}>All systems live</span>
             </div>
+            <ThemeToggle />
             <Link to="/billing" style={{
-              fontSize: 12, fontWeight: 700, color: '#94A3B8', padding: '6px 16px',
-              borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)',
-              background: 'rgba(255,255,255,0.04)', textDecoration: 'none',
+              fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', padding: '6px 16px',
+              borderRadius: 8, border: '1px solid var(--overlay-7)',
+              background: 'var(--overlay-3)', textDecoration: 'none',
               transition: 'all 0.15s',
             }}>
               Billing
@@ -587,30 +588,30 @@ export default function HubPage({ user, onLogout }) {
               <>
                 <span style={{ fontSize: 18 }}>✅</span>
                 <div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#A78BFA' }}>Seller Central connected!</span>
-                  <span style={{ fontSize: 13, color: '#64748B', marginLeft: 8 }}>Redirecting to authorize Amazon Advertising…</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>Seller Central connected!</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-subtle)', marginLeft: 8 }}>Redirecting to authorize Amazon Advertising…</span>
                 </div>
-                <div style={{ marginLeft: 'auto', width: 18, height: 18, border: '2px solid rgba(167,139,250,0.3)', borderTopColor: '#A78BFA', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                <div style={{ marginLeft: 'auto', width: 18, height: 18, border: '2px solid rgba(167,139,250,0.3)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
               </>
             )}
             {oauthStep === 'syncing' && (
               <>
                 <span style={{ fontSize: 18 }}>🔗</span>
                 <div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#60A5FA' }}>Amazon Advertising connected!</span>
-                  <span style={{ fontSize: 13, color: '#64748B', marginLeft: 8 }}>Syncing your profiles…</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--info)' }}>Amazon Advertising connected!</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-subtle)', marginLeft: 8 }}>Syncing your profiles…</span>
                 </div>
-                <div style={{ marginLeft: 'auto', width: 18, height: 18, border: '2px solid rgba(96,165,250,0.3)', borderTopColor: '#60A5FA', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                <div style={{ marginLeft: 'auto', width: 18, height: 18, border: '2px solid rgba(96,165,250,0.3)', borderTopColor: 'var(--info)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
               </>
             )}
             {oauthStep === 'done' && (
               <>
                 <span style={{ fontSize: 18 }}>🎉</span>
                 <div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#34D399' }}>Amazon account fully connected!</span>
-                  <span style={{ fontSize: 13, color: '#64748B', marginLeft: 8 }}>Your campaigns are ready to load.</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--success-2)' }}>Amazon account fully connected!</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-subtle)', marginLeft: 8 }}>Your campaigns are ready to load.</span>
                 </div>
-                <button onClick={() => setOauthStep(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
+                <button onClick={() => setOauthStep(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-subtle)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
               </>
             )}
           </div>
@@ -625,7 +626,7 @@ export default function HubPage({ user, onLogout }) {
             <div>
               <p style={{
                 fontSize: 11, fontWeight: 800, marginBottom: 10, letterSpacing: '0.14em', textTransform: 'uppercase',
-                background: 'linear-gradient(90deg, #A78BFA, #60A5FA)',
+                backgroundImage: 'var(--grad-accent-90)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               }}>
                 {today}
@@ -633,13 +634,13 @@ export default function HubPage({ user, onLogout }) {
               <h1 style={{
                 fontSize: 48, fontWeight: 900, letterSpacing: '-2px', lineHeight: 1.05,
                 margin: '0 0 16px',
-                background: 'linear-gradient(135deg, #FFFFFF 0%, #A78BFA 40%, #60A5FA 70%, #F472B6 100%)',
+                backgroundImage: 'var(--grad-hero)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               }}>
                 Welcome {clientName} 👋
               </h1>
-              <p style={{ fontSize: 15, color: '#64748B', lineHeight: 1.7, margin: 0, maxWidth: 500 }}>
-                Your <strong style={{ color: '#A78BFA' }}>Hive Mind Ad Optimizer 360</strong> suite is live and ready.
+              <p style={{ fontSize: 15, color: 'var(--text-subtle)', lineHeight: 1.7, margin: 0, maxWidth: 500 }}>
+                Your <strong style={{ color: 'var(--accent)' }}>Hive Mind Ad Optimizer 360</strong> suite is live and ready.
                 Pick a tool below to start scaling your Amazon performance.
               </p>
             </div>
@@ -649,18 +650,18 @@ export default function HubPage({ user, onLogout }) {
           {/* ── Stats row ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 14, marginBottom: 52 }}>
             {[
-              { label: 'Tools Included',  value: TOOLS.length, icon: '⚡', gradient: 'linear-gradient(135deg, #7C3AED, #5B21B6)', glow: 'rgba(124,58,237,0.4)', color: '#A78BFA' },
-              { label: 'Amazon Profiles', value: planCfg.profiles, icon: '📦', gradient: 'linear-gradient(135deg, #1D4ED8, #3B82F6)', glow: 'rgba(59,130,246,0.4)', color: '#60A5FA' },
+              { label: 'Tools Included',  value: TOOLS.length, icon: '⚡', gradient: 'linear-gradient(135deg, #7C3AED, #5B21B6)', glow: 'rgba(124,58,237,0.4)', color: 'var(--accent)' },
+              { label: 'Amazon Profiles', value: planCfg.profiles, icon: '📦', gradient: 'linear-gradient(135deg, #1D4ED8, var(--info-strong))', glow: 'rgba(59,130,246,0.4)', color: 'var(--info)' },
               { label: 'AI Models',       value: '2',  icon: '🤖', gradient: 'linear-gradient(135deg, #BE185D, #EC4899)', glow: 'rgba(236,72,153,0.4)', color: '#F472B6' },
-              { label: 'Support',         value: 'Priority', icon: '💬', gradient: 'linear-gradient(135deg, #065F46, #10B981)', glow: 'rgba(16,185,129,0.4)', color: '#34D399' },
+              { label: 'Support',         value: 'Priority', icon: '💬', gradient: 'linear-gradient(135deg, #065F46, var(--success))', glow: 'rgba(16,185,129,0.4)', color: 'var(--success-2)' },
             ].map(s => (
               <div key={s.label} style={{
                 padding: '20px 22px', borderRadius: 16,
-                background: 'rgba(10,14,30,0.7)',
-                border: `1px solid ${s.color}25`,
+                background: 'var(--bg-overlay-lo)',
+                border: `1px solid color-mix(in srgb, ${s.color} 15%, transparent)`,
                 backdropFilter: 'blur(16px)',
                 display: 'flex', alignItems: 'center', gap: 14,
-                boxShadow: `0 4px 24px ${s.glow}20`,
+                boxShadow: `0 4px 24px color-mix(in srgb, ${s.glow} 13%, transparent)`,
                 position: 'relative', overflow: 'hidden',
               }}>
                 {/* Glow behind */}
@@ -676,7 +677,7 @@ export default function HubPage({ user, onLogout }) {
                   {s.icon}
                 </div>
                 <div style={{ position: 'relative' }}>
-                  <p style={{ fontSize: 22, fontWeight: 900, color: '#FFFFFF', margin: 0, lineHeight: 1, letterSpacing: '-0.5px' }}>{s.value}</p>
+                  <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', margin: 0, lineHeight: 1, letterSpacing: '-0.5px' }}>{s.value}</p>
                   <p style={{ fontSize: 11, color: s.color, margin: '4px 0 0', fontWeight: 700, letterSpacing: '0.02em' }}>{s.label}</p>
                 </div>
               </div>
@@ -688,12 +689,12 @@ export default function HubPage({ user, onLogout }) {
             <div>
               <h2 style={{
                 fontSize: 22, fontWeight: 900, margin: '0 0 5px', letterSpacing: '-0.5px',
-                background: 'linear-gradient(135deg, #F1F5F9, #94A3B8)',
+                background: 'linear-gradient(135deg, var(--text-primary), var(--text-muted))',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               }}>
                 Your Tools
               </h2>
-              <p style={{ fontSize: 13, color: '#334155', margin: 0, fontWeight: 500 }}>
+              <p style={{ fontSize: 13, color: 'var(--text-subtle)', margin: 0, fontWeight: 500 }}>
                 {TOOLS.length} tools · AI-powered · Amazon native
               </p>
             </div>
@@ -742,7 +743,7 @@ export default function HubPage({ user, onLogout }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 18, position: 'relative' }}>
               <div style={{
                 width: 52, height: 52, borderRadius: 16, flexShrink: 0,
-                background: 'linear-gradient(135deg, #F97316, #FBBF24)',
+                background: 'linear-gradient(135deg, #F97316, var(--warning-3))',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 6px 24px rgba(249,115,22,0.45)',
                 fontSize: 24,
@@ -750,10 +751,10 @@ export default function HubPage({ user, onLogout }) {
                 🚀
               </div>
               <div>
-                <p style={{ fontSize: 16, fontWeight: 800, color: '#F1F5F9', margin: '0 0 5px', letterSpacing: '-0.2px' }}>
+                <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 5px', letterSpacing: '-0.2px' }}>
                   Need help getting started?
                 </p>
-                <p style={{ fontSize: 13, color: '#64748B', margin: 0, lineHeight: 1.5 }}>
+                <p style={{ fontSize: 13, color: 'var(--text-subtle)', margin: 0, lineHeight: 1.5 }}>
                   Our Amazon experts are ready to walk you through the platform.
                 </p>
               </div>
@@ -761,7 +762,7 @@ export default function HubPage({ user, onLogout }) {
             <button type="button" onClick={() => setSupportOpen(true)} style={{
               border: 'none', cursor: 'pointer', fontFamily: 'inherit',
               padding: '12px 26px', borderRadius: 12, flexShrink: 0,
-              background: 'linear-gradient(135deg, #F97316, #FBBF24)',
+              background: 'linear-gradient(135deg, #F97316, var(--warning-3))',
               color: '#fff', fontSize: 13, fontWeight: 800,
               textDecoration: 'none',
               boxShadow: '0 6px 28px rgba(249,115,22,0.45)',
@@ -787,8 +788,8 @@ function PlanCard({ planCfg, plan }) {
   return (
     <div style={{
       padding: '22px 26px', borderRadius: 20,
-      background: 'rgba(10,14,30,0.80)',
-      border: `1px solid ${planCfg.color}30`,
+      background: 'var(--bg-overlay-hi)',
+      border: `1px solid color-mix(in srgb, ${planCfg.color} 19%, transparent)`,
       backdropFilter: 'blur(20px)',
       minWidth: 240,
       boxShadow: `0 8px 40px ${planCfg.glow}`,
@@ -799,15 +800,15 @@ function PlanCard({ planCfg, plan }) {
       {/* Glow blob */}
       <div style={{ position: 'absolute', bottom: -40, right: -40, width: 160, height: 160, background: `radial-gradient(circle, ${planCfg.glow} 0%, transparent 70%)`, pointerEvents: 'none' }} />
 
-      <p style={{ fontSize: 9, fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 16 }}>
+      <p style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 16 }}>
         Active Plan
       </p>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 16 }}>
         <div style={{
           width: 40, height: 40, borderRadius: 12,
-          background: `linear-gradient(135deg, ${planCfg.color}40, ${planCfg.color}20)`,
-          border: `1px solid ${planCfg.color}40`,
+          background: `linear-gradient(135deg, color-mix(in srgb, ${planCfg.color} 25%, transparent), color-mix(in srgb, ${planCfg.color} 13%, transparent))`,
+          border: `1px solid color-mix(in srgb, ${planCfg.color} 25%, transparent)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: `0 0 20px ${planCfg.glow}`,
         }}>
@@ -816,14 +817,14 @@ function PlanCard({ planCfg, plan }) {
           </svg>
         </div>
         <div>
-          <p style={{ fontSize: 14, fontWeight: 800, color: '#FFFFFF', margin: 0, lineHeight: 1.2, letterSpacing: '-0.3px' }}>
+          <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', margin: 0, lineHeight: 1.2, letterSpacing: '-0.3px' }}>
             Ad Optimizer 360
           </p>
           <span style={{
             fontSize: 9, fontWeight: 800, letterSpacing: '0.1em',
             padding: '3px 9px', borderRadius: 100,
-            background: `${planCfg.color}20`, color: planCfg.color,
-            border: `1px solid ${planCfg.color}40`,
+            background: `color-mix(in srgb, ${planCfg.color} 13%, transparent)`, color: planCfg.color,
+            border: `1px solid color-mix(in srgb, ${planCfg.color} 25%, transparent)`,
             boxShadow: `0 0 10px ${planCfg.glow}`,
           }}>
             {planCfg.label.toUpperCase()}
@@ -831,23 +832,58 @@ function PlanCard({ planCfg, plan }) {
         </div>
       </div>
 
-      <div style={{ fontSize: 12, color: '#475569', marginBottom: 18 }}>
-        Up to <strong style={{ color: '#94A3B8' }}>{planCfg.profiles} profiles</strong> · All tools
+      <div style={{ fontSize: 12, color: 'var(--text-subtle)', marginBottom: 18 }}>
+        Up to <strong style={{ color: 'var(--text-primary)' }}>{planCfg.profiles} profiles</strong> · All tools
       </div>
 
       <Link to="/billing" style={{
         display: 'block', textAlign: 'center',
         fontSize: 12, fontWeight: 800,
-        background: `linear-gradient(135deg, ${planCfg.color}30, ${planCfg.color}15)`,
+        background: `linear-gradient(135deg, color-mix(in srgb, ${planCfg.color} 19%, transparent), color-mix(in srgb, ${planCfg.color} 8%, transparent))`,
         color: planCfg.color,
         padding: '9px', borderRadius: 10,
-        border: `1px solid ${planCfg.color}35`,
+        border: `1px solid color-mix(in srgb, ${planCfg.color} 21%, transparent)`,
         textDecoration: 'none',
         boxShadow: `0 2px 12px ${planCfg.glow}`,
       }}>
         Manage subscription →
       </Link>
     </div>
+  );
+}
+
+function ThemeToggle() {
+  const { theme, toggle } = useTheme();
+  const [hov, setHov] = useState(false);
+  const isLight = theme === 'light';
+  return (
+    <button
+      onClick={toggle}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      aria-label={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
+      title={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
+      style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        width: 34, height: 34, borderRadius: 10, cursor: 'pointer',
+        background: hov ? 'var(--overlay-6)' : 'var(--overlay-3)',
+        border: '1px solid var(--overlay-7)',
+        color: 'var(--text-muted)',
+        transition: 'background 0.15s, color 0.15s, transform 0.2s',
+        transform: hov ? 'translateY(-1px)' : 'none',
+      }}
+    >
+      {isLight ? (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+        </svg>
+      )}
+    </button>
   );
 }
 
@@ -863,7 +899,7 @@ function SignOutButton({ onLogout }) {
         width: '100%', padding: '9px 12px', borderRadius: 10,
         background: hov ? 'rgba(239,68,68,0.10)' : 'transparent',
         border: hov ? '1px solid rgba(239,68,68,0.25)' : '1px solid transparent',
-        color: hov ? '#FCA5A5' : '#334155',
+        color: hov ? 'var(--danger-strong)' : 'var(--text-subtle)',
         fontSize: 13, fontWeight: 600, cursor: 'pointer',
         transition: 'all 0.15s', textAlign: 'left',
         boxShadow: hov ? '0 0 16px rgba(239,68,68,0.15)' : 'none',

@@ -20,7 +20,7 @@ export default function KpiTicker({
   label,
   value,
   format = 'currency',
-  accentColor = '#3B82F6',
+  accentColor = 'var(--info-strong)',
   sparkData = [],
   grade,          // { roas, acos } — optional, renders grade badge
   sub,
@@ -34,8 +34,8 @@ export default function KpiTicker({
   return (
     <div style={{
       padding: '16px 18px',
-      background: 'rgba(8,12,26,0.9)',
-      border: `1px solid ${accentColor}1A`,
+      background: 'var(--surface-card)',
+      border: `1px solid color-mix(in srgb, ${accentColor} 10%, transparent)`,
       borderRadius: 16,
       display: 'flex',
       flexDirection: 'column',
@@ -49,7 +49,7 @@ export default function KpiTicker({
       {/* Label row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{
-          fontSize: 9, fontWeight: 800, color: '#1E293B',
+          fontSize: 9, fontWeight: 800, color: 'var(--text-faint)',
           textTransform: 'uppercase', letterSpacing: '0.14em',
         }}>
           {label}
@@ -59,10 +59,10 @@ export default function KpiTicker({
 
       {/* Value */}
       {loading ? (
-        <div style={{ height: 28, background: 'rgba(255,255,255,0.04)', borderRadius: 6, width: '60%' }} />
+        <div style={{ height: 28, background: 'var(--overlay-3)', borderRadius: 6, width: '60%' }} />
       ) : (
         <motion.span style={{
-          fontSize: 26, fontWeight: 900, color: hasValue ? '#F1F5F9' : '#334155',
+          fontSize: 26, fontWeight: 900, color: hasValue ? 'var(--text-primary)' : 'var(--text-faint)',
           letterSpacing: '-1px', lineHeight: 1, fontVariantNumeric: 'tabular-nums',
           fontFamily: 'ui-monospace, monospace',
         }}>
@@ -72,7 +72,7 @@ export default function KpiTicker({
 
       {/* Sub-label */}
       {sub && (
-        <span style={{ fontSize: 10, color: '#334155', fontWeight: 500 }}>{sub}</span>
+        <span style={{ fontSize: 10, color: 'var(--text-faint)', fontWeight: 500 }}>{sub}</span>
       )}
 
       {/* Sparkline */}

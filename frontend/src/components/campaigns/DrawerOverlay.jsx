@@ -12,7 +12,7 @@ export default function DrawerOverlay({ onClose }) {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.55)',
+        background: 'var(--bg-overlay-lo)',
         backdropFilter: 'blur(4px)',
         zIndex: 99,
       }}

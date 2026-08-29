@@ -9,12 +9,12 @@ import WeeklyScoreCard from '../gamification/WeeklyScoreCard.jsx';
 import StreakTracker from '../gamification/StreakTracker.jsx';
 import PerformanceBadges from '../gamification/PerformanceBadges.jsx';
 
-const PIE_COLORS = { enabled: '#10B981', paused: '#F59E0B', archived: '#6366F1' };
+const PIE_COLORS = { enabled: 'var(--success)', paused: 'var(--warning)', archived: 'var(--indigo)' };
 
 function SectionLabel({ children }) {
   return (
     <p style={{
-      fontSize: 9, fontWeight: 800, color: '#1E293B',
+      fontSize: 9, fontWeight: 800, color: 'var(--text-faint)',
       textTransform: 'uppercase', letterSpacing: '0.14em',
       margin: '0 0 12px',
     }}>
@@ -26,8 +26,8 @@ function SectionLabel({ children }) {
 function ChartCard({ children, style }) {
   return (
     <div style={{
-      background: 'rgba(8,12,26,0.9)',
-      border: '1px solid rgba(255,255,255,0.06)',
+      background: 'var(--surface-card)',
+      border: '1px solid var(--overlay-5)',
       borderRadius: 16,
       padding: '18px 20px',
       position: 'relative',
@@ -43,8 +43,8 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
-      background: 'rgba(8,12,26,0.97)',
-      border: '1px solid rgba(255,255,255,0.1)',
+      background: 'var(--surface-card)',
+      border: '1px solid var(--overlay-8)',
       borderRadius: 10,
       padding: '10px 14px',
       fontSize: 11,
@@ -105,7 +105,7 @@ export default function OverviewPanel({
       {/* ── Refresh control ── */}
       {onRefresh && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ fontSize: 12, color: '#64748B', fontWeight: 500 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-subtle)', fontWeight: 500 }}>
             {refreshing
               ? 'Refreshing — last loaded data shown until new data arrives'
               : dateRange?.from
@@ -119,8 +119,8 @@ export default function OverviewPanel({
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '8px 14px', borderRadius: 8,
               border: '1px solid rgba(59,130,246,0.35)',
-              background: refreshing ? 'rgba(59,130,246,0.05)' : 'linear-gradient(135deg,#3B82F6,#8B5CF6)',
-              color: refreshing ? '#94A3B8' : '#fff',
+              background: refreshing ? 'rgba(59,130,246,0.05)' : 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))',
+              color: refreshing ? 'var(--text-muted)' : '#fff',
               fontSize: 12, fontWeight: 700,
               cursor: refreshing ? 'not-allowed' : 'pointer',
               boxShadow: refreshing ? 'none' : '0 4px 14px rgba(59,130,246,0.35)',
@@ -155,7 +155,7 @@ export default function OverviewPanel({
             label="Ads Revenue"
             value={metricsSummary.totalRevenue || null}
             format="currency"
-            accentColor="#3B82F6"
+            accentColor="var(--info-strong)"
             sparkData={revHistory}
             loading={loading}
             sub="Sponsored only"
@@ -164,7 +164,7 @@ export default function OverviewPanel({
             label="Total Ad Spend"
             value={metricsSummary.totalSpend || null}
             format="currency"
-            accentColor="#8B5CF6"
+            accentColor="var(--accent-strong)"
             sparkData={spendHistory}
             loading={loading}
             sub="Across campaigns"
@@ -173,14 +173,14 @@ export default function OverviewPanel({
             label="Daily Budget"
             value={stats.budget || null}
             format="currency2"
-            accentColor="#A78BFA"
+            accentColor="var(--accent)"
             sub="Active campaigns"
           />
           <KpiTicker
             label="ROAS"
             value={metricsSummary.roas}
             format="x"
-            accentColor="#10B981"
+            accentColor="var(--success)"
             sparkData={roasHistory}
             loading={loading}
             grade={metricsSummary.roas != null ? { roas: metricsSummary.roas, acos: metricsSummary.acos } : undefined}
@@ -190,7 +190,7 @@ export default function OverviewPanel({
             label="ACoS"
             value={metricsSummary.acos}
             format="pct"
-            accentColor={metricsSummary.acos != null && metricsSummary.acos < 25 ? '#10B981' : '#F59E0B'}
+            accentColor={metricsSummary.acos != null && metricsSummary.acos < 25 ? 'var(--success)' : 'var(--warning)'}
             sparkData={acosHistory}
             loading={loading}
             sub="Ad cost of sales"
@@ -208,7 +208,7 @@ export default function OverviewPanel({
             label="Active Campaigns"
             value={stats.enabled}
             format="int"
-            accentColor="#F59E0B"
+            accentColor="var(--warning)"
             sub={`of ${stats.total} total`}
           />
         </div>
@@ -225,36 +225,36 @@ export default function OverviewPanel({
               <ComposedChart data={spendRevenueData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#3B82F6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                    <stop offset="5%"  stopColor="var(--info-strong)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="var(--info-strong)" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gradSpend" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#8B5CF6" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
+                    <stop offset="5%"  stopColor="var(--accent-strong)" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="var(--accent-strong)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="i" hide />
                 <YAxis hide />
                 <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#3B82F6" strokeWidth={2} fill="url(#gradRevenue)" dot={false} animationDuration={800} />
-                <Area type="monotone" dataKey="spend"   name="Spend"   stroke="#8B5CF6" strokeWidth={1.5} fill="url(#gradSpend)" dot={false} animationDuration={800} strokeDasharray="4 2" />
+                <Area type="monotone" dataKey="revenue" name="Revenue" stroke="var(--info-strong)" strokeWidth={2} fill="url(#gradRevenue)" dot={false} animationDuration={800} />
+                <Area type="monotone" dataKey="spend"   name="Spend"   stroke="var(--accent-strong)" strokeWidth={1.5} fill="url(#gradSpend)" dot={false} animationDuration={800} strokeDasharray="4 2" />
               </ComposedChart>
             </ResponsiveContainer>
           ) : (
             <div style={{ height: 180, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <svg width="32" height="32" fill="none" stroke="#1E293B" viewBox="0 0 24 24" style={{ opacity: 0.4 }}>
+              <svg width="32" height="32" fill="none" stroke="var(--bg-panel)" viewBox="0 0 24 24" style={{ opacity: 0.4 }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4v16" />
               </svg>
-              <span style={{ fontSize: 12, color: '#334155' }}>Load metrics to see trend</span>
-              <span style={{ fontSize: 10, color: '#1E293B' }}>Multiple loads build the chart</span>
+              <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>Load metrics to see trend</span>
+              <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>Multiple loads build the chart</span>
             </div>
           )}
           {spendRevenueData.length >= 2 && (
             <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
-              {[{ color: '#3B82F6', label: 'Revenue' }, { color: '#8B5CF6', label: 'Spend' }].map(l => (
+              {[{ color: 'var(--info-strong)', label: 'Revenue' }, { color: 'var(--accent-strong)', label: 'Spend' }].map(l => (
                 <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <div style={{ width: 8, height: 2, background: l.color, borderRadius: 1 }} />
-                  <span style={{ fontSize: 10, color: '#334155', fontWeight: 600 }}>{l.label}</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-faint)', fontWeight: 600 }}>{l.label}</span>
                 </div>
               ))}
             </div>
@@ -287,7 +287,7 @@ export default function OverviewPanel({
                     if (!active || !payload?.length) return null;
                     const d = payload[0].payload;
                     return (
-                      <div style={{ background: 'rgba(8,12,26,0.97)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 12px', fontSize: 11 }}>
+                      <div style={{ background: 'var(--surface-card)', border: '1px solid var(--overlay-8)', borderRadius: 8, padding: '8px 12px', fontSize: 11 }}>
                         <span style={{ color: PIE_COLORS[d.key], fontWeight: 700 }}>{d.name}: {d.value}</span>
                       </div>
                     );
@@ -297,14 +297,14 @@ export default function OverviewPanel({
                   iconType="circle"
                   iconSize={7}
                   formatter={(v, e) => (
-                    <span style={{ fontSize: 10, color: '#475569', fontWeight: 600 }}>{v} ({e.payload.value})</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-faint)', fontWeight: 600 }}>{v} ({e.payload.value})</span>
                   )}
                 />
               </PieChart>
             </ResponsiveContainer>
           ) : (
             <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 12, color: '#334155' }}>No campaigns loaded</span>
+              <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>No campaigns loaded</span>
             </div>
           )}
         </ChartCard>

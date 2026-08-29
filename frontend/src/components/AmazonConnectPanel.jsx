@@ -53,7 +53,7 @@ export default function AmazonConnectPanel({ onConnected }) {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#64748B', padding: 32 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-subtle)', padding: 32 }}>
         <svg style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} fill="none" viewBox="0 0 24 24">
           <circle style={{ opacity: .25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
           <path style={{ opacity: .75 }} fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -64,7 +64,7 @@ export default function AmazonConnectPanel({ onConnected }) {
   }
 
   return (
-    <div className="rounded-xl p-6 flex flex-col gap-6" style={{ background: '#1E293B', border: '1px solid #334155' }}>
+    <div className="rounded-xl p-6 flex flex-col gap-6" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-strong)' }}>
 
       {/* Header */}
       <div className="flex items-center gap-3">
@@ -74,19 +74,19 @@ export default function AmazonConnectPanel({ onConnected }) {
           </svg>
         </div>
         <div>
-          <p className="font-semibold" style={{ color: '#F1F5F9' }}>Amazon Seller Account</p>
-          <p className="text-xs" style={{ color: '#64748B' }}>Connect via Amazon SP-API OAuth</p>
+          <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Amazon Seller Account</p>
+          <p className="text-xs" style={{ color: 'var(--text-subtle)' }}>Connect via Amazon SP-API OAuth</p>
         </div>
         <div className="ml-auto">
           {status?.connected ? (
             <span className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full"
-                  style={{ background: '#10B98120', border: '1px solid #10B98140', color: '#10B981' }}>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#10B981', display: 'inline-block' }}/>
+                  style={{ background: 'color-mix(in srgb, var(--success) 13%, transparent)', border: '1px solid #10B98140', color: 'var(--success)' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--success)', display: 'inline-block' }}/>
               Connected
             </span>
           ) : (
             <span className="text-xs font-semibold px-3 py-1 rounded-full"
-                  style={{ background: '#F43F5E20', border: '1px solid #F43F5E40', color: '#F43F5E' }}>
+                  style={{ background: 'color-mix(in srgb, var(--rose) 13%, transparent)', border: '1px solid #F43F5E40', color: 'var(--rose)' }}>
               Not connected
             </span>
           )}
@@ -95,7 +95,7 @@ export default function AmazonConnectPanel({ onConnected }) {
 
       {/* Error */}
       {error && (
-        <div className="rounded-lg px-4 py-3 text-sm" style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', color: '#F43F5E' }}>
+        <div className="rounded-lg px-4 py-3 text-sm" style={{ background: 'color-mix(in srgb, var(--rose) 9%, transparent)', border: '1px solid #F43F5E44', color: 'var(--rose)' }}>
           {error}
         </div>
       )}
@@ -104,19 +104,19 @@ export default function AmazonConnectPanel({ onConnected }) {
         <>
           {/* Connection details */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-lg p-4" style={{ background: '#0F172A', border: '1px solid #1E293B' }}>
-              <p className="text-xs uppercase tracking-widest mb-1" style={{ color: '#64748B' }}>Marketplace</p>
-              <p className="font-semibold text-sm" style={{ color: '#F1F5F9' }}>
+            <div className="rounded-lg p-4" style={{ background: 'var(--bg-app-2)', border: '1px solid var(--bg-panel)' }}>
+              <p className="text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--text-subtle)' }}>Marketplace</p>
+              <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
                 {MARKETPLACE_NAMES[status.marketplaceId] ?? status.marketplaceId ?? '—'}
               </p>
             </div>
-            <div className="rounded-lg p-4" style={{ background: '#0F172A', border: '1px solid #1E293B' }}>
-              <p className="text-xs uppercase tracking-widest mb-1" style={{ color: '#64748B' }}>Connected on</p>
-              <p className="font-semibold text-sm" style={{ color: '#F1F5F9' }}>{formatDate(status.connectedAt)}</p>
+            <div className="rounded-lg p-4" style={{ background: 'var(--bg-app-2)', border: '1px solid var(--bg-panel)' }}>
+              <p className="text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--text-subtle)' }}>Connected on</p>
+              <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{formatDate(status.connectedAt)}</p>
             </div>
-            <div className="rounded-lg p-4" style={{ background: '#0F172A', border: '1px solid #1E293B' }}>
-              <p className="text-xs uppercase tracking-widest mb-1" style={{ color: '#64748B' }}>Last used</p>
-              <p className="font-semibold text-sm" style={{ color: '#F1F5F9' }}>{formatDate(status.lastUsed)}</p>
+            <div className="rounded-lg p-4" style={{ background: 'var(--bg-app-2)', border: '1px solid var(--bg-panel)' }}>
+              <p className="text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--text-subtle)' }}>Last used</p>
+              <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{formatDate(status.lastUsed)}</p>
             </div>
           </div>
 
@@ -124,7 +124,7 @@ export default function AmazonConnectPanel({ onConnected }) {
             {/* Re-authorise */}
             <a href="/api/sp-oauth/start"
                className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg"
-               style={{ background: '#263348', border: '1px solid #334155', color: '#94A3B8', textDecoration: 'none' }}>
+               style={{ background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', color: 'var(--text-muted)', textDecoration: 'none' }}>
               <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
               </svg>
@@ -138,7 +138,7 @@ export default function AmazonConnectPanel({ onConnected }) {
               className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg"
               style={{
                 background: 'transparent', border: '1px solid #F43F5E44',
-                color: disconnecting ? '#64748B' : '#F43F5E',
+                color: disconnecting ? 'var(--text-subtle)' : 'var(--rose)',
                 cursor: disconnecting ? 'not-allowed' : 'pointer',
               }}>
               {disconnecting ? 'Disconnecting…' : 'Disconnect'}
@@ -147,7 +147,7 @@ export default function AmazonConnectPanel({ onConnected }) {
         </>
       ) : (
         <>
-          <div style={{ color: '#94A3B8', fontSize: 14, lineHeight: 1.6 }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6 }}>
             <p>Connect your Amazon Seller account to enable:</p>
             <ul style={{ marginTop: 8, paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 4 }}>
               <li>SP-API access for listing management and catalog data</li>
@@ -169,7 +169,7 @@ export default function AmazonConnectPanel({ onConnected }) {
               </svg>
               Connect Amazon Account
             </a>
-            <p className="text-xs mt-3" style={{ color: '#475569' }}>
+            <p className="text-xs mt-3" style={{ color: 'var(--text-faint)' }}>
               You will be redirected to Amazon Seller Central to authorise access. No passwords are stored — only the OAuth refresh token.
             </p>
           </div>

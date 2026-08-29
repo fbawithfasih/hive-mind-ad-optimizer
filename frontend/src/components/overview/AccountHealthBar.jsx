@@ -6,17 +6,17 @@ function MetricPill({ label, value, color, sub }) {
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       padding: '8px 20px',
-      borderRight: '1px solid rgba(255,255,255,0.05)',
+      borderRight: '1px solid var(--overlay-4)',
       gap: 2,
       minWidth: 100,
     }}>
-      <span style={{ fontSize: 9, fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+      <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
         {label}
       </span>
-      <span style={{ fontSize: 18, fontWeight: 900, color: color ?? '#F1F5F9', fontFamily: 'ui-monospace, monospace', lineHeight: 1.2 }}>
+      <span style={{ fontSize: 18, fontWeight: 900, color: color ?? 'var(--text-primary)', fontFamily: 'ui-monospace, monospace', lineHeight: 1.2 }}>
         {value}
       </span>
-      {sub && <span style={{ fontSize: 9, color: '#334155', fontWeight: 500 }}>{sub}</span>}
+      {sub && <span style={{ fontSize: 9, color: 'var(--text-faint)', fontWeight: 500 }}>{sub}</span>}
     </div>
   );
 }
@@ -27,16 +27,16 @@ export default function AccountHealthBar({ stats, metricsSummary, loadingSales }
     ? Math.min(100, Math.round(((metricsSummary.totalSpend ?? 0) / stats.budget) * 100))
     : null;
 
-  const roasColor = metricsSummary.roas == null ? '#334155'
-    : metricsSummary.roas >= 4   ? '#10B981'
-    : metricsSummary.roas >= 2.5 ? '#3B82F6'
-    : metricsSummary.roas >= 1.5 ? '#F59E0B'
-    : '#F43F5E';
+  const roasColor = metricsSummary.roas == null ? 'var(--text-faint)'
+    : metricsSummary.roas >= 4   ? 'var(--success)'
+    : metricsSummary.roas >= 2.5 ? 'var(--info-strong)'
+    : metricsSummary.roas >= 1.5 ? 'var(--warning)'
+    : 'var(--rose)';
 
   return (
     <div style={{
-      background: 'rgba(6,9,20,0.95)',
-      border: '1px solid rgba(255,255,255,0.05)',
+      background: 'var(--surface-card)',
+      border: '1px solid var(--overlay-4)',
       borderRadius: 14,
       display: 'flex',
       alignItems: 'stretch',
@@ -47,12 +47,12 @@ export default function AccountHealthBar({ stats, metricsSummary, loadingSales }
       <div style={{
         padding: '10px 18px',
         background: 'rgba(167,139,250,0.08)',
-        borderRight: '1px solid rgba(255,255,255,0.05)',
+        borderRight: '1px solid var(--overlay-4)',
         display: 'flex', alignItems: 'center', gap: 8,
         flexShrink: 0,
       }}>
-        <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 8px #10B981' }} />
-        <span style={{ fontSize: 10, fontWeight: 800, color: '#A78BFA', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+        <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--success)', boxShadow: '0 0 8px var(--success)' }} />
+        <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--accent)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
           Account Health
         </span>
       </div>
@@ -62,13 +62,13 @@ export default function AccountHealthBar({ stats, metricsSummary, loadingSales }
         <MetricPill
           label="Active Campaigns"
           value={`${stats.enabled} / ${stats.total}`}
-          color="#10B981"
+          color="var(--success)"
           sub={`${activePct}% active`}
         />
         <MetricPill
           label="Daily Budget"
           value={`$${stats.budget.toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
-          color="#8B5CF6"
+          color="var(--accent-strong)"
           sub="across active"
         />
         <MetricPill
@@ -80,7 +80,7 @@ export default function AccountHealthBar({ stats, metricsSummary, loadingSales }
         <MetricPill
           label="ACoS"
           value={metricsSummary.acos != null ? `${metricsSummary.acos.toFixed(1)}%` : '—'}
-          color={metricsSummary.acos != null && metricsSummary.acos < 25 ? '#10B981' : '#F59E0B'}
+          color={metricsSummary.acos != null && metricsSummary.acos < 25 ? 'var(--success)' : 'var(--warning)'}
           sub="ad cost of sale"
         />
         {metricsSummary.tacos != null && (
@@ -95,7 +95,7 @@ export default function AccountHealthBar({ stats, metricsSummary, loadingSales }
           <MetricPill
             label="Budget Used"
             value={`${budgetUtil}%`}
-            color={budgetUtil > 90 ? '#F43F5E' : budgetUtil > 70 ? '#F59E0B' : '#10B981'}
+            color={budgetUtil > 90 ? 'var(--rose)' : budgetUtil > 70 ? 'var(--warning)' : 'var(--success)'}
             sub="vs daily budget"
           />
         )}
@@ -103,7 +103,7 @@ export default function AccountHealthBar({ stats, metricsSummary, loadingSales }
 
       {/* Grade */}
       {metricsSummary.roas != null && (
-        <div style={{ padding: '10px 18px', display: 'flex', alignItems: 'center', borderLeft: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+        <div style={{ padding: '10px 18px', display: 'flex', alignItems: 'center', borderLeft: '1px solid var(--overlay-4)', flexShrink: 0 }}>
           <PerformanceGrade roas={metricsSummary.roas} acos={metricsSummary.acos} size="lg" />
         </div>
       )}

@@ -1,7 +1,7 @@
 // Shared design primitives used across all BrandAnalytics components
 
-export const glass = (accent = 'rgba(255,255,255,0.06)') => ({
-  background: 'rgba(10,14,30,0.85)',
+export const glass = (accent = 'var(--overlay-5)') => ({
+  background: 'var(--bg-overlay-hi)',
   border: `1px solid ${accent}`,
   borderRadius: 20,
   backdropFilter: 'blur(16px)',
@@ -35,17 +35,17 @@ export function Spinner({ size = 14 }) {
 
 export function StatCard({ label, value, sub, gradient, glow, accentColor, icon, delta, deltaMode, deltaInvert }) {
   return (
-    <div style={{ ...glass(`${accentColor}20`), padding: '18px 20px', boxShadow: `0 4px 28px ${glow}15`, display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 140 }}>
+    <div style={{ ...glass(`color-mix(in srgb, ${accentColor} 13%, transparent)`), padding: '18px 20px', boxShadow: `0 4px 28px ${glow}15`, display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 140 }}>
       <GradientBar top={gradient} />
       <GlowBlob color={glow} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 10, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 8px' }}>{label}</p>
+          <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 8px' }}>{label}</p>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
             <p style={{ fontSize: 26, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1, letterSpacing: '-0.5px' }}>{value}</p>
             <Delta d={delta} mode={deltaMode} invert={deltaInvert} />
           </div>
-          {sub && <p style={{ fontSize: 11, color: '#475569', margin: '5px 0 0' }}>{sub}</p>}
+          {sub && <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '5px 0 0' }}>{sub}</p>}
         </div>
         <div style={{ width: 40, height: 40, borderRadius: 12, background: gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 4px 12px ${glow}` }}>
           <div style={{ color: '#fff' }}>{icon}</div>
@@ -56,12 +56,12 @@ export function StatCard({ label, value, sub, gradient, glow, accentColor, icon,
 }
 
 export const COLORS = {
-  green:  { accent: '#10B981', glow: 'rgba(16,185,129,0.5)',  gradient: 'linear-gradient(135deg,#10B981,#059669)' },
-  blue:   { accent: '#3B82F6', glow: 'rgba(59,130,246,0.5)',  gradient: 'linear-gradient(135deg,#3B82F6,#2563EB)' },
-  purple: { accent: '#8B5CF6', glow: 'rgba(139,92,246,0.5)', gradient: 'linear-gradient(135deg,#8B5CF6,#7C3AED)' },
-  amber:  { accent: '#F59E0B', glow: 'rgba(245,158,11,0.5)', gradient: 'linear-gradient(135deg,#F59E0B,#D97706)' },
-  red:    { accent: '#F43F5E', glow: 'rgba(244,63,94,0.5)',   gradient: 'linear-gradient(135deg,#F43F5E,#E11D48)' },
-  indigo: { accent: '#6366F1', glow: 'rgba(99,102,241,0.5)', gradient: 'linear-gradient(135deg,#6366F1,#4F46E5)' },
+  green:  { accent: 'var(--success)', glow: 'rgba(16,185,129,0.5)',  gradient: 'linear-gradient(135deg,var(--success),#059669)' },
+  blue:   { accent: 'var(--info-strong)', glow: 'rgba(59,130,246,0.5)',  gradient: 'linear-gradient(135deg,var(--info-strong),#2563EB)' },
+  purple: { accent: 'var(--accent-strong)', glow: 'rgba(139,92,246,0.5)', gradient: 'linear-gradient(135deg,var(--accent-strong),#7C3AED)' },
+  amber:  { accent: 'var(--warning)', glow: 'rgba(245,158,11,0.5)', gradient: 'linear-gradient(135deg,var(--warning),#D97706)' },
+  red:    { accent: 'var(--rose)', glow: 'rgba(244,63,94,0.5)',   gradient: 'linear-gradient(135deg,var(--rose),#E11D48)' },
+  indigo: { accent: 'var(--indigo)', glow: 'rgba(99,102,241,0.5)', gradient: 'linear-gradient(135deg,var(--indigo),#4F46E5)' },
 };
 
 export function scoreColor(score) {
@@ -81,7 +81,7 @@ export function Delta({ d, mode = 'pct', invert = false }) {
   if (!d || d.delta == null) return null;
   const up      = d.delta > 0;
   const good    = invert ? !up : up;
-  const color   = d.delta === 0 ? '#64748B' : good ? '#10B981' : '#F43F5E';
+  const color   = d.delta === 0 ? 'var(--text-subtle)' : good ? 'var(--success)' : 'var(--rose)';
   const arrow   = d.delta === 0 ? '—' : up ? '▲' : '▼';
   const abs     = Math.abs(d.delta);
   const label   = d.delta === 0 ? 'flat'
