@@ -214,8 +214,33 @@ export async function getOrgMembersApi(orgId) {
   return res.data;
 }
 
-export async function addOrgMemberApi(orgId, email, role) {
-  const res = await api.post(`/orgs/${orgId}/members`, { email, role });
+/**
+ * Invite someone to the org. Creates a pending invitation and emails them —
+ * membership is only created once they accept while signed in as that address.
+ */
+export async function inviteOrgMemberApi(orgId, email, role) {
+  const res = await api.post(`/orgs/${orgId}/invitations`, { email, role });
+  return res.data;
+}
+
+export async function getOrgInvitationsApi(orgId) {
+  const res = await api.get(`/orgs/${orgId}/invitations`);
+  return res.data;
+}
+
+export async function revokeOrgInvitationApi(orgId, invitationId) {
+  const res = await api.delete(`/orgs/${orgId}/invitations/${invitationId}`);
+  return res.data;
+}
+
+/** Look up an invitation by token so the invite page can describe it. */
+export async function getInvitationApi(token) {
+  const res = await api.get(`/orgs/invitations/${token}`);
+  return res.data;
+}
+
+export async function acceptInvitationApi(token) {
+  const res = await api.post('/orgs/invitations/accept', { token });
   return res.data;
 }
 

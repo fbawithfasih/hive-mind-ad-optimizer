@@ -7,11 +7,26 @@ import { prisma } from '../../db/prisma.js';
 import { runAsSystem } from '../../db/tenant-context.js';
 import { hashPassword, verifyPassword } from '../../db/password.js';
 import { requireAuth } from '../middleware/requireAuth.js';
-import { authLimiter, strictLimiter } from '../middleware/rateLimiter.js';
+import {
+  authLimiter,
+  strictLimiter,
+  loginAccountLimiter,
+  passwordResetAccountLimiter,
+} from '../middleware/rateLimiter.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../services/email.js';
 import { createLogger } from '../utils/logger.js';
+import { normalizeEmail } from '../utils/normalizeEmail.js';
 import { consumeClaimToken } from './billing.js';
 import { appleConfigured, getAppleClientSecret, verifyAppleIdToken } from '../../services/apple-auth.js';
+import { resolveSsoUser, claimIsTrue } from '../../services/sso-account.js';
+import {
+  SESSION_MAX_AGE,
+  SESSION_ABSOLUTE_MAX_SECONDS,
+  JWT_ISSUER,
+  JWT_AUDIENCE,
+  nowSeconds,
+  sessionExpiredAbsolute,
+} from '../../config/session.js';
 
 const router = express.Router();
 const logger = createLogger('AUTH');
@@ -30,6 +45,41 @@ if (!JWT_SECRET) {
   throw new Error('SESSION_SECRET environment variable is required');
 }
 
+/**
+ * Sign a session JWT for `user` and set the auth cookie.
+ *
+ * Every token carries two things requireAuth checks on each request:
+ *
+ *   tokenVersion — the user's current revocation counter, so a password reset
+ *   (or /logout-all) can invalidate sessions that are otherwise stateless.
+ *
+ *   authAt — when the user last actually proved identity. Callers that are a
+ *   real authentication (login, signup, SSO) let this default to now; callers
+ *   that merely reissue an existing session (/refresh, /switch-org) must pass
+ *   the original value through so the absolute cap keeps counting down.
+ *
+ * @param {object} res
+ * @param {{ id: string, email: string, tokenVersion?: number }} user
+ * @param {{ activeOrgId?: string|null, authAt?: number }} [opts]
+ */
+function issueSession(res, user, { activeOrgId = null, authAt = nowSeconds() } = {}) {
+  const token = jwt.sign(
+    {
+      userId:       user.id,
+      email:        user.email,
+      tokenVersion: user.tokenVersion ?? 0,
+      activeOrgId,
+      authAt,
+    },
+    JWT_SECRET,
+    { expiresIn: SESSION_MAX_AGE, issuer: JWT_ISSUER, audience: JWT_AUDIENCE }
+  );
+
+  const isProd = process.env.NODE_ENV === 'production';
+  res.cookie(COOKIE_NAME, token, { ...COOKIE_OPTS, secure: isProd });
+  return token;
+}
+
 // ── User Signup ──────────────────────────────────────────────────────────────
 
 /**
@@ -39,7 +89,8 @@ if (!JWT_SECRET) {
  */
 router.post('/signup', authLimiter, async (req, res) => {
   try {
-    const { email, password, firstName = '', lastName = '', claimToken } = req.body;
+    const { password, firstName = '', lastName = '', claimToken } = req.body;
+    const email = normalizeEmail(req.body.email);
 
     // Validation
     if (!email || !password) {
@@ -79,6 +130,11 @@ router.post('/signup', authLimiter, async (req, res) => {
 
     logger.info(`User created: ${user.id} (${email})`);
 
+    // Org created below when a claim token is redeemed. Passing it into the
+    // session token saves withTenant a first-membership lookup on every request
+    // until the session is next reissued.
+    let claimedOrgId = null;
+
     // If a claim token from the marketing site was provided, consume it and
     // create the org + subscription in one shot so the user lands fully activated.
     if (claimToken) {
@@ -110,6 +166,7 @@ router.post('/signup', authLimiter, async (req, res) => {
             });
             return created;
           });
+          claimedOrgId = org.id;
           logger.info(`Claim redeemed: org ${org.id} created with ${claim.tier} plan (payment ${claim.paymentId})`);
         } catch (claimErr) {
           // Don't fail signup if claim processing errors — user can set up org manually
@@ -131,19 +188,7 @@ router.post('/signup', authLimiter, async (req, res) => {
       logger.error(`Failed to send verification email to ${email}: ${err.message}`)
     );
 
-    // Create JWT token
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email,
-      },
-      JWT_SECRET,
-      { expiresIn: '8h' }
-    );
-
-    // Set cookie
-    const isProd = process.env.NODE_ENV === 'production';
-    res.cookie(COOKIE_NAME, token, { ...COOKIE_OPTS, secure: isProd });
+    issueSession(res, user, { activeOrgId: claimedOrgId });
 
     res.status(201).json({
       ok: true,
@@ -167,9 +212,10 @@ router.post('/signup', authLimiter, async (req, res) => {
  * Authenticate user and create session
  * Body: { email, password }
  */
-router.post('/login', authLimiter, async (req, res) => {
+router.post('/login', authLimiter, loginAccountLimiter, async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
+    const email = normalizeEmail(req.body.email);
 
     // Validation
     if (!email || !password) {
@@ -214,20 +260,7 @@ router.post('/login', authLimiter, async (req, res) => {
       })
     );
 
-    // Create JWT token
-    const token = jwt.sign(
-      {
-        userId:      user.id,
-        email:       user.email,
-        activeOrgId: firstMembership?.orgId ?? null,
-      },
-      JWT_SECRET,
-      { expiresIn: '8h' }
-    );
-
-    // Set cookie
-    const isProd = process.env.NODE_ENV === 'production';
-    res.cookie(COOKIE_NAME, token, { ...COOKIE_OPTS, secure: isProd });
+    issueSession(res, user, { activeOrgId: firstMembership?.orgId ?? null });
 
     res.json({
       ok: true,
@@ -338,6 +371,30 @@ router.post('/logout', (req, res) => {
   res.json({ ok: true });
 });
 
+/**
+ * POST /api/auth/logout-all
+ * Revoke every session for this user on every device by bumping tokenVersion.
+ * Unlike /logout (which only clears the cookie in the calling browser) this
+ * invalidates tokens already copied elsewhere. The caller is logged out too.
+ */
+router.post('/logout-all', requireAuth, async (req, res) => {
+  try {
+    await prisma.user.update({
+      where: { id: req.user.userId },
+      data:  { tokenVersion: { increment: 1 } },
+    });
+
+    const isProd = process.env.NODE_ENV === 'production';
+    res.clearCookie(COOKIE_NAME, { ...COOKIE_OPTS, secure: isProd });
+
+    logger.info(`All sessions revoked for user ${req.user.userId}`);
+    res.json({ ok: true });
+  } catch (err) {
+    logger.error(`Logout-all error: ${err.message}`);
+    res.status(500).json({ error: 'Failed to revoke sessions' });
+  }
+});
+
 // ── Token Refresh ────────────────────────────────────────────────────────────
 
 /**
@@ -363,14 +420,13 @@ router.post('/switch-org', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'You are not a member of that organization' });
     }
 
-    const token = jwt.sign(
-      { userId: req.user.userId, email: req.user.email, activeOrgId: orgId },
-      JWT_SECRET,
-      { expiresIn: '8h' }
+    // Switching orgs is not a re-authentication — carry authAt through so the
+    // absolute cap can't be reset by hopping between organisations.
+    issueSession(
+      res,
+      { id: req.user.userId, email: req.user.email, tokenVersion: req.user.tokenVersion },
+      { activeOrgId: orgId, authAt: req.user.authAt ?? nowSeconds() }
     );
-
-    const isProd = process.env.NODE_ENV === 'production';
-    res.cookie(COOKIE_NAME, token, { ...COOKIE_OPTS, secure: isProd });
 
     logger.info(`User ${req.user.userId} switched to org ${orgId}`);
     res.json({ ok: true, activeOrg: { id: membership.org.id, name: membership.org.name, role: membership.role } });
@@ -393,20 +449,25 @@ router.post('/refresh', requireAuth, async (req, res) => {
       return res.status(401).json({ error: 'User not found' });
     }
 
-    // Create new JWT token — preserve activeOrgId from existing token
-    const token = jwt.sign(
-      {
-        userId:      user.id,
-        email:       user.email,
-        activeOrgId: req.user.activeOrgId ?? null,
-      },
-      JWT_SECRET,
-      { expiresIn: '8h' }
-    );
+    // Refreshing extends the sliding 8h window but must not extend the absolute
+    // one, or a stolen cookie could be rolled forward indefinitely — the whole
+    // point of the cap. Tokens predating the policy get stamped from now.
+    const authAt = req.user.authAt ?? nowSeconds();
+    if (sessionExpiredAbsolute(authAt)) {
+      logger.info(`Refresh refused for user ${user.id}: session past absolute cap`);
+      return res.status(401).json({ error: 'Session expired — please log in again' });
+    }
 
-    // Update cookie
-    const isProd = process.env.NODE_ENV === 'production';
-    res.cookie(COOKIE_NAME, token, { ...COOKIE_OPTS, secure: isProd });
+    // Preserve activeOrgId from the existing token, and carry over the exact
+    // tokenVersion requireAuth just validated rather than re-reading it. If a
+    // password reset lands between that check and this line, re-reading would
+    // mint a token at the *new* version and quietly un-revoke the session;
+    // carrying the old value forward means the next request rejects it.
+    issueSession(
+      res,
+      { id: user.id, email: user.email, tokenVersion: req.user.tokenVersion },
+      { activeOrgId: req.user.activeOrgId ?? null, authAt }
+    );
 
     logger.info(`Token refreshed for user: ${user.id}`);
 
@@ -474,8 +535,8 @@ router.post('/resend-verification', strictLimiter, requireAuth, async (req, res)
  * POST /api/auth/forgot-password
  * Sends a password-reset link. Always returns 200 to prevent email enumeration.
  */
-router.post('/forgot-password', authLimiter, async (req, res) => {
-  const { email } = req.body;
+router.post('/forgot-password', authLimiter, passwordResetAccountLimiter, async (req, res) => {
+  const email = normalizeEmail(req.body.email);
   if (!email) return res.status(400).json({ error: 'email is required' });
 
   // Always respond OK — don't reveal whether the email exists
@@ -497,7 +558,13 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
     sendPasswordResetEmail(email, token).catch((err) =>
       logger.error(`Failed to send password reset email to ${email}: ${err.message}`)
     );
-  })();
+  })().catch((err) =>
+    // This runs detached, after the response has already gone out, so Express
+    // cannot catch it. Without this handler a DB blip here becomes an unhandled
+    // rejection — which terminates the process under Node's default
+    // --unhandled-rejections=throw, on an unauthenticated public endpoint.
+    logger.error(`Password reset background work failed for ${email}: ${err.message}`)
+  );
 });
 
 /**
@@ -516,8 +583,15 @@ router.post('/reset-password', strictLimiter, async (req, res) => {
 
   const passwordHash = await hashPassword(password);
 
+  // Bumping tokenVersion is what makes the reset a real recovery step: without
+  // it, whoever compromised the account keeps their existing session cookie for
+  // up to 8 more hours — and could /refresh it indefinitely — even after the
+  // owner changes the password.
   await prisma.$transaction([
-    prisma.user.update({ where: { id: record.userId }, data: { passwordHash } }),
+    prisma.user.update({
+      where: { id: record.userId },
+      data:  { passwordHash, tokenVersion: { increment: 1 } },
+    }),
     prisma.passwordResetToken.update({ where: { token }, data: { usedAt: new Date() } }),
   ]);
 
@@ -580,7 +654,13 @@ router.get('/google/callback', async (req, res) => {
 
   // CSRF check
   const savedState = req.cookies?.oauth_state;
-  res.clearCookie('oauth_state');
+  // Clear with the same attributes it was set with — browsers match on
+  // name/domain/path, but mismatched SameSite/Secure on the deleting
+  // Set-Cookie is exactly the kind of thing a stricter browser starts
+  // rejecting later.
+  res.clearCookie('oauth_state', {
+    httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production',
+  });
   if (!state || state !== savedState) {
     logger.warn('Google OAuth state mismatch — possible CSRF attempt');
     return res.redirect(`${FRONTEND_URL}/login?error=state_mismatch`);
@@ -603,37 +683,32 @@ router.get('/google/callback', async (req, res) => {
       proxy: false,
     });
     const {
-      id:          googleId,
-      email,
-      given_name:  firstName = '',
-      family_name: lastName  = '',
-      picture:     avatar    = null,
+      id:             googleId,
+      email:          googleEmail,
+      verified_email: verifiedEmail,
+      email_verified: emailVerifiedClaim,
+      given_name:     firstName = '',
+      family_name:    lastName  = '',
+      picture:        avatar    = null,
     } = profileRes.data;
 
+    const email = normalizeEmail(googleEmail);
     if (!email) throw new Error('Google did not return an email address');
 
-    // 3. Find or create user — match on googleId first, fall back to email
-    let user = await prisma.user.findFirst({
-      where: { OR: [{ googleId }, { email }] },
+    // 3. Find, link, or create. The v2 userinfo endpoint spells this claim
+    //    `verified_email`; the OIDC endpoint spells it `email_verified`.
+    const resolved = await resolveSsoUser({
+      provider:      'google',
+      providerId:    googleId,
+      email,
+      emailVerified: claimIsTrue(verifiedEmail ?? emailVerifiedClaim),
+      profile:       { firstName, lastName, avatar },
     });
 
-    if (user) {
-      const updates = { lastLogin: new Date() };
-      if (!user.googleId)       updates.googleId      = googleId;
-      if (!user.emailVerified)  updates.emailVerified = true;
-      if (avatar && !user.avatar) updates.avatar      = avatar;
-      user = await prisma.user.update({ where: { id: user.id }, data: updates });
-      logger.info(`Google login: existing user ${user.id} (${email})`);
-    } else {
-      user = await prisma.user.create({
-        data: {
-          id: uuidv4(), email, googleId,
-          passwordHash: null, firstName, lastName, avatar,
-          emailVerified: true, lastLogin: new Date(),
-        },
-      });
-      logger.info(`Google login: new user created ${user.id} (${email})`);
+    if (!resolved.ok) {
+      return res.redirect(`${FRONTEND_URL}/login?error=${resolved.reason}`);
     }
+    const user = resolved.user;
 
     // 4. Pick active org
     // Runs as system: resolving which orgs the user belongs to is an
@@ -647,13 +722,7 @@ router.get('/google/callback', async (req, res) => {
     );
 
     // 5. Issue JWT + cookie
-    const token = jwt.sign(
-      { userId: user.id, email: user.email, activeOrgId: firstMembership?.orgId ?? null },
-      JWT_SECRET,
-      { expiresIn: '8h' }
-    );
-    const isProd = process.env.NODE_ENV === 'production';
-    res.cookie(COOKIE_NAME, token, { ...COOKIE_OPTS, secure: isProd });
+    issueSession(res, user, { activeOrgId: firstMembership?.orgId ?? null });
 
     res.redirect(`${FRONTEND_URL}/`);
   } catch (err) {
@@ -722,7 +791,12 @@ router.post('/apple/callback', express.urlencoded({ extended: false }), async (r
   }
 
   const savedState = req.cookies?.apple_oauth_state;
-  res.clearCookie('apple_oauth_state');
+  // Must mirror the set above, which uses SameSite=None + Secure in production
+  // so Apple's cross-site form_post carries the cookie back.
+  const clearIsProd = process.env.NODE_ENV === 'production';
+  res.clearCookie('apple_oauth_state', {
+    httpOnly: true, sameSite: clearIsProd ? 'none' : 'lax', secure: clearIsProd,
+  });
   if (!state || state !== savedState) {
     logger.warn('Apple OAuth state mismatch — possible CSRF attempt');
     return res.redirect(`${FRONTEND_URL}/login?error=state_mismatch`);
@@ -732,7 +806,7 @@ router.post('/apple/callback', express.urlencoded({ extended: false }), async (r
     // 1. Verify id_token (RS256 against Apple JWKS, audience = our client_id)
     const claims = await verifyAppleIdToken(id_token);
     const appleId = claims.sub;
-    const email   = claims.email;
+    const email   = normalizeEmail(claims.email);
     if (!appleId) throw new Error('Apple id_token missing sub');
     if (!email)   throw new Error('Apple id_token missing email — user must allow email sharing');
 
@@ -762,29 +836,19 @@ router.post('/apple/callback', express.urlencoded({ extended: false }), async (r
       } catch { /* ignore malformed user blob */ }
     }
 
-    // 4. Find or create — match on appleId first, fall back to email
-    let dbUser = await prisma.user.findFirst({
-      where: { OR: [{ appleId }, { email }] },
+    // 4. Find, link, or create.
+    const resolved = await resolveSsoUser({
+      provider:      'apple',
+      providerId:    appleId,
+      email,
+      emailVerified: claimIsTrue(claims.email_verified),
+      profile:       { firstName, lastName },
     });
 
-    if (dbUser) {
-      const updates = { lastLogin: new Date() };
-      if (!dbUser.appleId)      updates.appleId       = appleId;
-      if (!dbUser.emailVerified) updates.emailVerified = true;
-      if (firstName && !dbUser.firstName) updates.firstName = firstName;
-      if (lastName  && !dbUser.lastName)  updates.lastName  = lastName;
-      dbUser = await prisma.user.update({ where: { id: dbUser.id }, data: updates });
-      logger.info(`Apple login: existing user ${dbUser.id} (${email})`);
-    } else {
-      dbUser = await prisma.user.create({
-        data: {
-          id: uuidv4(), email, appleId,
-          passwordHash: null, firstName, lastName,
-          emailVerified: true, lastLogin: new Date(),
-        },
-      });
-      logger.info(`Apple login: new user created ${dbUser.id} (${email})`);
+    if (!resolved.ok) {
+      return res.redirect(`${FRONTEND_URL}/login?error=${resolved.reason}`);
     }
+    const dbUser = resolved.user;
 
     // Runs as system: resolving which orgs the user belongs to is an
     // authorization bootstrap — it decides the tenant, so it necessarily
@@ -796,13 +860,7 @@ router.post('/apple/callback', express.urlencoded({ extended: false }), async (r
       })
     );
 
-    const token = jwt.sign(
-      { userId: dbUser.id, email: dbUser.email, activeOrgId: firstMembership?.orgId ?? null },
-      JWT_SECRET,
-      { expiresIn: '8h' }
-    );
-    const isProd = process.env.NODE_ENV === 'production';
-    res.cookie(COOKIE_NAME, token, { ...COOKIE_OPTS, secure: isProd });
+    issueSession(res, dbUser, { activeOrgId: firstMembership?.orgId ?? null });
 
     res.redirect(`${FRONTEND_URL}/`);
   } catch (err) {
@@ -811,52 +869,19 @@ router.post('/apple/callback', express.urlencoded({ extended: false }), async (r
   }
 });
 
-// ── Amazon Ads OAuth (existing — used for initial token setup) ────────────────
-
-const CLIENT_ID     = process.env.AMAZON_ADS_CLIENT_ID;
-const CLIENT_SECRET = process.env.AMAZON_ADS_CLIENT_SECRET;
-
-// Build redirect URI dynamically based on environment
-const getRedirectUri = (req) => {
-  const baseUrl = process.env.BASE_URL || (req ? `${req.protocol}://${req.get('host')}` : undefined);
-  if (!baseUrl) {
-    throw new Error('BASE_URL env var not set and unable to determine from request');
-  }
-  return `${baseUrl}/api/auth/amazon/callback`;
-};
-
-router.get('/amazon/authorize', (req, res) => {
-  const redirectUri = getRedirectUri(req);
-  const authUrl = `https://www.amazon.com/ap/oa?client_id=${CLIENT_ID}&scope=advertising::campaign_management&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}`;
-  res.redirect(authUrl);
-});
-
-router.get('/amazon/callback', async (req, res) => {
-  const { code } = req.query;
-  if (!code) return res.status(400).json({ error: 'No authorization code received' });
-
-  try {
-    const redirectUri = getRedirectUri(req);
-    const response = await axios.post('https://api.amazon.com/auth/o2/token', new URLSearchParams({
-      grant_type: 'authorization_code',
-      code, client_id: CLIENT_ID, client_secret: CLIENT_SECRET, redirect_uri: redirectUri,
-    }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, proxy: false });
-
-    const { refresh_token } = response.data;
-    console.log('\n✅ Amazon Ads tokens received');
-
-    // Return JSON response with token (never expose sensitive data in HTML/logs)
-    // Frontend will handle securely storing the token
-    res.json({
-      success: true,
-      message: 'Authorization successful. Token received and ready to use.',
-      refresh_token, // Return in JSON body only, not in HTML
-    });
-  } catch (err) {
-    // Log server-side; never render the error into an HTML response (XSS).
-    console.error('[auth/amazon/callback] token exchange failed:', err.message);
-    res.status(500).json({ error: 'Authorization failed' });
-  }
-});
+// ── Amazon Ads OAuth ─────────────────────────────────────────────────────────
+//
+// Removed: GET /amazon/authorize and GET /amazon/callback.
+//
+// They were an unauthenticated handshake with no `state` parameter that handed
+// a live Ads refresh token back in a JSON body to whatever browser completed
+// it. Nothing in the app called them — the real per-org Ads flow lives in
+// /api/sp-oauth (ads-start / ads-callback), which is authenticated, tenant
+// scoped, and stores the token encrypted against the org rather than returning
+// it to the caller.
+//
+// The only thing lost is the manual way to mint AMAZON_ADS_REFRESH_TOKEN for
+// the legacy env-var singleton client in services/amazon-ads.js. Connect the
+// org through /api/sp-oauth/ads-start instead; it supersedes that fallback.
 
 export default router;

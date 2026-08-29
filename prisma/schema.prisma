@@ -27,6 +27,10 @@ model User {
   emailVerified   Boolean   @default(false)
   emailVerifiedAt DateTime?
   lastLogin       DateTime?
+  // Stamped into every session JWT. Incrementing it invalidates all tokens
+  // issued before the bump — that's how password reset and "log out
+  // everywhere" revoke sessions that are otherwise stateless.
+  tokenVersion    Int       @default(0)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -75,6 +79,7 @@ model Organization {
   campaignRules         CampaignRule[]
   campaignAlerts        CampaignAlert[]
   brandAnalyticsReports BrandAnalyticsReport[]
+  invitations           OrgInvitation[]
 
   @@index([slug])
   @@index([billingStatus])
@@ -100,6 +105,34 @@ model OrgMember {
   @@unique([orgId, userId])
   @@index([orgId])
   @@index([userId])
+}
+
+/// A pending invitation to join an organization.
+///
+/// Membership is never created directly by an admin — the invited person has to
+/// accept while signed in as the address that was invited. That acceptance is
+/// the consent step: without it, any admin could pull a stranger's account into
+/// their org (and become the default tenant for anyone who had no org yet).
+model OrgInvitation {
+  id         String    @id @default(cuid())
+  orgId      String
+  /// Normalised address the invitation was issued to. Acceptance requires the
+  /// signed-in user's email to match this exactly.
+  email      String
+  role       OrgRole   @default(MEMBER)
+  /// Random bearer token embedded in the emailed link.
+  token      String    @unique
+  invitedBy  String
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  revokedAt  DateTime?
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([email])
+  @@index([expiresAt])
 }
 
 // ============================================================================

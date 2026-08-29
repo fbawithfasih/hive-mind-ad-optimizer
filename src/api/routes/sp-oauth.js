@@ -20,6 +20,8 @@ import dotenv from 'dotenv';
 import { saveOrgCredential, updateOrgAdsToken } from '../../services/credentials.js';
 import { createLogger } from '../utils/logger.js';
 import { withTenant } from '../middleware/withTenant.js';
+import { prisma } from '../../db/prisma.js';
+import { sessionExpiredAbsolute, claimsAreValid } from '../../config/session.js';
 
 dotenv.config({ override: true });
 
@@ -42,17 +44,56 @@ function cfg() {
 // Unlike requireAuth (which returns JSON 401), this redirects to the login
 // page so the user isn't stranded on a raw JSON error in the browser tab.
 // ─────────────────────────────────────────────────────────────────────────────
-function requireAuthNav(req, res, next) {
+/**
+ * Browser-navigation flavour of requireAuth.
+ *
+ * These routes are entered by clicking a link, so failures redirect to the
+ * login page rather than returning 401 JSON. It otherwise applies the same
+ * checks as the real middleware — signature, issuer/audience, the user still
+ * existing, tokenVersion (revocation), and the absolute session cap.
+ *
+ * Skipping the database read here used to mean a session revoked by a password
+ * reset could still walk into an Amazon credential handshake.
+ */
+async function requireAuthNav(req, res, next) {
   const token = req.cookies?.hmn_token;
   const loginUrl = `${(process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')}/login`;
   if (!token) return res.redirect(loginUrl);
+
   try {
     const payload = jwt.verify(token, process.env.SESSION_SECRET);
-    req.user = { userId: payload.userId, activeOrgId: payload.activeOrgId ?? null };
+    if (!claimsAreValid(payload))            return res.redirect(loginUrl);
+    if (sessionExpiredAbsolute(payload.authAt)) return res.redirect(loginUrl);
+
+    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
+    if (!user) return res.redirect(loginUrl);
+    if ((payload.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) {
+      logger.warn(`Revoked session rejected for user ${user.id}`);
+      return res.redirect(loginUrl);
+    }
+
+    req.user = {
+      userId:        user.id,
+      email:         user.email,
+      emailVerified: user.emailVerified === true,
+      activeOrgId:   payload.activeOrgId ?? null,
+    };
     next();
   } catch {
     return res.redirect(loginUrl);
   }
+}
+
+/**
+ * Navigation flavour of requireVerifiedEmail — connecting an Amazon account
+ * attaches real seller credentials to the org, so the address behind the
+ * account has to be confirmed first. Redirects to the SP-API error page
+ * instead of returning JSON, since this is a browser navigation.
+ */
+function requireVerifiedEmailNav(req, res, next) {
+  if (req.user?.emailVerified) return next();
+  logger.warn(`Unverified email blocked from ${req.originalUrl ?? req.url}`);
+  return redirectToError(res, 'email_unverified');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,7 +156,7 @@ router.get('/info', requireAuthNav, withTenant, (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/sp-oauth/start — redirect to Amazon Seller Central SPN consent
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/start', requireAuthNav, withTenant, (req, res) => {
+router.get('/start', requireAuthNav, requireVerifiedEmailNav, withTenant, (req, res) => {
   const { clientId, clientSecret, solutionId } = cfg();
   if (!clientId)     return res.status(500).send('SP_API_CLIENT_ID not set in .env');
   if (!clientSecret) return res.status(500).send('SP_API_CLIENT_SECRET not set in .env');
@@ -200,7 +241,7 @@ router.get('/callback', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/sp-oauth/ads-start — redirect to Amazon LWA for Ads API consent
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/ads-start', requireAuthNav, withTenant, (req, res) => {
+router.get('/ads-start', requireAuthNav, requireVerifiedEmailNav, withTenant, (req, res) => {
   const clientId = process.env.AMAZON_ADS_CLIENT_ID;
   if (!clientId) return res.status(500).send('AMAZON_ADS_CLIENT_ID not set in .env');
 

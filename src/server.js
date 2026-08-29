@@ -212,3 +212,12 @@ async function shutdown(signal) {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT',  () => shutdown('SIGINT'));
+
+// Backstop for rejected promises nobody handled. Node's default since v15 is
+// --unhandled-rejections=throw, which turns any such rejection into a process
+// exit — so one unguarded fire-and-forget call (an email send, a queue
+// schedule) could take the whole API down. Individual call sites still attach
+// their own .catch(); this only keeps a missed one from being fatal.
+process.on('unhandledRejection', (reason) => {
+  logger.error(`Unhandled promise rejection: ${reason?.stack ?? reason}`);
+});

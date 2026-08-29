@@ -8,6 +8,9 @@ const SSO_ERRORS = {
   google_failed:   'Google sign-in failed. Please try again or use email/password.',
   apple_denied:    'Apple sign-in was cancelled.',
   apple_failed:    'Apple sign-in failed. Please try again or use email/password.',
+  link_requires_login:
+    'An account already exists for that email. Log in with your password and ' +
+    'verify your email first — after that, Google and Apple sign-in will work.',
 };
 
 export default function LoginPage({ onLogin }) {
@@ -62,7 +65,7 @@ export default function LoginPage({ onLogin }) {
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
               width: '100%', padding: '12px 16px', borderRadius: 10,
-              border: '1.5px solid #e2e8f0', background: '#fff',
+              border: '1.5px solid var(--text-strong)', background: '#fff',
               fontSize: 14, fontWeight: 500, color: '#111', cursor: 'pointer',
               transition: 'background 0.15s',
             }}
@@ -84,7 +87,7 @@ export default function LoginPage({ onLogin }) {
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
               width: '100%', padding: '12px 16px', borderRadius: 10,
-              border: '1.5px solid #e2e8f0', background: '#fff',
+              border: '1.5px solid var(--text-strong)', background: '#fff',
               fontSize: 14, fontWeight: 500, color: '#111', cursor: 'pointer',
               transition: 'background 0.15s',
             }}
@@ -101,9 +104,9 @@ export default function LoginPage({ onLogin }) {
 
         {/* Divider */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
-          <span style={{ fontSize: 13, color: '#94a3b8' }}>or</span>
-          <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+          <div style={{ flex: 1, height: 1, background: 'var(--text-strong)' }} />
+          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>or</span>
+          <div style={{ flex: 1, height: 1, background: 'var(--text-strong)' }} />
         </div>
 
         {/* Form */}
@@ -114,13 +117,13 @@ export default function LoginPage({ onLogin }) {
             required autoFocus
             style={{
               width: '100%', boxSizing: 'border-box',
-              border: '1.5px solid #e2e8f0', borderRadius: 10,
+              border: '1.5px solid var(--text-strong)', borderRadius: 10,
               color: '#111', background: '#fff',
               padding: '13px 16px', fontSize: 14, outline: 'none',
               transition: 'border-color 0.15s',
             }}
-            onFocus={e => e.target.style.borderColor = '#94a3b8'}
-            onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+            onFocus={e => e.target.style.borderColor = 'var(--text-muted)'}
+            onBlur={e => e.target.style.borderColor = 'var(--text-strong)'}
           />
 
           <div style={{ position: 'relative' }}>
@@ -131,13 +134,13 @@ export default function LoginPage({ onLogin }) {
               required
               style={{
                 width: '100%', boxSizing: 'border-box',
-                border: '1.5px solid #e2e8f0', borderRadius: 10,
+                border: '1.5px solid var(--text-strong)', borderRadius: 10,
                 color: '#111', background: '#fff',
                 padding: '13px 44px 13px 16px', fontSize: 14, outline: 'none',
                 transition: 'border-color 0.15s',
               }}
-              onFocus={e => e.target.style.borderColor = '#94a3b8'}
-              onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+              onFocus={e => e.target.style.borderColor = 'var(--text-muted)'}
+              onBlur={e => e.target.style.borderColor = 'var(--text-strong)'}
             />
             <button
               type="button"
@@ -145,7 +148,7 @@ export default function LoginPage({ onLogin }) {
               style={{
                 position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                color: '#94a3b8', display: 'flex', alignItems: 'center',
+                color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
               }}
             >
               {showPass ? (
@@ -174,14 +177,14 @@ export default function LoginPage({ onLogin }) {
             type="submit" disabled={loading}
             style={{
               marginTop: 4, padding: '13px 16px', borderRadius: 10, border: 'none',
-              background: loading ? '#94a3b8' : '#1e293b',
+              background: loading ? 'var(--text-muted)' : 'var(--bg-panel)',
               color: '#fff', fontWeight: 600, fontSize: 15,
               cursor: loading ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               transition: 'background 0.15s',
             }}
-            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#0f172a'; }}
-            onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#1e293b'; }}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = 'var(--bg-app-2)'; }}
+            onMouseLeave={e => { if (!loading) e.currentTarget.style.background = 'var(--bg-panel)'; }}
           >
             {loading ? 'Signing in…' : <>Log in <span style={{ fontSize: 16 }}>→</span></>}
           </button>
@@ -192,7 +195,7 @@ export default function LoginPage({ onLogin }) {
           <Link to="/forgot-password" style={{ fontSize: 14, color: '#3b82f6', textDecoration: 'none', fontWeight: 500 }}>
             Reset password
           </Link>
-          <p style={{ fontSize: 14, color: '#64748b', margin: 0 }}>
+          <p style={{ fontSize: 14, color: 'var(--text-subtle)', margin: 0 }}>
             Don't have an account?{' '}
             <Link to="/signup" style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>
               Sign up

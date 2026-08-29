@@ -35,6 +35,7 @@ export const TENANT_MODELS = new Set([
   'CampaignAlert',
   'CampaignRule',
   'ListingOptimization',
+  'OrgInvitation',
   'OrgMember',
   'ReportJob',
   'RuleExecution',

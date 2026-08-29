@@ -227,3 +227,41 @@ export async function sendPasswordResetEmail(to, token) {
     `, { preheader: `Reset your ${APP_NAME} password — this link expires in 1 hour.` }),
   });
 }
+
+/**
+ * Invite someone to join an organization.
+ *
+ * The link carries a bearer token; accepting it still requires signing in as
+ * the invited address, so a forwarded email cannot enrol the wrong person.
+ *
+ * @param {string} to                recipient (the invited address)
+ * @param {object} opts
+ * @param {string} opts.orgName      organization the invite is for
+ * @param {string} opts.inviterName  who sent it, for the body copy
+ * @param {string} opts.role         ADMIN | MEMBER | VIEWER
+ * @param {string} opts.token        invitation token
+ */
+export async function sendOrgInvitationEmail(to, { orgName, inviterName, role, token }) {
+  const url  = `${FRONTEND_URL()}/invite?token=${token}`;
+  const org  = escapeHtml(orgName);
+  const who  = escapeHtml(inviterName);
+  const what = escapeHtml(String(role).toLowerCase());
+
+  return send({
+    to,
+    subject: `${inviterName} invited you to ${orgName} on ${APP_NAME}`,
+    text:
+      `${inviterName} invited you to join ${orgName} on ${APP_NAME} as a ${what}.\n\n` +
+      `Accept the invitation (expires in 7 days):\n\n${url}\n\n` +
+      `You must be signed in as ${to} to accept. If you weren't expecting this, ignore this email — ` +
+      `nothing is added to your account unless you accept.` +
+      textFooter(),
+    html: wrap(`
+      <h2 style="margin:0 0 8px;color:#0f172a;font-size:20px;font-weight:800">You've been invited to ${org}</h2>
+      <p style="color:#475569;margin:0 0 24px;font-size:14px;line-height:1.6">${who} invited you to join <strong>${org}</strong> on ${APP_NAME} as a <strong>${what}</strong>. This invitation expires in 7 days.</p>
+      <a href="${url}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Accept Invitation</a>
+      <p style="color:#64748b;font-size:13px;margin:24px 0 0">Or copy this URL into your browser:<br><a href="${url}" style="color:#2563eb;word-break:break-all">${url}</a></p>
+      <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">You'll need to be signed in as ${escapeHtml(to)} to accept. If you weren't expecting this invitation you can ignore it — nothing is added to your account unless you accept.</p>
+    `, { preheader: `${inviterName} invited you to join ${orgName} on ${APP_NAME}.` }),
+  });
+}

@@ -16,15 +16,25 @@ jest.mock('../../middleware/withTenant.js', () => ({
   withTenant: (_req, _res, next) => next(),
 }));
 
+// requireAuthNav now reads the user row to enforce revocation and the verified
+// email gate, so the DB has to be stubbed.
+jest.mock('../../../db/prisma.js', () => ({
+  prisma: { user: { findUnique: jest.fn() } },
+}));
+
 import axios from 'axios';
 import { saveOrgCredential } from '../../../services/credentials.js';
+import { prisma } from '../../../db/prisma.js';
 
 const DEFAULT_TENANT = { orgId: 'org-1', org: { id: 'org-1', name: 'Acme' }, role: 'ADMIN' };
 
 // Build a minimal app: inject a valid session cookie (so requireAuthNav passes)
 // and a pre-set req.tenant (so withTenant's pass-through leaves it in place).
-function makeApp({ tenant = DEFAULT_TENANT } = {}) {
-  const token = jwt.sign({ userId: 'user-1', activeOrgId: 'org-1' }, process.env.SESSION_SECRET);
+function makeApp({ tenant = DEFAULT_TENANT, claims = {} } = {}) {
+  const token = jwt.sign(
+    { userId: 'user-1', activeOrgId: 'org-1', ...claims },
+    process.env.SESSION_SECRET
+  );
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
@@ -38,6 +48,9 @@ function makeApp({ tenant = DEFAULT_TENANT } = {}) {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  prisma.user.findUnique.mockResolvedValue({
+    id: 'user-1', email: 'seller@corp.com', emailVerified: true, tokenVersion: 0,
+  });
   process.env.SP_API_CLIENT_ID     = 'test-client-id';
   process.env.SP_API_CLIENT_SECRET = 'test-client-secret';
   process.env.SP_SOLUTION_ID       = 'test-solution-id';
@@ -225,5 +238,72 @@ describe('GET /callback', () => {
     });
     expect(res.status).toBe(302);
     expect(res.headers.location).toMatch(/\/auth\/spapi\/error\?reason=token_exchange_failed/);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// requireAuthNav / requireVerifiedEmailNav
+// ─────────────────────────────────────────────────────────────────────────────
+describe('navigation auth gates', () => {
+  it('redirects an unverified user away from /start', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'user-1', email: 'seller@corp.com', emailVerified: false, tokenVersion: 0,
+    });
+
+    const res = await request(makeApp()).get('/start');
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('/auth/spapi/error?reason=email_unverified');
+  });
+
+  it('redirects an unverified user away from /ads-start', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'user-1', email: 'seller@corp.com', emailVerified: false, tokenVersion: 0,
+    });
+
+    const res = await request(makeApp()).get('/ads-start');
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('reason=email_unverified');
+  });
+
+  it('redirects to login when the session has been revoked', async () => {
+    // Password reset bumped tokenVersion; this cookie predates it.
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'user-1', email: 'seller@corp.com', emailVerified: true, tokenVersion: 3,
+    });
+
+    const res = await request(makeApp({ claims: { tokenVersion: 1 } })).get('/start');
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('/login');
+  });
+
+  it('redirects to login when the user no longer exists', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+
+    const res = await request(makeApp()).get('/start');
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('/login');
+  });
+
+  it('redirects to login past the absolute session cap', async () => {
+    const eightDaysAgo = Math.floor(Date.now() / 1000) - 8 * 24 * 60 * 60;
+
+    const res = await request(makeApp({ claims: { authAt: eightDaysAgo } })).get('/start');
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('/login');
+  });
+
+  it('leaves the read-only /info route open to unverified users', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'user-1', email: 'seller@corp.com', emailVerified: false, tokenVersion: 0,
+    });
+
+    const res = await request(makeApp()).get('/info');
+
+    expect(res.status).toBe(200);
   });
 });
