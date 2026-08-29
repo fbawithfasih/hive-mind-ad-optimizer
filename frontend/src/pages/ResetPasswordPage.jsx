@@ -9,8 +9,8 @@ const S = {
   input: { width: '100%', boxSizing: 'border-box', background: 'var(--bg-app-2)', border: '1px solid var(--border-strong)', borderRadius: 8, color: 'var(--text-primary)', padding: '11px 14px', fontSize: 14, outline: 'none' },
   btn: { width: '100%', marginTop: 4, padding: '12px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' },
   btnOff: { background: 'var(--border-strong)', opacity: 0.7, cursor: 'not-allowed' },
-  err: { background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#F87171' },
-  ok: { background: '#10B98118', border: '1px solid #10B98144', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: '#34D399', lineHeight: 1.5, textAlign: 'center' },
+  err: { background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)' },
+  ok: { background: '#10B98118', border: '1px solid #10B98144', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: 'var(--success-2)', lineHeight: 1.5, textAlign: 'center' },
 };
 
 export default function ResetPasswordPage() {
@@ -44,7 +44,7 @@ export default function ResetPasswordPage() {
     <div style={S.page}><div style={S.card}>
       <h1 style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Invalid link</h1>
       <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>This reset link is missing or malformed.</p>
-      <Link to="/forgot-password" style={{ color: '#3B82F6', fontSize: 13 }}>Request a new reset link</Link>
+      <Link to="/forgot-password" style={{ color: 'var(--info-strong)', fontSize: 13 }}>Request a new reset link</Link>
     </div></div>
   );
 
@@ -85,7 +85,7 @@ export default function ResetPasswordPage() {
         )}
 
         <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: 'var(--text-subtle)' }}>
-          <Link to="/login" style={{ color: '#3B82F6', textDecoration: 'none' }}>← Back to login</Link>
+          <Link to="/login" style={{ color: 'var(--info-strong)', textDecoration: 'none' }}>← Back to login</Link>
         </p>
       </div>
     </div>

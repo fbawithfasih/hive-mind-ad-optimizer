@@ -11,12 +11,12 @@ const CustomTooltip = ({ active, payload }) => {
   const d = payload[0].payload;
   return (
     <div style={{
-      background: 'rgba(8,12,26,0.97)',
+      background: 'var(--surface-card)',
       border: '1px solid var(--overlay-8)',
       borderRadius: 10, padding: '10px 14px', fontSize: 11,
     }}>
       <p style={{ margin: '0 0 4px', fontWeight: 700, color: 'var(--text-primary)', maxWidth: 200 }}>{d.term}</p>
-      <p style={{ margin: 0, color: '#3B82F6' }}>Click share: <b>{d.clickShare?.toFixed(1)}%</b></p>
+      <p style={{ margin: 0, color: 'var(--info-strong)' }}>Click share: <b>{d.clickShare?.toFixed(1)}%</b></p>
       <p style={{ margin: 0, color: POSITION_COLOR[d.position] ?? 'var(--text-muted)' }}>Position: #{d.position}</p>
     </div>
   );

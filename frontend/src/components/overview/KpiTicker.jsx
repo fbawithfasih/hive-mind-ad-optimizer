@@ -34,7 +34,7 @@ export default function KpiTicker({
   return (
     <div style={{
       padding: '16px 18px',
-      background: 'rgba(8,12,26,0.9)',
+      background: 'var(--surface-card)',
       border: `1px solid ${accentColor}1A`,
       borderRadius: 16,
       display: 'flex',

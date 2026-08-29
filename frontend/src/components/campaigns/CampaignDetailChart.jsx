@@ -8,7 +8,7 @@ const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
-      background: 'rgba(6,9,20,0.98)',
+      background: 'var(--surface-raised)',
       border: '1px solid var(--overlay-8)',
       borderRadius: 10,
       padding: '10px 14px',

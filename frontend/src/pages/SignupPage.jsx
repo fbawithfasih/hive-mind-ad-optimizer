@@ -17,7 +17,7 @@ const S = {
   sub: { margin: '4px 0 0', fontSize: 13, color: 'var(--text-subtle)' },
   planBadge: { display: 'flex', alignItems: 'center', gap: 8, background: '#1E3A5F', border: '1px solid #2563EB55', borderRadius: 8, padding: '10px 14px', marginBottom: 4, fontSize: 13 },
   planBadgeIcon: { fontSize: 16 },
-  planBadgeText: { color: '#93C5FD', flex: 1 },
+  planBadgeText: { color: 'var(--info-2)', flex: 1 },
   planBadgeName: { color: 'var(--text-primary)', fontWeight: 700 },
   form: { display: 'flex', flexDirection: 'column', gap: 14 },
   row: { display: 'flex', gap: 10 },
@@ -25,8 +25,8 @@ const S = {
   input: { width: '100%', boxSizing: 'border-box', background: 'var(--bg-app-2)', border: '1px solid var(--border-strong)', borderRadius: 8, color: 'var(--text-primary)', padding: '11px 14px', fontSize: 14, outline: 'none' },
   btn: { marginTop: 4, padding: '12px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' },
   btnOff: { background: 'var(--border-strong)', opacity: 0.7, cursor: 'not-allowed' },
-  err: { background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#F87171' },
-  success: { background: '#10B98118', border: '1px solid #10B98144', borderRadius: 8, padding: '14px', fontSize: 13, color: '#34D399', textAlign: 'center', lineHeight: 1.5 },
+  err: { background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)' },
+  success: { background: '#10B98118', border: '1px solid #10B98144', borderRadius: 8, padding: '14px', fontSize: 13, color: 'var(--success-2)', textAlign: 'center', lineHeight: 1.5 },
   foot: { textAlign: 'center', marginTop: 20, fontSize: 13, color: 'var(--text-subtle)' },
 };
 
@@ -70,7 +70,7 @@ export default function SignupPage({ onSignup }) {
           <strong style={{ color: 'var(--text-primary)', fontSize: 15 }}>Account created!</strong><br />
           We sent a verification link to <strong>{form.email}</strong>.<br />
           Check your inbox, then{' '}
-          <Link to="/onboarding" style={{ color: '#3B82F6' }}>continue setup →</Link>
+          <Link to="/onboarding" style={{ color: 'var(--info-strong)' }}>continue setup →</Link>
         </div>
       </div>
     </div>
@@ -183,7 +183,7 @@ export default function SignupPage({ onSignup }) {
 
         <p style={S.foot}>
           Already have an account?{' '}
-          <Link to="/login" style={{ color: '#3B82F6', textDecoration: 'none', fontWeight: 600 }}>Sign in</Link>
+          <Link to="/login" style={{ color: 'var(--info-strong)', textDecoration: 'none', fontWeight: 600 }}>Sign in</Link>
         </p>
       </div>
     </div>

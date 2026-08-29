@@ -44,7 +44,7 @@ export default function MarketPositionWidget({ summary, brandAppearances = [], c
         {/* Not in top 3 */}
         <div style={{ flex: 1, minWidth: 100 }}>
           <p style={{ margin: 0, fontSize: 10, fontWeight: 600, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Not in Top 3</p>
-          <p style={{ margin: '4px 0 0', fontSize: 32, fontWeight: 800, color: invisible > 0 ? '#F43F5E' : 'var(--text-muted)', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{invisible}</p>
+          <p style={{ margin: '4px 0 0', fontSize: 32, fontWeight: 800, color: invisible > 0 ? 'var(--rose)' : 'var(--text-muted)', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{invisible}</p>
           <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>keywords invisible to brand</p>
         </div>
 
@@ -73,7 +73,7 @@ export default function MarketPositionWidget({ summary, brandAppearances = [], c
       )}
 
       {appearances === 0 && (
-        <div style={{ margin: '0 20px 18px', background: 'rgba(244,63,94,0.07)', border: '1px solid rgba(244,63,94,0.18)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#F87171' }}>
+        <div style={{ margin: '0 20px 18px', background: 'rgba(244,63,94,0.07)', border: '1px solid rgba(244,63,94,0.18)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--danger)' }}>
           Brand does not appear in the top 3 for any relevant keyword — consider bidding on branded and category terms.
         </div>
       )}

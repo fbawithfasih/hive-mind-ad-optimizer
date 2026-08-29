@@ -101,10 +101,10 @@ const STATUS_TABS = [
 ];
 
 const REC_META = {
-  SCALE_UP:     { label: 'Scale Up',      color: '#10B981', glow: 'rgba(16,185,129,0.5)',  gradient: 'linear-gradient(135deg,#10B981,#059669)', icon: '↑' },
-  ADD_EXACT:    { label: 'Add as Exact',  color: '#3B82F6', glow: 'rgba(59,130,246,0.5)',  gradient: 'linear-gradient(135deg,#3B82F6,#2563EB)', icon: '⊕' },
-  ADD_NEGATIVE: { label: 'Add Negative',  color: '#F43F5E', glow: 'rgba(244,63,94,0.5)',   gradient: 'linear-gradient(135deg,#F43F5E,#E11D48)', icon: '−' },
-  WATCH:        { label: 'Watch',         color: '#F59E0B', glow: 'rgba(245,158,11,0.5)',  gradient: 'linear-gradient(135deg,#F59E0B,#D97706)', icon: '◎' },
+  SCALE_UP:     { label: 'Scale Up',      color: 'var(--success)', glow: 'rgba(16,185,129,0.5)',  gradient: 'linear-gradient(135deg,#10B981,#059669)', icon: '↑' },
+  ADD_EXACT:    { label: 'Add as Exact',  color: 'var(--info-strong)', glow: 'rgba(59,130,246,0.5)',  gradient: 'linear-gradient(135deg,#3B82F6,#2563EB)', icon: '⊕' },
+  ADD_NEGATIVE: { label: 'Add Negative',  color: 'var(--rose)', glow: 'rgba(244,63,94,0.5)',   gradient: 'linear-gradient(135deg,#F43F5E,#E11D48)', icon: '−' },
+  WATCH:        { label: 'Watch',         color: 'var(--warning)', glow: 'rgba(245,158,11,0.5)',  gradient: 'linear-gradient(135deg,#F59E0B,#D97706)', icon: '◎' },
 };
 
 // ── Primitives ────────────────────────────────────────────────────────────────
@@ -224,10 +224,10 @@ function RecommendationDonut({ stats, total }) {
   const circ = 2 * Math.PI * r;
   const tot = Math.max(total, 1);
   const segments = [
-    { value: stats.scaleUp,     color: '#10B981', label: 'Scale Up'   },
-    { value: stats.addExact,    color: '#3B82F6', label: 'Add Exact'  },
-    { value: stats.addNegative, color: '#F43F5E', label: 'Negative'   },
-    { value: stats.watch,       color: '#F59E0B', label: 'Watch'      },
+    { value: stats.scaleUp,     color: 'var(--success)', label: 'Scale Up'   },
+    { value: stats.addExact,    color: 'var(--info-strong)', label: 'Add Exact'  },
+    { value: stats.addNegative, color: 'var(--rose)', label: 'Negative'   },
+    { value: stats.watch,       color: 'var(--warning)', label: 'Watch'      },
   ];
   let offset = 0;
   return (
@@ -553,7 +553,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
                 display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10,
                 border: `1px solid ${showThresholds ? 'rgba(99,102,241,0.5)' : 'var(--overlay-7)'}`,
                 background: showThresholds ? 'rgba(99,102,241,0.1)' : 'var(--overlay-3)',
-                color: showThresholds ? '#A78BFA' : 'var(--text-muted)', fontWeight: 600, fontSize: 12, cursor: 'pointer',
+                color: showThresholds ? 'var(--accent)' : 'var(--text-muted)', fontWeight: 600, fontSize: 12, cursor: 'pointer',
               }}>
                 <svg style={{ width: 13, height: 13 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
@@ -586,8 +586,8 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
                       boxShadow: '0 8px 32px var(--bg-overlay-lo)', minWidth: 155, overflow: 'hidden',
                     }}>
                       {[
-                        { label: 'Download CSV', color: '#10B981', action: () => { exportCsv(filtered, dateRange); setExportOpen(false); } },
-                        { label: isPdfExporting ? 'Generating…' : 'Download PDF', color: '#F43F5E', action: async () => { setExportOpen(false); setIsPdfExporting(true); await exportPdf(filtered, dateRange); setIsPdfExporting(false); } },
+                        { label: 'Download CSV', color: 'var(--success)', action: () => { exportCsv(filtered, dateRange); setExportOpen(false); } },
+                        { label: isPdfExporting ? 'Generating…' : 'Download PDF', color: 'var(--rose)', action: async () => { setExportOpen(false); setIsPdfExporting(true); await exportPdf(filtered, dateRange); setIsPdfExporting(false); } },
                       ].map(item => (
                         <button key={item.label} onClick={item.action} style={{
                           width: '100%', padding: '10px 16px', background: 'none', border: 'none',
@@ -628,7 +628,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           borderRadius: 16, padding: '18px 20px', backdropFilter: 'blur(16px)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#A78BFA', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
               Classification Thresholds
             </p>
             <button
@@ -650,8 +650,8 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
             {/* Scale Up */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#10B981' }}>Scale Up: ACoS &lt;</span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#10B981' }}>{thresholds.scaleUpAcos}%</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success)' }}>Scale Up: ACoS &lt;</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--success)' }}>{thresholds.scaleUpAcos}%</span>
               </div>
               <input type="range" min="5" max="60" step="1" value={thresholds.scaleUpAcos}
                 onChange={e => setThresholds(t => ({ ...t, scaleUpAcos: Number(e.target.value) }))}
@@ -661,8 +661,8 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
             {/* Add Exact min */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#3B82F6' }}>Add Exact: ACoS min</span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#3B82F6' }}>{thresholds.addExactAcosMin}%</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--info-strong)' }}>Add Exact: ACoS min</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--info-strong)' }}>{thresholds.addExactAcosMin}%</span>
               </div>
               <input type="range" min="5" max="80" step="1" value={thresholds.addExactAcosMin}
                 onChange={e => setThresholds(t => ({ ...t, addExactAcosMin: Number(e.target.value) }))}
@@ -672,8 +672,8 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
             {/* Add Exact max */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#3B82F6' }}>Add Exact: ACoS max</span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#3B82F6' }}>{thresholds.addExactAcosMax}%</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--info-strong)' }}>Add Exact: ACoS max</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--info-strong)' }}>{thresholds.addExactAcosMax}%</span>
               </div>
               <input type="range" min="10" max="100" step="1" value={thresholds.addExactAcosMax}
                 onChange={e => setThresholds(t => ({ ...t, addExactAcosMax: Number(e.target.value) }))}
@@ -683,8 +683,8 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
             {/* Add Negative clicks */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#F43F5E' }}>Add Negative: min clicks</span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#F43F5E' }}>{thresholds.addNegativeClicks}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--rose)' }}>Add Negative: min clicks</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--rose)' }}>{thresholds.addNegativeClicks}</span>
               </div>
               <input type="range" min="3" max="50" step="1" value={thresholds.addNegativeClicks}
                 onChange={e => setThresholds(t => ({ ...t, addNegativeClicks: Number(e.target.value) }))}
@@ -694,8 +694,8 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
             {/* Add Negative spend */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#F43F5E' }}>Add Negative: min spend</span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#F43F5E' }}>${thresholds.addNegativeSpend}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--rose)' }}>Add Negative: min spend</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--rose)' }}>${thresholds.addNegativeSpend}</span>
               </div>
               <input type="range" min="1" max="50" step="1" value={thresholds.addNegativeSpend}
                 onChange={e => setThresholds(t => ({ ...t, addNegativeSpend: Number(e.target.value) }))}
@@ -716,7 +716,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
 
       {/* ══ ERROR ══ */}
       {error && (
-        <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', color: '#F87171', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
+        <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', color: 'var(--danger)', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
           {error}
         </div>
       )}
@@ -732,7 +732,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
             padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <svg style={{ width: 14, height: 14, color: '#6366F1' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg style={{ width: 14, height: 14, color: 'var(--indigo)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
               </svg>
               <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>Campaign Filter</span>
@@ -754,7 +754,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
                   <button key={tab.key} onClick={() => setCampaignStatusFilter(tab.key)} style={{
                     padding: '8px 14px', background: 'none', border: 'none',
                     borderBottom: campaignStatusFilter === tab.key ? '2px solid #6366F1' : '2px solid transparent',
-                    color: campaignStatusFilter === tab.key ? '#A78BFA' : 'var(--text-faint)',
+                    color: campaignStatusFilter === tab.key ? 'var(--accent)' : 'var(--text-faint)',
                     fontWeight: campaignStatusFilter === tab.key ? 700 : 500,
                     fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap',
                   }}>
@@ -765,7 +765,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
 
               {/* Select all row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 20px', borderBottom: '1px solid var(--overlay-3)' }}>
-                <button onClick={selectAll} style={{ fontSize: 11, color: '#6366F1', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Select all visible</button>
+                <button onClick={selectAll} style={{ fontSize: 11, color: 'var(--indigo)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Select all visible</button>
                 <span style={{ color: 'var(--text-faint)' }}>|</span>
                 <button onClick={deselectAll} style={{ fontSize: 11, color: 'var(--text-faint)', background: 'none', border: 'none', cursor: 'pointer' }}>Deselect all</button>
                 <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-faint)' }}>{visibleCampaigns.length} campaigns</span>
@@ -909,7 +909,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           borderRadius: 12, padding: '12px 18px',
           display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
         }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#A78BFA' }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>
             {selected.size} term{selected.size !== 1 ? 's' : ''} selected
           </span>
           <div style={{ display: 'flex', gap: 8, flex: 1, flexWrap: 'wrap' }}>
@@ -964,13 +964,13 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
         }}>
           {applyResult.error ? (
-            <span style={{ fontSize: 13, color: '#F87171' }}>Error: {applyResult.error}</span>
+            <span style={{ fontSize: 13, color: 'var(--danger)' }}>Error: {applyResult.error}</span>
           ) : (
-            <span style={{ fontSize: 13, color: '#34D399' }}>
+            <span style={{ fontSize: 13, color: 'var(--success-2)' }}>
               {applyResult.type === 'ADD_NEGATIVE' ? 'Negative keywords' : 'Exact match keywords'} applied —{' '}
               <b>{applyResult.added} added</b>
               {applyResult.duplicates > 0 && `, ${applyResult.duplicates} already exist`}
-              {applyResult.failed > 0 && <span style={{ color: '#F87171' }}>, {applyResult.failed} failed</span>}
+              {applyResult.failed > 0 && <span style={{ color: 'var(--danger)' }}>, {applyResult.failed} failed</span>}
             </span>
           )}
           <button

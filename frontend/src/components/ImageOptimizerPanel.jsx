@@ -14,9 +14,9 @@ const FIELD_DEFS = [
 ];
 
 const PROGRESS_PHASES = [
-  { id: 'prompt',   label: 'Claude is writing the image brief',         range: [0,  35], color: '#8B5CF6', glow: 'rgba(139,92,246,0.35)' },
-  { id: 'generate', label: 'Gemini is generating the main image',       range: [35, 92], color: '#3B82F6', glow: 'rgba(59,130,246,0.35)' },
-  { id: 'check',    label: 'Checking against Amazon image policy',      range: [92, 99], color: '#10B981', glow: 'rgba(16,185,129,0.35)' },
+  { id: 'prompt',   label: 'Claude is writing the image brief',         range: [0,  35], color: 'var(--accent-strong)', glow: 'rgba(139,92,246,0.35)' },
+  { id: 'generate', label: 'Gemini is generating the main image',       range: [35, 92], color: 'var(--info-strong)', glow: 'rgba(59,130,246,0.35)' },
+  { id: 'check',    label: 'Checking against Amazon image policy',      range: [92, 99], color: 'var(--success)', glow: 'rgba(16,185,129,0.35)' },
 ];
 
 function easedProgress(elapsedMs, targetMs = 45000) {
@@ -38,7 +38,7 @@ function ProgressBoard({ pct, elapsedSec }) {
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,#8B5CF6,#3B82F6,#10B981)', backgroundSize: '200% 100%', animation: 'iopt-shimmer 3s linear infinite' }} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12, gap: 12 }}>
         <div>
-          <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#A78BFA', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Optimizing</p>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Optimizing</p>
           <p style={{ margin: '4px 0 0', fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{currentPhase.label}…</p>
           <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>elapsed {Math.floor(elapsedSec / 60)}m {Math.round(elapsedSec % 60)}s</p>
         </div>
@@ -47,7 +47,7 @@ function ProgressBoard({ pct, elapsedSec }) {
           <p style={{ margin: '2px 0 0', fontSize: 10, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>remaining</p>
         </div>
       </div>
-      <div style={{ height: 8, borderRadius: 99, background: 'rgba(15,23,42,0.6)', border: '1px solid var(--overlay-4)', overflow: 'hidden', position: 'relative' }}>
+      <div style={{ height: 8, borderRadius: 99, background: 'var(--surface-inset)', border: '1px solid var(--overlay-4)', overflow: 'hidden', position: 'relative' }}>
         <div style={{
           width: `${pct}%`, height: '100%',
           background: 'linear-gradient(90deg,#8B5CF6,#3B82F6,#10B981)',
@@ -214,7 +214,7 @@ export default function ImageOptimizerPanel() {
             {filePreviewUrl ? (
               <div style={{ position: 'relative' }}>
                 <img src={filePreviewUrl} alt="reference" style={{ maxWidth: '100%', maxHeight: 240, borderRadius: 8, display: 'block', margin: '0 auto' }} />
-                <p style={{ margin: '8px 0 0', fontSize: 11, color: '#A78BFA' }}>{file.name} · click to replace</p>
+                <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--accent)' }}>{file.name} · click to replace</p>
               </div>
             ) : (
               <>
@@ -231,7 +231,7 @@ export default function ImageOptimizerPanel() {
           {FIELD_DEFS.map(f => (
             <div key={f.name}>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>
-                {f.label}{f.required && <span style={{ color: '#F43F5E' }}> *</span>}
+                {f.label}{f.required && <span style={{ color: 'var(--rose)' }}> *</span>}
               </label>
               {f.isTextarea ? (
                 <textarea rows={2} placeholder={f.placeholder} style={inputSt}
@@ -248,10 +248,10 @@ export default function ImageOptimizerPanel() {
             <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
               Image Generation Engine
             </label>
-            <div style={{ display: 'flex', gap: 4, background: 'rgba(15,23,42,0.6)', borderRadius: 10, padding: 3, border: '1px solid var(--overlay-5)' }}>
+            <div style={{ display: 'flex', gap: 4, background: 'var(--surface-inset)', borderRadius: 10, padding: 3, border: '1px solid var(--overlay-5)' }}>
               {[
-                { id: 'openai', label: 'OpenAI gpt-image-1', sub: 'Best fidelity', color: '#10B981', glow: 'rgba(16,185,129,0.4)' },
-                { id: 'gemini', label: 'Gemini 2.5 Flash',   sub: 'Faster, cheaper', color: '#8B5CF6', glow: 'rgba(139,92,246,0.4)' },
+                { id: 'openai', label: 'OpenAI gpt-image-1', sub: 'Best fidelity', color: 'var(--success)', glow: 'rgba(16,185,129,0.4)' },
+                { id: 'gemini', label: 'Gemini 2.5 Flash',   sub: 'Faster, cheaper', color: 'var(--accent-strong)', glow: 'rgba(139,92,246,0.4)' },
               ].map(({ id, label, sub, color, glow }) => (
                 <button key={id} onClick={() => setProvider(id)} style={{
                   flex: 1, padding: '8px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
@@ -281,7 +281,7 @@ export default function ImageOptimizerPanel() {
         {/* RIGHT — Output */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {error && (
-            <div style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#F87171' }}>{error}</div>
+            <div style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)' }}>{error}</div>
           )}
 
           {loading && <ProgressBoard pct={progress} elapsedSec={elapsed} />}
@@ -305,14 +305,14 @@ export default function ImageOptimizerPanel() {
               <button onClick={handleDownload}
                 style={{
                   padding: '10px 16px', borderRadius: 9, border: '1px solid var(--overlay-8)',
-                  background: 'rgba(139,92,246,0.1)', color: '#A78BFA', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                  background: 'rgba(139,92,246,0.1)', color: 'var(--accent)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
                 }}>
                 ⬇ Download
               </button>
 
               {result.promptSpec?.complianceNotes?.length > 0 && (
                 <div style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 10, padding: '12px 14px' }}>
-                  <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 800, color: '#10B981', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Compliance Checklist</p>
+                  <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 800, color: 'var(--success)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Compliance Checklist</p>
                   <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
                     {result.promptSpec.complianceNotes.map((c, i) => <li key={i}>{c}</li>)}
                   </ul>
@@ -328,7 +328,7 @@ export default function ImageOptimizerPanel() {
                 </p>
                 {result.promptSpec?.negativePrompt && (
                   <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>
-                    <strong style={{ color: '#F87171' }}>Negative:</strong> {result.promptSpec.negativePrompt}
+                    <strong style={{ color: 'var(--danger)' }}>Negative:</strong> {result.promptSpec.negativePrompt}
                   </p>
                 )}
               </details>

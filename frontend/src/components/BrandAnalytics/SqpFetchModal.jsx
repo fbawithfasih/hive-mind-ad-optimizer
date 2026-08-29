@@ -81,7 +81,7 @@ export default function SqpFetchModal({ onClose, onSubmitted }) {
 
   return (
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.78)', backdropFilter: 'blur(6px)',
+      position: 'fixed', inset: 0, background: 'var(--scrim)', backdropFilter: 'blur(6px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 24,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
@@ -117,7 +117,7 @@ export default function SqpFetchModal({ onClose, onSubmitted }) {
             </div>
           ) : error && asins.length === 0 ? (
             <div style={{ padding: 30, textAlign: 'center' }}>
-              <p style={{ fontSize: 13, color: '#F87171', margin: 0 }}>{error}</p>
+              <p style={{ fontSize: 13, color: 'var(--danger)', margin: 0 }}>{error}</p>
             </div>
           ) : (
             <>
@@ -193,7 +193,7 @@ export default function SqpFetchModal({ onClose, onSubmitted }) {
             {period && <span style={{ color: 'var(--text-faint)' }}> · from Catalog {new Date(period.start).toLocaleDateString('en-US', { month: 'short' })}–{new Date(period.end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
           </span>
           {error && asins.length > 0 && (
-            <span style={{ fontSize: 11, color: '#F87171', flexBasis: '100%' }}>{error}</span>
+            <span style={{ fontSize: 11, color: 'var(--danger)', flexBasis: '100%' }}>{error}</span>
           )}
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
             <button onClick={onClose} disabled={submitting} style={{

@@ -74,7 +74,7 @@ export default function CrossSell() {
             </p>
           </div>
           {isFetchError && (
-            <div style={{ background: 'rgba(244,63,94,0.10)', border: '1px solid rgba(244,63,94,0.25)', color: '#F87171', borderRadius: 8, padding: '8px 14px', fontSize: 12, maxWidth: 460 }}>
+            <div style={{ background: 'rgba(244,63,94,0.10)', border: '1px solid rgba(244,63,94,0.25)', color: 'var(--danger)', borderRadius: 8, padding: '8px 14px', fontSize: 12, maxWidth: 460 }}>
               {error}
             </div>
           )}

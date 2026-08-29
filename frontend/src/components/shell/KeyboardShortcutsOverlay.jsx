@@ -61,7 +61,7 @@ export default function KeyboardShortcutsOverlay({ open, onClose }) {
         exit={{ opacity: 0 }}
         transition={{ duration: 0.15 }}
         onClick={onClose}
-        style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(4,6,16,0.75)', backdropFilter: 'blur(4px)' }}
+        style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'var(--scrim)', backdropFilter: 'blur(4px)' }}
       />
 
       <motion.div
@@ -74,7 +74,7 @@ export default function KeyboardShortcutsOverlay({ open, onClose }) {
           position: 'fixed', top: '12vh', left: '50%', transform: 'translateX(-50%)',
           width: 560, maxWidth: 'calc(100vw - 32px)',
           zIndex: 301,
-          background: 'rgba(8,12,26,0.98)',
+          background: 'var(--surface-raised)',
           border: '1px solid rgba(255,255,255,0.09)',
           borderRadius: 16,
           boxShadow: '0 32px 80px var(--bg-overlay-lo)',

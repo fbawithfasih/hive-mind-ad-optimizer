@@ -321,7 +321,7 @@ ${htmlBrandingFooter()}
         .ra-report p            { margin:0 0 10px; line-height:1.7; color:var(--text-muted); }
         .ra-report ul,.ra-report ol { padding-left:20px; margin:0 0 12px; }
         .ra-report li           { margin:5px 0; color:var(--text-muted); line-height:1.6; }
-        .ra-report strong       { color:#F59E0B; font-weight:700; }
+        .ra-report strong       { color:var(--warning); font-weight:700; }
         .ra-report em           { color:var(--text-muted); }
         .ra-report code         { background:var(--bg-panel-3); color:#38BDF8; padding:2px 7px;
                                   border-radius:4px; font-size:11.5px; font-family:monospace; }
@@ -457,8 +457,8 @@ ${htmlBrandingFooter()}
                 <div style={{ display: 'flex', gap: 4, background: 'var(--bg-panel-2)', borderRadius: 8,
                   padding: 3, border: '1px solid var(--border-strong)' }}>
                   {[
-                    { id: 'claude', label: 'Claude Sonnet', color: '#8B5CF6' },
-                    { id: 'gemini', label: 'Gemini 2.5 Flash', color: '#3B82F6' },
+                    { id: 'claude', label: 'Claude Sonnet', color: 'var(--accent-strong)' },
+                    { id: 'gemini', label: 'Gemini 2.5 Flash', color: 'var(--info-strong)' },
                   ].map(({ id, label, color }) => (
                     <button key={id} onClick={() => setModel(id)}
                       style={{
@@ -506,7 +506,7 @@ ${htmlBrandingFooter()}
 
       {/* ── Error ── */}
       {error && (
-        <div style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', color: '#F43F5E',
+        <div style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', color: 'var(--rose)',
           borderRadius: 8, padding: '12px 16px', fontSize: 13, display: 'flex',
           alignItems: 'flex-start', gap: 10 }}>
           <svg style={{ width: 16, height: 16, flexShrink: 0, marginTop: 1 }} fill="currentColor" viewBox="0 0 20 20">
@@ -517,7 +517,7 @@ ${htmlBrandingFooter()}
             <button onClick={handleReset}
               style={{ display: 'block', marginTop: 8, fontSize: 11, padding: '4px 12px',
                 borderRadius: 6, border: '1px solid #F43F5E44', background: 'transparent',
-                color: '#F43F5E', cursor: 'pointer' }}>
+                color: 'var(--rose)', cursor: 'pointer' }}>
               Try Again
             </button>
           </div>
@@ -572,7 +572,7 @@ ${htmlBrandingFooter()}
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
                     ) : active ? (
-                      <svg style={{ width: 14, height: 14, color: '#3B82F6', animation: 'ra-spin 1s linear infinite' }}
+                      <svg style={{ width: 14, height: 14, color: 'var(--info-strong)', animation: 'ra-spin 1s linear infinite' }}
                         fill="none" viewBox="0 0 24 24">
                         <circle style={{ opacity: .25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path style={{ opacity: .75 }} fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
@@ -585,7 +585,7 @@ ${htmlBrandingFooter()}
                   {/* Label */}
                   <div style={{ flex: 1 }}>
                     <p style={{ margin: 0, fontSize: 13, fontWeight: active ? 600 : 500,
-                      color: done ? '#10B981' : active ? 'var(--text-primary)' : 'var(--text-faint)' }}>
+                      color: done ? 'var(--success)' : active ? 'var(--text-primary)' : 'var(--text-faint)' }}>
                       {step.label}
                     </p>
                     {active && jobProgress && (
@@ -594,7 +594,7 @@ ${htmlBrandingFooter()}
                   </div>
 
                   {done && idx === 3 && (
-                    <span style={{ fontSize: 11, color: '#10B981' }}>AI synthesis complete</span>
+                    <span style={{ fontSize: 11, color: 'var(--success)' }}>AI synthesis complete</span>
                   )}
                   {active && idx === 1 && elapsed > 30 && (
                     <span style={{ fontSize: 11, color: 'var(--text-subtle)' }}>Amazon reports take 1–3 min</span>
@@ -633,7 +633,7 @@ ${htmlBrandingFooter()}
                   {brandEnriched && reportBrandName && (
                     <span style={{
                       fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999,
-                      background: 'rgba(16,185,129,0.12)', color: '#34D399',
+                      background: 'rgba(16,185,129,0.12)', color: 'var(--success-2)',
                       border: '1px solid rgba(16,185,129,0.25)', whiteSpace: 'nowrap',
                     }}>
                       📡 Brand Analytics · {reportBrandName}
@@ -659,7 +659,7 @@ ${htmlBrandingFooter()}
                   padding: '5px 12px', borderRadius: 6, cursor: 'pointer',
                   background: 'transparent', transition: 'all .15s',
                   border: `1px solid ${copied ? '#10B981' : 'var(--border-strong)'}`,
-                  color: copied ? '#10B981' : 'var(--text-muted)',
+                  color: copied ? 'var(--success)' : 'var(--text-muted)',
                 }}>
                 {copied
                   ? <><svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>Copied</>
@@ -729,7 +729,7 @@ ${htmlBrandingFooter()}
                       {h.brandEnriched && h.brandName && (
                         <span style={{
                           fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 999,
-                          background: 'rgba(16,185,129,0.12)', color: '#34D399',
+                          background: 'rgba(16,185,129,0.12)', color: 'var(--success-2)',
                           border: '1px solid rgba(16,185,129,0.25)',
                         }}>
                           📡 {h.brandName}

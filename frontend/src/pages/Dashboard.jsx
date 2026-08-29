@@ -84,9 +84,9 @@ function DonutChart({ enabled, paused, archived, total, size = 160 }) {
   const circ = 2 * Math.PI * r;
   const tot = Math.max(total, 1);
   const segments = [
-    { value: enabled,  color: '#10B981', glow: 'rgba(16,185,129,0.6)',  label: 'Active'   },
-    { value: paused,   color: '#F59E0B', glow: 'rgba(245,158,11,0.6)',  label: 'Paused'   },
-    { value: archived, color: '#6366F1', glow: 'rgba(99,102,241,0.5)',  label: 'Archived' },
+    { value: enabled,  color: 'var(--success)', glow: 'rgba(16,185,129,0.6)',  label: 'Active'   },
+    { value: paused,   color: 'var(--warning)', glow: 'rgba(245,158,11,0.6)',  label: 'Paused'   },
+    { value: archived, color: 'var(--indigo)', glow: 'rgba(99,102,241,0.5)',  label: 'Archived' },
   ];
   let dashOffset = 0;
   return (
@@ -479,7 +479,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
           display: 'flex', alignItems: 'center', gap: 12,
         }}>
           <span style={{ fontSize: 15 }}>{user.currentOrg.trialDaysLeft <= 1 ? '🚨' : '⏳'}</span>
-          <span style={{ fontSize: 13, color: user.currentOrg.trialDaysLeft <= 1 ? '#FCA5A5' : '#FCD34D', flex: 1 }}>
+          <span style={{ fontSize: 13, color: user.currentOrg.trialDaysLeft <= 1 ? 'var(--danger-soft)' : 'var(--warning-2)', flex: 1 }}>
             <strong>{user.currentOrg.trialDaysLeft === 0 ? 'Last day' : `${user.currentOrg.trialDaysLeft} day${user.currentOrg.trialDaysLeft > 1 ? 's' : ''} left`}</strong> on your free trial.
             Subscribe to keep full access.
           </span>
@@ -496,11 +496,11 @@ export default function Dashboard({ user, onboarded, onLogout }) {
       {/* ── Multiple-account warning banner ── */}
       {nameMatchFailed && (
         <div style={{ background: 'rgba(245,158,11,0.08)', borderBottom: '1px solid rgba(245,158,11,0.2)', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <span style={{ fontSize: 13, color: '#FCD34D' }}>
+          <span style={{ fontSize: 13, color: 'var(--warning-2)' }}>
             ⚠️ Multiple Amazon accounts detected. The dropdown shows all accounts — please select your marketplace and then set it as default in <strong>Profiles</strong> settings.
           </span>
           <button onClick={() => setActiveTab('profiles')}
-            style={{ fontSize: 12, fontWeight: 700, color: '#F59E0B', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', flexShrink: 0 }}>
+            style={{ fontSize: 12, fontWeight: 700, color: 'var(--warning)', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', flexShrink: 0 }}>
             Go to Profiles →
           </button>
         </div>
@@ -509,18 +509,18 @@ export default function Dashboard({ user, onboarded, onLogout }) {
       {/* ── Setup banner ── */}
       {onboarded === false && profiles.length === 0 && (
         <div style={{ background: 'rgba(59,130,246,0.08)', borderBottom: '1px solid rgba(59,130,246,0.2)', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <span style={{ fontSize: 13, color: '#93C5FD' }}>Connect your Amazon account to unlock all features.</span>
-          <a href="/onboarding" style={{ fontSize: 12, fontWeight: 700, color: '#3B82F6', textDecoration: 'none', padding: '4px 12px', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 6 }}>Continue setup →</a>
+          <span style={{ fontSize: 13, color: 'var(--info-2)' }}>Connect your Amazon account to unlock all features.</span>
+          <a href="/onboarding" style={{ fontSize: 12, fontWeight: 700, color: 'var(--info-strong)', textDecoration: 'none', padding: '4px 12px', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 6 }}>Continue setup →</a>
         </div>
       )}
 
       {/* ── Email verify banner ── */}
       {showVerifyBanner && (
         <div style={{ background: 'rgba(245,158,11,0.08)', borderBottom: '1px solid rgba(245,158,11,0.2)', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <span style={{ fontSize: 13, color: '#FCD34D' }}>
+          <span style={{ fontSize: 13, color: 'var(--warning-2)' }}>
             ✉️ Please verify your email.
-            {resentVerify ? <span style={{ marginLeft: 8, color: '#10B981' }}>Email sent!</span>
-              : <button onClick={handleResendVerify} style={{ marginLeft: 8, background: 'none', border: 'none', color: '#F59E0B', fontWeight: 700, fontSize: 13, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Resend</button>}
+            {resentVerify ? <span style={{ marginLeft: 8, color: 'var(--success)' }}>Email sent!</span>
+              : <button onClick={handleResendVerify} style={{ marginLeft: 8, background: 'none', border: 'none', color: 'var(--warning)', fontWeight: 700, fontSize: 13, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Resend</button>}
           </span>
           <button onClick={() => setVerifyBannerDismissed(true)} style={{ background: 'none', border: 'none', color: '#92400E', fontSize: 18, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
         </div>
@@ -529,7 +529,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
       {/* ── Alert fired banner ── */}
       {alertBanner && (
         <div style={{ background: 'rgba(244,63,94,0.1)', borderBottom: '1px solid rgba(244,63,94,0.3)', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <span style={{ fontSize: 13, color: '#F87171', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 13, color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: 8 }}>
             🔔 <strong>{alertBanner.count} alert{alertBanner.count !== 1 ? 's' : ''} fired</strong>
             {alertBanner.fires.slice(0, 2).map((f, i) => (
               <span key={i} style={{ fontSize: 11, color: '#FDA4AF', background: 'rgba(244,63,94,0.12)', padding: '2px 8px', borderRadius: 99, border: '1px solid rgba(244,63,94,0.2)' }}>
@@ -539,7 +539,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             {alertBanner.count > 2 && <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>+{alertBanner.count - 2} more</span>}
           </span>
           <button onClick={() => { setActiveTab('alerts'); resetAlertPolling(); markFiresReadApi().catch(() => {}); }}
-            style={{ fontSize: 12, fontWeight: 700, color: '#F43F5E', background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', flexShrink: 0 }}>
+            style={{ fontSize: 12, fontWeight: 700, color: 'var(--rose)', background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', flexShrink: 0 }}>
             View alerts →
           </button>
         </div>
@@ -570,7 +570,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
 
         {/* ── Error (campaigns tab only — other tabs have their own UX) ── */}
         {error && activeTab === 'campaigns' && (
-          <div style={{ padding: '12px 16px', borderRadius: 12, background: 'rgba(244,63,94,0.10)', border: '1px solid rgba(244,63,94,0.25)', color: '#F43F5E', fontSize: 13, display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ padding: '12px 16px', borderRadius: 12, background: 'rgba(244,63,94,0.10)', border: '1px solid rgba(244,63,94,0.25)', color: 'var(--rose)', fontSize: 13, display: 'flex', gap: 8, alignItems: 'center' }}>
             <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style={{ flexShrink: 0 }}>
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
             </svg>
@@ -776,8 +776,8 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               </div>
               <div style={{ display: 'flex', gap: 4, background: 'var(--overlay-3)', borderRadius: 10, padding: 3, border: '1px solid var(--overlay-5)' }}>
                 {[
-                  { id: 'gemini', label: 'Gemini 2.5 Flash', color: '#3B82F6', glow: 'rgba(59,130,246,0.4)' },
-                  { id: 'claude', label: 'Claude Sonnet',    color: '#8B5CF6', glow: 'rgba(139,92,246,0.4)' },
+                  { id: 'gemini', label: 'Gemini 2.5 Flash', color: 'var(--info-strong)', glow: 'rgba(59,130,246,0.4)' },
+                  { id: 'claude', label: 'Claude Sonnet',    color: 'var(--accent-strong)', glow: 'rgba(139,92,246,0.4)' },
                 ].map(({ id, label, color, glow }) => (
                   <button key={id} onClick={() => setAiModel(id)} style={{
                     fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 7,
@@ -816,7 +816,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                   <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '3px 0 0', fontWeight: 500 }}>
                     {filtered.length} of {stats.total} shown
                     {metricsDateRange.start && (
-                      <span style={{ color: '#10B981', marginLeft: 8 }}>
+                      <span style={{ color: 'var(--success)', marginLeft: 8 }}>
                         · metrics {metricsDateRange.start} → {metricsDateRange.end}
                       </span>
                     )}
@@ -909,7 +909,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                     <button onClick={handleCheckAgain} style={{
                       display: 'flex', alignItems: 'center', gap: 5,
                       padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(251,191,36,0.4)',
-                      background: 'rgba(251,191,36,0.1)', color: '#FCD34D',
+                      background: 'rgba(251,191,36,0.1)', color: 'var(--warning-2)',
                       fontWeight: 700, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap',
                     }}>
                       <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">

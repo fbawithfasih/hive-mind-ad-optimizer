@@ -61,7 +61,7 @@ function CreateOrgGate({ onCreated }) {
                 style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-strong)', background: 'var(--bg-panel)', color: 'var(--text-primary)', fontSize: 14, outline: 'none' }}
               />
             </div>
-            {error && <p style={{ margin: 0, fontSize: 13, color: '#F43F5E' }}>{error}</p>}
+            {error && <p style={{ margin: 0, fontSize: 13, color: 'var(--rose)' }}>{error}</p>}
             <button type="submit" disabled={creating || !name.trim()} style={{
               padding: '11px 0', borderRadius: 8, border: 'none', fontSize: 14, fontWeight: 600,
               background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff',
@@ -186,7 +186,7 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
                     display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
                     background: complete ? '#10B98120' : isCurrent ? '#3B82F620' : 'var(--bg-app-2)',
                     border: `2px solid ${complete ? '#10B981' : isCurrent ? '#3B82F6' : 'var(--border-strong)'}`,
-                    color: complete ? '#10B981' : 'var(--text-muted)',
+                    color: complete ? 'var(--success)' : 'var(--text-muted)',
                   }}>
                     {complete ? '✓' : step.icon}
                   </div>
@@ -206,7 +206,7 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
                             }}>
                               {ACTIONS[next].label}
                             </button>
-                            {resendMsg && <span style={{ marginLeft: 10, fontSize: 12, color: '#10B981' }}>{resendMsg}</span>}
+                            {resendMsg && <span style={{ marginLeft: 10, fontSize: 12, color: 'var(--success)' }}>{resendMsg}</span>}
                           </>
                         ) : ACTIONS[next].action === 'sync_profiles' ? (
                           <>
@@ -217,7 +217,7 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
                             }}>
                               {syncing ? 'Syncing…' : ACTIONS[next].label}
                             </button>
-                            {syncMsg && <span style={{ marginLeft: 10, fontSize: 12, color: syncMsg.startsWith('Synced') ? '#10B981' : '#F43F5E' }}>{syncMsg}</span>}
+                            {syncMsg && <span style={{ marginLeft: 10, fontSize: 12, color: syncMsg.startsWith('Synced') ? 'var(--success)' : 'var(--rose)' }}>{syncMsg}</span>}
                           </>
                         ) : (
                           <a href={ACTIONS[next].href} style={{
@@ -231,7 +231,7 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
                     )}
                   </div>
                   {complete && (
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#10B981', background: '#10B98120', padding: '3px 8px', borderRadius: 99, whiteSpace: 'nowrap', marginTop: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success)', background: '#10B98120', padding: '3px 8px', borderRadius: 99, whiteSpace: 'nowrap', marginTop: 4 }}>
                       Done
                     </span>
                   )}

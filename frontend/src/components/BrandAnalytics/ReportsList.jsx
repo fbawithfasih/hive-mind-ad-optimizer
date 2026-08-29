@@ -18,7 +18,7 @@ const STATUS_STYLES = {
   COMPLETED:  { color: COLORS.green.accent,  bg: 'rgba(16,185,129,0.12)',  label: 'Completed' },
   PROCESSING: { color: COLORS.amber.accent,  bg: 'rgba(245,158,11,0.12)',  label: 'Processing' },
   PENDING:    { color: COLORS.blue.accent,   bg: 'rgba(59,130,246,0.12)',  label: 'Pending' },
-  FAILED:     { color: COLORS.red?.accent ?? '#F87171', bg: 'rgba(244,63,94,0.12)', label: 'Failed' },
+  FAILED:     { color: COLORS.red?.accent ?? 'var(--danger)', bg: 'rgba(244,63,94,0.12)', label: 'Failed' },
   CANCELLED:  { color: 'var(--text-muted)',            bg: 'rgba(148,163,184,0.12)', label: 'Cancelled' },
 };
 
@@ -116,7 +116,7 @@ export default function ReportsList() {
       </div>
 
       {error && (
-        <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', color: '#F87171', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
+        <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', color: 'var(--danger)', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
           {error}
         </div>
       )}
@@ -169,7 +169,7 @@ export default function ReportsList() {
               <div style={{ color: 'var(--text-muted)' }}>
                 {latest ? fmtPeriod(latest.periodStart, latest.periodEnd) : <span style={{ color: 'var(--text-faint)' }}>never fetched</span>}
                 {latest?.error && (
-                  <p title={latest.error} style={{ margin: '3px 0 0', fontSize: 10.5, color: '#F87171', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p title={latest.error} style={{ margin: '3px 0 0', fontSize: 10.5, color: 'var(--danger)', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {latest.error.length > 70 ? latest.error.slice(0, 70) + '…' : latest.error}
                   </p>
                 )}
@@ -201,7 +201,7 @@ export default function ReportsList() {
                     border: '1px solid rgba(139,92,246,0.25)',
                     cursor: (triggering || inFlight) ? 'not-allowed' : 'pointer',
                     background: triggering ? 'var(--overlay-5)' : 'rgba(139,92,246,0.10)',
-                    color: (triggering || inFlight) ? 'var(--text-faint)' : '#A78BFA',
+                    color: (triggering || inFlight) ? 'var(--text-faint)' : 'var(--accent)',
                   }}>
                   {triggering ? <Spinner size={10} /> : inFlight ? 'Running…' : (type === 'SQP_BRAND' ? 'Pick ASINs…' : 'Fetch now')}
                 </button>

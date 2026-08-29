@@ -191,7 +191,7 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
       </div>
 
       {(error || msg) && (
-        <div style={{ padding: '10px 20px', fontSize: 12, color: error ? '#F43F5E' : '#10B981', borderBottom: '1px solid var(--border-strong)' }}>
+        <div style={{ padding: '10px 20px', fontSize: 12, color: error ? 'var(--rose)' : 'var(--success)', borderBottom: '1px solid var(--border-strong)' }}>
           {error || msg}
         </div>
       )}
@@ -246,7 +246,7 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
           <button type="submit" disabled={adding || !addEmail.trim()} style={S.btn(!adding && !!addEmail.trim())}>
             {adding ? <><Spinner /> Sending…</> : 'Send invite'}
           </button>
-          {addError && <p style={{ width: '100%', margin: 0, fontSize: 11, color: '#F43F5E' }}>{addError}</p>}
+          {addError && <p style={{ width: '100%', margin: 0, fontSize: 11, color: 'var(--rose)' }}>{addError}</p>}
         </form>
       )}
 

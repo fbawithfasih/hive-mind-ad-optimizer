@@ -11,19 +11,19 @@ const CustomTooltip = ({ active, payload }) => {
   const d = payload[0].payload;
   return (
     <div style={{
-      background: 'rgba(8,12,26,0.97)',
+      background: 'var(--surface-card)',
       border: '1px solid var(--overlay-8)',
       borderRadius: 10, padding: '10px 14px', fontSize: 11,
     }}>
       <p style={{ margin: '0 0 4px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{d.asin}</p>
-      <p style={{ margin: 0, color: d.repeatRate >= SNS_THRESHOLD ? '#10B981' : '#F59E0B' }}>
+      <p style={{ margin: 0, color: d.repeatRate >= SNS_THRESHOLD ? 'var(--success)' : 'var(--warning)' }}>
         Repeat rate: <b>{d.repeatRate?.toFixed(1)}%</b>
       </p>
       <p style={{ margin: 0, color: 'var(--text-subtle)' }}>
         {d.repeatCustomers?.toLocaleString()} of {d.totalCustomers?.toLocaleString()} returned
       </p>
       {d.repeatRate >= SNS_THRESHOLD && (
-        <p style={{ margin: '4px 0 0', fontSize: 10, color: '#10B981', fontWeight: 700 }}>
+        <p style={{ margin: '4px 0 0', fontSize: 10, color: 'var(--success)', fontWeight: 700 }}>
           ✓ Subscribe &amp; Save candidate
         </p>
       )}

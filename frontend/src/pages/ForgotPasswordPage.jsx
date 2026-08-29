@@ -9,7 +9,7 @@ const S = {
   input: { width: '100%', boxSizing: 'border-box', background: 'var(--bg-app-2)', border: '1px solid var(--border-strong)', borderRadius: 8, color: 'var(--text-primary)', padding: '11px 14px', fontSize: 14, outline: 'none' },
   btn: { width: '100%', marginTop: 4, padding: '12px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' },
   btnOff: { background: 'var(--border-strong)', opacity: 0.7, cursor: 'not-allowed' },
-  ok: { background: '#10B98118', border: '1px solid #10B98144', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: '#34D399', lineHeight: 1.5 },
+  ok: { background: '#10B98118', border: '1px solid #10B98144', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: 'var(--success-2)', lineHeight: 1.5 },
 };
 
 export default function ForgotPasswordPage() {
@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
         )}
 
         <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: 'var(--text-subtle)' }}>
-          <Link to="/login" style={{ color: '#3B82F6', textDecoration: 'none' }}>← Back to login</Link>
+          <Link to="/login" style={{ color: 'var(--info-strong)', textDecoration: 'none' }}>← Back to login</Link>
         </p>
       </div>
     </div>

@@ -101,7 +101,7 @@ function CopyButton({ text }) {
         fontSize: 10, padding: '3px 10px', borderRadius: 6,
         border: `1px solid ${copied ? '#10B981' : 'var(--overlay-8)'}`,
         background: copied ? 'rgba(16,185,129,0.1)' : 'var(--overlay-3)',
-        cursor: 'pointer', color: copied ? '#10B981' : 'var(--text-subtle)', transition: 'all .15s',
+        cursor: 'pointer', color: copied ? 'var(--success)' : 'var(--text-subtle)', transition: 'all .15s',
       }}>
       {copied ? '✓ Copied' : 'Copy'}
     </button>
@@ -170,16 +170,16 @@ function DiffField({ label, current, proposed, limit, isOver, measureBytes = fal
       </div>
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: isOver ? '#F87171' : '#A78BFA', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: isOver ? 'var(--danger)' : 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             {label} · Proposed
           </span>
           {limit != null && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: isOver ? 'rgba(244,63,94,0.15)' : 'var(--overlay-4)', color: isOver ? '#F87171' : 'var(--text-faint)', border: `1px solid ${isOver ? 'rgba(244,63,94,0.3)' : 'transparent'}` }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: isOver ? 'rgba(244,63,94,0.15)' : 'var(--overlay-4)', color: isOver ? 'var(--danger)' : 'var(--text-faint)', border: `1px solid ${isOver ? 'rgba(244,63,94,0.3)' : 'transparent'}` }}>
               {len}/{limit}{isOver ? ' ✕' : ''}
             </span>
           )}
         </div>
-        <div style={{ background: isOver ? 'rgba(244,63,94,0.06)' : 'rgba(139,92,246,0.05)', border: `1px solid ${isOver ? 'rgba(244,63,94,0.25)' : 'rgba(139,92,246,0.15)'}`, borderRadius: 8, padding: '8px 10px', fontSize: 11, color: isOver ? '#F87171' : '#C4B5FD', maxHeight: 80, overflow: 'auto', lineHeight: 1.5 }}>
+        <div style={{ background: isOver ? 'rgba(244,63,94,0.06)' : 'rgba(139,92,246,0.05)', border: `1px solid ${isOver ? 'rgba(244,63,94,0.25)' : 'rgba(139,92,246,0.15)'}`, borderRadius: 8, padding: '8px 10px', fontSize: 11, color: isOver ? 'var(--danger)' : 'var(--accent-soft)', maxHeight: 80, overflow: 'auto', lineHeight: 1.5 }}>
           {proposed || <em style={{ opacity: 0.5 }}>empty</em>}
         </div>
       </div>
@@ -201,7 +201,7 @@ function PublishDiffPanel({ current, optimized, sku, overLimit, hasOverLimit, is
             </p>
           </div>
           {hasOverLimit && (
-            <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: '#F87171', fontWeight: 600 }}>
+            <div style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: 'var(--danger)', fontWeight: 600 }}>
               ⚠ {overCount} field{overCount !== 1 ? 's' : ''} over limit
             </div>
           )}
@@ -217,7 +217,7 @@ function PublishDiffPanel({ current, optimized, sku, overLimit, hasOverLimit, is
         )}
 
         {hasOverLimit && (
-          <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.2)', borderRadius: 10, padding: '10px 14px', marginBottom: 14, fontSize: 12, color: '#F87171' }}>
+          <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.2)', borderRadius: 10, padding: '10px 14px', marginBottom: 14, fontSize: 12, color: 'var(--danger)' }}>
             Fix the {overCount} over-limit field{overCount !== 1 ? 's' : ''} before publishing — Amazon will reject the listing if any field exceeds its character limit.
           </div>
         )}
@@ -448,7 +448,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                   Listing Optimizer
                 </p>
                 {hasFetched && fetchedAsin && (
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#8B5CF6', background: 'rgba(139,92,246,0.12)', padding: '2px 10px', borderRadius: 20, border: '1px solid rgba(139,92,246,0.25)' }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-strong)', background: 'rgba(139,92,246,0.12)', padding: '2px 10px', borderRadius: 20, border: '1px solid rgba(139,92,246,0.25)' }}>
                     {fetchedAsin}
                   </span>
                 )}
@@ -456,7 +456,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                   <span style={{
                     fontSize: 12, fontWeight: 800, padding: '2px 12px', borderRadius: 20,
                     background: listingScore >= 85 ? 'rgba(16,185,129,0.15)' : listingScore >= 70 ? 'rgba(245,158,11,0.15)' : 'rgba(244,63,94,0.15)',
-                    color: listingScore >= 85 ? '#34D399' : listingScore >= 70 ? '#FCD34D' : '#F87171',
+                    color: listingScore >= 85 ? 'var(--success-2)' : listingScore >= 70 ? 'var(--warning-2)' : 'var(--danger)',
                     border: `1px solid ${listingScore >= 85 ? 'rgba(16,185,129,0.3)' : listingScore >= 70 ? 'rgba(245,158,11,0.3)' : 'rgba(244,63,94,0.3)'}`,
                   }}>
                     Grade {listingGrade} · {listingScore}/100
@@ -508,7 +508,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                 borderRadius: 10, border: `1px dashed ${uploadedKeywords.length > 0 ? 'rgba(167,139,250,0.4)' : 'var(--overlay-8)'}`,
                 background: uploadedKeywords.length > 0 ? 'rgba(167,139,250,0.08)' : 'transparent',
                 cursor: isParsingFile ? 'not-allowed' : 'pointer',
-                color: uploadedKeywords.length > 0 ? '#A78BFA' : 'var(--text-faint)',
+                color: uploadedKeywords.length > 0 ? 'var(--accent)' : 'var(--text-faint)',
                 fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap',
               }}>
               {isParsingFile ? <><Spinner /> Parsing…</> : (
@@ -557,7 +557,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
 
       {/* ══ ERRORS & MESSAGES ══ */}
       {error && (
-        <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', color: '#F87171', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
+        <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', color: 'var(--danger)', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
           {error}
         </div>
       )}
@@ -565,14 +565,14 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
         <div style={{
           background: termsMessage.type === 'success' ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)',
           border: `1px solid ${termsMessage.type === 'success' ? 'rgba(16,185,129,0.25)' : 'rgba(245,158,11,0.25)'}`,
-          color: termsMessage.type === 'success' ? '#34D399' : '#FCD34D',
+          color: termsMessage.type === 'success' ? 'var(--success-2)' : 'var(--warning-2)',
           borderRadius: 12, padding: '10px 16px', fontSize: 12,
         }}>
           {termsMessage.type === 'success' ? '✓' : '⚠'} {termsMessage.text}
         </div>
       )}
       {hasFetched && activeTerms.length === 0 && !isLoadingTerms && !termsMessage && (
-        <div style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)', color: '#FCD34D', borderRadius: 12, padding: '10px 16px', fontSize: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)', color: 'var(--warning-2)', borderRadius: 12, padding: '10px 16px', fontSize: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
           <svg style={{ width: 14, height: 14, flexShrink: 0 }} fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
           </svg>
@@ -607,7 +607,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
               <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>Issues to fix</p>
                 {listingDimensions.filter(d => d.score < 60).map(d => (
-                  <p key={d.name} style={{ fontSize: 11, color: '#F87171', margin: 0 }}>
+                  <p key={d.name} style={{ fontSize: 11, color: 'var(--danger)', margin: 0 }}>
                     · <strong>{d.name}:</strong> {d.feedback}
                   </p>
                 ))}
@@ -653,12 +653,12 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <svg width="19" height="19" fill="none" stroke="#F59E0B" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-                <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#F59E0B' }}>AI Model</span>
+                <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--warning)' }}>AI Model</span>
               </div>
               <div style={{ display: 'flex', gap: 4, background: 'var(--overlay-3)', borderRadius: 10, padding: 3, border: '1px solid var(--overlay-5)' }}>
                 {[
-                  { id: 'gemini', label: 'Gemini 2.5 Flash', color: '#3B82F6', glow: 'rgba(59,130,246,0.4)' },
-                  { id: 'claude', label: 'Claude Sonnet',    color: '#8B5CF6', glow: 'rgba(139,92,246,0.4)' },
+                  { id: 'gemini', label: 'Gemini 2.5 Flash', color: 'var(--info-strong)', glow: 'rgba(59,130,246,0.4)' },
+                  { id: 'claude', label: 'Claude Sonnet',    color: 'var(--accent-strong)', glow: 'rgba(139,92,246,0.4)' },
                 ].map(({ id, label, color, glow }) => (
                   <button key={id} onClick={() => setAiModel(id)} style={{
                     flex: 1, fontSize: 11, fontWeight: 700, padding: '6px 10px', borderRadius: 7,
@@ -689,7 +689,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
           <GradientBar top="linear-gradient(90deg,#A78BFA,#7C3AED)" />
           <GlowBlob color="rgba(167,139,250,0.2)" />
           <div style={{ position: 'relative' }}>
-            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#A78BFA' }}>
+            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--accent)' }}>
               ★ Priority Keywords ({uploadedKeywords.length}) — AI uses these first
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -707,7 +707,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
           <div style={{ position: 'relative' }}>
             <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-faint)' }}>
               Campaign Keywords ({relevantTerms.length})
-              {productSearchTerms.length > 0 && <span style={{ color: '#10B981', marginLeft: 8, fontWeight: 600 }}>· product-specific</span>}
+              {productSearchTerms.length > 0 && <span style={{ color: 'var(--success)', marginLeft: 8, fontWeight: 600 }}>· product-specific</span>}
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {relevantTerms.slice(0, 50).map((t, i) => (
@@ -761,7 +761,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
           <div style={{ ...glass, padding: 0, overflow: 'hidden', borderColor: optimized ? 'rgba(139,92,246,0.25)' : 'var(--overlay-5)', boxShadow: optimized ? '0 4px 40px rgba(139,92,246,0.15)' : 'none' }}>
             {optimized && <GradientBar top="linear-gradient(90deg,#8B5CF6,#3B82F6,#10B981)" />}
             <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--overlay-4)', background: optimized ? 'rgba(139,92,246,0.06)' : 'transparent' }}>
-              <p style={{ margin: 0, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: optimized ? '#A78BFA' : 'var(--text-faint)' }}>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: optimized ? 'var(--accent)' : 'var(--text-faint)' }}>
                 {optimized ? '✦ AI-Optimized Listing' : 'Optimized Listing'}
               </p>
             </div>
@@ -815,7 +815,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                   {(sku.trim() || fetchedSku) && (
                     <div style={{ borderTop: '1px solid var(--overlay-4)', paddingTop: 12 }}>
                       <div style={{ marginBottom: 8 }}>
-                        <label style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: fetchedProductType ? 'var(--text-faint)' : '#F59E0B' }}>
+                        <label style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: fetchedProductType ? 'var(--text-faint)' : 'var(--warning)' }}>
                           Product Type {!fetchedProductType && <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 500 }}>— enter manually</span>}
                         </label>
                         <input value={fetchedProductType} onChange={e => setFetchedProductType(e.target.value.toUpperCase())}
@@ -827,7 +827,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                       </div>
 
                       {hasOverLimit && (
-                        <div style={{ marginBottom: 8, background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#F87171', display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <div style={{ marginBottom: 8, background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: 'var(--danger)', display: 'flex', gap: 6, alignItems: 'center' }}>
                           ⚠ {[overLimit.title, ...(overLimit.bullets ?? []), overLimit.description].filter(Boolean).length} field(s) exceed character limits
                         </div>
                       )}
@@ -850,7 +850,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 12, color: 'var(--text-faint)' }}>
                   <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#8B5CF620,#3B82F620)', border: '1px solid rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg style={{ width: 28, height: 28, color: '#8B5CF6', opacity: 0.5 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg style={{ width: 28, height: 28, color: 'var(--accent-strong)', opacity: 0.5 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z"/>
                     </svg>
                   </div>
@@ -879,13 +879,13 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
       {/* ══ PUBLISH RESULT ══ */}
       {publishResult?.ok && (
         <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 12, padding: '14px 18px' }}>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#34D399' }}>✓ Listing published to Amazon</p>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--success-2)' }}>✓ Listing published to Amazon</p>
           {(publishResult.issues ?? []).length > 0 && (
             <div style={{ marginTop: 10 }}>
-              <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: '#FCD34D' }}>⚠ Amazon returned warnings:</p>
+              <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: 'var(--warning-2)' }}>⚠ Amazon returned warnings:</p>
               {Object.entries(mapIssuesToFields(publishResult.issues)).map(([field, messages]) => (
                 <div key={field} style={{ marginBottom: 4 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#FCD34D' }}>{field}: </span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--warning-2)' }}>{field}: </span>
                   <span style={{ fontSize: 11, color: '#D4A017' }}>{messages.join(' · ')}</span>
                 </div>
               ))}

@@ -5,11 +5,11 @@ import { getKeywordRecommendations } from '../services/api.js';
 // across these so the board feels alive even though the backend does the
 // whole thing in one request — each phase mirrors a real backend step.
 const PROGRESS_PHASES = [
-  { id: 'campaigns',   label: 'Locating campaigns for this product',     range: [0,  18], color: '#3B82F6', glow: 'rgba(59,130,246,0.35)' },
-  { id: 'search',      label: 'Pulling search term report',              range: [18, 38], color: '#6366F1', glow: 'rgba(99,102,241,0.35)' },
-  { id: 'poll',        label: 'Waiting for Amazon to finish the report', range: [38, 72], color: '#8B5CF6', glow: 'rgba(139,92,246,0.35)' },
+  { id: 'campaigns',   label: 'Locating campaigns for this product',     range: [0,  18], color: 'var(--info-strong)', glow: 'rgba(59,130,246,0.35)' },
+  { id: 'search',      label: 'Pulling search term report',              range: [18, 38], color: 'var(--indigo)', glow: 'rgba(99,102,241,0.35)' },
+  { id: 'poll',        label: 'Waiting for Amazon to finish the report', range: [38, 72], color: 'var(--accent-strong)', glow: 'rgba(139,92,246,0.35)' },
   { id: 'analytics',   label: 'Cross-referencing brand analytics',       range: [72, 88], color: '#A855F7', glow: 'rgba(168,85,247,0.35)' },
-  { id: 'score',       label: 'Scoring listing & campaign candidates',   range: [88, 99], color: '#10B981', glow: 'rgba(16,185,129,0.35)' },
+  { id: 'score',       label: 'Scoring listing & campaign candidates',   range: [88, 99], color: 'var(--success)', glow: 'rgba(16,185,129,0.35)' },
 ];
 
 // Easing so progress accelerates fast then slows — keeps the bar from
@@ -45,7 +45,7 @@ function ProgressBoard({ pct, elapsedSec }) {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12, gap: 12 }}>
         <div>
-          <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#A78BFA', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Analyzing</p>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Analyzing</p>
           <p style={{ margin: '4px 0 0', fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{currentPhase.label}…</p>
           <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>elapsed {Math.floor(elapsedSec / 60)}m {Math.round(elapsedSec % 60)}s</p>
         </div>
@@ -60,7 +60,7 @@ function ProgressBoard({ pct, elapsedSec }) {
       {/* progress bar */}
       <div style={{
         height: 8, borderRadius: 99,
-        background: 'rgba(15,23,42,0.6)',
+        background: 'var(--surface-inset)',
         border: '1px solid var(--overlay-4)',
         overflow: 'hidden', position: 'relative',
       }}>
@@ -271,7 +271,7 @@ export default function KeywordRecommendationsPanel({ profileId }) {
       </div>
 
       {error && (
-        <div style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#F87171', marginBottom: 16 }}>{error}</div>
+        <div style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)', marginBottom: 16 }}>{error}</div>
       )}
 
       {loading && <ProgressBoard pct={progress} elapsedSec={elapsed} />}
@@ -302,8 +302,8 @@ export default function KeywordRecommendationsPanel({ profileId }) {
           {/* Top tabs: Listing vs Campaigns */}
           <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid var(--border-strong)', marginBottom: 16 }}>
             {[
-              { id: 'LISTING',   label: `Listing Candidates (${forListing.length})`, color: '#8B5CF6' },
-              { id: 'CAMPAIGNS', label: `Campaign Actions`,                          color: '#3B82F6' },
+              { id: 'LISTING',   label: `Listing Candidates (${forListing.length})`, color: 'var(--accent-strong)' },
+              { id: 'CAMPAIGNS', label: `Campaign Actions`,                          color: 'var(--info-strong)' },
             ].map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)}
                 style={{ padding: '8px 16px', fontSize: 12, fontWeight: 700, border: 'none', borderBottom: activeTab === t.id ? `2px solid ${t.color}` : '2px solid transparent', background: 'transparent', cursor: 'pointer', marginBottom: -1, color: activeTab === t.id ? t.color : 'var(--text-subtle)', transition: 'all .15s' }}>

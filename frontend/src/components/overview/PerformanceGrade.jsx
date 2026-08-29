@@ -1,10 +1,10 @@
 import React from 'react';
 
 const GRADES = [
-  { grade: 'A', color: '#10B981', glow: 'rgba(16,185,129,0.4)',  label: 'Excellent' },
-  { grade: 'B', color: '#3B82F6', glow: 'rgba(59,130,246,0.4)',  label: 'Good'      },
-  { grade: 'C', color: '#F59E0B', glow: 'rgba(245,158,11,0.4)',  label: 'Fair'      },
-  { grade: 'D', color: '#F43F5E', glow: 'rgba(244,63,94,0.4)',   label: 'Poor'      },
+  { grade: 'A', color: 'var(--success)', glow: 'rgba(16,185,129,0.4)',  label: 'Excellent' },
+  { grade: 'B', color: 'var(--info-strong)', glow: 'rgba(59,130,246,0.4)',  label: 'Good'      },
+  { grade: 'C', color: 'var(--warning)', glow: 'rgba(245,158,11,0.4)',  label: 'Fair'      },
+  { grade: 'D', color: 'var(--rose)', glow: 'rgba(244,63,94,0.4)',   label: 'Poor'      },
 ];
 
 export function computeGrade(roas, acos) {

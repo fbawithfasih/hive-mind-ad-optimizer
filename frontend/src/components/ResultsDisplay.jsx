@@ -36,7 +36,7 @@ export default function ResultsDisplay({ result }) {
         .ai-body p:last-child { margin:0; }
         .ai-body ul, .ai-body ol { padding-left:20px; margin:0 0 12px; }
         .ai-body li           { margin:5px 0; color:var(--text-muted); line-height:1.6; }
-        .ai-body strong       { color:#F59E0B; font-weight:700; }
+        .ai-body strong       { color:var(--warning); font-weight:700; }
         .ai-body em           { color:var(--text-muted); font-style:italic; }
         .ai-body code         { background:var(--bg-panel-3); color:#38BDF8; padding:2px 7px; border-radius:4px; font-size:11.5px; font-family:monospace; }
         .ai-body h1,.ai-body h2,.ai-body h3 { color:var(--text-primary); margin:16px 0 8px; line-height:1.3; }
@@ -65,7 +65,7 @@ export default function ResultsDisplay({ result }) {
           display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, padding: '4px 10px',
           borderRadius: 6, cursor: 'pointer', background: 'transparent',
           border: `1px solid ${copied ? '#10B981' : 'var(--border-strong)'}`,
-          color: copied ? '#10B981' : 'var(--text-muted)', transition: 'all .15s',
+          color: copied ? 'var(--success)' : 'var(--text-muted)', transition: 'all .15s',
         }}>
           {copied
             ? <><svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>Copied</>

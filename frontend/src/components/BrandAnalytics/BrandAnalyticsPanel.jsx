@@ -107,7 +107,7 @@ export default function BrandAnalyticsPanel() {
             <p style={{ margin: 0, fontWeight: 900, fontSize: 17, color: 'var(--text-primary)', letterSpacing: '-0.4px' }}>
               Brand Analytics
               {hasData && (
-                <span style={{ marginLeft: 10, fontSize: 12, fontWeight: 600, color: '#8B5CF6', background: 'rgba(139,92,246,0.12)', padding: '2px 10px', borderRadius: 20, border: '1px solid rgba(139,92,246,0.25)' }}>
+                <span style={{ marginLeft: 10, fontSize: 12, fontWeight: 600, color: 'var(--accent-strong)', background: 'rgba(139,92,246,0.12)', padding: '2px 10px', borderRadius: 20, border: '1px solid rgba(139,92,246,0.25)' }}>
                   {brandName}
                 </span>
               )}
@@ -141,10 +141,10 @@ export default function BrandAnalyticsPanel() {
 
       {/* ── Error ── */}
       {error && (
-        <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', color: '#F87171', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
+        <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', color: 'var(--danger)', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
           {error.includes('Missing Brand Analytics') ? (
             <>
-              <strong>CSV files missing.</strong> Go to the <button onClick={() => setActiveTab('upload')} style={{ background: 'none', border: 'none', color: '#60A5FA', fontWeight: 700, cursor: 'pointer', padding: 0, textDecoration: 'underline', fontSize: 13 }}>Upload CSVs</button> tab to add your Brand Analytics exports.
+              <strong>CSV files missing.</strong> Go to the <button onClick={() => setActiveTab('upload')} style={{ background: 'none', border: 'none', color: 'var(--info)', fontWeight: 700, cursor: 'pointer', padding: 0, textDecoration: 'underline', fontSize: 13 }}>Upload CSVs</button> tab to add your Brand Analytics exports.
             </>
           ) : error}
         </div>
@@ -152,7 +152,7 @@ export default function BrandAnalyticsPanel() {
 
       {/* ── Partial-data banner ── */}
       {summary?.missingDatasets?.length > 0 && (
-        <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: '#FBBF24', borderRadius: 12, padding: '12px 16px', fontSize: 13, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: 'var(--warning-3)', borderRadius: 12, padding: '12px 16px', fontSize: 13, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
           <span style={{ fontSize: 16, lineHeight: '18px' }}>⚠</span>
           <div>
             <strong>Showing partial data.</strong> {summary.missingDatasets.join(', ')} not yet available for this org.
@@ -341,7 +341,7 @@ export default function BrandAnalyticsPanel() {
           <div>
             <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-faint)', margin: '0 0 6px' }}>Enter a brand name to begin</p>
             <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>
-              Or <button onClick={() => setActiveTab('upload')} style={{ background: 'none', border: 'none', color: '#60A5FA', fontWeight: 700, cursor: 'pointer', padding: 0, fontSize: 12 }}>upload your CSV files</button> first if you haven't already
+              Or <button onClick={() => setActiveTab('upload')} style={{ background: 'none', border: 'none', color: 'var(--info)', fontWeight: 700, cursor: 'pointer', padding: 0, fontSize: 12 }}>upload your CSV files</button> first if you haven't already
             </p>
           </div>
         </div>

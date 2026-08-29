@@ -7,9 +7,9 @@ const TD  = { padding: '9px 12px', fontSize: 12, color: 'var(--text-muted)', bor
 const TDR = { ...TD, textAlign: 'right', fontVariantNumeric: 'tabular-nums' };
 
 const TYPE_META = {
-  INVISIBLE:       { label: 'Not in Top 3', color: '#F43F5E' },
-  LOW_CONVERSION:  { label: 'Low Conv',     color: '#F59E0B' },
-  LOW_CLICK_SHARE: { label: 'Low Clicks',   color: '#3B82F6' },
+  INVISIBLE:       { label: 'Not in Top 3', color: 'var(--rose)' },
+  LOW_CONVERSION:  { label: 'Low Conv',     color: 'var(--warning)' },
+  LOW_CLICK_SHARE: { label: 'Low Clicks',   color: 'var(--info-strong)' },
 };
 
 function VolumeBar({ volume, max }) {

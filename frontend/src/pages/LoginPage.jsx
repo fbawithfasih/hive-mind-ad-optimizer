@@ -192,12 +192,12 @@ export default function LoginPage({ onLogin }) {
 
         {/* Footer links */}
         <div style={{ marginTop: 20, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <Link to="/forgot-password" style={{ fontSize: 14, color: '#3b82f6', textDecoration: 'none', fontWeight: 500 }}>
+          <Link to="/forgot-password" style={{ fontSize: 14, color: 'var(--info-strong)', textDecoration: 'none', fontWeight: 500 }}>
             Reset password
           </Link>
           <p style={{ fontSize: 14, color: 'var(--text-subtle)', margin: 0 }}>
             Don't have an account?{' '}
-            <Link to="/signup" style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>
+            <Link to="/signup" style={{ color: 'var(--info-strong)', textDecoration: 'none', fontWeight: 600 }}>
               Sign up
             </Link>
           </p>

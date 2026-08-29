@@ -79,7 +79,7 @@ export default function ListingHealthPanel() {
       </form>
 
       {error && (
-        <div style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#F87171', marginBottom: 16 }}>{error}</div>
+        <div style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)', marginBottom: 16 }}>{error}</div>
       )}
 
       {result && (
@@ -92,7 +92,7 @@ export default function ListingHealthPanel() {
                 {result.asin}
                 {result.sku && <span style={{ marginLeft: 8, fontSize: 13, color: 'var(--text-subtle)', fontWeight: 400 }}>SKU: {result.sku}</span>}
               </p>
-              <p style={{ margin: 0, fontSize: 13, color: result.score >= 70 ? '#10B981' : result.score >= 50 ? '#F59E0B' : '#F43F5E' }}>
+              <p style={{ margin: 0, fontSize: 13, color: result.score >= 70 ? 'var(--success)' : result.score >= 50 ? 'var(--warning)' : 'var(--rose)' }}>
                 {result.score >= 85 ? 'Excellent — well-optimized listing' :
                  result.score >= 70 ? 'Good — minor improvements available' :
                  result.score >= 55 ? 'Fair — several areas need attention' :

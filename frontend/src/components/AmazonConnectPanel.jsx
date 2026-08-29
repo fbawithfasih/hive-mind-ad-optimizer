@@ -80,13 +80,13 @@ export default function AmazonConnectPanel({ onConnected }) {
         <div className="ml-auto">
           {status?.connected ? (
             <span className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full"
-                  style={{ background: '#10B98120', border: '1px solid #10B98140', color: '#10B981' }}>
+                  style={{ background: '#10B98120', border: '1px solid #10B98140', color: 'var(--success)' }}>
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#10B981', display: 'inline-block' }}/>
               Connected
             </span>
           ) : (
             <span className="text-xs font-semibold px-3 py-1 rounded-full"
-                  style={{ background: '#F43F5E20', border: '1px solid #F43F5E40', color: '#F43F5E' }}>
+                  style={{ background: '#F43F5E20', border: '1px solid #F43F5E40', color: 'var(--rose)' }}>
               Not connected
             </span>
           )}
@@ -95,7 +95,7 @@ export default function AmazonConnectPanel({ onConnected }) {
 
       {/* Error */}
       {error && (
-        <div className="rounded-lg px-4 py-3 text-sm" style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', color: '#F43F5E' }}>
+        <div className="rounded-lg px-4 py-3 text-sm" style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', color: 'var(--rose)' }}>
           {error}
         </div>
       )}
@@ -138,7 +138,7 @@ export default function AmazonConnectPanel({ onConnected }) {
               className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg"
               style={{
                 background: 'transparent', border: '1px solid #F43F5E44',
-                color: disconnecting ? 'var(--text-subtle)' : '#F43F5E',
+                color: disconnecting ? 'var(--text-subtle)' : 'var(--rose)',
                 cursor: disconnecting ? 'not-allowed' : 'pointer',
               }}>
               {disconnecting ? 'Disconnecting…' : 'Disconnect'}

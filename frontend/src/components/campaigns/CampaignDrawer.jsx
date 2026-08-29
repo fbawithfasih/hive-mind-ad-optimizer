@@ -6,10 +6,10 @@ import CampaignMetricGrid from './CampaignMetricGrid.jsx';
 import CampaignDetailChart from './CampaignDetailChart.jsx';
 
 const STATUS_STYLE = {
-  enabled:  { label: 'Active',   color: '#10B981', bg: 'rgba(16,185,129,0.15)'  },
-  active:   { label: 'Active',   color: '#10B981', bg: 'rgba(16,185,129,0.15)'  },
-  paused:   { label: 'Paused',   color: '#F59E0B', bg: 'rgba(245,158,11,0.15)'  },
-  ended:    { label: 'Ended',    color: '#F43F5E', bg: 'rgba(244,63,94,0.15)'   },
+  enabled:  { label: 'Active',   color: 'var(--success)', bg: 'rgba(16,185,129,0.15)'  },
+  active:   { label: 'Active',   color: 'var(--success)', bg: 'rgba(16,185,129,0.15)'  },
+  paused:   { label: 'Paused',   color: 'var(--warning)', bg: 'rgba(245,158,11,0.15)'  },
+  ended:    { label: 'Ended',    color: 'var(--rose)', bg: 'rgba(244,63,94,0.15)'   },
   archived: { label: 'Archived', color: 'var(--text-muted)', bg: 'rgba(148,163,184,0.12)' },
 };
 
@@ -78,7 +78,7 @@ export default function CampaignDrawer({
           width: 480,
           height: '100vh',
           zIndex: 100,
-          background: 'rgba(6,9,20,0.98)',
+          background: 'var(--surface-raised)',
           borderLeft: '1px solid var(--overlay-7)',
           backdropFilter: 'blur(32px)',
           display: 'flex',
@@ -133,7 +133,7 @@ export default function CampaignDrawer({
           {/* Chart */}
           <div>
             <SectionLabel>Spend vs Budget</SectionLabel>
-            <div style={{ background: 'rgba(8,12,26,0.9)', border: '1px solid var(--overlay-5)', borderRadius: 12, padding: '14px 16px' }}>
+            <div style={{ background: 'var(--surface-card)', border: '1px solid var(--overlay-5)', borderRadius: 12, padding: '14px 16px' }}>
               <CampaignDetailChart campaign={campaign} />
             </div>
           </div>
@@ -165,7 +165,7 @@ export default function CampaignDrawer({
             onClick={onGoToCampaigns}
             style={{ background: 'none', border: 'none', color: 'var(--text-faint)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, padding: 0 }}
             onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'var(--border-med)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-faint)'; }}
           >
             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />

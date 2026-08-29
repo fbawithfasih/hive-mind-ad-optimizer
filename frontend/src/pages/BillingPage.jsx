@@ -48,7 +48,7 @@ function UsageStat({ label, value }) {
 
 function CheckIcon() {
   return (
-    <svg style={{ width: 14, height: 14, color: '#10B981', flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg style={{ width: 14, height: 14, color: 'var(--success)', flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
     </svg>
   );
@@ -122,7 +122,7 @@ export default function BillingPage({ user, onLogout }) {
       subscription_id: subscriptionId,
       name:         'AMAIOP',
       description:  `${TIER_LABEL[tier]} Plan subscription`,
-      theme:        { color: TIER_COLOR[tier] ?? '#3B82F6' },
+      theme:        { color: TIER_COLOR[tier] ?? 'var(--info-strong)' },
       handler: async function (response) {
         try {
           await verifyPaymentApi(
@@ -198,13 +198,13 @@ export default function BillingPage({ user, onLogout }) {
             border: `1px solid ${banner.type === 'success' ? '#10B98140' : '#3B82F640'}`,
             borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
           }}>
-            <span style={{ fontSize: 13, color: banner.type === 'success' ? '#10B981' : '#93C5FD' }}>{banner.msg}</span>
+            <span style={{ fontSize: 13, color: banner.type === 'success' ? 'var(--success)' : 'var(--info-2)' }}>{banner.msg}</span>
             <button onClick={() => setBanner(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text-subtle)', padding: '0 4px', lineHeight: 1 }}>×</button>
           </div>
         )}
 
         {error && (
-          <div style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#F87171' }}>{error}</div>
+          <div style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: 'var(--danger)' }}>{error}</div>
         )}
 
         {/* ── Trial expired wall ── */}
@@ -216,14 +216,14 @@ export default function BillingPage({ user, onLogout }) {
           }}>
             <div style={{ padding: '28px 28px 20px', textAlign: 'center' }}>
               <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
-              <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 900, color: '#FCA5A5' }}>
+              <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 900, color: 'var(--danger-soft)' }}>
                 Your free trial has ended
               </h2>
               <p style={{ margin: '0 0 20px', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>
                 Your 3-day trial has expired. Choose a plan below to restore full access to
                 Hive Mind Ad Optimizer 360 — campaigns, AI tools, and everything else.
               </p>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 20px', borderRadius: 99, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', fontSize: 13, color: '#FCA5A5', fontWeight: 600 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 20px', borderRadius: 99, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', fontSize: 13, color: 'var(--danger-soft)', fontWeight: 600 }}>
                 🚨 Access suspended — subscribe to continue
               </div>
             </div>
@@ -240,7 +240,7 @@ export default function BillingPage({ user, onLogout }) {
           }}>
             <span style={{ fontSize: 20 }}>⏳</span>
             <div>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#FCD34D' }}>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--warning-2)' }}>
                 Free trial active — {trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''} remaining
               </p>
               <p style={{ margin: '2px 0 0', fontSize: 12, color: '#92400E' }}>
@@ -251,7 +251,7 @@ export default function BillingPage({ user, onLogout }) {
         )}
 
         {!isAdmin && (
-          <div style={{ background: '#F59E0B10', border: '1px solid #F59E0B30', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#FCD34D' }}>
+          <div style={{ background: '#F59E0B10', border: '1px solid #F59E0B30', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: 'var(--warning-2)' }}>
             You can view billing info but only an Admin can change the plan or manage the subscription.
           </div>
         )}
@@ -278,7 +278,7 @@ export default function BillingPage({ user, onLogout }) {
                   </div>
                   {canCancel && !showCancel && (
                     <button onClick={() => setShowCancel(true)} disabled={working}
-                      style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid #F43F5E44', background: 'transparent', color: '#F87171', fontSize: 13, fontWeight: 600, cursor: working ? 'not-allowed' : 'pointer' }}>
+                      style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid #F43F5E44', background: 'transparent', color: 'var(--danger)', fontSize: 13, fontWeight: 600, cursor: working ? 'not-allowed' : 'pointer' }}>
                       Cancel Subscription
                     </button>
                   )}
@@ -291,7 +291,7 @@ export default function BillingPage({ user, onLogout }) {
 
               {showCancel && (
                 <div style={{ marginTop: 16, padding: '14px 16px', borderRadius: 10, background: '#F43F5E10', border: '1px solid #F43F5E44' }}>
-                  <p style={{ margin: '0 0 12px', fontSize: 13, color: '#F87171' }}>
+                  <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--danger)' }}>
                     Are you sure? Your subscription will cancel at the end of the current billing period.
                   </p>
                   <div style={{ display: 'flex', gap: 10 }}>
@@ -376,7 +376,7 @@ export default function BillingPage({ user, onLogout }) {
                             width: '100%', padding: '9px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600,
                             cursor: isCurrent || working ? 'not-allowed' : 'pointer',
                             background: isCurrent ? '#10B98130' : `linear-gradient(135deg,${TIER_COLOR[plan.tier]},${TIER_COLOR[plan.tier]}CC)`,
-                            color: isCurrent ? '#10B981' : '#fff',
+                            color: isCurrent ? 'var(--success)' : '#fff',
                             opacity: working && !isCurrent ? 0.6 : 1,
                           }}
                         >

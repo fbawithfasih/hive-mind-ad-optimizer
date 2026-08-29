@@ -52,7 +52,7 @@ export default function Demographics() {
 
   if (error && !loading) {
     return (
-      <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.20)', color: '#F87171', borderRadius: 12, padding: '14px 18px', fontSize: 13 }}>
+      <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.20)', color: 'var(--danger)', borderRadius: 12, padding: '14px 18px', fontSize: 13 }}>
         {error}
       </div>
     );

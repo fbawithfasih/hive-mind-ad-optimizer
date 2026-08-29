@@ -95,7 +95,7 @@ export default function ProfilesPanel({ isAdmin }) {
       </div>
 
       {(error || msg) && (
-        <div style={{ padding: '10px 20px', fontSize: 12, color: error ? '#F43F5E' : '#10B981', borderBottom: '1px solid var(--border-strong)' }}>
+        <div style={{ padding: '10px 20px', fontSize: 12, color: error ? 'var(--rose)' : 'var(--success)', borderBottom: '1px solid var(--border-strong)' }}>
           {error || msg}
         </div>
       )}

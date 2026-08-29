@@ -37,7 +37,7 @@ const TOOLS = [
     glow: 'rgba(142,84,233,0.45)',
     bg: 'rgba(142,84,233,0.12)',
     border: 'rgba(142,84,233,0.35)',
-    color: '#A78BFA',
+    color: 'var(--accent)',
     icon: <Icon d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" size={22} />,
   },
   {
@@ -57,7 +57,7 @@ const TOOLS = [
     glow: 'rgba(139,92,246,0.40)',
     bg: 'rgba(139,92,246,0.10)',
     border: 'rgba(139,92,246,0.32)',
-    color: '#A78BFA',
+    color: 'var(--accent)',
     icon: <Icon d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" size={22} />,
   },
   {
@@ -67,7 +67,7 @@ const TOOLS = [
     glow: 'rgba(99,102,241,0.40)',
     bg: 'rgba(99,102,241,0.10)',
     border: 'rgba(99,102,241,0.32)',
-    color: '#A5B4FC',
+    color: 'var(--indigo-soft)',
     icon: <Icon d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" size={22} />,
   },
   {
@@ -87,7 +87,7 @@ const TOOLS = [
     glow: 'rgba(11,163,96,0.42)',
     bg: 'rgba(11,163,96,0.10)',
     border: 'rgba(11,163,96,0.32)',
-    color: '#34D399',
+    color: 'var(--success-2)',
     icon: <Icon d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" size={22} />,
   },
   {
@@ -97,7 +97,7 @@ const TOOLS = [
     glow: 'rgba(247,151,30,0.45)',
     bg: 'rgba(247,151,30,0.10)',
     border: 'rgba(247,151,30,0.32)',
-    color: '#FBBF24',
+    color: 'var(--warning-3)',
     icon: <Icon d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" size={22} />,
   },
   {
@@ -117,7 +117,7 @@ const TOOLS = [
     glow: 'rgba(244,63,94,0.40)',
     bg: 'rgba(244,63,94,0.10)',
     border: 'rgba(244,63,94,0.32)',
-    color: '#F87171',
+    color: 'var(--danger)',
     icon: <Icon d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" size={22} />,
   },
   {
@@ -137,7 +137,7 @@ const TOOLS = [
     glow: 'rgba(245,158,11,0.42)',
     bg: 'rgba(245,158,11,0.10)',
     border: 'rgba(245,158,11,0.32)',
-    color: '#FCD34D',
+    color: 'var(--warning-2)',
     icon: <Icon d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" size={22} />,
   },
   {
@@ -153,8 +153,8 @@ const TOOLS = [
 ];
 
 const PLAN_CONFIG = {
-  STARTER: { label: 'Starter', color: '#60A5FA', glow: 'rgba(96,165,250,0.4)',  profiles: '2' },
-  GROWTH:  { label: 'Growth',  color: '#A78BFA', glow: 'rgba(167,139,250,0.4)', profiles: '6' },
+  STARTER: { label: 'Starter', color: 'var(--info)', glow: 'rgba(96,165,250,0.4)',  profiles: '2' },
+  GROWTH:  { label: 'Growth',  color: 'var(--accent)', glow: 'rgba(167,139,250,0.4)', profiles: '6' },
   SCALE:   { label: 'Scale',   color: '#FB923C', glow: 'rgba(251,146,60,0.4)',  profiles: 'Unlimited' },
 };
 
@@ -276,7 +276,7 @@ function NavItem({ label, icon, to, active, external }) {
       ? 'linear-gradient(135deg, rgba(167,139,250,0.18), rgba(96,165,250,0.10))'
       : hov ? 'var(--overlay-4)' : 'transparent',
     border: active ? '1px solid rgba(167,139,250,0.3)' : '1px solid transparent',
-    color: active ? '#C4B5FD' : hov ? 'var(--text-strong)' : 'var(--text-subtle)',
+    color: active ? 'var(--accent-soft)' : hov ? 'var(--text-strong)' : 'var(--text-subtle)',
     textDecoration: 'none', fontSize: 13, fontWeight: active ? 700 : 500,
     cursor: 'pointer', transition: 'all 0.15s',
     boxShadow: active ? '0 0 20px rgba(167,139,250,0.1)' : 'none',
@@ -315,7 +315,7 @@ function TrialBanner({ trialDaysLeft }) {
       display: 'flex', alignItems: 'center', gap: 12,
     }}>
       <span style={{ fontSize: 16 }}>{urgent ? '🚨' : '⏳'}</span>
-      <span style={{ fontSize: 13, color: urgent ? '#FCA5A5' : '#FCD34D', flex: 1 }}>
+      <span style={{ fontSize: 13, color: urgent ? 'var(--danger-soft)' : 'var(--warning-2)', flex: 1 }}>
         <strong>{trialDaysLeft === 0 ? 'Last day' : `${trialDaysLeft} day${trialDaysLeft > 1 ? 's' : ''} left`}</strong> on your free trial.
         Subscribe now to keep access to all tools.
       </span>
@@ -435,7 +435,7 @@ export default function HubPage({ user, onLogout }) {
             </div>
             <div>
               <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.2, margin: 0, letterSpacing: '-0.2px' }}>Hive Mind</p>
-              <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: '#A78BFA', lineHeight: 1, margin: 0 }}>AD OPTIMIZER 360</p>
+              <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--accent)', lineHeight: 1, margin: 0 }}>AD OPTIMIZER 360</p>
             </div>
           </div>
         </div>
@@ -541,7 +541,7 @@ export default function HubPage({ user, onLogout }) {
               boxShadow: '0 0 16px rgba(16,185,129,0.12)',
             }}>
               <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 8px #10B981' }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#34D399' }}>All systems live</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success-2)' }}>All systems live</span>
             </div>
             <ThemeToggle />
             <Link to="/billing" style={{
@@ -574,7 +574,7 @@ export default function HubPage({ user, onLogout }) {
               <>
                 <span style={{ fontSize: 18 }}>✅</span>
                 <div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#A78BFA' }}>Seller Central connected!</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>Seller Central connected!</span>
                   <span style={{ fontSize: 13, color: 'var(--text-subtle)', marginLeft: 8 }}>Redirecting to authorize Amazon Advertising…</span>
                 </div>
                 <div style={{ marginLeft: 'auto', width: 18, height: 18, border: '2px solid rgba(167,139,250,0.3)', borderTopColor: '#A78BFA', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
@@ -584,7 +584,7 @@ export default function HubPage({ user, onLogout }) {
               <>
                 <span style={{ fontSize: 18 }}>🔗</span>
                 <div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#60A5FA' }}>Amazon Advertising connected!</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--info)' }}>Amazon Advertising connected!</span>
                   <span style={{ fontSize: 13, color: 'var(--text-subtle)', marginLeft: 8 }}>Syncing your profiles…</span>
                 </div>
                 <div style={{ marginLeft: 'auto', width: 18, height: 18, border: '2px solid rgba(96,165,250,0.3)', borderTopColor: '#60A5FA', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
@@ -594,7 +594,7 @@ export default function HubPage({ user, onLogout }) {
               <>
                 <span style={{ fontSize: 18 }}>🎉</span>
                 <div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#34D399' }}>Amazon account fully connected!</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--success-2)' }}>Amazon account fully connected!</span>
                   <span style={{ fontSize: 13, color: 'var(--text-subtle)', marginLeft: 8 }}>Your campaigns are ready to load.</span>
                 </div>
                 <button onClick={() => setOauthStep(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-subtle)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
@@ -626,7 +626,7 @@ export default function HubPage({ user, onLogout }) {
                 Welcome {clientName} 👋
               </h1>
               <p style={{ fontSize: 15, color: 'var(--text-subtle)', lineHeight: 1.7, margin: 0, maxWidth: 500 }}>
-                Your <strong style={{ color: '#A78BFA' }}>Hive Mind Ad Optimizer 360</strong> suite is live and ready.
+                Your <strong style={{ color: 'var(--accent)' }}>Hive Mind Ad Optimizer 360</strong> suite is live and ready.
                 Pick a tool below to start scaling your Amazon performance.
               </p>
             </div>
@@ -636,10 +636,10 @@ export default function HubPage({ user, onLogout }) {
           {/* ── Stats row ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 14, marginBottom: 52 }}>
             {[
-              { label: 'Tools Included',  value: TOOLS.length, icon: '⚡', gradient: 'linear-gradient(135deg, #7C3AED, #5B21B6)', glow: 'rgba(124,58,237,0.4)', color: '#A78BFA' },
-              { label: 'Amazon Profiles', value: planCfg.profiles, icon: '📦', gradient: 'linear-gradient(135deg, #1D4ED8, #3B82F6)', glow: 'rgba(59,130,246,0.4)', color: '#60A5FA' },
+              { label: 'Tools Included',  value: TOOLS.length, icon: '⚡', gradient: 'linear-gradient(135deg, #7C3AED, #5B21B6)', glow: 'rgba(124,58,237,0.4)', color: 'var(--accent)' },
+              { label: 'Amazon Profiles', value: planCfg.profiles, icon: '📦', gradient: 'linear-gradient(135deg, #1D4ED8, #3B82F6)', glow: 'rgba(59,130,246,0.4)', color: 'var(--info)' },
               { label: 'AI Models',       value: '2',  icon: '🤖', gradient: 'linear-gradient(135deg, #BE185D, #EC4899)', glow: 'rgba(236,72,153,0.4)', color: '#F472B6' },
-              { label: 'Support',         value: 'Priority', icon: '💬', gradient: 'linear-gradient(135deg, #065F46, #10B981)', glow: 'rgba(16,185,129,0.4)', color: '#34D399' },
+              { label: 'Support',         value: 'Priority', icon: '💬', gradient: 'linear-gradient(135deg, #065F46, #10B981)', glow: 'rgba(16,185,129,0.4)', color: 'var(--success-2)' },
             ].map(s => (
               <div key={s.label} style={{
                 padding: '20px 22px', borderRadius: 16,
@@ -882,7 +882,7 @@ function SignOutButton({ onLogout }) {
         width: '100%', padding: '9px 12px', borderRadius: 10,
         background: hov ? 'rgba(239,68,68,0.10)' : 'transparent',
         border: hov ? '1px solid rgba(239,68,68,0.25)' : '1px solid transparent',
-        color: hov ? '#EF4444' : 'var(--text-subtle)',
+        color: hov ? 'var(--danger-strong)' : 'var(--text-subtle)',
         fontSize: 13, fontWeight: 600, cursor: 'pointer',
         transition: 'all 0.15s', textAlign: 'left',
         boxShadow: hov ? '0 0 16px rgba(239,68,68,0.15)' : 'none',

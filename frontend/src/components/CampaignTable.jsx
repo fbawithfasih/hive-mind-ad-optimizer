@@ -2,10 +2,10 @@ import React from 'react';
 import { fmtN, fmt2 } from '../utils/formatting.js';
 
 const STATUS_STYLE = {
-  enabled:  { label: 'Active',    bg: '#10B98118', color: '#10B981', border: '#10B98140' },
-  active:   { label: 'Active',    bg: '#10B98118', color: '#10B981', border: '#10B98140' },
-  paused:   { label: 'Paused',    bg: '#F59E0B18', color: '#F59E0B', border: '#F59E0B40' },
-  ended:    { label: 'Ended',     bg: '#F43F5E18', color: '#F43F5E', border: '#F43F5E40' },
+  enabled:  { label: 'Active',    bg: '#10B98118', color: 'var(--success)', border: '#10B98140' },
+  active:   { label: 'Active',    bg: '#10B98118', color: 'var(--success)', border: '#10B98140' },
+  paused:   { label: 'Paused',    bg: '#F59E0B18', color: 'var(--warning)', border: '#F59E0B40' },
+  ended:    { label: 'Ended',     bg: '#F43F5E18', color: 'var(--rose)', border: '#F43F5E40' },
   archived: { label: 'Archived',  bg: 'var(--text-muted)18', color: 'var(--text-muted)', border: 'var(--text-muted)40' },
 };
 

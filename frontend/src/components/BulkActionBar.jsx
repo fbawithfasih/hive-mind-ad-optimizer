@@ -11,7 +11,7 @@ const BTN = {
   amber:  { background: 'linear-gradient(135deg,#F59E0B,#D97706)', color: '#fff', boxShadow: '0 2px 8px rgba(245,158,11,0.35)' },
   blue:   { background: 'linear-gradient(135deg,#3B82F6,#2563EB)', color: '#fff', boxShadow: '0 2px 8px rgba(59,130,246,0.35)' },
   ghost:  { background: 'var(--overlay-5)', color: 'var(--text-muted)', border: '1px solid var(--overlay-7)' },
-  danger: { background: 'rgba(244,63,94,0.12)',   color: '#F43F5E', border: '1px solid rgba(244,63,94,0.25)' },
+  danger: { background: 'rgba(244,63,94,0.12)',   color: 'var(--rose)', border: '1px solid rgba(244,63,94,0.25)' },
 };
 
 function Btn({ variant = 'ghost', disabled, onClick, children, style }) {
@@ -64,7 +64,7 @@ export default function BulkActionBar({ count, campaigns, selectedIds, onAction,
       display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
     }}>
       {/* Selection count */}
-      <span style={{ fontSize: 12, fontWeight: 700, color: '#93C5FD', whiteSpace: 'nowrap' }}>
+      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--info-2)', whiteSpace: 'nowrap' }}>
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ display:'inline',verticalAlign:'-2px',marginRight:5 }}>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
@@ -108,7 +108,7 @@ export default function BulkActionBar({ count, campaigns, selectedIds, onAction,
                     flex: 1, padding: '5px 0', borderRadius: 6, border: 'none', fontSize: 11,
                     fontWeight: 700, cursor: 'pointer',
                     background: budgetMode === m ? 'rgba(59,130,246,0.25)' : 'var(--overlay-4)',
-                    color: budgetMode === m ? '#93C5FD' : 'var(--text-subtle)',
+                    color: budgetMode === m ? 'var(--info-2)' : 'var(--text-subtle)',
                   }}>
                   {label}
                 </button>
@@ -164,7 +164,7 @@ export default function BulkActionBar({ count, campaigns, selectedIds, onAction,
       {lastResult && (
         <span style={{
           fontSize: 11, fontWeight: 600,
-          color: lastResult.failed?.length ? '#F59E0B' : '#10B981',
+          color: lastResult.failed?.length ? 'var(--warning)' : 'var(--success)',
           display: 'flex', alignItems: 'center', gap: 4,
         }}>
           {lastResult.failed?.length

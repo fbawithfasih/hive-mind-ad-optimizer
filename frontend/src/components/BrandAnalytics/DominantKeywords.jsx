@@ -78,7 +78,7 @@ export default function DominantKeywords({ keywords = [], weakKeywords = [] }) {
                 <td style={TDR}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
                     <ShareBar value={k.purchaseShare} max={maxShare} />
-                    <span style={{ color: '#10B981', fontWeight: 700, minWidth: 36 }}>{k.purchaseShare}%</span>
+                    <span style={{ color: 'var(--success)', fontWeight: 700, minWidth: 36 }}>{k.purchaseShare}%</span>
                   </div>
                 </td>
                 <td style={TDR}>{k.clickShare}%</td>

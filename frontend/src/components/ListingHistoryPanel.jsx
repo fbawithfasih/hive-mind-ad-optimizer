@@ -39,10 +39,10 @@ function Spinner({ size = 14 }) {
 }
 
 const STATUS_META = {
-  COMPLETED:  { label: 'Optimized',  color: '#3B82F6', bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.3)'  },
-  PUBLISHED:  { label: 'Published',  color: '#10B981', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.3)'  },
-  PENDING:    { label: 'Pending',    color: '#F59E0B', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.3)'  },
-  FAILED:     { label: 'Failed',     color: '#EF4444', bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.3)'   },
+  COMPLETED:  { label: 'Optimized',  color: 'var(--info-strong)', bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.3)'  },
+  PUBLISHED:  { label: 'Published',  color: 'var(--success)', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.3)'  },
+  PENDING:    { label: 'Pending',    color: 'var(--warning)', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.3)'  },
+  FAILED:     { label: 'Failed',     color: 'var(--danger-strong)', bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.3)'   },
 };
 
 function StatusBadge({ status }) {
@@ -57,7 +57,7 @@ function StatusBadge({ status }) {
 function ModelBadge({ model }) {
   const isGemini = model === 'gemini';
   return (
-    <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: isGemini ? 'rgba(139,92,246,0.1)' : 'rgba(245,158,11,0.1)', color: isGemini ? '#A78BFA' : '#FCD34D', border: `1px solid ${isGemini ? 'rgba(139,92,246,0.25)' : 'rgba(245,158,11,0.25)'}` }}>
+    <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: isGemini ? 'rgba(139,92,246,0.1)' : 'rgba(245,158,11,0.1)', color: isGemini ? 'var(--accent)' : 'var(--warning-2)', border: `1px solid ${isGemini ? 'rgba(139,92,246,0.25)' : 'rgba(245,158,11,0.25)'}` }}>
       {isGemini ? 'Gemini' : 'Claude'}
     </span>
   );
@@ -67,7 +67,7 @@ function CharBadge({ text, limit }) {
   const len = (text ?? '').length;
   const over = len > limit;
   return (
-    <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 6, background: over ? 'rgba(244,63,94,0.12)' : 'var(--overlay-4)', color: over ? '#F87171' : 'var(--text-faint)' }}>
+    <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 6, background: over ? 'rgba(244,63,94,0.12)' : 'var(--overlay-4)', color: over ? 'var(--danger)' : 'var(--text-faint)' }}>
       {len}/{limit}
     </span>
   );
@@ -80,7 +80,7 @@ function FieldDiff({ label, original, optimized, limit }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
         <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-faint)' }}>{label}</span>
         {optimized && limit && <CharBadge text={optimized} limit={limit} />}
-        {changed && <span style={{ fontSize: 10, fontWeight: 600, color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '1px 7px', borderRadius: 6, border: '1px solid rgba(16,185,129,0.2)' }}>Changed</span>}
+        {changed && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--success)', background: 'rgba(16,185,129,0.1)', padding: '1px 7px', borderRadius: 6, border: '1px solid rgba(16,185,129,0.2)' }}>Changed</span>}
         {!changed && optimized && <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>Unchanged</span>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -91,8 +91,8 @@ function FieldDiff({ label, original, optimized, limit }) {
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 9, fontWeight: 700, color: changed ? '#A78BFA' : 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Optimized</div>
-          <div style={{ background: changed ? 'rgba(139,92,246,0.05)' : 'var(--overlay-1)', border: `1px solid ${changed ? 'rgba(139,92,246,0.2)' : 'var(--overlay-4)'}`, borderRadius: 8, padding: '8px 10px', fontSize: 11, color: changed ? '#C4B5FD' : 'var(--text-faint)', maxHeight: 80, overflow: 'auto', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: changed ? 'var(--accent)' : 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Optimized</div>
+          <div style={{ background: changed ? 'rgba(139,92,246,0.05)' : 'var(--overlay-1)', border: `1px solid ${changed ? 'rgba(139,92,246,0.2)' : 'var(--overlay-4)'}`, borderRadius: 8, padding: '8px 10px', fontSize: 11, color: changed ? 'var(--accent-soft)' : 'var(--text-faint)', maxHeight: 80, overflow: 'auto', lineHeight: 1.5 }}>
             {optimized || <em style={{ opacity: 0.4 }}>empty</em>}
           </div>
         </div>
@@ -130,7 +130,7 @@ function HistoryRow({ record, isExpanded, onToggle }) {
           <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 1 }}>{timeStr}</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {record.asin && <span style={{ fontSize: 11, fontWeight: 600, color: '#8B5CF6' }}>{record.asin}</span>}
+          {record.asin && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent-strong)' }}>{record.asin}</span>}
           {record.sku  && <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{record.sku}</span>}
         </div>
         <div style={{ fontSize: 11, color: 'var(--text-subtle)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -141,7 +141,7 @@ function HistoryRow({ record, isExpanded, onToggle }) {
         <div style={{ fontSize: 11, color: 'var(--text-faint)', textAlign: 'center' }}>
           {kwCount > 0 ? kwCount : '—'}
         </div>
-        <div style={{ color: isExpanded ? '#A78BFA' : 'var(--text-faint)', fontSize: 14, textAlign: 'center', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+        <div style={{ color: isExpanded ? 'var(--accent)' : 'var(--text-faint)', fontSize: 14, textAlign: 'center', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
           ▼
         </div>
       </div>
@@ -149,7 +149,7 @@ function HistoryRow({ record, isExpanded, onToggle }) {
       {isExpanded && (
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--overlay-4)', background: 'rgba(139,92,246,0.03)' }}>
           {record.status === 'PUBLISHED' && record.publishedAt && (
-            <div style={{ marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#34D399', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8, padding: '5px 12px' }}>
+            <div style={{ marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--success-2)', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8, padding: '5px 12px' }}>
               ✓ Published {new Date(record.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
             </div>
           )}
@@ -259,15 +259,15 @@ export default function ListingHistoryPanel() {
             </div>
             <div style={{ display: 'flex', gap: 16 }}>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 900, color: '#6366F1', lineHeight: 1 }}>{counts.total}</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--indigo)', lineHeight: 1 }}>{counts.total}</div>
                 <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2 }}>Total runs</div>
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 900, color: '#10B981', lineHeight: 1 }}>{counts.published}</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--success)', lineHeight: 1 }}>{counts.published}</div>
                 <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2 }}>Published</div>
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 900, color: '#3B82F6', lineHeight: 1 }}>{counts.completed}</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--info-strong)', lineHeight: 1 }}>{counts.completed}</div>
                 <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2 }}>Completed</div>
               </div>
             </div>
@@ -305,7 +305,7 @@ export default function ListingHistoryPanel() {
             )}
 
             {(asinFilter || skuFilter) && (
-              <span style={{ fontSize: 11, color: '#6366F1', background: 'rgba(99,102,241,0.1)', padding: '4px 12px', borderRadius: 99, border: '1px solid rgba(99,102,241,0.25)' }}>
+              <span style={{ fontSize: 11, color: 'var(--indigo)', background: 'rgba(99,102,241,0.1)', padding: '4px 12px', borderRadius: 99, border: '1px solid rgba(99,102,241,0.25)' }}>
                 {asinFilter ? `ASIN: ${asinFilter}` : `SKU: ${skuFilter}`}
               </span>
             )}
@@ -326,7 +326,7 @@ export default function ListingHistoryPanel() {
 
       {/* ── ERROR ── */}
       {error && (
-        <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', color: '#F87171', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
+        <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', color: 'var(--danger)', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
           {error}
         </div>
       )}

@@ -9,9 +9,9 @@ const S = {
   h1: { margin: '0 0 8px', fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' },
   p: { margin: '0 0 24px', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 },
   btn: { display: 'inline-block', padding: '11px 24px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', textDecoration: 'none' },
-  linkBtn: { background: 'none', border: 'none', color: '#3B82F6', fontSize: 13, cursor: 'pointer', padding: 0 },
-  err: { background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#F87171', marginBottom: 16 },
-  ok: { background: '#10B98118', border: '1px solid #10B98144', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#34D399', marginBottom: 16 },
+  linkBtn: { background: 'none', border: 'none', color: 'var(--info-strong)', fontSize: 13, cursor: 'pointer', padding: 0 },
+  err: { background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)', marginBottom: 16 },
+  ok: { background: '#10B98118', border: '1px solid #10B98144', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--success-2)', marginBottom: 16 },
 };
 
 export default function VerifyEmailPage() {

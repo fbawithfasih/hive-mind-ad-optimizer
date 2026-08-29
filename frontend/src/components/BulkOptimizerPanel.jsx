@@ -86,10 +86,10 @@ function VibrantProgressBar({ completed, total, failed }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', align: 'center', gap: 16 }}>
           <span style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 500 }}>{processed} / {total} processed</span>
-          {completed > 0 && <span style={{ fontSize: 12, color: '#10B981', fontWeight: 700 }}>✓ {completed} done</span>}
-          {failed > 0    && <span style={{ fontSize: 12, color: '#F43F5E', fontWeight: 700 }}>✗ {failed} failed</span>}
+          {completed > 0 && <span style={{ fontSize: 12, color: 'var(--success)', fontWeight: 700 }}>✓ {completed} done</span>}
+          {failed > 0    && <span style={{ fontSize: 12, color: 'var(--rose)', fontWeight: 700 }}>✗ {failed} failed</span>}
         </div>
-        <span style={{ fontSize: 13, fontWeight: 900, color: pct === 100 ? '#10B981' : '#A78BFA' }}>{pct}%</span>
+        <span style={{ fontSize: 13, fontWeight: 900, color: pct === 100 ? 'var(--success)' : 'var(--accent)' }}>{pct}%</span>
       </div>
       {/* Track */}
       <div style={{ height: 8, background: 'var(--overlay-3)', borderRadius: 99, overflow: 'hidden', border: '1px solid var(--overlay-5)' }}>
@@ -136,7 +136,7 @@ function CopyBtn({ text }) {
   const [copied, setCopied] = useState(false);
   return (
     <button onClick={() => { navigator.clipboard.writeText(text ?? ''); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      style={{ fontSize: 10, padding: '3px 10px', borderRadius: 6, border: `1px solid ${copied ? '#10B981' : 'var(--overlay-8)'}`, background: copied ? 'rgba(16,185,129,0.1)' : 'var(--overlay-3)', cursor: 'pointer', color: copied ? '#10B981' : 'var(--text-faint)', transition: 'all .15s', whiteSpace: 'nowrap' }}>
+      style={{ fontSize: 10, padding: '3px 10px', borderRadius: 6, border: `1px solid ${copied ? '#10B981' : 'var(--overlay-8)'}`, background: copied ? 'rgba(16,185,129,0.1)' : 'var(--overlay-3)', cursor: 'pointer', color: copied ? 'var(--success)' : 'var(--text-faint)', transition: 'all .15s', whiteSpace: 'nowrap' }}>
       {copied ? '✓ Copied' : 'Copy'}
     </button>
   );
@@ -210,7 +210,7 @@ function ItemCard({ item, index }) {
       )}
 
       {failed && item.errorMessage && (
-        <p style={{ margin: '8px 0 0', fontSize: 12, color: '#F87171', lineHeight: 1.5 }}>
+        <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--danger)', lineHeight: 1.5 }}>
           {item.errorMessage}
         </p>
       )}
@@ -296,7 +296,7 @@ export default function BulkOptimizerPanel({ aiModel }) {
             <p style={{ margin: 0, fontWeight: 900, fontSize: 17, color: 'var(--text-primary)', letterSpacing: '-0.4px' }}>
               Bulk Listing Optimizer
               {batch && (
-                <span style={{ marginLeft: 10, fontSize: 12, fontWeight: 600, color: '#6366F1', background: 'rgba(99,102,241,0.12)', padding: '2px 10px', borderRadius: 20, border: '1px solid rgba(99,102,241,0.25)' }}>
+                <span style={{ marginLeft: 10, fontSize: 12, fontWeight: 600, color: 'var(--indigo)', background: 'rgba(99,102,241,0.12)', padding: '2px 10px', borderRadius: 20, border: '1px solid rgba(99,102,241,0.25)' }}>
                   Batch #{batch.batchId?.slice(-6)}
                 </span>
               )}
@@ -328,7 +328,7 @@ export default function BulkOptimizerPanel({ aiModel }) {
               <div style={{ position: 'relative' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>ASINs / SKUs</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: itemCount > 0 ? '#6366F1' : 'var(--text-faint)', background: itemCount > 0 ? 'rgba(99,102,241,0.12)' : 'var(--overlay-3)', padding: '2px 10px', borderRadius: 99, border: `1px solid ${itemCount > 0 ? 'rgba(99,102,241,0.25)' : 'var(--overlay-5)'}`, transition: 'all 0.2s' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: itemCount > 0 ? 'var(--indigo)' : 'var(--text-faint)', background: itemCount > 0 ? 'rgba(99,102,241,0.12)' : 'var(--overlay-3)', padding: '2px 10px', borderRadius: 99, border: `1px solid ${itemCount > 0 ? 'rgba(99,102,241,0.25)' : 'var(--overlay-5)'}`, transition: 'all 0.2s' }}>
                     {itemCount} / 50 items
                   </span>
                 </div>
@@ -363,7 +363,7 @@ export default function BulkOptimizerPanel({ aiModel }) {
               </div>
 
               {error && (
-                <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', borderRadius: 10, padding: '8px 14px', fontSize: 12, color: '#F87171', flex: 1 }}>
+                <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)', borderRadius: 10, padding: '8px 14px', fontSize: 12, color: 'var(--danger)', flex: 1 }}>
                   {error}
                 </div>
               )}
@@ -450,7 +450,7 @@ export default function BulkOptimizerPanel({ aiModel }) {
             </div>
             <VibrantProgressBar completed={completed} total={total} failed={failed} />
             {isDone && (
-              <p style={{ margin: '12px 0 0', fontSize: 13, color: failed === 0 ? '#34D399' : '#FCD34D', fontWeight: 700, textAlign: 'center' }}>
+              <p style={{ margin: '12px 0 0', fontSize: 13, color: failed === 0 ? 'var(--success-2)' : 'var(--warning-2)', fontWeight: 700, textAlign: 'center' }}>
                 {failed === 0
                   ? `✓ All ${completed} listings optimized successfully`
                   : `${completed} succeeded · ${failed} failed — check items below`}
@@ -473,7 +473,7 @@ export default function BulkOptimizerPanel({ aiModel }) {
                   `ASIN: ${i.asin || i.sku}\nTITLE: ${i.optimizedTitle ?? ''}\n${(i.optimizedBullets ?? []).filter(Boolean).map((b, bi) => `BULLET ${bi+1}: ${b}`).join('\n')}`
                 ).join('\n\n---\n\n');
                 navigator.clipboard.writeText(all);
-              }} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#6366F1', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', padding: '5px 14px', borderRadius: 20, cursor: 'pointer', fontWeight: 600 }}>
+              }} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--indigo)', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', padding: '5px 14px', borderRadius: 20, cursor: 'pointer', fontWeight: 600 }}>
                 <svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                 </svg>

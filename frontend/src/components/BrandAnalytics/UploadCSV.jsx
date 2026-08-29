@@ -85,7 +85,7 @@ function DropZone({ type, label, desc, icon, color, onFile, status }) {
       )}
 
       {status?.error && (
-        <p style={{ fontSize: 11, color: '#F87171', margin: 0 }}>⚠ {status.error}</p>
+        <p style={{ fontSize: 11, color: 'var(--danger)', margin: 0 }}>⚠ {status.error}</p>
       )}
 
       {status?.filename && (
@@ -136,7 +136,7 @@ export default function UploadCSV({ brand, onRefreshNeeded }) {
       }}>
         <span style={{ fontSize: 18, lineHeight: 1.2, flexShrink: 0 }}>✨</span>
         <div style={{ flex: 1 }}>
-          <p style={{ margin: 0, fontSize: 12.5, color: '#34D399', fontWeight: 700 }}>
+          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--success-2)', fontWeight: 700 }}>
             Auto-fetch is now the recommended path
           </p>
           <p style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
@@ -177,14 +177,14 @@ export default function UploadCSV({ brand, onRefreshNeeded }) {
             {refreshing ? <><Spinner /> Re-parsing…</> : '↻ Refresh Analytics Cache'}
           </button>
           {refreshMsg && (
-            <p style={{ fontSize: 12, color: refreshMsg.ok ? '#34D399' : '#F87171', margin: 0 }}>
+            <p style={{ fontSize: 12, color: refreshMsg.ok ? 'var(--success-2)' : 'var(--danger)', margin: 0 }}>
               {refreshMsg.ok ? '✓' : '⚠'} {refreshMsg.text}
             </p>
           )}
         </div>
 
         <div style={{ marginTop: 14, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 10, padding: '10px 14px', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-          <strong style={{ color: '#60A5FA' }}>How to get these reports:</strong> Seller Central → Brand Analytics → Search Analytics → Select your brand → Download quarterly CSVs. The Top Search Terms file can exceed 400 MB — that's normal. First load will take 30–60 seconds while the backend streams it.
+          <strong style={{ color: 'var(--info)' }}>How to get these reports:</strong> Seller Central → Brand Analytics → Search Analytics → Select your brand → Download quarterly CSVs. The Top Search Terms file can exceed 400 MB — that's normal. First load will take 30–60 seconds while the backend streams it.
         </div>
       </div>
     </div>

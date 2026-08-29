@@ -89,7 +89,7 @@ export default function CustomerRetention() {
           </p>
         </div>
         {isFetchError && (
-          <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.20)', color: '#F87171', borderRadius: 8, padding: '8px 14px', fontSize: 12, maxWidth: 420 }}>
+          <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.20)', color: 'var(--danger)', borderRadius: 8, padding: '8px 14px', fontSize: 12, maxWidth: 420 }}>
             {error}
           </div>
         )}
@@ -97,7 +97,7 @@ export default function CustomerRetention() {
           display: 'flex', alignItems: 'center', gap: 8, padding: '8px 18px', borderRadius: 8, border: '1px solid rgba(245,158,11,0.30)',
           cursor: triggering ? 'wait' : 'pointer',
           background: triggering ? 'var(--overlay-3)' : 'rgba(245,158,11,0.10)',
-          color: triggering ? 'var(--text-subtle)' : '#F59E0B', fontWeight: 600, fontSize: 13,
+          color: triggering ? 'var(--text-subtle)' : 'var(--warning)', fontWeight: 600, fontSize: 13,
         }}>
           {triggering ? <><Spinner /> Fetching from Amazon…</> : isFetchError ? 'Try again' : '⚡ Fetch now'}
         </button>
@@ -180,7 +180,7 @@ export default function CustomerRetention() {
               <div key={a.asin} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '7px 10px', borderRadius: 7, background: 'var(--overlay-2)', border: '1px solid var(--overlay-4)' }}>
                 <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, flexShrink: 0, width: 90 }}>{a.asin}</span>
                 <span style={{ flex: 1, fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title || <em style={{ color: 'var(--text-faint)' }}>untitled</em>}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#10B981', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{fmtPct(a.repeatRate)}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--success)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{fmtPct(a.repeatRate)}</span>
                 <span style={{ fontSize: 11, color: 'var(--text-subtle)', flexShrink: 0, width: 80, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>~{a.daysBetweenOrders}d cadence</span>
               </div>
             ))}
@@ -248,10 +248,10 @@ export default function CustomerRetention() {
                 <td style={{ ...TD, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 0 }} title={a.title}>
                   {a.title || <em style={{ color: 'var(--text-faint)' }}>untitled</em>}
                 </td>
-                <td style={{ ...TDR, color: a.repeatRate >= 25 ? '#10B981' : 'var(--text-muted)', fontWeight: 700 }}>{fmtPct(a.repeatRate)}</td>
+                <td style={{ ...TDR, color: a.repeatRate >= 25 ? 'var(--success)' : 'var(--text-muted)', fontWeight: 700 }}>{fmtPct(a.repeatRate)}</td>
                 <td style={TDR}>{fmtN(a.repeatCustomers)} / {fmtN(a.totalCustomers)}</td>
                 <td style={TDR}>{a.daysBetweenOrders > 0 ? `~${a.daysBetweenOrders}d` : '—'}</td>
-                <td style={{ ...TD, textAlign: 'center', fontSize: 13, color: '#10B981' }}>{a.subscribeAndSaveCandidate ? '✓' : ''}</td>
+                <td style={{ ...TD, textAlign: 'center', fontSize: 13, color: 'var(--success)' }}>{a.subscribeAndSaveCandidate ? '✓' : ''}</td>
               </tr>
             ))}
           </tbody>

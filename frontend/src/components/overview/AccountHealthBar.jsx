@@ -35,7 +35,7 @@ export default function AccountHealthBar({ stats, metricsSummary, loadingSales }
 
   return (
     <div style={{
-      background: 'rgba(6,9,20,0.95)',
+      background: 'var(--surface-card)',
       border: '1px solid var(--overlay-4)',
       borderRadius: 14,
       display: 'flex',
@@ -52,7 +52,7 @@ export default function AccountHealthBar({ stats, metricsSummary, loadingSales }
         flexShrink: 0,
       }}>
         <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 8px #10B981' }} />
-        <span style={{ fontSize: 10, fontWeight: 800, color: '#A78BFA', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+        <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--accent)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
           Account Health
         </span>
       </div>

@@ -56,7 +56,7 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
         onClick={close}
         style={{
           position: 'fixed', inset: 0, zIndex: 200,
-          background: 'rgba(4,6,16,0.72)',
+          background: 'var(--scrim)',
           backdropFilter: 'blur(6px)',
         }}
       />
@@ -72,7 +72,7 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
           position: 'fixed', top: '15vh', left: '50%', transform: 'translateX(-50%)',
           width: 620, maxWidth: 'calc(100vw - 32px)',
           zIndex: 201,
-          background: 'rgba(8,12,26,0.98)',
+          background: 'var(--surface-raised)',
           border: '1px solid var(--overlay-8)',
           borderRadius: 16,
           boxShadow: '0 32px 80px var(--bg-overlay-lo), 0 0 0 1px rgba(59,130,246,0.08)',
@@ -159,7 +159,7 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
                 >
                   <span style={iconStyle}>{cmd.icon}</span>
                   <span style={{ flex: 1, color: 'var(--text-primary)', fontWeight: 600 }}>{cmd.label}</span>
-                  <span style={{ ...enterStyle, color: '#F59E0B' }}>{cmd.preset}</span>
+                  <span style={{ ...enterStyle, color: 'var(--warning)' }}>{cmd.preset}</span>
                 </Command.Item>
               ))}
             </Command.Group>

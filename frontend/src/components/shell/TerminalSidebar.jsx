@@ -5,9 +5,9 @@ const SECTIONS = [
   {
     label: 'CORE',
     items: [
-      { tab: 'overview',        label: 'Overview',              icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', color: '#A78BFA' },
+      { tab: 'overview',        label: 'Overview',              icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', color: 'var(--accent)' },
       { tab: 'campaigns',       label: 'Campaigns',             icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', color: '#F97316' },
-      { tab: 'search-terms',    label: 'Search Terms',          icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', color: '#8B5CF6' },
+      { tab: 'search-terms',    label: 'Search Terms',          icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', color: 'var(--accent-strong)' },
       { tab: 'brand-analytics', label: 'Brand Analytics',       icon: 'M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z', color: '#06B6D4' },
     ],
   },
@@ -15,24 +15,24 @@ const SECTIONS = [
     label: 'OPTIMIZE',
     items: [
       { tab: 'listings',         label: 'Listing Optimizer',    icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z', color: '#E879F9' },
-      { tab: 'image-optimizer',  label: 'Image Optimizer',      icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z', color: '#A78BFA' },
+      { tab: 'image-optimizer',  label: 'Image Optimizer',      icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z', color: 'var(--accent)' },
       { tab: 'bulk',             label: 'Bulk Optimizer',       icon: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4', color: '#22D3EE' },
-      { tab: 'keywords',         label: 'Keyword Intelligence', icon: 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z', color: '#FBBF24' },
+      { tab: 'keywords',         label: 'Keyword Intelligence', icon: 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z', color: 'var(--warning-3)' },
     ],
   },
   {
     label: 'AUTOMATE',
     items: [
-      { tab: 'automation', label: 'Automation Rules', icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H4a2 2 0 01-2-2V5a2 2 0 012-2h3.5', color: '#10B981' },
-      { tab: 'alerts',     label: 'Campaign Alerts',  icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9', color: '#F43F5E' },
-      { tab: 'reports',    label: 'Reporting Agent',  icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', color: '#3B82F6' },
+      { tab: 'automation', label: 'Automation Rules', icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H4a2 2 0 01-2-2V5a2 2 0 012-2h3.5', color: 'var(--success)' },
+      { tab: 'alerts',     label: 'Campaign Alerts',  icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9', color: 'var(--rose)' },
+      { tab: 'reports',    label: 'Reporting Agent',  icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', color: 'var(--info-strong)' },
     ],
   },
   {
     label: 'MANAGE',
     items: [
-      { tab: 'health',           label: 'Listing Health',    icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: '#34D399' },
-      { tab: 'listing-history',  label: 'Optim. History',   icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', color: '#A5B4FC' },
+      { tab: 'health',           label: 'Listing Health',    icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: 'var(--success-2)' },
+      { tab: 'listing-history',  label: 'Optim. History',   icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', color: 'var(--indigo-soft)' },
       { tab: 'profiles',         label: 'Profiles',         icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', color: 'var(--text-muted)' },
       { tab: 'team',             label: 'Team & Roles',     icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z', color: 'var(--text-muted)' },
       { tab: 'amazon',           label: 'Amazon Account',   icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1', color: '#F97316' },
@@ -68,7 +68,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
       top: 0,
       display: 'flex',
       flexDirection: 'column',
-      background: 'rgba(4,6,16,0.97)',
+      background: 'var(--surface-chrome)',
       borderRight: '1px solid var(--overlay-4)',
       backdropFilter: 'blur(24px)',
       transition: 'width 0.2s ease, min-width 0.2s ease',
@@ -93,7 +93,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
             <img src="/HMN-APP-ICON.png" alt="HMN" style={{ width: 28, height: 28, borderRadius: 7, objectFit: 'contain', flexShrink: 0 }} />
             <div style={{ minWidth: 0 }}>
               <p style={{ fontWeight: 800, fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.2, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Hive Mind</p>
-              <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#A78BFA', margin: 0 }}>ADS TERMINAL</p>
+              <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--accent)', margin: 0 }}>ADS TERMINAL</p>
             </div>
           </Link>
         )}
@@ -152,7 +152,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
                     overflow: 'hidden',
                   }}
                   onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--text-muted)'; }}
-                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--border-med)'; }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--text-faint)'; }}
                 >
                   <span style={{ color: isActive ? item.color : 'inherit', display: 'flex', flexShrink: 0 }}>
                     <SvgIcon d={item.icon} size={15} />
@@ -186,7 +186,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
         >
           <span style={{ fontSize: 14, lineHeight: 1 }}>🏆</span>
           {!collapsed && (
-            <span style={{ fontSize: 11, fontWeight: 700, color: earnedBadgeCount > 0 ? '#F59E0B' : 'var(--text-faint)' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: earnedBadgeCount > 0 ? 'var(--warning)' : 'var(--text-faint)' }}>
               {earnedBadgeCount} / 4 badges
             </span>
           )}
@@ -213,7 +213,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
             transition: 'color 0.12s',
           }}
           onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = 'var(--border-strong)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-faint)'; }}
         >
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />

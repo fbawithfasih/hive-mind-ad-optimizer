@@ -144,7 +144,7 @@ function RuleForm({ profileId, initialValues, ruleId, onSave, onCancel }) {
         </select>
       </div>
 
-      {error && <p style={{ color: '#EF4444', fontSize: 13 }}>{error}</p>}
+      {error && <p style={{ color: 'var(--danger-strong)', fontSize: 13 }}>{error}</p>}
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button type="button" style={S.ghost} onClick={onCancel}>Cancel</button>
@@ -210,8 +210,8 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
           </div>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
             If <b style={{ color: 'var(--text-primary)' }}>{metricLabel}</b>{' '}
-            <b style={{ color: '#3B82F6' }}>{condLabel} {rule.threshold}</b>
-            {' '}&rarr; <b style={{ color: '#8B5CF6' }}>{actionLabel}</b>
+            <b style={{ color: 'var(--info-strong)' }}>{condLabel} {rule.threshold}</b>
+            {' '}&rarr; <b style={{ color: 'var(--accent-strong)' }}>{actionLabel}</b>
             {['increase_budget','decrease_budget'].includes(rule.action) && ` by ${rule.adjustment}%`}
             {' '}· lookback {rule.lookbackDays}d
           </p>
@@ -224,7 +224,7 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
             </p>
           )}
           {rule.schedule && !lastExec && (
-            <p style={{ fontSize: 11, color: '#8B5CF6' }}>Scheduled — will run automatically</p>
+            <p style={{ fontSize: 11, color: 'var(--accent-strong)' }}>Scheduled — will run automatically</p>
           )}
           {!rule.schedule && (
             <p style={{ fontSize: 11, color: 'var(--text-faint)' }}>Manual only — use Run to execute</p>
@@ -242,12 +242,12 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
           </button>
           {deleteConfirm ? (
             <>
-              <span style={{ fontSize: 12, color: '#EF4444', display: 'flex', alignItems: 'center', padding: '0 4px' }}>Delete?</span>
+              <span style={{ fontSize: 12, color: 'var(--danger-strong)', display: 'flex', alignItems: 'center', padding: '0 4px' }}>Delete?</span>
               <button style={S.btn('#EF4444')} onClick={() => { onDelete(rule); setDeleteConfirm(false); }}>Yes</button>
               <button style={S.ghost} onClick={() => setDeleteConfirm(false)}>No</button>
             </>
           ) : (
-            <button style={{ ...S.ghost, color: '#EF4444', borderColor: '#EF444444' }} onClick={() => setDeleteConfirm(true)}>
+            <button style={{ ...S.ghost, color: 'var(--danger-strong)', borderColor: '#EF444444' }} onClick={() => setDeleteConfirm(true)}>
               Delete
             </button>
           )}
@@ -259,7 +259,7 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
           <p style={{ fontSize: 12, color: STATUS_COLOR[result.status] ?? 'var(--text-muted)', fontWeight: 600 }}>
             {result.status === 'skipped' ? 'Skipped' : `${result.affectedCount} campaign(s) affected`}
           </p>
-          {result.error && <p style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{result.error}</p>}
+          {result.error && <p style={{ fontSize: 11, color: 'var(--danger-strong)', marginTop: 4 }}>{result.error}</p>}
           {result.changes?.slice(0, 5).map((c, i) => (
             <p key={i} style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
               {c.campaignName}: {c.field} {c.oldValue} → {c.newValue}
@@ -298,7 +298,7 @@ function HistoryModal({ rule, onClose }) {
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(h.executedAt).toLocaleString()}</span>
               <span style={{ fontSize: 12, color: 'var(--text-subtle)' }}>{h.affectedCount} campaigns</span>
             </div>
-            {h.error && <p style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{h.error}</p>}
+            {h.error && <p style={{ fontSize: 11, color: 'var(--danger-strong)', marginTop: 4 }}>{h.error}</p>}
           </div>
         ))}
       </div>
@@ -371,7 +371,7 @@ export default function AutomationPanel({ profileId }) {
               <span style={S.badge(STATUS_COLOR[r.status] ?? 'var(--text-muted)')}>{r.status}</span>
               <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>{r.ruleName}</span>
               <span style={{ fontSize: 12, color: 'var(--text-subtle)' }}>{r.affectedCount} affected</span>
-              {r.error && <span style={{ fontSize: 11, color: '#EF4444' }}>{r.error}</span>}
+              {r.error && <span style={{ fontSize: 11, color: 'var(--danger-strong)' }}>{r.error}</span>}
             </div>
           ))}
         </div>

@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 
 const REC_STYLE = {
-  SCALE_UP:     { label: 'Scale Up',     bg: '#10B98118', color: '#10B981', border: '#10B98140' },
-  ADD_EXACT:    { label: 'Add as Exact', bg: '#3B82F618', color: '#3B82F6', border: '#3B82F640' },
-  ADD_NEGATIVE: { label: 'Add Negative', bg: '#F43F5E18', color: '#F43F5E', border: '#F43F5E40' },
-  WATCH:        { label: 'Watch',        bg: '#F59E0B18', color: '#F59E0B', border: '#F59E0B40' },
+  SCALE_UP:     { label: 'Scale Up',     bg: '#10B98118', color: 'var(--success)', border: '#10B98140' },
+  ADD_EXACT:    { label: 'Add as Exact', bg: '#3B82F618', color: 'var(--info-strong)', border: '#3B82F640' },
+  ADD_NEGATIVE: { label: 'Add Negative', bg: '#F43F5E18', color: 'var(--rose)', border: '#F43F5E40' },
+  WATCH:        { label: 'Watch',        bg: '#F59E0B18', color: 'var(--warning)', border: '#F59E0B40' },
 };
 
 const REC_ORDER = { SCALE_UP: 0, ADD_EXACT: 1, ADD_NEGATIVE: 2, WATCH: 3 };

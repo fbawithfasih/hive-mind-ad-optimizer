@@ -26,7 +26,7 @@ function SectionLabel({ children }) {
 function ChartCard({ children, style }) {
   return (
     <div style={{
-      background: 'rgba(8,12,26,0.9)',
+      background: 'var(--surface-card)',
       border: '1px solid var(--overlay-5)',
       borderRadius: 16,
       padding: '18px 20px',
@@ -43,7 +43,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
-      background: 'rgba(8,12,26,0.97)',
+      background: 'var(--surface-card)',
       border: '1px solid var(--overlay-8)',
       borderRadius: 10,
       padding: '10px 14px',
@@ -251,7 +251,7 @@ export default function OverviewPanel({
           )}
           {spendRevenueData.length >= 2 && (
             <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
-              {[{ color: '#3B82F6', label: 'Revenue' }, { color: '#8B5CF6', label: 'Spend' }].map(l => (
+              {[{ color: 'var(--info-strong)', label: 'Revenue' }, { color: 'var(--accent-strong)', label: 'Spend' }].map(l => (
                 <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <div style={{ width: 8, height: 2, background: l.color, borderRadius: 1 }} />
                   <span style={{ fontSize: 10, color: 'var(--text-faint)', fontWeight: 600 }}>{l.label}</span>
@@ -287,7 +287,7 @@ export default function OverviewPanel({
                     if (!active || !payload?.length) return null;
                     const d = payload[0].payload;
                     return (
-                      <div style={{ background: 'rgba(8,12,26,0.97)', border: '1px solid var(--overlay-8)', borderRadius: 8, padding: '8px 12px', fontSize: 11 }}>
+                      <div style={{ background: 'var(--surface-card)', border: '1px solid var(--overlay-8)', borderRadius: 8, padding: '8px 12px', fontSize: 11 }}>
                         <span style={{ color: PIE_COLORS[d.key], fontWeight: 700 }}>{d.name}: {d.value}</span>
                       </div>
                     );
