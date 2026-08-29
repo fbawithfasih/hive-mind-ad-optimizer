@@ -80,7 +80,7 @@ export default function CustomerRetention() {
     return (
       <div style={{ ...CARD, padding: '40px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 16 }}>
         <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="22" height="22" fill="none" stroke="#F59E0B" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+          <svg width="22" height="22" fill="none" stroke="var(--warning)" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
         </div>
         <div>
           <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>No retention data yet</p>
@@ -138,7 +138,7 @@ export default function CustomerRetention() {
           </div>
           <div style={{ flex: 1, minWidth: 240, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
             <KpiCell label="ASINs tracked"   value={fmtN(asins.length)} />
-            <KpiCell label="S&S candidates"  value={fmtN(snsCandidates.length)} accent="#10B981" />
+            <KpiCell label="S&S candidates"  value={fmtN(snsCandidates.length)} accent="var(--success)" />
             <KpiCell label="Period end"       value={fmtDate(period?.periodEnd)} sub={`from ${fmtDate(period?.periodStart)}`} />
           </div>
         </div>

@@ -75,7 +75,7 @@ const S = {
     textAlign: 'center',
   },
   iconWrap: {
-    width: 56, height: 56, borderRadius: '50%', background: '#F43F5E18',
+    width: 56, height: 56, borderRadius: '50%', background: 'color-mix(in srgb, var(--rose) 9%, transparent)',
     border: '1px solid #F43F5E44', display: 'flex', alignItems: 'center',
     justifyContent: 'center', margin: '0 auto 20px',
   },

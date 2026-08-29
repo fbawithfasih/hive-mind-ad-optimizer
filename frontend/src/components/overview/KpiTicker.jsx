@@ -20,7 +20,7 @@ export default function KpiTicker({
   label,
   value,
   format = 'currency',
-  accentColor = '#3B82F6',
+  accentColor = 'var(--info-strong)',
   sparkData = [],
   grade,          // { roas, acos } — optional, renders grade badge
   sub,
@@ -35,7 +35,7 @@ export default function KpiTicker({
     <div style={{
       padding: '16px 18px',
       background: 'var(--surface-card)',
-      border: `1px solid ${accentColor}1A`,
+      border: `1px solid color-mix(in srgb, ${accentColor} 10%, transparent)`,
       borderRadius: 16,
       display: 'flex',
       flexDirection: 'column',

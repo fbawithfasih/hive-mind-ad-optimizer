@@ -80,13 +80,13 @@ export default function AmazonConnectPanel({ onConnected }) {
         <div className="ml-auto">
           {status?.connected ? (
             <span className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full"
-                  style={{ background: '#10B98120', border: '1px solid #10B98140', color: 'var(--success)' }}>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#10B981', display: 'inline-block' }}/>
+                  style={{ background: 'color-mix(in srgb, var(--success) 13%, transparent)', border: '1px solid #10B98140', color: 'var(--success)' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--success)', display: 'inline-block' }}/>
               Connected
             </span>
           ) : (
             <span className="text-xs font-semibold px-3 py-1 rounded-full"
-                  style={{ background: '#F43F5E20', border: '1px solid #F43F5E40', color: 'var(--rose)' }}>
+                  style={{ background: 'color-mix(in srgb, var(--rose) 13%, transparent)', border: '1px solid #F43F5E40', color: 'var(--rose)' }}>
               Not connected
             </span>
           )}
@@ -95,7 +95,7 @@ export default function AmazonConnectPanel({ onConnected }) {
 
       {/* Error */}
       {error && (
-        <div className="rounded-lg px-4 py-3 text-sm" style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', color: 'var(--rose)' }}>
+        <div className="rounded-lg px-4 py-3 text-sm" style={{ background: 'color-mix(in srgb, var(--rose) 9%, transparent)', border: '1px solid #F43F5E44', color: 'var(--rose)' }}>
           {error}
         </div>
       )}

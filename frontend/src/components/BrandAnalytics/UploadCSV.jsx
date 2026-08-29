@@ -146,7 +146,7 @@ export default function UploadCSV({ brand, onRefreshNeeded }) {
       </div>
 
     <div style={{ ...glass('var(--overlay-5)'), padding: '22px 24px' }}>
-      <GradientBar top="linear-gradient(90deg,#8B5CF6,#3B82F6,#10B981)" />
+      <GradientBar top="linear-gradient(90deg,var(--accent-strong),var(--info-strong),var(--success))" />
       <GlowBlob color="rgba(139,92,246,0.12)" />
       <div style={{ position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
@@ -169,7 +169,7 @@ export default function UploadCSV({ brand, onRefreshNeeded }) {
             style={{
               display: 'flex', alignItems: 'center', gap: 8, padding: '10px 22px', borderRadius: 10, border: 'none',
               cursor: refreshing ? 'not-allowed' : 'pointer',
-              background: refreshing ? 'var(--overlay-4)' : 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
+              background: refreshing ? 'var(--overlay-4)' : 'linear-gradient(135deg,var(--accent-strong),var(--info-strong))',
               color: '#fff', fontWeight: 700, fontSize: 13,
               boxShadow: refreshing ? 'none' : '0 4px 18px rgba(139,92,246,0.4)',
               opacity: refreshing ? 0.7 : 1,

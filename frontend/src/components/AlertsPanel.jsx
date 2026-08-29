@@ -63,8 +63,8 @@ const CONDITIONS = [
 
 const METRIC_UNITS = { acos: '%', spend: '$', roas: '×', ctr: '', clicks: '', impressions: '' };
 const METRIC_COLORS = {
-  acos: '#F43F5E', spend: '#F59E0B', roas: '#10B981',
-  ctr: '#3B82F6', clicks: '#8B5CF6', impressions: '#6366F1',
+  acos: 'var(--rose)', spend: 'var(--warning)', roas: 'var(--success)',
+  ctr: 'var(--info-strong)', clicks: 'var(--accent-strong)', impressions: 'var(--indigo)',
 };
 
 function metricLabel(m) { return METRICS.find(x => x.value === m)?.label ?? m; }
@@ -92,7 +92,7 @@ function AlertForm({ initial, onSave, onCancel, isSaving }) {
         <label style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-faint)', display: 'block', marginBottom: 5 }}>Alert name</label>
         <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. High ACoS warning"
           style={inputSt}
-          onFocus={e => e.target.style.borderColor = '#F43F5E'}
+          onFocus={e => e.target.style.borderColor = 'var(--rose)'}
           onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'} />
       </div>
 
@@ -116,7 +116,7 @@ function AlertForm({ initial, onSave, onCancel, isSaving }) {
           <input type="number" value={form.threshold} onChange={e => set('threshold', e.target.value)}
             placeholder="0" min="0"
             style={{ ...inputSt }}
-            onFocus={e => e.target.style.borderColor = '#F43F5E'}
+            onFocus={e => e.target.style.borderColor = 'var(--rose)'}
             onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'} />
         </div>
       </div>
@@ -136,7 +136,7 @@ function AlertForm({ initial, onSave, onCancel, isSaving }) {
           </button>
         )}
         <button onClick={() => valid && onSave(form)} disabled={!valid || isSaving}
-          style={{ padding: '7px 20px', borderRadius: 8, border: 'none', background: valid && !isSaving ? 'linear-gradient(135deg,#F43F5E,#EF4444)' : 'var(--overlay-4)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: valid && !isSaving ? 'pointer' : 'not-allowed', opacity: valid && !isSaving ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+          style={{ padding: '7px 20px', borderRadius: 8, border: 'none', background: valid && !isSaving ? 'linear-gradient(135deg,var(--rose),var(--danger-strong))' : 'var(--overlay-4)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: valid && !isSaving ? 'pointer' : 'not-allowed', opacity: valid && !isSaving ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 6 }}>
           {isSaving ? <><Spinner size={12} /> Saving…</> : (initial ? 'Save changes' : '+ Create alert')}
         </button>
       </div>
@@ -150,7 +150,7 @@ function AlertCard({ alert, onToggle, onDelete, onEdit }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isEditing,   setIsEditing]   = useState(false);
   const [isSaving,    setIsSaving]    = useState(false);
-  const color = METRIC_COLORS[alert.metric] ?? '#6366F1';
+  const color = METRIC_COLORS[alert.metric] ?? 'var(--indigo)';
 
   async function handleSaveEdit(form) {
     setIsSaving(true);
@@ -238,7 +238,7 @@ function FireHistory({ fires, onMarkAllRead, isMarking }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       {fires.map(fire => {
-        const color = METRIC_COLORS[fire.alert?.metric] ?? '#6366F1';
+        const color = METRIC_COLORS[fire.alert?.metric] ?? 'var(--indigo)';
         const date  = new Date(fire.triggeredAt);
         return (
           <div key={fire.id} style={{ display: 'grid', gridTemplateColumns: '8px 1fr auto', gap: 12, alignItems: 'center', padding: '11px 18px', borderBottom: '1px solid var(--overlay-3)', background: fire.isRead ? 'transparent' : 'rgba(244,63,94,0.03)' }}>
@@ -396,7 +396,7 @@ export default function AlertsPanel() {
 
       {/* ── Header ── */}
       <div style={{ ...glass, padding: '22px 24px', borderColor: 'rgba(244,63,94,0.2)', boxShadow: '0 4px 40px rgba(244,63,94,0.08)' }}>
-        <GradientBar top="linear-gradient(90deg,#F43F5E,#F59E0B,#8B5CF6)" />
+        <GradientBar top="linear-gradient(90deg,var(--rose),var(--warning),var(--accent-strong))" />
         <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
           <div>
             <p style={{ margin: 0, fontWeight: 900, fontSize: 17, color: 'var(--text-primary)', letterSpacing: '-0.4px' }}>Campaign Alerts</p>
@@ -435,7 +435,7 @@ export default function AlertsPanel() {
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
             padding: '7px 18px', borderRadius: 9, border: 'none', cursor: 'pointer',
-            background: tab === t.id ? 'linear-gradient(135deg,#F43F5E,#EF4444)' : 'transparent',
+            background: tab === t.id ? 'linear-gradient(135deg,var(--rose),var(--danger-strong))' : 'transparent',
             color: tab === t.id ? '#fff' : 'var(--text-faint)',
             fontWeight: 700, fontSize: 12,
             boxShadow: tab === t.id ? '0 2px 12px rgba(244,63,94,0.4)' : 'none',
@@ -466,7 +466,7 @@ export default function AlertsPanel() {
               checked={notifyOnAlerts}
               disabled={notifySaving}
               onChange={e => handleToggleNotify(e.target.checked)}
-              style={{ width: 14, height: 14, accentColor: '#F43F5E', cursor: notifySaving ? 'wait' : 'pointer' }}
+              style={{ width: 14, height: 14, accentColor: 'var(--rose)', cursor: notifySaving ? 'wait' : 'pointer' }}
             />
             <span style={{ color: notifyOnAlerts ? 'var(--rose)' : 'var(--text-faint)', fontWeight: 700, fontSize: 11 }}>
               {notifySaving ? 'Saving…' : notifyOnAlerts ? 'On' : 'Off'}
@@ -504,7 +504,7 @@ export default function AlertsPanel() {
             <button onClick={handleSaveSlack} disabled={slackSaving || slackInput === (slackUrl ?? '')} style={{
               fontSize: 11, fontWeight: 700, padding: '7px 14px', borderRadius: 7, border: 'none',
               cursor: (slackSaving || slackInput === (slackUrl ?? '')) ? 'not-allowed' : 'pointer',
-              background: (slackSaving || slackInput === (slackUrl ?? '')) ? 'var(--overlay-5)' : 'linear-gradient(135deg,#F43F5E,#EF4444)',
+              background: (slackSaving || slackInput === (slackUrl ?? '')) ? 'var(--overlay-5)' : 'linear-gradient(135deg,var(--rose),var(--danger-strong))',
               color: (slackSaving || slackInput === (slackUrl ?? '')) ? 'var(--text-faint)' : '#fff',
             }}>
               {slackSaving ? 'Saving…' : 'Save'}
@@ -535,7 +535,7 @@ export default function AlertsPanel() {
           {/* Create form */}
           {showForm ? (
             <div style={{ ...glass, padding: '18px 20px', borderColor: 'rgba(244,63,94,0.2)' }}>
-              <GradientBar top="linear-gradient(90deg,#F43F5E,#F59E0B)" />
+              <GradientBar top="linear-gradient(90deg,var(--rose),var(--warning))" />
               <div style={{ position: 'relative' }}>
                 <p style={{ margin: '0 0 14px', fontSize: 12, fontWeight: 700, color: 'var(--danger)' }}>New Alert Rule</p>
                 <AlertForm onSave={handleCreate} onCancel={() => setShowForm(false)} isSaving={isSaving} />
@@ -543,7 +543,7 @@ export default function AlertsPanel() {
             </div>
           ) : (
             <button onClick={() => setShowForm(true)}
-              style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#F43F5E,#EF4444)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 4px 18px rgba(244,63,94,0.4)' }}>
+              style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,var(--rose),var(--danger-strong))', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 4px 18px rgba(244,63,94,0.4)' }}>
               <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4"/>
               </svg>
@@ -566,7 +566,7 @@ export default function AlertsPanel() {
       {/* ── History tab ── */}
       {!isLoading && tab === 'history' && (
         <div style={{ ...glass, padding: 0, borderColor: 'rgba(244,63,94,0.1)' }}>
-          <GradientBar top="linear-gradient(90deg,#F43F5E,#8B5CF6)" />
+          <GradientBar top="linear-gradient(90deg,var(--rose),var(--accent-strong))" />
 
           <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--overlay-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-faint)' }}>

@@ -89,7 +89,7 @@ export default function SqpFetchModal({ onClose, onSubmitted }) {
         width: '100%', maxWidth: 720, maxHeight: '85vh',
         display: 'flex', flexDirection: 'column',
       }}>
-        <GradientBar top="linear-gradient(90deg,#8B5CF6,#3B82F6)" />
+        <GradientBar top="linear-gradient(90deg,var(--accent-strong),var(--info-strong))" />
         <GlowBlob color="rgba(139,92,246,0.18)" />
 
         {/* Header */}

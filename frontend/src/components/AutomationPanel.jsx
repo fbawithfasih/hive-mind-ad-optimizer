@@ -35,9 +35,9 @@ const SCHEDULES = [
 ];
 
 const STATUS_COLOR = {
-  success: '#10B981',
-  partial: '#F59E0B',
-  failed:  '#EF4444',
+  success: 'var(--success)',
+  partial: 'var(--warning)',
+  failed:  'var(--danger-strong)',
   skipped: 'var(--text-subtle)',
 };
 
@@ -45,7 +45,7 @@ const S = {
   card:   { background: 'var(--bg-panel)', border: '1px solid var(--border-strong)', borderRadius: 12, padding: 20, marginBottom: 12 },
   label:  { fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 },
   input:  { background: 'var(--bg-app-2)', border: '1px solid var(--border-strong)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 13, width: '100%' },
-  btn:    (color = '#3B82F6') => ({ background: color, border: 'none', borderRadius: 8, padding: '8px 16px', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }),
+  btn:    (color = 'var(--info-strong)') => ({ background: color, border: 'none', borderRadius: 8, padding: '8px 16px', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }),
   ghost:  { background: 'transparent', border: '1px solid var(--border-strong)', borderRadius: 8, padding: '8px 16px', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' },
   badge:  (color) => ({ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: color + '22', color, border: `1px solid ${color}44` }),
 };
@@ -180,7 +180,7 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
 
   if (isEditing) {
     return (
-      <div style={{ ...S.card, borderColor: '#3B82F644' }}>
+      <div style={{ ...S.card, borderColor: 'color-mix(in srgb, var(--info-strong) 27%, transparent)' }}>
         <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', marginBottom: 16 }}>Edit Rule</p>
         <RuleForm
           initialValues={rule}
@@ -198,13 +198,13 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>{rule.name}</span>
-            <span style={S.badge(rule.isActive ? '#10B981' : 'var(--text-subtle)')}>
+            <span style={S.badge(rule.isActive ? 'var(--success)' : 'var(--text-subtle)')}>
               {rule.isActive ? 'Active' : 'Paused'}
             </span>
             {rule.schedule && (() => {
               const s = SCHEDULES.find(x => x.value === rule.schedule);
               return s?.badge ? (
-                <span style={S.badge('#8B5CF6')}>⏱ {s.badge}</span>
+                <span style={S.badge('var(--accent-strong)')}>⏱ {s.badge}</span>
               ) : null;
             })()}
           </div>
@@ -232,7 +232,7 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
         </div>
 
         <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          <button style={S.btn(running ? 'var(--border-med)' : '#10B981')} disabled={running} onClick={handleRun}>
+          <button style={S.btn(running ? 'var(--border-med)' : 'var(--success)')} disabled={running} onClick={handleRun}>
             {running ? '…' : 'Run'}
           </button>
           <button style={S.ghost} onClick={() => onViewHistory(rule)}>History</button>
@@ -243,11 +243,11 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
           {deleteConfirm ? (
             <>
               <span style={{ fontSize: 12, color: 'var(--danger-strong)', display: 'flex', alignItems: 'center', padding: '0 4px' }}>Delete?</span>
-              <button style={S.btn('#EF4444')} onClick={() => { onDelete(rule); setDeleteConfirm(false); }}>Yes</button>
+              <button style={S.btn('var(--danger-strong)')} onClick={() => { onDelete(rule); setDeleteConfirm(false); }}>Yes</button>
               <button style={S.ghost} onClick={() => setDeleteConfirm(false)}>No</button>
             </>
           ) : (
-            <button style={{ ...S.ghost, color: 'var(--danger-strong)', borderColor: '#EF444444' }} onClick={() => setDeleteConfirm(true)}>
+            <button style={{ ...S.ghost, color: 'var(--danger-strong)', borderColor: 'color-mix(in srgb, var(--danger-strong) 27%, transparent)' }} onClick={() => setDeleteConfirm(true)}>
               Delete
             </button>
           )}
@@ -255,7 +255,7 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
       </div>
 
       {result && (
-        <div style={{ marginTop: 12, padding: 12, background: 'var(--bg-app-2)', borderRadius: 8, border: `1px solid ${STATUS_COLOR[result.status] ?? 'var(--border-strong)'}33` }}>
+        <div style={{ marginTop: 12, padding: 12, background: 'var(--bg-app-2)', borderRadius: 8, border: `1px solid color-mix(in srgb, ${STATUS_COLOR[result.status] ?? 'var(--border-strong)'} 20%, transparent)` }}>
           <p style={{ fontSize: 12, color: STATUS_COLOR[result.status] ?? 'var(--text-muted)', fontWeight: 600 }}>
             {result.status === 'skipped' ? 'Skipped' : `${result.affectedCount} campaign(s) affected`}
           </p>
@@ -379,7 +379,7 @@ export default function AutomationPanel({ profileId }) {
 
       {/* New rule form */}
       {showForm && (
-        <div style={{ ...S.card, borderColor: '#3B82F644' }}>
+        <div style={{ ...S.card, borderColor: 'color-mix(in srgb, var(--info-strong) 27%, transparent)' }}>
           <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', marginBottom: 16 }}>New Rule</p>
           <RuleForm
             profileId={profileId}

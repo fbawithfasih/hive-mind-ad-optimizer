@@ -12,7 +12,7 @@ const S = {
   page: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,var(--bg-app-2) 0%,var(--bg-panel) 100%)' },
   card: { width: '100%', maxWidth: 420, padding: '40px 36px', background: 'var(--bg-panel)', borderRadius: 16, border: '1px solid var(--border-strong)', boxShadow: '0 25px 60px var(--bg-overlay-lo)' },
   logo: { textAlign: 'center', marginBottom: 28 },
-  logoIcon: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 52, borderRadius: 14, marginBottom: 12, background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)' },
+  logoIcon: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 52, borderRadius: 14, marginBottom: 12, background: 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))' },
   h1: { margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' },
   sub: { margin: '4px 0 0', fontSize: 13, color: 'var(--text-subtle)' },
   planBadge: { display: 'flex', alignItems: 'center', gap: 8, background: '#1E3A5F', border: '1px solid #2563EB55', borderRadius: 8, padding: '10px 14px', marginBottom: 4, fontSize: 13 },
@@ -23,10 +23,10 @@ const S = {
   row: { display: 'flex', gap: 10 },
   label: { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' },
   input: { width: '100%', boxSizing: 'border-box', background: 'var(--bg-app-2)', border: '1px solid var(--border-strong)', borderRadius: 8, color: 'var(--text-primary)', padding: '11px 14px', fontSize: 14, outline: 'none' },
-  btn: { marginTop: 4, padding: '12px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' },
+  btn: { marginTop: 4, padding: '12px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' },
   btnOff: { background: 'var(--border-strong)', opacity: 0.7, cursor: 'not-allowed' },
-  err: { background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)' },
-  success: { background: '#10B98118', border: '1px solid #10B98144', borderRadius: 8, padding: '14px', fontSize: 13, color: 'var(--success-2)', textAlign: 'center', lineHeight: 1.5 },
+  err: { background: 'color-mix(in srgb, var(--rose) 9%, transparent)', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)' },
+  success: { background: 'color-mix(in srgb, var(--success) 9%, transparent)', border: '1px solid #10B98144', borderRadius: 8, padding: '14px', fontSize: 13, color: 'var(--success-2)', textAlign: 'center', lineHeight: 1.5 },
   foot: { textAlign: 'center', marginTop: 20, fontSize: 13, color: 'var(--text-subtle)' },
 };
 
@@ -44,8 +44,8 @@ export default function SignupPage({ onSignup }) {
   const [done, setDone]    = useState(false);
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
-  const focus = e => (e.target.style.borderColor = '#3B82F6');
-  const blur  = e => (e.target.style.borderColor = 'var(--border-strong)');
+  const focus = e => (e.target.style.borderColor = 'var(--info-strong)');
+  const blur  = e => (e.target.style.borderColor = 'var(--text-faint)');
 
   async function handleSubmit(e) {
     e.preventDefault();

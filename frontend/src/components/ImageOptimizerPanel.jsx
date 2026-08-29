@@ -35,7 +35,7 @@ function ProgressBoard({ pct, elapsedSec }) {
       boxShadow: `0 4px 32px ${currentPhase.glow}`,
       overflow: 'hidden',
     }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,#8B5CF6,#3B82F6,#10B981)', backgroundSize: '200% 100%', animation: 'iopt-shimmer 3s linear infinite' }} />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,var(--accent-strong),var(--info-strong),var(--success))', backgroundSize: '200% 100%', animation: 'iopt-shimmer 3s linear infinite' }} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12, gap: 12 }}>
         <div>
           <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Optimizing</p>
@@ -50,7 +50,7 @@ function ProgressBoard({ pct, elapsedSec }) {
       <div style={{ height: 8, borderRadius: 99, background: 'var(--surface-inset)', border: '1px solid var(--overlay-4)', overflow: 'hidden', position: 'relative' }}>
         <div style={{
           width: `${pct}%`, height: '100%',
-          background: 'linear-gradient(90deg,#8B5CF6,#3B82F6,#10B981)',
+          background: 'linear-gradient(90deg,var(--accent-strong),var(--info-strong),var(--success))',
           backgroundSize: '200% 100%',
           animation: 'iopt-shimmer 2s linear infinite',
           transition: 'width 240ms cubic-bezier(.4,0,.2,1)',
@@ -61,9 +61,9 @@ function ProgressBoard({ pct, elapsedSec }) {
         {PROGRESS_PHASES.map(p => {
           const done   = pct >= p.range[1];
           const active = pct >= p.range[0] && pct < p.range[1];
-          const bg     = done ? `${p.color}25` : active ? `${p.color}30` : 'rgba(15,23,42,0.5)';
+          const bg     = done ? `color-mix(in srgb, ${p.color} 15%, transparent)` : active ? `color-mix(in srgb, ${p.color} 19%, transparent)` : 'rgba(15,23,42,0.5)';
           const fg     = done || active ? p.color : 'var(--border-med)';
-          const border = done || active ? `${p.color}55` : 'var(--overlay-5)';
+          const border = done || active ? `color-mix(in srgb, ${p.color} 33%, transparent)` : 'var(--overlay-5)';
           return (
             <span key={p.id} style={{
               fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 99,
@@ -187,7 +187,7 @@ export default function ImageOptimizerPanel() {
   return (
     <div style={{ background: 'var(--bg-panel)', borderRadius: 12, border: '1px solid var(--border-strong)', padding: '20px 24px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#8B5CF6,#3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(139,92,246,0.4)' }}>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,var(--accent-strong),var(--info-strong))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(139,92,246,0.4)' }}>
           <svg width="16" height="16" fill="none" stroke="white" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
           </svg>
@@ -218,7 +218,7 @@ export default function ImageOptimizerPanel() {
               </div>
             ) : (
               <>
-                <svg width="32" height="32" fill="none" stroke="#A78BFA" viewBox="0 0 24 24" style={{ margin: '0 auto 8px', display: 'block' }}>
+                <svg width="32" height="32" fill="none" stroke="var(--accent)" viewBox="0 0 24 24" style={{ margin: '0 auto 8px', display: 'block' }}>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Upload product image</p>
@@ -270,7 +270,7 @@ export default function ImageOptimizerPanel() {
           <button onClick={handleOptimize} disabled={loading}
             style={{
               padding: '12px 22px', borderRadius: 10, border: 'none',
-              background: loading ? 'var(--border-strong)' : 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
+              background: loading ? 'var(--border-strong)' : 'linear-gradient(135deg,var(--accent-strong),var(--info-strong))',
               color: '#fff', fontWeight: 800, fontSize: 13, cursor: loading ? 'not-allowed' : 'pointer',
               opacity: loading ? 0.7 : 1, boxShadow: loading ? 'none' : '0 4px 16px rgba(139,92,246,0.4)',
             }}>
@@ -281,7 +281,7 @@ export default function ImageOptimizerPanel() {
         {/* RIGHT — Output */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {error && (
-            <div style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)' }}>{error}</div>
+            <div style={{ background: 'color-mix(in srgb, var(--rose) 9%, transparent)', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)' }}>{error}</div>
           )}
 
           {loading && <ProgressBoard pct={progress} elapsedSec={elapsed} />}

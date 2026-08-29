@@ -9,7 +9,7 @@ import WeeklyScoreCard from '../gamification/WeeklyScoreCard.jsx';
 import StreakTracker from '../gamification/StreakTracker.jsx';
 import PerformanceBadges from '../gamification/PerformanceBadges.jsx';
 
-const PIE_COLORS = { enabled: '#10B981', paused: '#F59E0B', archived: '#6366F1' };
+const PIE_COLORS = { enabled: 'var(--success)', paused: 'var(--warning)', archived: 'var(--indigo)' };
 
 function SectionLabel({ children }) {
   return (
@@ -119,7 +119,7 @@ export default function OverviewPanel({
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '8px 14px', borderRadius: 8,
               border: '1px solid rgba(59,130,246,0.35)',
-              background: refreshing ? 'rgba(59,130,246,0.05)' : 'linear-gradient(135deg,#3B82F6,#8B5CF6)',
+              background: refreshing ? 'rgba(59,130,246,0.05)' : 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))',
               color: refreshing ? 'var(--text-muted)' : '#fff',
               fontSize: 12, fontWeight: 700,
               cursor: refreshing ? 'not-allowed' : 'pointer',
@@ -155,7 +155,7 @@ export default function OverviewPanel({
             label="Ads Revenue"
             value={metricsSummary.totalRevenue || null}
             format="currency"
-            accentColor="#3B82F6"
+            accentColor="var(--info-strong)"
             sparkData={revHistory}
             loading={loading}
             sub="Sponsored only"
@@ -164,7 +164,7 @@ export default function OverviewPanel({
             label="Total Ad Spend"
             value={metricsSummary.totalSpend || null}
             format="currency"
-            accentColor="#8B5CF6"
+            accentColor="var(--accent-strong)"
             sparkData={spendHistory}
             loading={loading}
             sub="Across campaigns"
@@ -173,14 +173,14 @@ export default function OverviewPanel({
             label="Daily Budget"
             value={stats.budget || null}
             format="currency2"
-            accentColor="#A78BFA"
+            accentColor="var(--accent)"
             sub="Active campaigns"
           />
           <KpiTicker
             label="ROAS"
             value={metricsSummary.roas}
             format="x"
-            accentColor="#10B981"
+            accentColor="var(--success)"
             sparkData={roasHistory}
             loading={loading}
             grade={metricsSummary.roas != null ? { roas: metricsSummary.roas, acos: metricsSummary.acos } : undefined}
@@ -190,7 +190,7 @@ export default function OverviewPanel({
             label="ACoS"
             value={metricsSummary.acos}
             format="pct"
-            accentColor={metricsSummary.acos != null && metricsSummary.acos < 25 ? '#10B981' : '#F59E0B'}
+            accentColor={metricsSummary.acos != null && metricsSummary.acos < 25 ? 'var(--success)' : 'var(--warning)'}
             sparkData={acosHistory}
             loading={loading}
             sub="Ad cost of sales"
@@ -208,7 +208,7 @@ export default function OverviewPanel({
             label="Active Campaigns"
             value={stats.enabled}
             format="int"
-            accentColor="#F59E0B"
+            accentColor="var(--warning)"
             sub={`of ${stats.total} total`}
           />
         </div>
@@ -225,19 +225,19 @@ export default function OverviewPanel({
               <ComposedChart data={spendRevenueData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#3B82F6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                    <stop offset="5%"  stopColor="var(--info-strong)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="var(--info-strong)" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gradSpend" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#8B5CF6" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
+                    <stop offset="5%"  stopColor="var(--accent-strong)" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="var(--accent-strong)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="i" hide />
                 <YAxis hide />
                 <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#3B82F6" strokeWidth={2} fill="url(#gradRevenue)" dot={false} animationDuration={800} />
-                <Area type="monotone" dataKey="spend"   name="Spend"   stroke="#8B5CF6" strokeWidth={1.5} fill="url(#gradSpend)" dot={false} animationDuration={800} strokeDasharray="4 2" />
+                <Area type="monotone" dataKey="revenue" name="Revenue" stroke="var(--info-strong)" strokeWidth={2} fill="url(#gradRevenue)" dot={false} animationDuration={800} />
+                <Area type="monotone" dataKey="spend"   name="Spend"   stroke="var(--accent-strong)" strokeWidth={1.5} fill="url(#gradSpend)" dot={false} animationDuration={800} strokeDasharray="4 2" />
               </ComposedChart>
             </ResponsiveContainer>
           ) : (

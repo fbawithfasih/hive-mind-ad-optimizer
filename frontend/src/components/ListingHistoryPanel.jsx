@@ -248,7 +248,7 @@ export default function ListingHistoryPanel() {
 
       {/* ── HEADER ── */}
       <div style={{ ...glass, padding: '22px 24px', borderColor: 'rgba(99,102,241,0.2)', boxShadow: '0 4px 40px rgba(99,102,241,0.08)' }}>
-        <GradientBar top="linear-gradient(90deg,#6366F1,#8B5CF6,#10B981)" />
+        <GradientBar top="linear-gradient(90deg,var(--indigo),var(--accent-strong),var(--success))" />
         <div style={{ position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14, marginBottom: 18 }}>
             <div>
@@ -280,11 +280,11 @@ export default function ListingHistoryPanel() {
               onChange={e => setSearchInput(e.target.value)}
               placeholder="Filter by ASIN or SKU…"
               style={{ ...inputSt, width: 220 }}
-              onFocus={e => e.target.style.borderColor = '#6366F1'}
+              onFocus={e => e.target.style.borderColor = 'var(--indigo)'}
               onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'}
             />
             <button type="submit"
-              style={{ padding: '8px 18px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+              style={{ padding: '8px 18px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,var(--indigo),var(--accent-strong))', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
               Search
             </button>
 
@@ -333,7 +333,7 @@ export default function ListingHistoryPanel() {
 
       {/* ── TABLE ── */}
       <div style={{ ...glass, padding: 0, borderColor: 'rgba(99,102,241,0.12)' }}>
-        <GradientBar top="linear-gradient(90deg,#6366F1,#8B5CF6)" />
+        <GradientBar top="linear-gradient(90deg,var(--indigo),var(--accent-strong))" />
 
         {/* Header row */}
         <div style={{ display: 'grid', gridTemplateColumns: '140px 140px 1fr 80px 80px 60px 36px', gap: 12, padding: '10px 18px', borderBottom: '1px solid var(--overlay-5)' }}>

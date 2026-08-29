@@ -41,7 +41,7 @@ export default function ResultsDisplay({ result }) {
         .ai-body code         { background:var(--bg-panel-3); color:#38BDF8; padding:2px 7px; border-radius:4px; font-size:11.5px; font-family:monospace; }
         .ai-body h1,.ai-body h2,.ai-body h3 { color:var(--text-primary); margin:16px 0 8px; line-height:1.3; }
         .ai-body h1 { font-size:18px; } .ai-body h2 { font-size:15px; } .ai-body h3 { font-size:13px; }
-        .ai-body blockquote   { border-left:3px solid #8B5CF6; margin:0 0 12px; padding:4px 14px; background:#8B5CF610; border-radius:0 6px 6px 0; color:var(--text-muted); }
+        .ai-body blockquote   { border-left:3px solid var(--accent-strong); margin:0 0 12px; padding:4px 14px; background:#8B5CF610; border-radius:0 6px 6px 0; color:var(--text-muted); }
         .ai-body hr           { border:none; border-top:1px solid var(--border-strong); margin:14px 0; }
       `}</style>
 
@@ -53,7 +53,7 @@ export default function ResultsDisplay({ result }) {
         borderBottom: '1px solid var(--border-strong)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 24, height: 24, borderRadius: 6, background: 'linear-gradient(135deg,#8B5CF6,#3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 24, height: 24, borderRadius: 6, background: 'linear-gradient(135deg,var(--accent-strong),var(--info-strong))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <svg style={{ width: 13, height: 13, color: '#fff' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
             </svg>
@@ -64,7 +64,7 @@ export default function ResultsDisplay({ result }) {
         <button onClick={copy} style={{
           display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, padding: '4px 10px',
           borderRadius: 6, cursor: 'pointer', background: 'transparent',
-          border: `1px solid ${copied ? '#10B981' : 'var(--border-strong)'}`,
+          border: `1px solid ${copied ? 'var(--success)' : 'var(--border-strong)'}`,
           color: copied ? 'var(--success)' : 'var(--text-muted)', transition: 'all .15s',
         }}>
           {copied

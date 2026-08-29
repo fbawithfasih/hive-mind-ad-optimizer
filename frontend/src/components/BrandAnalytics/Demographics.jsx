@@ -11,11 +11,11 @@ const NOT_FOUND_PREFIX = 'No completed DEMOGRAPHICS report yet';
 const CARD = { background: 'var(--bg-overlay-lo)', border: '1px solid var(--overlay-7)', borderRadius: 12, overflow: 'hidden' };
 
 const DIM_COLORS = [
-  { accent: '#8B5CF6', bar: 'rgba(139,92,246,0.60)' },
-  { accent: '#6366F1', bar: 'rgba(99,102,241,0.60)'  },
-  { accent: '#10B981', bar: 'rgba(16,185,129,0.60)'  },
-  { accent: '#3B82F6', bar: 'rgba(59,130,246,0.60)'  },
-  { accent: '#F59E0B', bar: 'rgba(245,158,11,0.60)'  },
+  { accent: 'var(--accent-strong)', bar: 'rgba(139,92,246,0.60)' },
+  { accent: 'var(--indigo)', bar: 'rgba(99,102,241,0.60)'  },
+  { accent: 'var(--success)', bar: 'rgba(16,185,129,0.60)'  },
+  { accent: 'var(--info-strong)', bar: 'rgba(59,130,246,0.60)'  },
+  { accent: 'var(--warning)', bar: 'rgba(245,158,11,0.60)'  },
 ];
 
 const DIMENSIONS = [

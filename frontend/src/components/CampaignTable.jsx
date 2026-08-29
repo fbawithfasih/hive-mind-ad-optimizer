@@ -2,17 +2,17 @@ import React from 'react';
 import { fmtN, fmt2 } from '../utils/formatting.js';
 
 const STATUS_STYLE = {
-  enabled:  { label: 'Active',    bg: '#10B98118', color: 'var(--success)', border: '#10B98140' },
-  active:   { label: 'Active',    bg: '#10B98118', color: 'var(--success)', border: '#10B98140' },
-  paused:   { label: 'Paused',    bg: '#F59E0B18', color: 'var(--warning)', border: '#F59E0B40' },
-  ended:    { label: 'Ended',     bg: '#F43F5E18', color: 'var(--rose)', border: '#F43F5E40' },
+  enabled:  { label: 'Active',    bg: 'color-mix(in srgb, var(--success) 9%, transparent)', color: 'var(--success)', border: 'color-mix(in srgb, var(--success) 25%, transparent)' },
+  active:   { label: 'Active',    bg: 'color-mix(in srgb, var(--success) 9%, transparent)', color: 'var(--success)', border: 'color-mix(in srgb, var(--success) 25%, transparent)' },
+  paused:   { label: 'Paused',    bg: 'color-mix(in srgb, var(--warning) 9%, transparent)', color: 'var(--warning)', border: 'color-mix(in srgb, var(--warning) 25%, transparent)' },
+  ended:    { label: 'Ended',     bg: 'color-mix(in srgb, var(--rose) 9%, transparent)', color: 'var(--rose)', border: 'color-mix(in srgb, var(--rose) 25%, transparent)' },
   archived: { label: 'Archived',  bg: 'var(--text-muted)18', color: 'var(--text-muted)', border: 'var(--text-muted)40' },
 };
 
 const TYPE_COLOR = {
-  sponsoredProducts: '#3B82F6',
-  sponsoredBrands:   '#8B5CF6',
-  sponsoredDisplay:  '#10B981',
+  sponsoredProducts: 'var(--info-strong)',
+  sponsoredBrands:   'var(--accent-strong)',
+  sponsoredDisplay:  'var(--success)',
 };
 
 const dash = <span style={{ color: 'var(--text-faint)' }}>—</span>;
@@ -73,7 +73,7 @@ export default function CampaignTable({
   const thC = { ...thStyle, padding: '10px 10px', width: 36, textAlign: 'center' };
 
   const checkboxStyle = {
-    width: 14, height: 14, accentColor: '#3B82F6', cursor: 'pointer',
+    width: 14, height: 14, accentColor: 'var(--info-strong)', cursor: 'pointer',
   };
 
   return (
@@ -116,7 +116,7 @@ export default function CampaignTable({
             const st       = STATUS_STYLE[c.status] ?? { label: c.status, bg: 'var(--text-muted)18', color: 'var(--text-muted)', border: 'var(--text-muted)40' };
             const typeColor = TYPE_COLOR[c.campaignType] ?? 'var(--text-muted)';
             const acos     = c.acos;
-            const acosColor = acos == null ? 'var(--text-muted)' : acos < 20 ? '#10B981' : acos <= 30 ? '#F59E0B' : '#F43F5E';
+            const acosColor = acos == null ? 'var(--text-muted)' : acos < 20 ? 'var(--success)' : acos <= 30 ? 'var(--warning)' : 'var(--rose)';
             const rowBg    = isSelected
               ? 'rgba(59,130,246,0.10)'
               : i % 2 === 0 ? 'transparent' : 'var(--bg-panel-3)';

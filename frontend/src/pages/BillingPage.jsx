@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { getBillingStatus, createCheckoutSession, verifyPaymentApi, cancelSubscriptionApi, logoutApi } from '../services/api.js';
 
 const TIER_LABEL  = { BASIC: 'Starter', PRO: 'Growth', ENTERPRISE: 'Scale', CUSTOM: 'Custom' };
-const TIER_COLOR  = { BASIC: 'var(--text-subtle)', PRO: '#3B82F6', ENTERPRISE: '#8B5CF6', CUSTOM: '#F59E0B' };
-const STATUS_COLOR = { ACTIVE: '#10B981', PAST_DUE: '#F59E0B', CANCELLED: '#F43F5E', EXPIRED: 'var(--text-subtle)' };
+const TIER_COLOR  = { BASIC: 'var(--text-subtle)', PRO: 'var(--info-strong)', ENTERPRISE: 'var(--accent-strong)', CUSTOM: 'var(--warning)' };
+const STATUS_COLOR = { ACTIVE: 'var(--success)', PAST_DUE: 'var(--warning)', CANCELLED: 'var(--rose)', EXPIRED: 'var(--text-subtle)' };
 
 // Prices mirror src/config/pricing.js — keep aligned with the backend source of truth.
 const PLAN_DETAILS = [
@@ -194,8 +194,8 @@ export default function BillingPage({ user, onLogout }) {
 
         {banner && (
           <div style={{
-            background: banner.type === 'success' ? '#10B98118' : '#3B82F618',
-            border: `1px solid ${banner.type === 'success' ? '#10B98140' : '#3B82F640'}`,
+            background: banner.type === 'success' ? 'color-mix(in srgb, var(--success) 9%, transparent)' : 'color-mix(in srgb, var(--info-strong) 9%, transparent)',
+            border: `1px solid ${banner.type === 'success' ? 'color-mix(in srgb, var(--success) 25%, transparent)' : 'color-mix(in srgb, var(--info-strong) 25%, transparent)'}`,
             borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
           }}>
             <span style={{ fontSize: 13, color: banner.type === 'success' ? 'var(--success)' : 'var(--info-2)' }}>{banner.msg}</span>
@@ -204,7 +204,7 @@ export default function BillingPage({ user, onLogout }) {
         )}
 
         {error && (
-          <div style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: 'var(--danger)' }}>{error}</div>
+          <div style={{ background: 'color-mix(in srgb, var(--rose) 9%, transparent)', border: '1px solid #F43F5E44', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: 'var(--danger)' }}>{error}</div>
         )}
 
         {/* ── Trial expired wall ── */}
@@ -251,7 +251,7 @@ export default function BillingPage({ user, onLogout }) {
         )}
 
         {!isAdmin && (
-          <div style={{ background: '#F59E0B10', border: '1px solid #F59E0B30', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: 'var(--warning-2)' }}>
+          <div style={{ background: 'color-mix(in srgb, var(--warning) 6%, transparent)', border: '1px solid #F59E0B30', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: 'var(--warning-2)' }}>
             You can view billing info but only an Admin can change the plan or manage the subscription.
           </div>
         )}
@@ -290,13 +290,13 @@ export default function BillingPage({ user, onLogout }) {
               )}
 
               {showCancel && (
-                <div style={{ marginTop: 16, padding: '14px 16px', borderRadius: 10, background: '#F43F5E10', border: '1px solid #F43F5E44' }}>
+                <div style={{ marginTop: 16, padding: '14px 16px', borderRadius: 10, background: 'color-mix(in srgb, var(--rose) 6%, transparent)', border: '1px solid #F43F5E44' }}>
                   <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--danger)' }}>
                     Are you sure? Your subscription will cancel at the end of the current billing period.
                   </p>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button onClick={handleCancel} disabled={working}
-                      style={{ padding: '7px 16px', borderRadius: 7, border: 'none', background: '#F43F5E', color: '#fff', fontSize: 13, fontWeight: 600, cursor: working ? 'not-allowed' : 'pointer' }}>
+                      style={{ padding: '7px 16px', borderRadius: 7, border: 'none', background: 'var(--rose)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: working ? 'not-allowed' : 'pointer' }}>
                       {working ? 'Cancelling…' : 'Yes, cancel'}
                     </button>
                     <button onClick={() => setShowCancel(false)} disabled={working}
@@ -341,8 +341,8 @@ export default function BillingPage({ user, onLogout }) {
                   return (
                     <div key={plan.tier} style={{
                       borderRadius: 12, padding: '20px',
-                      border: `1px solid ${isCurrent ? '#10B98150' : highlight ? TIER_COLOR[plan.tier] + '40' : 'var(--border-strong)'}`,
-                      background: isCurrent ? '#10B98108' : highlight ? TIER_COLOR[plan.tier] + '08' : 'var(--bg-app-2)',
+                      border: `1px solid ${isCurrent ? 'color-mix(in srgb, var(--success) 31%, transparent)' : highlight ? `color-mix(in srgb, ${TIER_COLOR[plan.tier]} 25%, transparent)` : 'var(--border-strong)'}`,
+                      background: isCurrent ? 'color-mix(in srgb, var(--success) 3%, transparent)' : highlight ? `color-mix(in srgb, ${TIER_COLOR[plan.tier]} 3%, transparent)` : 'var(--bg-app-2)',
                       display: 'flex', flexDirection: 'column', gap: 14, position: 'relative',
                     }}>
                       {plan.popular && !isCurrent && (
@@ -354,7 +354,7 @@ export default function BillingPage({ user, onLogout }) {
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                           <span style={{ fontSize: 16, fontWeight: 800, color: TIER_COLOR[plan.tier] }}>{TIER_LABEL[plan.tier]}</span>
-                          {isCurrent && <Badge label="Current" color="#10B981" />}
+                          {isCurrent && <Badge label="Current" color="var(--success)" />}
                         </div>
                         <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{plan.price}</span>
                       </div>
@@ -375,7 +375,7 @@ export default function BillingPage({ user, onLogout }) {
                           style={{
                             width: '100%', padding: '9px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600,
                             cursor: isCurrent || working ? 'not-allowed' : 'pointer',
-                            background: isCurrent ? '#10B98130' : `linear-gradient(135deg,${TIER_COLOR[plan.tier]},${TIER_COLOR[plan.tier]}CC)`,
+                            background: isCurrent ? 'color-mix(in srgb, var(--success) 19%, transparent)' : `linear-gradient(135deg,${TIER_COLOR[plan.tier]},color-mix(in srgb, ${TIER_COLOR[plan.tier]} 80%, transparent))`,
                             color: isCurrent ? 'var(--success)' : '#fff',
                             opacity: working && !isCurrent ? 0.6 : 1,
                           }}
@@ -403,7 +403,7 @@ export default function BillingPage({ user, onLogout }) {
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
                       {inv.currency === 'INR' ? '₹' : '$'}{(inv.amount / 100).toFixed(2)} {inv.currency?.toUpperCase()}
                     </span>
-                    <Badge label={inv.status} color={inv.status === 'PAID' ? '#10B981' : '#F59E0B'} />
+                    <Badge label={inv.status} color={inv.status === 'PAID' ? 'var(--success)' : 'var(--warning)'} />
                   </div>
                 ))}
               </div>

@@ -96,7 +96,7 @@ export default function ReportsList() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* ── Header ── */}
       <div style={{ ...glass('rgba(59,130,246,0.18)'), padding: '20px 24px' }}>
-        <GradientBar top="linear-gradient(90deg,#3B82F6,#8B5CF6)" />
+        <GradientBar top="linear-gradient(90deg,var(--info-strong),var(--accent-strong))" />
         <GlowBlob color="rgba(59,130,246,0.12)" />
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>

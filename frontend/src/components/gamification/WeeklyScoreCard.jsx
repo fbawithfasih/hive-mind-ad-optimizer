@@ -10,7 +10,7 @@ function DeltaBadge({ delta, betterWhenHigher }) {
   if (delta == null || !isFinite(delta)) return null;
   const positive    = delta > 0;
   const isGood      = betterWhenHigher ? positive : !positive;
-  const color       = isGood ? '#10B981' : '#F43F5E';
+  const color       = isGood ? 'var(--success)' : 'var(--rose)';
   const arrow       = positive ? '▲' : '▼';
   const formatted   = `${positive ? '+' : ''}${delta.toFixed(1)}%`;
 

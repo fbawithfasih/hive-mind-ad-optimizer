@@ -4,7 +4,7 @@ import {
   ResponsiveContainer, Cell, LabelList,
 } from 'recharts';
 
-const POSITION_COLOR = { 1: '#10B981', 2: '#3B82F6', 3: '#8B5CF6' };
+const POSITION_COLOR = { 1: 'var(--success)', 2: 'var(--info-strong)', 3: 'var(--accent-strong)' };
 
 const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
@@ -73,7 +73,7 @@ export default function SearchQueryChart({ brandAppearances = [] }) {
           {data.map((d, i) => (
             <Cell
               key={i}
-              fill={POSITION_COLOR[d.position] ?? '#8B5CF6'}
+              fill={POSITION_COLOR[d.position] ?? 'var(--accent-strong)'}
               fillOpacity={1 - i * 0.06}
             />
           ))}

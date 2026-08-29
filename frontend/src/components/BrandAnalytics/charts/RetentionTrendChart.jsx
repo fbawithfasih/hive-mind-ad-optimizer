@@ -58,11 +58,11 @@ export default function RetentionTrendChart({ items = [] }) {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <div style={{ width: 8, height: 8, borderRadius: 2, background: '#10B981' }} />
+          <div style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--success)' }} />
           <span style={{ fontSize: 10, color: 'var(--text-subtle)' }}>≥ {SNS_THRESHOLD}% (S&amp;S candidate)</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <div style={{ width: 8, height: 8, borderRadius: 2, background: '#F59E0B' }} />
+          <div style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--warning)' }} />
           <span style={{ fontSize: 10, color: 'var(--text-subtle)' }}>&lt; {SNS_THRESHOLD}%</span>
         </div>
       </div>
@@ -92,16 +92,16 @@ export default function RetentionTrendChart({ items = [] }) {
           <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--overlay-2)' }} />
           <ReferenceLine
             x={SNS_THRESHOLD}
-            stroke="#10B981"
+            stroke="var(--success)"
             strokeDasharray="4 3"
             strokeOpacity={0.4}
-            label={{ value: `${SNS_THRESHOLD}%`, position: 'insideTopRight', fontSize: 9, fill: '#10B981' }}
+            label={{ value: `${SNS_THRESHOLD}%`, position: 'insideTopRight', fontSize: 9, fill: 'var(--success)' }}
           />
           <Bar dataKey="repeatRate" radius={[0, 4, 4, 0]} animationDuration={900}>
             {data.map((d, i) => (
               <Cell
                 key={i}
-                fill={d.repeatRate >= SNS_THRESHOLD ? '#10B981' : '#F59E0B'}
+                fill={d.repeatRate >= SNS_THRESHOLD ? 'var(--success)' : 'var(--warning)'}
                 fillOpacity={0.85}
               />
             ))}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getListingHealth } from '../services/api.js';
 
-const GRADE_COLOR = { A: '#10B981', B: '#3B82F6', C: '#F59E0B', D: '#F97316', F: '#F43F5E' };
+const GRADE_COLOR = { A: 'var(--success)', B: 'var(--info-strong)', C: 'var(--warning)', D: 'var(--warning)', F: 'var(--rose)' };
 
 function ScoreRing({ score, grade }) {
   const color = GRADE_COLOR[grade] ?? 'var(--text-subtle)';
@@ -23,7 +23,7 @@ function ScoreRing({ score, grade }) {
 }
 
 function DimensionBar({ name, score, feedback, weight }) {
-  const color = score >= 80 ? '#10B981' : score >= 55 ? '#F59E0B' : '#F43F5E';
+  const color = score >= 80 ? 'var(--success)' : score >= 55 ? 'var(--warning)' : 'var(--rose)';
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
@@ -69,17 +69,17 @@ export default function ListingHealthPanel() {
           value={asin} onChange={e => setAsin(e.target.value)}
           placeholder="e.g. B08XYZ1234"
           style={{ flex: 1, background: 'var(--bg-app-2)', border: '1px solid var(--border-strong)', borderRadius: 8, color: 'var(--text-primary)', padding: '10px 14px', fontSize: 14, outline: 'none', fontFamily: 'monospace' }}
-          onFocus={e => (e.target.style.borderColor = '#3B82F6')}
-          onBlur={e  => (e.target.style.borderColor = 'var(--border-strong)')}
+          onFocus={e => (e.target.style.borderColor = 'var(--info-strong)')}
+          onBlur={e  => (e.target.style.borderColor = 'var(--text-faint)')}
         />
         <button type="submit" disabled={loading}
-          style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: loading ? 'var(--border-strong)' : 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: loading ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
+          style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: loading ? 'var(--border-strong)' : 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))', color: '#fff', fontWeight: 700, fontSize: 13, cursor: loading ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
           {loading ? 'Checking…' : 'Check Health'}
         </button>
       </form>
 
       {error && (
-        <div style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)', marginBottom: 16 }}>{error}</div>
+        <div style={{ background: 'color-mix(in srgb, var(--rose) 9%, transparent)', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)', marginBottom: 16 }}>{error}</div>
       )}
 
       {result && (

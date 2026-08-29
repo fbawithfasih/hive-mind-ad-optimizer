@@ -71,13 +71,13 @@ export default function ItemComparison() {
           <ColumnCard
             title="Customers also viewed"
             entries={data.comparedTo ?? []}
-            accentColor="#3B82F6"
+            accentColor="var(--info-strong)"
             empty="No also-viewed alternates returned."
           />
           <ColumnCard
             title="Customers bought instead"
             entries={data.boughtInstead ?? []}
-            accentColor="#F59E0B"
+            accentColor="var(--warning)"
             empty="No alternate-purchase entries returned."
           />
         </div>

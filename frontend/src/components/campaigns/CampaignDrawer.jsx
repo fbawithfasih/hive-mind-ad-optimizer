@@ -20,9 +20,9 @@ const TYPE_LABEL = {
 };
 
 const TYPE_COLOR = {
-  sponsoredProducts: '#3B82F6',
-  sponsoredBrands:   '#8B5CF6',
-  sponsoredDisplay:  '#10B981',
+  sponsoredProducts: 'var(--info-strong)',
+  sponsoredBrands:   'var(--accent-strong)',
+  sponsoredDisplay:  'var(--success)',
 };
 
 function SectionLabel({ children }) {
@@ -87,7 +87,7 @@ export default function CampaignDrawer({
         }}
       >
         {/* Accent line */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${typeColor}, #8B5CF6)` }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${typeColor}, var(--accent-strong))` }} />
 
         {/* Header */}
         <div style={{ padding: '20px 22px 16px', borderBottom: '1px solid var(--overlay-5)', flexShrink: 0 }}>
@@ -97,7 +97,7 @@ export default function CampaignDrawer({
                 {campaign.name}
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: typeColor, background: `${typeColor}18`, border: `1px solid ${typeColor}40`, padding: '2px 8px', borderRadius: 6 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: typeColor, background: `color-mix(in srgb, ${typeColor} 9%, transparent)`, border: `1px solid color-mix(in srgb, ${typeColor} 25%, transparent)`, padding: '2px 8px', borderRadius: 6 }}>
                   {typeLabel}
                 </span>
                 <span style={{ fontSize: 10, fontWeight: 700, color: st.color, background: st.bg, padding: '2px 8px', borderRadius: 6 }}>
@@ -144,13 +144,13 @@ export default function CampaignDrawer({
             <div style={{ display: 'flex', gap: 8 }}>
               <QuickAction
                 label="Enable"
-                color="#10B981"
+                color="var(--success)"
                 disabled={campaign.status === 'enabled' || actionExecuting}
                 onClick={() => onEnable(campaign.id ?? campaign.campaignId)}
               />
               <QuickAction
                 label="Pause"
-                color="#F59E0B"
+                color="var(--warning)"
                 disabled={campaign.status === 'paused' || actionExecuting}
                 onClick={() => onPause(campaign.id ?? campaign.campaignId)}
               />

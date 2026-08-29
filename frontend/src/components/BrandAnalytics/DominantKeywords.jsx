@@ -6,13 +6,13 @@ const THR = { ...TH, textAlign: 'right' };
 const TD  = { padding: '9px 12px', fontSize: 12, color: 'var(--text-muted)', borderBottom: '1px solid var(--overlay-3)', verticalAlign: 'middle' };
 const TDR = { ...TD, textAlign: 'right', fontVariantNumeric: 'tabular-nums' };
 
-const DIAG_COLOR = { LISTING_QUALITY: '#F59E0B', CLICK_BARRIER: '#F43F5E', LOW_RELEVANCE: '#6366F1' };
+const DIAG_COLOR = { LISTING_QUALITY: 'var(--warning)', CLICK_BARRIER: 'var(--rose)', LOW_RELEVANCE: 'var(--indigo)' };
 
 function ShareBar({ value, max }) {
   const pct = max > 0 ? (value / max) * 100 : 0;
   return (
     <div style={{ width: 48, height: 4, background: 'var(--overlay-5)', borderRadius: 99, overflow: 'hidden', flexShrink: 0 }}>
-      <div style={{ width: `${pct}%`, height: '100%', background: '#10B981', borderRadius: 99, transition: 'width 0.8s ease' }} />
+      <div style={{ width: `${pct}%`, height: '100%', background: 'var(--success)', borderRadius: 99, transition: 'width 0.8s ease' }} />
     </div>
   );
 }
@@ -122,7 +122,7 @@ export default function DominantKeywords({ keywords = [], weakKeywords = [] }) {
                   <td style={TDR}>{k.clickShare}%</td>
                   <td style={TDR}>{k.purchaseShare}%</td>
                   <td style={TD}>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: diagColor, background: `${diagColor}15`, padding: '2px 8px', borderRadius: 5, whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: diagColor, background: `color-mix(in srgb, ${diagColor} 8%, transparent)`, padding: '2px 8px', borderRadius: 5, whiteSpace: 'nowrap' }}>
                       {k.diagnosis?.replace(/_/g, ' ')}
                     </span>
                   </td>

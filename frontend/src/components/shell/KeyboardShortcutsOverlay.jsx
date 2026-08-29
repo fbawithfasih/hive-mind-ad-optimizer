@@ -82,7 +82,7 @@ export default function KeyboardShortcutsOverlay({ open, onClose }) {
         }}
       >
         {/* Top accent bar */}
-        <div style={{ height: 2, background: 'linear-gradient(90deg, #3B82F6, #8B5CF6)' }} />
+        <div style={{ height: 2, background: 'linear-gradient(90deg, var(--info-strong), var(--accent-strong))' }} />
 
         {/* Header */}
         <div style={{ padding: '16px 22px 12px', borderBottom: '1px solid var(--overlay-5)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

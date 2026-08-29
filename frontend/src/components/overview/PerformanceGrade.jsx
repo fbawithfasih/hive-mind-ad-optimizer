@@ -29,8 +29,8 @@ export default function PerformanceGrade({ roas, acos, size = 'md' }) {
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
-      background: `${g.color}18`,
-      border: `1px solid ${g.color}40`,
+      background: `color-mix(in srgb, ${g.color} 9%, transparent)`,
+      border: `1px solid color-mix(in srgb, ${g.color} 25%, transparent)`,
       borderRadius: 8,
       padding: pad,
       boxShadow: `0 0 12px ${g.glow}`,

@@ -40,7 +40,7 @@ export default function AdsNotConnectedBanner() {
         <a
           href="/api/sp-oauth/ads-start"
           style={{
-            background: 'linear-gradient(90deg, #F59E0B, #D97706)',
+            background: 'linear-gradient(90deg, var(--warning), #D97706)',
             // Deliberately literal, not a token: the amber gradient behind this
             // text is fixed, so the text must stay dark in both themes. Any
             // theme-flipping token here (--bg-app-2, --text-invert) turns white

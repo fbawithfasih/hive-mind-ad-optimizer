@@ -13,7 +13,7 @@ const REPORT_TYPES = [
     shortLabel: 'WBR',
     desc: '7-day performance snapshot: spend, revenue, ACoS, ROAS, top campaigns, and search term insights.',
     defaultDays: 7,
-    gradient: 'linear-gradient(135deg,#3B82F6,#06B6D4)',
+    gradient: 'linear-gradient(135deg,var(--info-strong),#06B6D4)',
     icon: (
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 22, height: 22 }}>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
@@ -27,7 +27,7 @@ const REPORT_TYPES = [
     shortLabel: 'MBR',
     desc: '30-day comprehensive review with campaign portfolio analysis, wasted spend, and strategic recommendations.',
     defaultDays: 30,
-    gradient: 'linear-gradient(135deg,#8B5CF6,#EC4899)',
+    gradient: 'linear-gradient(135deg,var(--accent-strong),#EC4899)',
     icon: (
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 22, height: 22 }}>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
@@ -41,7 +41,7 @@ const REPORT_TYPES = [
     shortLabel: 'Audit',
     desc: 'Deep-dive into campaign health, budget utilization, bidding strategies, and optimization opportunities.',
     defaultDays: 30,
-    gradient: 'linear-gradient(135deg,#F59E0B,#EF4444)',
+    gradient: 'linear-gradient(135deg,var(--warning),var(--danger-strong))',
     icon: (
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 22, height: 22 }}>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
@@ -55,7 +55,7 @@ const REPORT_TYPES = [
     shortLabel: 'Search Terms',
     desc: 'Keyword performance analysis with scale-up bids, exact match opportunities, and negative keyword recommendations.',
     defaultDays: 30,
-    gradient: 'linear-gradient(135deg,#10B981,#3B82F6)',
+    gradient: 'linear-gradient(135deg,var(--success),var(--info-strong))',
     icon: (
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 22, height: 22 }}>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
@@ -269,7 +269,7 @@ export default function ReportingAgentPanel({ profileId, aiModel = 'claude' }) {
     hr { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
     code { background: #f3f4f6; color: #0369a1; padding: 2px 6px;
            border-radius: 4px; font-family: monospace; font-size: 11px; }
-    blockquote { border-left: 3px solid #8b5cf6; margin: 0 0 12px;
+    blockquote { border-left: 3px solid var(--accent-strong); margin: 0 0 12px;
                  padding: 4px 14px; background: #f5f3ff; border-radius: 0 6px 6px 0; }
     table { width: 100%; border-collapse: collapse; margin: 14px 0;
             font-size: 12px; page-break-inside: avoid; }
@@ -333,7 +333,7 @@ ${htmlBrandingFooter()}
         .ra-report h3           { font-size:13px; font-weight:700; color:var(--text-muted);
                                   margin:16px 0 8px; text-transform:uppercase;
                                   letter-spacing:.06em; }
-        .ra-report blockquote   { border-left:3px solid #8B5CF6; margin:0 0 12px;
+        .ra-report blockquote   { border-left:3px solid var(--accent-strong); margin:0 0 12px;
                                   padding:4px 14px; background:#8B5CF610;
                                   border-radius:0 6px 6px 0; }
         .ra-report hr           { border:none; border-top:1px solid var(--border-strong); margin:20px 0; }
@@ -344,7 +344,7 @@ ${htmlBrandingFooter()}
       <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-strong)', borderRadius: 12, padding: '18px 22px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-            background: 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
+            background: 'linear-gradient(135deg,var(--accent-strong),var(--info-strong))',
             display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg style={{ width: 20, height: 20, color: '#fff' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -384,7 +384,7 @@ ${htmlBrandingFooter()}
                     background: reportType === rt.id
                       ? rt.gradient.replace('linear-gradient', 'linear-gradient').replace(')', ',0.15)').replace('linear-gradient(', 'linear-gradient(')
                       : 'var(--bg-panel)',
-                    outline: reportType === rt.id ? `2px solid ${rt.gradient.match(/#[A-Fa-f0-9]{6}/)?.[0] ?? '#3B82F6'}` : 'none',
+                    outline: reportType === rt.id ? `2px solid ${rt.gradient.match(/#[A-Fa-f0-9]{6}/)?.[0] ?? 'var(--info-strong)'}` : 'none',
                     transition: 'all .15s',
                   }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
@@ -429,7 +429,7 @@ ${htmlBrandingFooter()}
                         style={{
                           fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 6,
                           border: 'none', cursor: 'pointer', transition: 'all .1s',
-                          background: active ? '#3B82F6' : 'var(--bg-panel-2)',
+                          background: active ? 'var(--info-strong)' : 'var(--bg-panel-2)',
                           color: active ? '#fff' : 'var(--text-subtle)',
                         }}>
                         {label}
@@ -490,7 +490,7 @@ ${htmlBrandingFooter()}
                   style={{
                     marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8,
                     padding: '10px 24px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                    background: selectedType?.gradient ?? 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
+                    background: selectedType?.gradient ?? 'linear-gradient(135deg,var(--accent-strong),var(--info-strong))',
                     color: '#fff', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap',
                   }}>
                   <svg style={{ width: 15, height: 15 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -506,7 +506,7 @@ ${htmlBrandingFooter()}
 
       {/* ── Error ── */}
       {error && (
-        <div style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', color: 'var(--rose)',
+        <div style={{ background: 'color-mix(in srgb, var(--rose) 9%, transparent)', border: '1px solid #F43F5E44', color: 'var(--rose)',
           borderRadius: 8, padding: '12px 16px', fontSize: 13, display: 'flex',
           alignItems: 'flex-start', gap: 10 }}>
           <svg style={{ width: 16, height: 16, flexShrink: 0, marginTop: 1 }} fill="currentColor" viewBox="0 0 20 20">
@@ -530,7 +530,7 @@ ${htmlBrandingFooter()}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 32, height: 32, borderRadius: 8,
-                background: selectedType?.gradient ?? 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
+                background: selectedType?.gradient ?? 'linear-gradient(135deg,var(--accent-strong),var(--info-strong))',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
                 {selectedType?.icon}
               </div>
@@ -563,8 +563,8 @@ ${htmlBrandingFooter()}
                   <div style={{
                     width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: done ? '#10B981' : active ? '#3B82F620' : 'var(--bg-panel-3)',
-                    border: `2px solid ${done ? '#10B981' : active ? '#3B82F6' : 'var(--border-strong)'}`,
+                    background: done ? 'var(--success)' : active ? 'color-mix(in srgb, var(--info-strong) 13%, transparent)' : 'var(--bg-panel-3)',
+                    border: `2px solid ${done ? 'var(--success)' : active ? 'var(--info-strong)' : 'var(--border-strong)'}`,
                     transition: 'all .3s',
                   }}>
                     {done ? (
@@ -618,7 +618,7 @@ ${htmlBrandingFooter()}
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 28, height: 28, borderRadius: 7, flexShrink: 0,
-                background: selectedType?.gradient ?? 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
+                background: selectedType?.gradient ?? 'linear-gradient(135deg,var(--accent-strong),var(--info-strong))',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
                 {selectedType?.icon}
               </div>
@@ -658,7 +658,7 @@ ${htmlBrandingFooter()}
                   display: 'flex', alignItems: 'center', gap: 5, fontSize: 11,
                   padding: '5px 12px', borderRadius: 6, cursor: 'pointer',
                   background: 'transparent', transition: 'all .15s',
-                  border: `1px solid ${copied ? '#10B981' : 'var(--border-strong)'}`,
+                  border: `1px solid ${copied ? 'var(--success)' : 'var(--border-strong)'}`,
                   color: copied ? 'var(--success)' : 'var(--text-muted)',
                 }}>
                 {copied
@@ -713,7 +713,7 @@ ${htmlBrandingFooter()}
               const from = h.dateFrom ? new Date(h.dateFrom).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
               const to   = h.dateTo   ? new Date(h.dateTo).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
               const created = h.createdAt ? new Date(h.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
-              const statusColor = h.status === 'COMPLETED' ? '#34D399' : h.status === 'FAILED' ? '#F87171' : 'var(--text-subtle)';
+              const statusColor = h.status === 'COMPLETED' ? 'var(--success-2)' : h.status === 'FAILED' ? 'var(--danger)' : 'var(--text-subtle)';
 
               return (
                 <div key={h.jobId} style={{

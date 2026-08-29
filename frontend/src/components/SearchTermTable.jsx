@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 
 const REC_STYLE = {
-  SCALE_UP:     { label: 'Scale Up',     bg: '#10B98118', color: 'var(--success)', border: '#10B98140' },
-  ADD_EXACT:    { label: 'Add as Exact', bg: '#3B82F618', color: 'var(--info-strong)', border: '#3B82F640' },
-  ADD_NEGATIVE: { label: 'Add Negative', bg: '#F43F5E18', color: 'var(--rose)', border: '#F43F5E40' },
-  WATCH:        { label: 'Watch',        bg: '#F59E0B18', color: 'var(--warning)', border: '#F59E0B40' },
+  SCALE_UP:     { label: 'Scale Up',     bg: 'color-mix(in srgb, var(--success) 9%, transparent)', color: 'var(--success)', border: 'color-mix(in srgb, var(--success) 25%, transparent)' },
+  ADD_EXACT:    { label: 'Add as Exact', bg: 'color-mix(in srgb, var(--info-strong) 9%, transparent)', color: 'var(--info-strong)', border: 'color-mix(in srgb, var(--info-strong) 25%, transparent)' },
+  ADD_NEGATIVE: { label: 'Add Negative', bg: 'color-mix(in srgb, var(--rose) 9%, transparent)', color: 'var(--rose)', border: 'color-mix(in srgb, var(--rose) 25%, transparent)' },
+  WATCH:        { label: 'Watch',        bg: 'color-mix(in srgb, var(--warning) 9%, transparent)', color: 'var(--warning)', border: 'color-mix(in srgb, var(--warning) 25%, transparent)' },
 };
 
 const REC_ORDER = { SCALE_UP: 0, ADD_EXACT: 1, ADD_NEGATIVE: 2, WATCH: 3 };
@@ -125,7 +125,7 @@ export default function SearchTermTable({ searchTerms = [], isLoading = false, s
                   checked={allChecked}
                   ref={el => { if (el) el.indeterminate = someChecked; }}
                   onChange={toggleAll}
-                  style={{ accentColor: '#6366F1', width: 14, height: 14, cursor: 'pointer' }}
+                  style={{ accentColor: 'var(--indigo)', width: 14, height: 14, cursor: 'pointer' }}
                 />
               </th>
             )}
@@ -144,7 +144,7 @@ export default function SearchTermTable({ searchTerms = [], isLoading = false, s
         <tbody>
           {sorted.map((t, i) => {
             const rec = REC_STYLE[t.recommendation] ?? REC_STYLE.WATCH;
-            const acosColor = t.acos == null ? 'var(--text-muted)' : t.acos < 20 ? '#10B981' : t.acos <= 30 ? '#F59E0B' : '#F43F5E';
+            const acosColor = t.acos == null ? 'var(--text-muted)' : t.acos < 20 ? 'var(--success)' : t.acos <= 30 ? 'var(--warning)' : 'var(--rose)';
             const rowBg = i % 2 === 0 ? 'transparent' : 'var(--bg-panel-3)';
             const isSelected = selectable && selected?.has(termKey(t));
             const bg = isSelected ? 'rgba(99,102,241,0.12)' : rowBg;
@@ -162,7 +162,7 @@ export default function SearchTermTable({ searchTerms = [], isLoading = false, s
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => toggleRow(t)}
-                      style={{ accentColor: '#6366F1', width: 14, height: 14, cursor: 'pointer' }}
+                      style={{ accentColor: 'var(--indigo)', width: 14, height: 14, cursor: 'pointer' }}
                     />
                   </td>
                 )}

@@ -68,7 +68,7 @@ function SparkBars({ values = [], color }) {
 
 function StatCard({ label, value, sub, gradient, glow, accentColor, icon, spark }) {
   return (
-    <div style={{ ...glass, padding: '18px 20px', borderColor: `${accentColor}20`, boxShadow: `0 4px 32px ${glow}15`, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+    <div style={{ ...glass, padding: '18px 20px', borderColor: `color-mix(in srgb, ${accentColor} 13%, transparent)`, boxShadow: `0 4px 32px ${glow}15`, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
       <GradientBar top={gradient} />
       <GlowBlob color={glow} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
@@ -89,7 +89,7 @@ function StatCard({ label, value, sub, gradient, glow, accentColor, icon, spark 
 function CharCount({ value, limit }) {
   const len = (value ?? '').length;
   const pct = len / limit;
-  const color = pct > 1 ? '#F43F5E' : pct > 0.9 ? '#F59E0B' : 'var(--border-strong)';
+  const color = pct > 1 ? 'var(--rose)' : pct > 0.9 ? 'var(--warning)' : 'var(--border-strong)';
   return <span style={{ fontSize: 10, color, marginLeft: 6 }}>{len}/{limit}</span>;
 }
 
@@ -99,7 +99,7 @@ function CopyButton({ text }) {
     <button onClick={() => { navigator.clipboard.writeText(text ?? ''); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
       style={{
         fontSize: 10, padding: '3px 10px', borderRadius: 6,
-        border: `1px solid ${copied ? '#10B981' : 'var(--overlay-8)'}`,
+        border: `1px solid ${copied ? 'var(--success)' : 'var(--overlay-8)'}`,
         background: copied ? 'rgba(16,185,129,0.1)' : 'var(--overlay-3)',
         cursor: 'pointer', color: copied ? 'var(--success)' : 'var(--text-subtle)', transition: 'all .15s',
       }}>
@@ -191,7 +191,7 @@ function PublishDiffPanel({ current, optimized, sku, overLimit, hasOverLimit, is
   const overCount = [overLimit.title, ...(overLimit.bullets ?? []), overLimit.description, overLimit.genericKeyword].filter(Boolean).length;
   return (
     <div style={{ ...glass, padding: '20px 24px', borderColor: hasOverLimit ? 'rgba(244,63,94,0.3)' : 'rgba(139,92,246,0.25)', boxShadow: '0 4px 40px var(--overlay-8)' }}>
-      <GradientBar top={hasOverLimit ? 'linear-gradient(90deg,#EF4444,#F59E0B)' : 'linear-gradient(90deg,#8B5CF6,#10B981)'} />
+      <GradientBar top={hasOverLimit ? 'linear-gradient(90deg,var(--danger-strong),var(--warning))' : 'linear-gradient(90deg,var(--accent-strong),var(--success))'} />
       <div style={{ position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
@@ -228,7 +228,7 @@ function PublishDiffPanel({ current, optimized, sku, overLimit, hasOverLimit, is
             Cancel
           </button>
           <button onClick={onConfirm} disabled={hasOverLimit || isPublishing}
-            style={{ padding: '9px 24px', borderRadius: 9, border: 'none', background: (hasOverLimit || isPublishing) ? 'var(--overlay-4)' : 'linear-gradient(135deg,#10B981,#059669)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: (hasOverLimit || isPublishing) ? 'not-allowed' : 'pointer', opacity: (hasOverLimit || isPublishing) ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 7, boxShadow: (!hasOverLimit && !isPublishing) ? '0 4px 18px rgba(16,185,129,0.4)' : 'none' }}>
+            style={{ padding: '9px 24px', borderRadius: 9, border: 'none', background: (hasOverLimit || isPublishing) ? 'var(--overlay-4)' : 'linear-gradient(135deg,var(--success),#059669)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: (hasOverLimit || isPublishing) ? 'not-allowed' : 'pointer', opacity: (hasOverLimit || isPublishing) ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 7, boxShadow: (!hasOverLimit && !isPublishing) ? '0 4px 18px rgba(16,185,129,0.4)' : 'none' }}>
             {isPublishing ? <><Spinner /> Publishing…</> : '✓ Confirm & Publish'}
           </button>
         </div>
@@ -431,7 +431,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
 
       {/* ══ HERO HEADER ══ */}
       <div style={{ ...glass, padding: '22px 24px', borderColor: 'rgba(139,92,246,0.2)', boxShadow: '0 4px 40px rgba(139,92,246,0.1)' }}>
-        <GradientBar top="linear-gradient(90deg,#8B5CF6,#3B82F6,#10B981)" />
+        <GradientBar top="linear-gradient(90deg,var(--accent-strong),var(--info-strong),var(--success))" />
         <GlowBlob color="rgba(139,92,246,0.25)" />
 
         <div style={{ position: 'relative' }}>
@@ -473,13 +473,13 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <input value={asin} onChange={e => setAsin(e.target.value.toUpperCase())}
               placeholder="ASIN  (e.g. B0C…)" style={{ ...inputSt, width: 170 }}
-              onFocus={e => e.target.style.borderColor = '#8B5CF6'}
+              onFocus={e => e.target.style.borderColor = 'var(--accent-strong)'}
               onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'}
               onKeyDown={e => e.key === 'Enter' && handleFetch()} />
             <span style={{ color: 'var(--text-faint)', fontSize: 12, fontWeight: 600 }}>or</span>
             <input value={sku} onChange={e => setSku(e.target.value)}
               placeholder="SKU" style={{ ...inputSt, width: 140 }}
-              onFocus={e => e.target.style.borderColor = '#8B5CF6'}
+              onFocus={e => e.target.style.borderColor = 'var(--accent-strong)'}
               onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'}
               onKeyDown={e => e.key === 'Enter' && handleFetch()} />
 
@@ -488,7 +488,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                 display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px',
                 borderRadius: 10, border: 'none',
                 cursor: isFetching || (!asin.trim() && !sku.trim()) ? 'not-allowed' : 'pointer',
-                background: isFetching ? 'var(--overlay-6)' : 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
+                background: isFetching ? 'var(--overlay-6)' : 'linear-gradient(135deg,var(--accent-strong),var(--info-strong))',
                 color: '#fff', fontWeight: 700, fontSize: 13,
                 boxShadow: (!isFetching && (asin.trim() || sku.trim())) ? '0 4px 20px rgba(139,92,246,0.45)' : 'none',
                 opacity: (!asin.trim() && !sku.trim()) ? 0.4 : 1, whiteSpace: 'nowrap',
@@ -539,7 +539,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 9, border: 'none',
                   cursor: canLoadTerms ? 'pointer' : 'not-allowed',
-                  background: isLoadingTerms ? 'var(--overlay-5)' : 'linear-gradient(135deg,#10B981,#3B82F6)',
+                  background: isLoadingTerms ? 'var(--overlay-5)' : 'linear-gradient(135deg,var(--success),var(--info-strong))',
                   color: '#fff', fontWeight: 700, fontSize: 12,
                   boxShadow: canLoadTerms && !isLoadingTerms ? '0 3px 14px rgba(16,185,129,0.4)' : 'none',
                   opacity: canLoadTerms ? 1 : 0.4, whiteSpace: 'nowrap',
@@ -583,20 +583,20 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
       {/* ══ LISTING QUALITY BREAKDOWN ══ */}
       {hasFetched && listingDimensions.length > 0 && (
         <div style={{ ...glass, padding: '18px 22px', borderColor: listingScore >= 85 ? 'rgba(16,185,129,0.2)' : listingScore >= 70 ? 'rgba(245,158,11,0.2)' : 'rgba(244,63,94,0.2)' }}>
-          <GradientBar top={listingScore >= 85 ? 'linear-gradient(90deg,#10B981,#3B82F6)' : listingScore >= 70 ? 'linear-gradient(90deg,#F59E0B,#EF4444)' : 'linear-gradient(90deg,#EF4444,#8B5CF6)'} />
+          <GradientBar top={listingScore >= 85 ? 'linear-gradient(90deg,var(--success),var(--info-strong))' : listingScore >= 70 ? 'linear-gradient(90deg,var(--warning),var(--danger-strong))' : 'linear-gradient(90deg,var(--danger-strong),var(--accent-strong))'} />
           <div style={{ position: 'relative' }}>
             <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 14px' }}>
               Listing Quality Breakdown
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {listingDimensions.map(dim => {
-                const dimColor = dim.score >= 85 ? '#10B981' : dim.score >= 60 ? '#F59E0B' : '#EF4444';
+                const dimColor = dim.score >= 85 ? 'var(--success)' : dim.score >= 60 ? 'var(--warning)' : 'var(--danger-strong)';
                 const dimBg    = dim.score >= 85 ? 'rgba(16,185,129,0.08)' : dim.score >= 60 ? 'rgba(245,158,11,0.08)' : 'rgba(244,63,94,0.08)';
                 return (
                   <div key={dim.name} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 36px', gap: 10, alignItems: 'center' }}>
                     <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>{dim.name}</span>
                     <div style={{ position: 'relative', height: 6, background: 'var(--overlay-4)', borderRadius: 99, overflow: 'hidden' }}>
-                      <div style={{ width: `${dim.score}%`, height: '100%', background: `linear-gradient(90deg,${dimColor}99,${dimColor})`, borderRadius: 99, transition: 'width 0.8s ease' }} />
+                      <div style={{ width: `${dim.score}%`, height: '100%', background: `linear-gradient(90deg,color-mix(in srgb, ${dimColor} 60%, transparent),${dimColor})`, borderRadius: 99, transition: 'width 0.8s ease' }} />
                     </div>
                     <span style={{ fontSize: 11, fontWeight: 800, color: dimColor, textAlign: 'right' }}>{dim.score}</span>
                   </div>
@@ -623,26 +623,26 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
           <StatCard
             label="Priority Keywords" value={uploadedKeywords.length || '—'}
             sub={uploadedKeywords.length > 0 ? `from "${uploadFileName}"` : 'Upload CSV / Excel'}
-            gradient="linear-gradient(135deg,#A78BFA,#7C3AED)" glow="rgba(167,139,250,0.5)" accentColor="#A78BFA"
+            gradient="linear-gradient(135deg,var(--accent),#7C3AED)" glow="rgba(167,139,250,0.5)" accentColor="var(--accent)"
             icon={<svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>}
           />
           <StatCard
             label="Scale Up Terms" value={scaleUpCount || '—'}
             sub="High-performance keywords"
-            gradient="linear-gradient(135deg,#10B981,#059669)" glow="rgba(16,185,129,0.5)" accentColor="#10B981"
+            gradient="linear-gradient(135deg,var(--success),#059669)" glow="rgba(16,185,129,0.5)" accentColor="var(--success)"
             spark={keywordSpark}
             icon={<svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>}
           />
           <StatCard
             label="Add Exact Terms" value={exactCount || '—'}
             sub="Target conversion keywords"
-            gradient="linear-gradient(135deg,#3B82F6,#2563EB)" glow="rgba(59,130,246,0.5)" accentColor="#3B82F6"
+            gradient="linear-gradient(135deg,var(--info-strong),#2563EB)" glow="rgba(59,130,246,0.5)" accentColor="var(--info-strong)"
             icon={<svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>}
           />
           <StatCard
             label="Total Keywords" value={totalKeywords || '—'}
             sub={optimized ? '✓ Listing optimized' : 'Ready to optimize'}
-            gradient="linear-gradient(135deg,#8B5CF6,#6366F1)" glow="rgba(139,92,246,0.5)" accentColor="#8B5CF6"
+            gradient="linear-gradient(135deg,var(--accent-strong),var(--indigo))" glow="rgba(139,92,246,0.5)" accentColor="var(--accent-strong)"
             icon={<svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>}
           />
           {setAiModel ? (
@@ -652,7 +652,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
               display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'space-between',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <svg width="19" height="19" fill="none" stroke="#F59E0B" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                <svg width="19" height="19" fill="none" stroke="var(--warning)" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
                 <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--warning)' }}>AI Model</span>
               </div>
               <div style={{ display: 'flex', gap: 4, background: 'var(--overlay-3)', borderRadius: 10, padding: 3, border: '1px solid var(--overlay-5)' }}>
@@ -676,7 +676,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
             <StatCard
               label="AI Model" value={aiModel === 'claude' ? 'Claude' : 'Gemini'}
               sub={aiModel === 'claude' ? 'Sonnet 4.5' : '2.5 Flash'}
-              gradient="linear-gradient(135deg,#F59E0B,#D97706)" glow="rgba(245,158,11,0.5)" accentColor="#F59E0B"
+              gradient="linear-gradient(135deg,var(--warning),#D97706)" glow="rgba(245,158,11,0.5)" accentColor="var(--warning)"
               icon={<svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>}
             />
           )}
@@ -686,14 +686,14 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
       {/* ══ KEYWORD PILLS ══ */}
       {uploadedKeywords.length > 0 && (
         <div style={{ ...glass, padding: '18px 22px', borderColor: 'rgba(167,139,250,0.2)' }}>
-          <GradientBar top="linear-gradient(90deg,#A78BFA,#7C3AED)" />
+          <GradientBar top="linear-gradient(90deg,var(--accent),#7C3AED)" />
           <GlowBlob color="rgba(167,139,250,0.2)" />
           <div style={{ position: 'relative' }}>
             <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--accent)' }}>
               ★ Priority Keywords ({uploadedKeywords.length}) — AI uses these first
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {uploadedKeywords.slice(0, 60).map((kw, i) => <Pill key={i} text={kw} color="#A78BFA" />)}
+              {uploadedKeywords.slice(0, 60).map((kw, i) => <Pill key={i} text={kw} color="var(--accent)" />)}
               {uploadedKeywords.length > 60 && <span style={{ fontSize: 11, color: 'var(--text-faint)', padding: '3px 0' }}>+{uploadedKeywords.length - 60} more</span>}
             </div>
           </div>
@@ -702,7 +702,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
 
       {relevantTerms.length > 0 && (
         <div style={{ ...glass, padding: '18px 22px' }}>
-          <GradientBar top="linear-gradient(90deg,#10B981,#3B82F6)" />
+          <GradientBar top="linear-gradient(90deg,var(--success),var(--info-strong))" />
           <GlowBlob color="rgba(16,185,129,0.15)" />
           <div style={{ position: 'relative' }}>
             <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-faint)' }}>
@@ -711,7 +711,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {relevantTerms.slice(0, 50).map((t, i) => (
-                <Pill key={i} text={t.searchTerm} color={t.recommendation === 'SCALE_UP' ? '#10B981' : '#3B82F6'} />
+                <Pill key={i} text={t.searchTerm} color={t.recommendation === 'SCALE_UP' ? 'var(--success)' : 'var(--info-strong)'} />
               ))}
               {relevantTerms.length > 50 && <span style={{ fontSize: 11, color: 'var(--text-faint)', padding: '3px 0' }}>+{relevantTerms.length - 50} more</span>}
             </div>
@@ -725,41 +725,41 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
 
           {/* LEFT — Current (editable) */}
           <div style={{ ...glass, padding: 0, overflow: 'hidden' }}>
-            <GradientBar top="linear-gradient(90deg,#3B82F6,#6366F1)" />
+            <GradientBar top="linear-gradient(90deg,var(--info-strong),var(--indigo))" />
             <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--overlay-4)' }}>
               <p style={{ margin: 0, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-faint)' }}>Current Listing</p>
             </div>
             <div style={{ padding: '16px 18px' }}>
               <FieldRow label="Title" chars={title} limit={CHAR_LIMIT.title}>
                 <textarea value={title} onChange={e => setTitle(e.target.value)} rows={3} style={taSt(false)}
-                  onFocus={e => e.target.style.borderColor = '#3B82F6'}
+                  onFocus={e => e.target.style.borderColor = 'var(--info-strong)'}
                   onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'} />
               </FieldRow>
               {bullets.map((b, i) => (
                 <FieldRow key={i} label={`Bullet ${i + 1}`} chars={b} limit={CHAR_LIMIT.bullet}>
                   <textarea value={b} onChange={e => setBullet(i, e.target.value)} rows={2} style={taSt(false)}
-                    onFocus={e => e.target.style.borderColor = '#3B82F6'}
+                    onFocus={e => e.target.style.borderColor = 'var(--info-strong)'}
                     onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'} />
                 </FieldRow>
               ))}
               <FieldRow label="Description" chars={description} limit={CHAR_LIMIT.description}>
                 <textarea value={description} onChange={e => setDescription(e.target.value)} rows={6} style={taSt(false)}
-                  onFocus={e => e.target.style.borderColor = '#3B82F6'}
+                  onFocus={e => e.target.style.borderColor = 'var(--info-strong)'}
                   onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'} />
               </FieldRow>
               <FieldRow label="Generic Keyword (backend search terms)" chars={byteLen(genericKeyword) + ' bytes'} limit={CHAR_LIMIT.genericKeyword + ' bytes'}>
                 <textarea value={genericKeyword} onChange={e => setGenericKeyword(e.target.value)} rows={3}
                   placeholder="space-separated keywords for Amazon's hidden search-terms field"
                   style={taSt(byteLen(genericKeyword) > CHAR_LIMIT.genericKeyword)}
-                  onFocus={e => e.target.style.borderColor = '#3B82F6'}
-                  onBlur={e => e.target.style.borderColor = byteLen(genericKeyword) > CHAR_LIMIT.genericKeyword ? '#EF4444' : 'var(--overlay-7)'} />
+                  onFocus={e => e.target.style.borderColor = 'var(--info-strong)'}
+                  onBlur={e => e.target.style.borderColor = byteLen(genericKeyword) > CHAR_LIMIT.genericKeyword ? 'var(--danger-strong)' : 'var(--overlay-7)'} />
               </FieldRow>
             </div>
           </div>
 
           {/* RIGHT — Optimized */}
           <div style={{ ...glass, padding: 0, overflow: 'hidden', borderColor: optimized ? 'rgba(139,92,246,0.25)' : 'var(--overlay-5)', boxShadow: optimized ? '0 4px 40px rgba(139,92,246,0.15)' : 'none' }}>
-            {optimized && <GradientBar top="linear-gradient(90deg,#8B5CF6,#3B82F6,#10B981)" />}
+            {optimized && <GradientBar top="linear-gradient(90deg,var(--accent-strong),var(--info-strong),var(--success))" />}
             <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--overlay-4)', background: optimized ? 'rgba(139,92,246,0.06)' : 'transparent' }}>
               <p style={{ margin: 0, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: optimized ? 'var(--accent)' : 'var(--text-faint)' }}>
                 {optimized ? '✦ AI-Optimized Listing' : 'Optimized Listing'}
@@ -822,7 +822,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                           placeholder="e.g. HOME_FURNISHINGS"
                           style={{ ...inputSt, width: '100%', marginTop: 5, fontSize: 12, boxSizing: 'border-box',
                             borderColor: fetchedProductType ? 'var(--overlay-7)' : 'rgba(245,158,11,0.4)' }}
-                          onFocus={e => e.target.style.borderColor = '#8B5CF6'}
+                          onFocus={e => e.target.style.borderColor = 'var(--accent-strong)'}
                           onBlur={e => e.target.style.borderColor = fetchedProductType ? 'var(--overlay-7)' : 'rgba(245,158,11,0.4)'} />
                       </div>
 
@@ -836,7 +836,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                         style={{
                           width: '100%', padding: '10px', borderRadius: 10, border: 'none',
                           cursor: (isPublishing || !fetchedProductType || hasOverLimit) ? 'not-allowed' : 'pointer',
-                          background: (isPublishing || !fetchedProductType || hasOverLimit) ? 'var(--overlay-4)' : 'linear-gradient(135deg,#10B981,#059669)',
+                          background: (isPublishing || !fetchedProductType || hasOverLimit) ? 'var(--overlay-4)' : 'linear-gradient(135deg,var(--success),#059669)',
                           color: '#fff', fontWeight: 700, fontSize: 13,
                           boxShadow: (!isPublishing && fetchedProductType && !hasOverLimit) ? '0 4px 18px rgba(16,185,129,0.4)' : 'none',
                           opacity: (isPublishing || !fetchedProductType || hasOverLimit) ? 0.5 : 1,
@@ -902,7 +902,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '14px 40px', borderRadius: 14, border: 'none',
               cursor: isOptimizing ? 'not-allowed' : 'pointer',
-              background: isOptimizing ? 'var(--overlay-5)' : 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
+              background: isOptimizing ? 'var(--overlay-5)' : 'linear-gradient(135deg,var(--accent-strong),var(--info-strong))',
               color: '#fff', fontWeight: 800, fontSize: 15, letterSpacing: '-0.2px',
               boxShadow: isOptimizing ? 'none' : '0 6px 32px rgba(139,92,246,0.5)',
               opacity: isOptimizing ? 0.7 : 1, transition: 'all 0.2s',

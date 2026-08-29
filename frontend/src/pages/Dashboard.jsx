@@ -140,7 +140,7 @@ function BudgetBars({ campaigns }) {
     </div>
   );
   const max = top[0].budget;
-  const colors = ['#6366F1','#8B5CF6','#A78BFA','#3B82F6','#60A5FA','#10B981','#34D399'];
+  const colors = ['var(--indigo)','var(--accent-strong)','var(--accent)','var(--info-strong)','var(--info)','var(--success)','var(--success-2)'];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {top.map((c, i) => (
@@ -191,7 +191,7 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
     <div style={{
       padding: '20px 22px', borderRadius: 20,
       background: 'var(--bg-overlay-hi)',
-      border: `1px solid ${accentColor}25`,
+      border: `1px solid color-mix(in srgb, ${accentColor} 15%, transparent)`,
       backdropFilter: 'blur(16px)',
       position: 'relative', overflow: 'hidden',
       boxShadow: `0 4px 32px ${glow}20`,
@@ -485,7 +485,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
           </span>
           <a href="/billing" style={{
             fontSize: 12, fontWeight: 800, padding: '5px 16px', borderRadius: 8,
-            background: user.currentOrg.trialDaysLeft <= 1 ? 'linear-gradient(135deg,#EF4444,#DC2626)' : 'linear-gradient(135deg,#F59E0B,#D97706)',
+            background: user.currentOrg.trialDaysLeft <= 1 ? 'linear-gradient(135deg,var(--danger-strong),#DC2626)' : 'linear-gradient(135deg,var(--warning),#D97706)',
             color: '#fff', textDecoration: 'none', flexShrink: 0,
           }}>
             Upgrade →
@@ -550,7 +550,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
         {/* ── Module title ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 900, margin: 0, letterSpacing: '-0.5px', background: 'linear-gradient(135deg, var(--text-primary), #A78BFA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <h1 style={{ fontSize: 24, fontWeight: 900, margin: 0, letterSpacing: '-0.5px', background: 'linear-gradient(135deg, var(--text-primary), var(--accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               {MODULE_LABELS[activeTab] ?? '📊 Campaigns'}
             </h1>
             {activeTab === 'campaigns' && selectedProfile && (
@@ -603,9 +603,9 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               label="Total Campaigns"
               value={stats.total}
               sub={`Across all types`}
-              gradient="linear-gradient(135deg, #3B82F6, #2563EB)"
+              gradient="linear-gradient(135deg, var(--info-strong), #2563EB)"
               glow="rgba(59,130,246,0.5)"
-              accentColor="#3B82F6"
+              accentColor="var(--info-strong)"
               sparkValues={budgetSpark}
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>}
             />
@@ -613,9 +613,9 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               label="Active Campaigns"
               value={stats.enabled}
               sub={`of ${stats.total} total`}
-              gradient="linear-gradient(135deg, #10B981, #059669)"
+              gradient="linear-gradient(135deg, var(--success), #059669)"
               glow="rgba(16,185,129,0.5)"
-              accentColor="#10B981"
+              accentColor="var(--success)"
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9V3z"/></svg>}
             />
             <VibrantStatCard
@@ -635,18 +635,18 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               label="Paused"
               value={stats.paused}
               sub={`${stats.archived} ended / archived`}
-              gradient="linear-gradient(135deg, #F59E0B, #D97706)"
+              gradient="linear-gradient(135deg, var(--warning), #D97706)"
               glow="rgba(245,158,11,0.5)"
-              accentColor="#F59E0B"
+              accentColor="var(--warning)"
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>}
             />
             <VibrantStatCard
               label="Daily Budget"
               value={`$${stats.budget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               sub="Active campaigns only"
-              gradient="linear-gradient(135deg, #8B5CF6, #7C3AED)"
+              gradient="linear-gradient(135deg, var(--accent-strong), #7C3AED)"
               glow="rgba(139,92,246,0.5)"
-              accentColor="#8B5CF6"
+              accentColor="var(--accent-strong)"
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>}
             />
             <VibrantStatCard
@@ -657,9 +657,9 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               sub={metricsSummary.hasMetrics
                 ? (metricsDateRange.start ? `${metricsDateRange.start} → ${metricsDateRange.end}${metricsSummary.selectionLabel}` : `From loaded metrics${metricsSummary.selectionLabel}`)
                 : 'Load metrics to see ad revenue'}
-              gradient="linear-gradient(135deg, #10B981, #0D9488)"
+              gradient="linear-gradient(135deg, var(--success), #0D9488)"
               glow="rgba(16,185,129,0.5)"
-              accentColor="#10B981"
+              accentColor="var(--success)"
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>}
             />
             <VibrantStatCard
@@ -670,7 +670,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               sub={metricsSummary.hasMetrics
                 ? `${metricsSummary.roas != null ? `ROAS ${metricsSummary.roas.toFixed(2)}×` : 'From loaded metrics'}${metricsSummary.selectionLabel}`
                 : 'Load metrics to see spend'}
-              gradient="linear-gradient(135deg, #F97316, #EF4444)"
+              gradient="linear-gradient(135deg, #F97316, var(--danger-strong))"
               glow="rgba(249,115,22,0.5)"
               accentColor="#F97316"
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>}
@@ -679,9 +679,9 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               label="ACoS"
               value={metricsSummary.hasMetrics && metricsSummary.acos != null ? `${metricsSummary.acos.toFixed(2)}%` : '—'}
               sub={metricsSummary.hasMetrics ? `Ad Spend ÷ Ad Revenue${metricsSummary.selectionLabel}` : 'Load metrics to see ACoS'}
-              gradient="linear-gradient(135deg, #6366F1, #4F46E5)"
+              gradient="linear-gradient(135deg, var(--indigo), #4F46E5)"
               glow="rgba(99,102,241,0.5)"
-              accentColor="#6366F1"
+              accentColor="var(--indigo)"
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>}
             />
             <VibrantStatCard
@@ -693,9 +693,9 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                   : metricsSummary.tacos != null ? 'Ad Spend ÷ Total Revenue (organic + ads)'
                   : (loadingSales ? 'Waiting for SP-API sales…' : 'SP-API sales required')
               }
-              gradient="linear-gradient(135deg, #F59E0B, #D97706)"
+              gradient="linear-gradient(135deg, var(--warning), #D97706)"
               glow="rgba(245,158,11,0.5)"
-              accentColor="#F59E0B"
+              accentColor="var(--warning)"
               icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>}
             />
             <VibrantStatCard
@@ -722,7 +722,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               boxShadow: '0 4px 32px rgba(99,102,241,0.12)',
               position: 'relative', overflow: 'hidden',
             }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #6366F1, #8B5CF6, #A78BFA)' }} />
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, var(--indigo), var(--accent-strong), var(--accent))' }} />
               <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 20px' }}>Campaign Status</p>
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <DonutChart enabled={stats.enabled} paused={stats.paused} archived={stats.archived} total={stats.total} size={160} />
@@ -739,7 +739,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               boxShadow: '0 4px 32px rgba(139,92,246,0.10)',
               position: 'relative', overflow: 'hidden',
             }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #8B5CF6, #3B82F6, #10B981)' }} />
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, var(--accent-strong), var(--info-strong), var(--success))' }} />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                 <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>Top Budget Campaigns</p>
                 <span style={{ fontSize: 10, color: 'var(--text-faint)', fontWeight: 600 }}>Daily spend</span>
@@ -759,12 +759,12 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             position: 'relative', overflow: 'hidden',
             boxShadow: '0 4px 32px rgba(139,92,246,0.12)',
           }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #8B5CF6, #3B82F6)' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, var(--accent-strong), var(--info-strong))' }} />
             <div style={{ position: 'absolute', bottom: -40, right: -40, width: 160, height: 160, background: 'radial-gradient(circle, rgba(139,92,246,0.10) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, position: 'relative' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#8B5CF6,#3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(139,92,246,0.4)' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,var(--accent-strong),var(--info-strong))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(139,92,246,0.4)' }}>
                   <svg width="16" height="16" fill="none" stroke="white" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
                   </svg>
@@ -806,7 +806,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             boxShadow: '0 4px 32px rgba(59,130,246,0.08)',
             position: 'relative',
           }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #3B82F6, #8B5CF6, #10B981)' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, var(--info-strong), var(--accent-strong), var(--success))' }} />
 
             <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--overlay-4)', display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* Row 1: title + date range + Load Metrics */}
@@ -831,7 +831,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                         padding: '5px 10px', borderRadius: 6, border: 'none', fontSize: 11, fontWeight: 700,
                         cursor: isLoadingMetrics ? 'not-allowed' : 'pointer',
                         background: activePreset === key
-                          ? 'linear-gradient(135deg, #10B981, #3B82F6)'
+                          ? 'linear-gradient(135deg, var(--success), var(--info-strong))'
                           : 'var(--overlay-5)',
                         color: activePreset === key ? '#fff' : 'var(--text-subtle)',
                         boxShadow: activePreset === key ? '0 2px 8px rgba(16,185,129,0.3)' : 'none',
@@ -856,7 +856,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     padding: '7px 16px', borderRadius: 8, border: 'none',
                     cursor: isLoadingMetrics ? 'not-allowed' : 'pointer',
-                    background: isLoadingMetrics ? 'var(--bg-app-2)' : 'linear-gradient(135deg, #10B981, #3B82F6)',
+                    background: isLoadingMetrics ? 'var(--bg-app-2)' : 'linear-gradient(135deg, var(--success), var(--info-strong))',
                     color: '#fff', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap',
                     boxShadow: isLoadingMetrics ? '0 0 0 1px var(--overlay-7)' : '0 4px 16px rgba(16,185,129,0.35)',
                     minWidth: 180,
@@ -866,10 +866,10 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                       <span style={{
                         position: 'absolute', inset: 0, width: `${metricsProgress}%`,
                         background: metricsProgress < 33
-                          ? 'linear-gradient(90deg, #059669, #10B981)'
+                          ? 'linear-gradient(90deg, #059669, var(--success))'
                           : metricsProgress < 66
-                          ? 'linear-gradient(90deg, #10B981, #3B82F6)'
-                          : 'linear-gradient(90deg, #3B82F6, #8B5CF6)',
+                          ? 'linear-gradient(90deg, var(--success), var(--info-strong))'
+                          : 'linear-gradient(90deg, var(--info-strong), var(--accent-strong))',
                         transition: 'width 0.6s ease, background 0.8s ease',
                         borderRadius: 8,
                       }}/>
@@ -953,7 +953,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             />
             {isRefreshing && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', padding: '6px 12px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 6, marginBottom: 8, width: 'fit-content' }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3B82F6', animation: 'pulse 1.4s ease-in-out infinite' }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--info-strong)', animation: 'pulse 1.4s ease-in-out infinite' }} />
                 Refreshing — showing last cached data
               </div>
             )}

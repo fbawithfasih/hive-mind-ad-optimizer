@@ -9,7 +9,7 @@ const S = {
   btn:     (active) => ({
     padding: '7px 14px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600,
     cursor: active ? 'pointer' : 'not-allowed',
-    background: active ? 'linear-gradient(135deg,#3B82F6,#8B5CF6)' : 'var(--bg-panel-2)',
+    background: active ? 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))' : 'var(--bg-panel-2)',
     color: active ? '#fff' : 'var(--text-faint)',
   }),
   ghost:   { padding: '5px 12px', borderRadius: 6, border: '1px solid var(--border-strong)', background: 'transparent', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', cursor: 'pointer' },
@@ -109,13 +109,13 @@ export default function ProfilesPanel({ isAdmin }) {
       ) : (
         <div>
           {profiles.map(p => (
-            <div key={p.id} style={{ ...S.row, background: p.isDefault ? '#3B82F608' : 'transparent' }}>
+            <div key={p.id} style={{ ...S.row, background: p.isDefault ? 'color-mix(in srgb, var(--info-strong) 3%, transparent)' : 'transparent' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {p.profileName}
                   </span>
-                  {p.isDefault && <span style={S.badge('#10B981')}>Default</span>}
+                  {p.isDefault && <span style={S.badge('var(--success)')}>Default</span>}
                 </div>
                 <span style={{ fontSize: 11, color: 'var(--text-subtle)' }}>
                   {p.countryCode} · ID {p.profileId}

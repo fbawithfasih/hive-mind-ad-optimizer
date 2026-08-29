@@ -64,7 +64,7 @@ function CreateOrgGate({ onCreated }) {
             {error && <p style={{ margin: 0, fontSize: 13, color: 'var(--rose)' }}>{error}</p>}
             <button type="submit" disabled={creating || !name.trim()} style={{
               padding: '11px 0', borderRadius: 8, border: 'none', fontSize: 14, fontWeight: 600,
-              background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff',
+              background: 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))', color: '#fff',
               cursor: creating ? 'not-allowed' : 'pointer', opacity: creating ? 0.7 : 1,
             }}>
               {creating ? 'Creating…' : 'Create organization →'}
@@ -164,7 +164,7 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
             </p>
             {/* Progress bar */}
             <div style={{ height: 6, background: 'var(--bg-panel)', borderRadius: 99, overflow: 'hidden', border: '1px solid var(--border-strong)' }}>
-              <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg,#3B82F6,#8B5CF6)', borderRadius: 99, transition: 'width 0.4s ease' }} />
+              <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg,var(--info-strong),var(--accent-strong))', borderRadius: 99, transition: 'width 0.4s ease' }} />
             </div>
           </div>
 
@@ -177,15 +177,15 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
                 <div key={step.key} style={{
                   display: 'flex', alignItems: 'flex-start', gap: 16, padding: '16px 20px',
                   background: 'var(--bg-panel)', borderRadius: 12,
-                  border: `1px solid ${complete ? '#10B98140' : isCurrent ? '#3B82F640' : 'var(--border-strong)'}`,
+                  border: `1px solid ${complete ? 'color-mix(in srgb, var(--success) 25%, transparent)' : isCurrent ? 'color-mix(in srgb, var(--info-strong) 25%, transparent)' : 'var(--border-strong)'}`,
                   opacity: complete ? 0.75 : 1,
                 }}>
                   {/* Check / icon */}
                   <div style={{
                     width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
-                    background: complete ? '#10B98120' : isCurrent ? '#3B82F620' : 'var(--bg-app-2)',
-                    border: `2px solid ${complete ? '#10B981' : isCurrent ? '#3B82F6' : 'var(--border-strong)'}`,
+                    background: complete ? 'color-mix(in srgb, var(--success) 13%, transparent)' : isCurrent ? 'color-mix(in srgb, var(--info-strong) 13%, transparent)' : 'var(--bg-app-2)',
+                    border: `2px solid ${complete ? 'var(--success)' : isCurrent ? 'var(--info-strong)' : 'var(--border-strong)'}`,
                     color: complete ? 'var(--success)' : 'var(--text-muted)',
                   }}>
                     {complete ? '✓' : step.icon}
@@ -202,7 +202,7 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
                           <>
                             <button onClick={handleResend} style={{
                               padding: '7px 16px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600,
-                              background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff', cursor: 'pointer',
+                              background: 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))', color: '#fff', cursor: 'pointer',
                             }}>
                               {ACTIONS[next].label}
                             </button>
@@ -212,7 +212,7 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
                           <>
                             <button onClick={handleSyncProfiles} disabled={syncing} style={{
                               padding: '7px 16px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600,
-                              background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff', cursor: syncing ? 'not-allowed' : 'pointer',
+                              background: 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))', color: '#fff', cursor: syncing ? 'not-allowed' : 'pointer',
                               opacity: syncing ? 0.7 : 1,
                             }}>
                               {syncing ? 'Syncing…' : ACTIONS[next].label}
@@ -222,7 +222,7 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
                         ) : (
                           <a href={ACTIONS[next].href} style={{
                             display: 'inline-block', padding: '7px 16px', borderRadius: 6, fontSize: 12, fontWeight: 600,
-                            background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff', textDecoration: 'none',
+                            background: 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))', color: '#fff', textDecoration: 'none',
                           }}>
                             {ACTIONS[next].label}
                           </a>
@@ -231,7 +231,7 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
                     )}
                   </div>
                   {complete && (
-                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success)', background: '#10B98120', padding: '3px 8px', borderRadius: 99, whiteSpace: 'nowrap', marginTop: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success)', background: 'color-mix(in srgb, var(--success) 13%, transparent)', padding: '3px 8px', borderRadius: 99, whiteSpace: 'nowrap', marginTop: 4 }}>
                       Done
                     </span>
                   )}

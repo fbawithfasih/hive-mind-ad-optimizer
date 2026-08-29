@@ -7,9 +7,9 @@ const BTN = {
     display: 'inline-flex', alignItems: 'center', gap: 5,
     transition: 'opacity 0.15s',
   },
-  green:  { background: 'linear-gradient(135deg,#10B981,#059669)', color: '#fff', boxShadow: '0 2px 8px rgba(16,185,129,0.35)' },
-  amber:  { background: 'linear-gradient(135deg,#F59E0B,#D97706)', color: '#fff', boxShadow: '0 2px 8px rgba(245,158,11,0.35)' },
-  blue:   { background: 'linear-gradient(135deg,#3B82F6,#2563EB)', color: '#fff', boxShadow: '0 2px 8px rgba(59,130,246,0.35)' },
+  green:  { background: 'linear-gradient(135deg,var(--success),#059669)', color: '#fff', boxShadow: '0 2px 8px rgba(16,185,129,0.35)' },
+  amber:  { background: 'linear-gradient(135deg,var(--warning),#D97706)', color: '#fff', boxShadow: '0 2px 8px rgba(245,158,11,0.35)' },
+  blue:   { background: 'linear-gradient(135deg,var(--info-strong),#2563EB)', color: '#fff', boxShadow: '0 2px 8px rgba(59,130,246,0.35)' },
   ghost:  { background: 'var(--overlay-5)', color: 'var(--text-muted)', border: '1px solid var(--overlay-7)' },
   danger: { background: 'rgba(244,63,94,0.12)',   color: 'var(--rose)', border: '1px solid rgba(244,63,94,0.25)' },
 };

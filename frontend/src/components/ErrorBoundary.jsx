@@ -31,7 +31,7 @@ export default class ErrorBoundary extends Component {
           </p>
           <button
             onClick={() => { this.setState({ error: null }); window.location.reload(); }}
-            style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: '#3B82F6', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+            style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: 'var(--info-strong)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
           >
             Reload page
           </button>

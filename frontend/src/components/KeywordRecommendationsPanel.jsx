@@ -38,7 +38,7 @@ function ProgressBoard({ pct, elapsedSec }) {
       {/* animated gradient stripe */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-        background: 'linear-gradient(90deg,#3B82F6,#6366F1,#8B5CF6,#A855F7,#10B981)',
+        background: 'linear-gradient(90deg,var(--info-strong),var(--indigo),var(--accent-strong),#A855F7,var(--success))',
         backgroundSize: '200% 100%',
         animation: 'kw-progress-shimmer 3s linear infinite',
       }} />
@@ -66,7 +66,7 @@ function ProgressBoard({ pct, elapsedSec }) {
       }}>
         <div style={{
           width: `${pct}%`, height: '100%',
-          background: 'linear-gradient(90deg,#3B82F6,#8B5CF6,#10B981)',
+          background: 'linear-gradient(90deg,var(--info-strong),var(--accent-strong),var(--success))',
           backgroundSize: '200% 100%',
           animation: 'kw-progress-shimmer 2s linear infinite',
           transition: 'width 240ms cubic-bezier(.4,0,.2,1)',
@@ -80,9 +80,9 @@ function ProgressBoard({ pct, elapsedSec }) {
           const done    = pct >= p.range[1];
           const active  = pct >= p.range[0] && pct < p.range[1];
           const idle    = pct < p.range[0];
-          const bg = done ? `${p.color}25` : active ? `${p.color}30` : 'rgba(15,23,42,0.5)';
+          const bg = done ? `color-mix(in srgb, ${p.color} 15%, transparent)` : active ? `color-mix(in srgb, ${p.color} 19%, transparent)` : 'rgba(15,23,42,0.5)';
           const fg = done ? p.color        : active ? p.color        : 'var(--border-med)';
-          const border = done || active ? `${p.color}55` : 'var(--overlay-5)';
+          const border = done || active ? `color-mix(in srgb, ${p.color} 33%, transparent)` : 'var(--overlay-5)';
           return (
             <span key={p.id} style={{
               fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 99,
@@ -114,7 +114,7 @@ function ProgressBoard({ pct, elapsedSec }) {
   );
 }
 
-const ACTION_COLOR  = { SCALE_UP: '#10B981', ADD_EXACT: '#3B82F6', ADD_NEGATIVE: '#F43F5E', WATCH: '#F59E0B', NEW: '#8B5CF6' };
+const ACTION_COLOR  = { SCALE_UP: 'var(--success)', ADD_EXACT: 'var(--info-strong)', ADD_NEGATIVE: 'var(--rose)', WATCH: 'var(--warning)', NEW: 'var(--accent-strong)' };
 const ACTION_LABEL  = { SCALE_UP: 'Scale Up', ADD_EXACT: 'Add Exact', ADD_NEGATIVE: 'Negative', WATCH: 'Watch', NEW: 'New' };
 const SOURCE_LABEL  = { SEARCH_TERM_REPORT: 'Search Term Report', BRAND_ANALYTICS: 'Brand Analytics' };
 const SIGNAL_LABEL  = {
@@ -142,14 +142,14 @@ function Pill({ text, color }) {
 }
 
 function ListingRow({ item }) {
-  const sourceColor = item.source === 'BRAND_ANALYTICS' ? '#8B5CF6' : '#3B82F6';
+  const sourceColor = item.source === 'BRAND_ANALYTICS' ? 'var(--accent-strong)' : 'var(--info-strong)';
   return (
     <div style={{ background: 'var(--bg-app-2)', borderRadius: 8, border: '1px solid var(--border-strong)', padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{item.keyword}</span>
           <Pill text={SOURCE_LABEL[item.source] ?? item.source} color={sourceColor} />
-          <Pill text={SIGNAL_LABEL[item.signal] ?? item.signal} color="#10B981" />
+          <Pill text={SIGNAL_LABEL[item.signal] ?? item.signal} color="var(--success)" />
         </div>
         <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4 }}>{item.reason}</p>
       </div>
@@ -265,13 +265,13 @@ export default function KeywordRecommendationsPanel({ profileId }) {
         <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} min={startDate} max={today}
           style={{ background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', borderRadius: 7, color: 'var(--text-primary)', padding: '8px 12px', fontSize: 12, outline: 'none' }} />
         <button onClick={handleLoad} disabled={loading}
-          style={{ padding: '8px 18px', borderRadius: 7, border: 'none', background: loading ? 'var(--border-strong)' : 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 12, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+          style={{ padding: '8px 18px', borderRadius: 7, border: 'none', background: loading ? 'var(--border-strong)' : 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))', color: '#fff', fontWeight: 700, fontSize: 12, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
           {loading ? 'Loading…' : 'Analyze'}
         </button>
       </div>
 
       {error && (
-        <div style={{ background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)', marginBottom: 16 }}>{error}</div>
+        <div style={{ background: 'color-mix(in srgb, var(--rose) 9%, transparent)', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)', marginBottom: 16 }}>{error}</div>
       )}
 
       {loading && <ProgressBoard pct={progress} elapsedSec={elapsed} />}
@@ -280,23 +280,23 @@ export default function KeywordRecommendationsPanel({ profileId }) {
         <>
           {/* Source / scope banner */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14, fontSize: 11, color: 'var(--text-subtle)' }}>
-            {data.asin && <Pill text={`ASIN: ${data.asin}`} color="#3B82F6" />}
-            {data.sku  && <Pill text={`SKU: ${data.sku}`} color="#3B82F6" />}
-            <Pill text={data.sources?.searchTermReport ? '✓ Search Term Report' : '✕ Search Term Report'} color={data.sources?.searchTermReport ? '#10B981' : 'var(--border-med)'} />
-            <Pill text={data.sources?.brandAnalytics  ? '✓ Brand Analytics'    : '⚪ Brand Analytics (no SQP uploaded)'} color={data.sources?.brandAnalytics ? '#10B981' : 'var(--border-med)'} />
+            {data.asin && <Pill text={`ASIN: ${data.asin}`} color="var(--info-strong)" />}
+            {data.sku  && <Pill text={`SKU: ${data.sku}`} color="var(--info-strong)" />}
+            <Pill text={data.sources?.searchTermReport ? '✓ Search Term Report' : '✕ Search Term Report'} color={data.sources?.searchTermReport ? 'var(--success)' : 'var(--border-med)'} />
+            <Pill text={data.sources?.brandAnalytics  ? '✓ Brand Analytics'    : '⚪ Brand Analytics (no SQP uploaded)'} color={data.sources?.brandAnalytics ? 'var(--success)' : 'var(--border-med)'} />
             {data.sources?.productScope != null && (
-              <Pill text={`${data.sources.productScope} campaigns matched`} color={data.sources.productScope > 0 ? '#10B981' : '#F59E0B'} />
+              <Pill text={`${data.sources.productScope} campaigns matched`} color={data.sources.productScope > 0 ? 'var(--success)' : 'var(--warning)'} />
             )}
           </div>
 
           {/* Summary row */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
-            <SummaryCard label="Listing Candidates" value={data.summary.listingCandidates} color="#8B5CF6" />
-            <SummaryCard label="Scale Up"           value={data.summary.scaleUp}            color="#10B981" />
-            <SummaryCard label="Add Exact"          value={data.summary.addExact}           color="#3B82F6" />
-            <SummaryCard label="Add Negative"       value={data.summary.addNegative}        color="#F43F5E" />
-            <SummaryCard label="New (BA)"           value={data.summary.newFromBrandAnalytics} color="#A78BFA" />
-            <SummaryCard label="Wasted Spend"       value={`$${data.summary.totalWastedSpend?.toFixed(2)}`} color="#F43F5E" />
+            <SummaryCard label="Listing Candidates" value={data.summary.listingCandidates} color="var(--accent-strong)" />
+            <SummaryCard label="Scale Up"           value={data.summary.scaleUp}            color="var(--success)" />
+            <SummaryCard label="Add Exact"          value={data.summary.addExact}           color="var(--info-strong)" />
+            <SummaryCard label="Add Negative"       value={data.summary.addNegative}        color="var(--rose)" />
+            <SummaryCard label="New (BA)"           value={data.summary.newFromBrandAnalytics} color="var(--accent)" />
+            <SummaryCard label="Wasted Spend"       value={`$${data.summary.totalWastedSpend?.toFixed(2)}`} color="var(--rose)" />
           </div>
 
           {/* Top tabs: Listing vs Campaigns */}
@@ -330,7 +330,7 @@ export default function KeywordRecommendationsPanel({ profileId }) {
                   <button key={b} onClick={() => setCampaignBucket(b)}
                     style={{ padding: '5px 12px', fontSize: 11, fontWeight: 700, borderRadius: 7,
                       border: `1px solid ${campaignBucket === b ? ACTION_COLOR[b] : 'var(--border-strong)'}`,
-                      background: campaignBucket === b ? ACTION_COLOR[b] + '20' : 'transparent',
+                      background: campaignBucket === b ? `color-mix(in srgb, ${ACTION_COLOR[b]} 13%, transparent)` : 'transparent',
                       color: campaignBucket === b ? ACTION_COLOR[b] : 'var(--text-subtle)',
                       cursor: 'pointer' }}>
                     {ACTION_LABEL[b]} ({campaignBuckets[b]?.length ?? 0})

@@ -138,7 +138,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
                     gap: collapsed ? 0 : 10,
                     justifyContent: collapsed ? 'center' : 'flex-start',
                     padding: collapsed ? '9px 0' : '8px 16px',
-                    background: isActive ? `${item.color}14` : 'transparent',
+                    background: isActive ? `color-mix(in srgb, ${item.color} 8%, transparent)` : 'transparent',
                     border: 'none',
                     borderLeft: isActive ? `2px solid ${item.color}` : '2px solid transparent',
                     cursor: 'pointer',
@@ -159,12 +159,12 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
                   </span>
                   {!collapsed && <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>}
                   {badgeCount > 0 && !collapsed && (
-                    <span style={{ background: '#F43F5E', color: '#fff', fontSize: 9, fontWeight: 800, borderRadius: 99, padding: '1px 5px', minWidth: 14, textAlign: 'center', flexShrink: 0 }}>
+                    <span style={{ background: 'var(--rose)', color: '#fff', fontSize: 9, fontWeight: 800, borderRadius: 99, padding: '1px 5px', minWidth: 14, textAlign: 'center', flexShrink: 0 }}>
                       {badgeCount}
                     </span>
                   )}
                   {badgeCount > 0 && collapsed && (
-                    <span style={{ position: 'absolute', top: 6, right: 6, width: 7, height: 7, borderRadius: '50%', background: '#F43F5E' }} />
+                    <span style={{ position: 'absolute', top: 6, right: 6, width: 7, height: 7, borderRadius: '50%', background: 'var(--rose)' }} />
                   )}
                 </button>
               );
@@ -194,7 +194,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
             <span style={{
               position: 'absolute', marginLeft: 10, marginTop: -12,
               fontSize: 9, fontWeight: 900,
-              background: '#F59E0B', color: '#000',
+              background: 'var(--warning)', color: '#000',
               borderRadius: 99, padding: '1px 4px', minWidth: 14, textAlign: 'center',
             }}>
               {earnedBadgeCount}

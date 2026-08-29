@@ -53,7 +53,7 @@ const TOOLS = [
   {
     tab: 'image-optimizer', name: 'Main Image Optimizer', badge: 'AI',
     desc: 'Upload your product photo, answer a short brief, and generate an Amazon-compliant main image with a pure-white background.',
-    gradient: 'linear-gradient(135deg, #8B5CF6, #3B82F6)',
+    gradient: 'linear-gradient(135deg, var(--accent-strong), var(--info-strong))',
     glow: 'rgba(139,92,246,0.40)',
     bg: 'rgba(139,92,246,0.10)',
     border: 'rgba(139,92,246,0.32)',
@@ -63,7 +63,7 @@ const TOOLS = [
   {
     tab: 'listing-history', name: 'Optimization History', badge: 'DATA',
     desc: 'Browse every past AI optimization run — see before/after content, published status, and keywords used.',
-    gradient: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+    gradient: 'linear-gradient(135deg, var(--indigo), var(--accent-strong))',
     glow: 'rgba(99,102,241,0.40)',
     bg: 'rgba(99,102,241,0.10)',
     border: 'rgba(99,102,241,0.32)',
@@ -113,7 +113,7 @@ const TOOLS = [
   {
     tab: 'alerts', name: 'Campaign Alerts', badge: 'NEW',
     desc: 'Set ACoS, spend, ROAS and other thresholds — get notified the moment any campaign crosses a limit.',
-    gradient: 'linear-gradient(135deg, #F43F5E, #EF4444)',
+    gradient: 'linear-gradient(135deg, var(--rose), var(--danger-strong))',
     glow: 'rgba(244,63,94,0.40)',
     bg: 'rgba(244,63,94,0.10)',
     border: 'rgba(244,63,94,0.32)',
@@ -133,7 +133,7 @@ const TOOLS = [
   {
     tab: 'amazon', name: 'Amazon Connect', badge: 'SETUP',
     desc: 'Connect your Amazon Advertising and Seller Central accounts to unlock the complete suite.',
-    gradient: 'linear-gradient(135deg, #F59E0B, #D97706)',
+    gradient: 'linear-gradient(135deg, var(--warning), #D97706)',
     glow: 'rgba(245,158,11,0.42)',
     bg: 'rgba(245,158,11,0.10)',
     border: 'rgba(245,158,11,0.32)',
@@ -321,7 +321,7 @@ function TrialBanner({ trialDaysLeft }) {
       </span>
       <a href="/billing" style={{
         fontSize: 12, fontWeight: 800, padding: '5px 16px', borderRadius: 8,
-        background: urgent ? 'linear-gradient(135deg, #EF4444, #DC2626)' : 'linear-gradient(135deg, #F59E0B, #D97706)',
+        background: urgent ? 'linear-gradient(135deg, var(--danger-strong), #DC2626)' : 'linear-gradient(135deg, var(--warning), #D97706)',
         color: '#fff', textDecoration: 'none', flexShrink: 0,
         boxShadow: urgent ? '0 0 16px rgba(239,68,68,0.4)' : '0 0 16px rgba(245,158,11,0.4)',
       }}>
@@ -425,7 +425,7 @@ export default function HubPage({ user, onLogout }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
             <div style={{
               width: 40, height: 40, borderRadius: 12, overflow: 'hidden', flexShrink: 0,
-              background: 'linear-gradient(135deg, #7C3AED, #3B82F6)',
+              background: 'linear-gradient(135deg, #7C3AED, var(--info-strong))',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: '0 0 20px rgba(124,58,237,0.5)',
             }}>
@@ -457,12 +457,12 @@ export default function HubPage({ user, onLogout }) {
                 {clientName}
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 6px #10B981' }} />
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', boxShadow: '0 0 6px var(--success)' }} />
                 <span style={{
                   fontSize: 9, fontWeight: 800, letterSpacing: '0.1em',
                   color: planCfg.color,
-                  background: `${planCfg.color}1A`,
-                  border: `1px solid ${planCfg.color}40`,
+                  background: `color-mix(in srgb, ${planCfg.color} 10%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${planCfg.color} 25%, transparent)`,
                   padding: '2px 7px', borderRadius: 100,
                   boxShadow: `0 0 8px ${planCfg.glow}`,
                 }}>
@@ -540,7 +540,7 @@ export default function HubPage({ user, onLogout }) {
               border: '1px solid rgba(16,185,129,0.28)',
               boxShadow: '0 0 16px rgba(16,185,129,0.12)',
             }}>
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 8px #10B981' }} />
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--success)', boxShadow: '0 0 8px var(--success)' }} />
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success-2)' }}>All systems live</span>
             </div>
             <ThemeToggle />
@@ -577,7 +577,7 @@ export default function HubPage({ user, onLogout }) {
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>Seller Central connected!</span>
                   <span style={{ fontSize: 13, color: 'var(--text-subtle)', marginLeft: 8 }}>Redirecting to authorize Amazon Advertising…</span>
                 </div>
-                <div style={{ marginLeft: 'auto', width: 18, height: 18, border: '2px solid rgba(167,139,250,0.3)', borderTopColor: '#A78BFA', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                <div style={{ marginLeft: 'auto', width: 18, height: 18, border: '2px solid rgba(167,139,250,0.3)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
               </>
             )}
             {oauthStep === 'syncing' && (
@@ -587,7 +587,7 @@ export default function HubPage({ user, onLogout }) {
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--info)' }}>Amazon Advertising connected!</span>
                   <span style={{ fontSize: 13, color: 'var(--text-subtle)', marginLeft: 8 }}>Syncing your profiles…</span>
                 </div>
-                <div style={{ marginLeft: 'auto', width: 18, height: 18, border: '2px solid rgba(96,165,250,0.3)', borderTopColor: '#60A5FA', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                <div style={{ marginLeft: 'auto', width: 18, height: 18, border: '2px solid rgba(96,165,250,0.3)', borderTopColor: 'var(--info)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
               </>
             )}
             {oauthStep === 'done' && (
@@ -637,17 +637,17 @@ export default function HubPage({ user, onLogout }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 14, marginBottom: 52 }}>
             {[
               { label: 'Tools Included',  value: TOOLS.length, icon: '⚡', gradient: 'linear-gradient(135deg, #7C3AED, #5B21B6)', glow: 'rgba(124,58,237,0.4)', color: 'var(--accent)' },
-              { label: 'Amazon Profiles', value: planCfg.profiles, icon: '📦', gradient: 'linear-gradient(135deg, #1D4ED8, #3B82F6)', glow: 'rgba(59,130,246,0.4)', color: 'var(--info)' },
+              { label: 'Amazon Profiles', value: planCfg.profiles, icon: '📦', gradient: 'linear-gradient(135deg, #1D4ED8, var(--info-strong))', glow: 'rgba(59,130,246,0.4)', color: 'var(--info)' },
               { label: 'AI Models',       value: '2',  icon: '🤖', gradient: 'linear-gradient(135deg, #BE185D, #EC4899)', glow: 'rgba(236,72,153,0.4)', color: '#F472B6' },
-              { label: 'Support',         value: 'Priority', icon: '💬', gradient: 'linear-gradient(135deg, #065F46, #10B981)', glow: 'rgba(16,185,129,0.4)', color: 'var(--success-2)' },
+              { label: 'Support',         value: 'Priority', icon: '💬', gradient: 'linear-gradient(135deg, #065F46, var(--success))', glow: 'rgba(16,185,129,0.4)', color: 'var(--success-2)' },
             ].map(s => (
               <div key={s.label} style={{
                 padding: '20px 22px', borderRadius: 16,
                 background: 'var(--bg-overlay-lo)',
-                border: `1px solid ${s.color}25`,
+                border: `1px solid color-mix(in srgb, ${s.color} 15%, transparent)`,
                 backdropFilter: 'blur(16px)',
                 display: 'flex', alignItems: 'center', gap: 14,
-                boxShadow: `0 4px 24px ${s.glow}20`,
+                boxShadow: `0 4px 24px color-mix(in srgb, ${s.glow} 13%, transparent)`,
                 position: 'relative', overflow: 'hidden',
               }}>
                 {/* Glow behind */}
@@ -729,7 +729,7 @@ export default function HubPage({ user, onLogout }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 18, position: 'relative' }}>
               <div style={{
                 width: 52, height: 52, borderRadius: 16, flexShrink: 0,
-                background: 'linear-gradient(135deg, #F97316, #FBBF24)',
+                background: 'linear-gradient(135deg, #F97316, var(--warning-3))',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 6px 24px rgba(249,115,22,0.45)',
                 fontSize: 24,
@@ -747,7 +747,7 @@ export default function HubPage({ user, onLogout }) {
             </div>
             <a href="mailto:info@hivemindnestor.com" style={{
               padding: '12px 26px', borderRadius: 12, flexShrink: 0,
-              background: 'linear-gradient(135deg, #F97316, #FBBF24)',
+              background: 'linear-gradient(135deg, #F97316, var(--warning-3))',
               color: '#fff', fontSize: 13, fontWeight: 800,
               textDecoration: 'none',
               boxShadow: '0 6px 28px rgba(249,115,22,0.45)',
@@ -772,7 +772,7 @@ function PlanCard({ planCfg, plan }) {
     <div style={{
       padding: '22px 26px', borderRadius: 20,
       background: 'var(--bg-overlay-hi)',
-      border: `1px solid ${planCfg.color}30`,
+      border: `1px solid color-mix(in srgb, ${planCfg.color} 19%, transparent)`,
       backdropFilter: 'blur(20px)',
       minWidth: 240,
       boxShadow: `0 8px 40px ${planCfg.glow}`,
@@ -790,8 +790,8 @@ function PlanCard({ planCfg, plan }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 16 }}>
         <div style={{
           width: 40, height: 40, borderRadius: 12,
-          background: `linear-gradient(135deg, ${planCfg.color}40, ${planCfg.color}20)`,
-          border: `1px solid ${planCfg.color}40`,
+          background: `linear-gradient(135deg, color-mix(in srgb, ${planCfg.color} 25%, transparent), color-mix(in srgb, ${planCfg.color} 13%, transparent))`,
+          border: `1px solid color-mix(in srgb, ${planCfg.color} 25%, transparent)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: `0 0 20px ${planCfg.glow}`,
         }}>
@@ -806,8 +806,8 @@ function PlanCard({ planCfg, plan }) {
           <span style={{
             fontSize: 9, fontWeight: 800, letterSpacing: '0.1em',
             padding: '3px 9px', borderRadius: 100,
-            background: `${planCfg.color}20`, color: planCfg.color,
-            border: `1px solid ${planCfg.color}40`,
+            background: `color-mix(in srgb, ${planCfg.color} 13%, transparent)`, color: planCfg.color,
+            border: `1px solid color-mix(in srgb, ${planCfg.color} 25%, transparent)`,
             boxShadow: `0 0 10px ${planCfg.glow}`,
           }}>
             {planCfg.label.toUpperCase()}
@@ -822,10 +822,10 @@ function PlanCard({ planCfg, plan }) {
       <Link to="/billing" style={{
         display: 'block', textAlign: 'center',
         fontSize: 12, fontWeight: 800,
-        background: `linear-gradient(135deg, ${planCfg.color}30, ${planCfg.color}15)`,
+        background: `linear-gradient(135deg, color-mix(in srgb, ${planCfg.color} 19%, transparent), color-mix(in srgb, ${planCfg.color} 8%, transparent))`,
         color: planCfg.color,
         padding: '9px', borderRadius: 10,
-        border: `1px solid ${planCfg.color}35`,
+        border: `1px solid color-mix(in srgb, ${planCfg.color} 21%, transparent)`,
         textDecoration: 'none',
         boxShadow: `0 2px 12px ${planCfg.glow}`,
       }}>

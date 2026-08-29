@@ -4,9 +4,9 @@ import { Delta } from './shared.jsx';
 const CARD = { background: 'var(--bg-overlay-lo)', border: '1px solid var(--overlay-7)', borderRadius: 12, overflow: 'hidden' };
 
 function visColor(rate) {
-  if (rate >= 20) return '#10B981';
-  if (rate >= 5)  return '#F59E0B';
-  return '#F43F5E';
+  if (rate >= 20) return 'var(--success)';
+  if (rate >= 5)  return 'var(--warning)';
+  return 'var(--rose)';
 }
 
 export default function MarketPositionWidget({ summary, brandAppearances = [], comparison = null }) {
@@ -65,9 +65,9 @@ export default function MarketPositionWidget({ summary, brandAppearances = [], c
             Position Breakdown
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
-            <PositionBadge rank="#1" count={pos1} color="#10B981" />
-            <PositionBadge rank="#2" count={pos2} color="#3B82F6" />
-            <PositionBadge rank="#3" count={pos3} color="#8B5CF6" />
+            <PositionBadge rank="#1" count={pos1} color="var(--success)" />
+            <PositionBadge rank="#2" count={pos2} color="var(--info-strong)" />
+            <PositionBadge rank="#3" count={pos3} color="var(--accent-strong)" />
           </div>
         </div>
       )}

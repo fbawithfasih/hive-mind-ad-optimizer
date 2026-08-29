@@ -63,8 +63,8 @@ export default function CampaignDetailChart({ campaign }) {
       <ComposedChart data={data} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="drawerSpend" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor="#3B82F6" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+            <stop offset="5%"  stopColor="var(--info-strong)" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="var(--info-strong)" stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--overlay-3)" />
@@ -72,8 +72,8 @@ export default function CampaignDetailChart({ campaign }) {
         <YAxis yAxisId="left"  tick={{ fontSize: 10, fill: 'var(--border-strong)' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={48} />
         <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: 'var(--border-strong)' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} width={36} />
         <Tooltip content={<CustomTooltip />} />
-        <Area yAxisId="left" type="monotone" dataKey="spend" name="Spend" stroke="#3B82F6" strokeWidth={2} fill="url(#drawerSpend)" dot={{ r: 4, fill: '#3B82F6', strokeWidth: 0 }} animationDuration={600} />
-        <Line  yAxisId="right" type="monotone" dataKey="acos"  name="ACoS %" stroke="#F43F5E" strokeWidth={2} strokeDasharray="5 3" dot={{ r: 4, fill: '#F43F5E', strokeWidth: 0 }} animationDuration={600} connectNulls={false} />
+        <Area yAxisId="left" type="monotone" dataKey="spend" name="Spend" stroke="var(--info-strong)" strokeWidth={2} fill="url(#drawerSpend)" dot={{ r: 4, fill: 'var(--info-strong)', strokeWidth: 0 }} animationDuration={600} />
+        <Line  yAxisId="right" type="monotone" dataKey="acos"  name="ACoS %" stroke="var(--rose)" strokeWidth={2} strokeDasharray="5 3" dot={{ r: 4, fill: 'var(--rose)', strokeWidth: 0 }} animationDuration={600} connectNulls={false} />
       </ComposedChart>
     </ResponsiveContainer>
   );

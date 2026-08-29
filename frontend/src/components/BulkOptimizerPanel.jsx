@@ -57,7 +57,7 @@ function SparkBars({ values = [], color }) {
 
 function StatCard({ label, value, sub, gradient, glow, accentColor, icon, spark }) {
   return (
-    <div style={{ ...glass(), padding: '18px 20px', borderColor: `${accentColor}20`, boxShadow: `0 4px 28px ${glow}15`, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+    <div style={{ ...glass(), padding: '18px 20px', borderColor: `color-mix(in srgb, ${accentColor} 13%, transparent)`, boxShadow: `0 4px 28px ${glow}15`, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
       <GradientBar top={gradient} />
       <GlowBlob color={glow} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
@@ -96,7 +96,7 @@ function VibrantProgressBar({ completed, total, failed }) {
         {/* completed segment */}
         <div style={{
           position: 'relative', height: '100%', width: `${completedPct}%`,
-          background: 'linear-gradient(90deg,#6366F1,#10B981)',
+          background: 'linear-gradient(90deg,var(--indigo),var(--success))',
           borderRadius: 99, transition: 'width 0.6s ease',
           boxShadow: '0 0 12px rgba(16,185,129,0.5)',
           float: 'left',
@@ -105,7 +105,7 @@ function VibrantProgressBar({ completed, total, failed }) {
         {failedPct > 0 && (
           <div style={{
             height: '100%', width: `${failedPct}%`,
-            background: 'linear-gradient(90deg,#F59E0B,#F43F5E)',
+            background: 'linear-gradient(90deg,var(--warning),var(--rose))',
             borderRadius: 99, transition: 'width 0.6s ease',
             float: 'left',
           }} />
@@ -121,7 +121,7 @@ function VibrantProgressBar({ completed, total, failed }) {
           return (
             <div key={i} style={{
               flex: 1, height: 3, borderRadius: 99,
-              background: isDone ? '#10B981' : isFailed ? '#F43F5E' : 'var(--overlay-5)',
+              background: isDone ? 'var(--success)' : isFailed ? 'var(--rose)' : 'var(--overlay-5)',
               boxShadow: isDone ? '0 0 4px #10B98180' : 'none',
               transition: 'background 0.4s ease',
             }} />
@@ -136,7 +136,7 @@ function CopyBtn({ text }) {
   const [copied, setCopied] = useState(false);
   return (
     <button onClick={() => { navigator.clipboard.writeText(text ?? ''); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      style={{ fontSize: 10, padding: '3px 10px', borderRadius: 6, border: `1px solid ${copied ? '#10B981' : 'var(--overlay-8)'}`, background: copied ? 'rgba(16,185,129,0.1)' : 'var(--overlay-3)', cursor: 'pointer', color: copied ? 'var(--success)' : 'var(--text-faint)', transition: 'all .15s', whiteSpace: 'nowrap' }}>
+      style={{ fontSize: 10, padding: '3px 10px', borderRadius: 6, border: `1px solid ${copied ? 'var(--success)' : 'var(--overlay-8)'}`, background: copied ? 'rgba(16,185,129,0.1)' : 'var(--overlay-3)', cursor: 'pointer', color: copied ? 'var(--success)' : 'var(--text-faint)', transition: 'all .15s', whiteSpace: 'nowrap' }}>
       {copied ? '✓ Copied' : 'Copy'}
     </button>
   );
@@ -147,15 +147,15 @@ function ItemCard({ item, index }) {
   const failed  = item.status === 'FAILED';
   const pending = !done && !failed;
 
-  const accentColor = done ? '#10B981' : failed ? '#F43F5E' : 'var(--border-med)';
+  const accentColor = done ? 'var(--success)' : failed ? 'var(--rose)' : 'var(--text-faint)';
   const gradient    = done
-    ? 'linear-gradient(90deg,#10B981,#3B82F6)'
+    ? 'linear-gradient(90deg,var(--success),var(--info-strong))'
     : failed
-    ? 'linear-gradient(90deg,#F43F5E,#F59E0B)'
+    ? 'linear-gradient(90deg,var(--rose),var(--warning))'
     : 'linear-gradient(90deg,var(--overlay-4),transparent)';
 
   return (
-    <div style={{ ...glass(), padding: '16px 18px', borderColor: `${accentColor}20`, boxShadow: done ? `0 2px 20px rgba(16,185,129,0.08)` : 'none' }}>
+    <div style={{ ...glass(), padding: '16px 18px', borderColor: `color-mix(in srgb, ${accentColor} 13%, transparent)`, boxShadow: done ? `0 2px 20px rgba(16,185,129,0.08)` : 'none' }}>
       {(done || failed) && <GradientBar top={gradient} />}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: done && item.optimizedTitle ? 12 : 0, position: 'relative' }}>
@@ -169,8 +169,8 @@ function ItemCard({ item, index }) {
           {pending && <Spinner size={13} />}
           <span style={{
             fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 99,
-            background: `${accentColor}18`, color: accentColor,
-            border: `1px solid ${accentColor}30`,
+            background: `color-mix(in srgb, ${accentColor} 9%, transparent)`, color: accentColor,
+            border: `1px solid color-mix(in srgb, ${accentColor} 19%, transparent)`,
           }}>
             {item.status ?? 'QUEUED'}
           </span>
@@ -288,7 +288,7 @@ export default function BulkOptimizerPanel({ aiModel }) {
 
       {/* ══ HERO HEADER ══ */}
       <div style={{ ...glass(), padding: '22px 26px', borderColor: 'rgba(99,102,241,0.2)', boxShadow: '0 4px 40px rgba(99,102,241,0.1)' }}>
-        <GradientBar top="linear-gradient(90deg,#6366F1,#8B5CF6,#10B981)" />
+        <GradientBar top="linear-gradient(90deg,var(--indigo),var(--accent-strong),var(--success))" />
         <GlowBlob color="rgba(99,102,241,0.25)" />
 
         <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -324,7 +324,7 @@ export default function BulkOptimizerPanel({ aiModel }) {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* ASIN input card */}
             <div style={{ ...glass(), padding: '18px 22px' }}>
-              <GradientBar top="linear-gradient(90deg,#3B82F6,#6366F1)" />
+              <GradientBar top="linear-gradient(90deg,var(--info-strong),var(--indigo))" />
               <div style={{ position: 'relative' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>ASINs / SKUs</span>
@@ -337,7 +337,7 @@ export default function BulkOptimizerPanel({ aiModel }) {
                   placeholder={'B08XYZ1234\nB09ABC5678\nB07DEF9012\n…'}
                   rows={7}
                   style={{ width: '100%', boxSizing: 'border-box', background: 'var(--overlay-2)', border: '1px solid var(--overlay-6)', borderRadius: 12, color: 'var(--text-primary)', padding: '12px 14px', fontSize: 13, fontFamily: 'monospace', resize: 'vertical', outline: 'none', lineHeight: 1.7, letterSpacing: '0.03em', transition: 'border-color 0.15s' }}
-                  onFocus={e => e.target.style.borderColor = '#6366F1'}
+                  onFocus={e => e.target.style.borderColor = 'var(--indigo)'}
                   onBlur={e  => e.target.style.borderColor = 'var(--overlay-6)'}
                 />
               </div>
@@ -348,8 +348,8 @@ export default function BulkOptimizerPanel({ aiModel }) {
               {/* Model toggle */}
               <div style={{ display: 'flex', gap: 4, background: 'var(--overlay-3)', borderRadius: 12, padding: 4, border: '1px solid var(--overlay-5)' }}>
                 {[
-                  ['gemini', 'Gemini 2.5 Flash', '#3B82F6', 'rgba(59,130,246,0.4)'],
-                  ['claude', 'Claude Sonnet',    '#8B5CF6', 'rgba(139,92,246,0.4)'],
+                  ['gemini', 'Gemini 2.5 Flash', 'var(--info-strong)', 'rgba(59,130,246,0.4)'],
+                  ['claude', 'Claude Sonnet',    'var(--accent-strong)', 'rgba(139,92,246,0.4)'],
                 ].map(([id, label, color, glow]) => (
                   <button key={id} type="button" onClick={() => setModel(id)}
                     style={{ fontSize: 12, fontWeight: 700, padding: '7px 16px', borderRadius: 9, border: 'none', cursor: 'pointer', transition: 'all .15s',
@@ -371,7 +371,7 @@ export default function BulkOptimizerPanel({ aiModel }) {
               <button type="submit" disabled={loading || itemCount === 0}
                 style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 28px', borderRadius: 12, border: 'none',
                   cursor: loading || itemCount === 0 ? 'not-allowed' : 'pointer',
-                  background: loading || itemCount === 0 ? 'var(--overlay-5)' : 'linear-gradient(135deg,#6366F1,#8B5CF6)',
+                  background: loading || itemCount === 0 ? 'var(--overlay-5)' : 'linear-gradient(135deg,var(--indigo),var(--accent-strong))',
                   color: '#fff', fontWeight: 800, fontSize: 14,
                   boxShadow: !loading && itemCount > 0 ? '0 6px 28px rgba(99,102,241,0.45)' : 'none',
                   opacity: itemCount === 0 ? 0.4 : 1, transition: 'all 0.2s', whiteSpace: 'nowrap',
@@ -398,32 +398,32 @@ export default function BulkOptimizerPanel({ aiModel }) {
           <StatCard
             label="Total Items" value={total}
             sub={`Batch of ${total}`}
-            gradient="linear-gradient(135deg,#6366F1,#4F46E5)" glow="rgba(99,102,241,0.5)" accentColor="#6366F1"
+            gradient="linear-gradient(135deg,var(--indigo),#4F46E5)" glow="rgba(99,102,241,0.5)" accentColor="var(--indigo)"
             icon={<svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>}
           />
           <StatCard
             label="Completed" value={completed}
             sub={total > 0 ? `${Math.round((completed / total) * 100)}% success` : 'Waiting…'}
-            gradient="linear-gradient(135deg,#10B981,#059669)" glow="rgba(16,185,129,0.5)" accentColor="#10B981"
+            gradient="linear-gradient(135deg,var(--success),#059669)" glow="rgba(16,185,129,0.5)" accentColor="var(--success)"
             spark={spark}
             icon={<svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>}
           />
           <StatCard
             label="Failed" value={failed}
             sub={failed > 0 ? 'Check errors below' : 'None so far'}
-            gradient="linear-gradient(135deg,#F43F5E,#E11D48)" glow="rgba(244,63,94,0.5)" accentColor="#F43F5E"
+            gradient="linear-gradient(135deg,var(--rose),#E11D48)" glow="rgba(244,63,94,0.5)" accentColor="var(--rose)"
             icon={<svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>}
           />
           <StatCard
             label="Pending" value={total - completed - failed}
             sub={isRunning ? 'Processing…' : isDone ? 'All done' : '—'}
-            gradient="linear-gradient(135deg,#F59E0B,#D97706)" glow="rgba(245,158,11,0.5)" accentColor="#F59E0B"
+            gradient="linear-gradient(135deg,var(--warning),#D97706)" glow="rgba(245,158,11,0.5)" accentColor="var(--warning)"
             icon={<svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>}
           />
           <StatCard
             label="AI Model" value={model === 'claude' ? 'Claude' : 'Gemini'}
             sub={model === 'claude' ? 'Sonnet 4.5' : '2.5 Flash'}
-            gradient="linear-gradient(135deg,#8B5CF6,#7C3AED)" glow="rgba(139,92,246,0.5)" accentColor="#8B5CF6"
+            gradient="linear-gradient(135deg,var(--accent-strong),#7C3AED)" glow="rgba(139,92,246,0.5)" accentColor="var(--accent-strong)"
             icon={<svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>}
           />
         </div>
@@ -433,8 +433,8 @@ export default function BulkOptimizerPanel({ aiModel }) {
       {batch && (
         <div style={{ ...glass(), padding: '20px 24px', borderColor: 'rgba(99,102,241,0.15)' }}>
           <GradientBar top={isDone
-            ? (failed === 0 ? 'linear-gradient(90deg,#10B981,#3B82F6)' : 'linear-gradient(90deg,#10B981,#F59E0B)')
-            : 'linear-gradient(90deg,#6366F1,#8B5CF6)'} />
+            ? (failed === 0 ? 'linear-gradient(90deg,var(--success),var(--info-strong))' : 'linear-gradient(90deg,var(--success),var(--warning))')
+            : 'linear-gradient(90deg,var(--indigo),var(--accent-strong))'} />
           <GlowBlob color={isDone && failed === 0 ? 'rgba(16,185,129,0.2)' : 'rgba(99,102,241,0.2)'} />
           <div style={{ position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>

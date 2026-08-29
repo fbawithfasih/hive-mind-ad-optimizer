@@ -7,10 +7,10 @@ const S = {
   card: { width: '100%', maxWidth: 400, padding: '40px 36px', background: 'var(--bg-panel)', borderRadius: 16, border: '1px solid var(--border-strong)', boxShadow: '0 25px 60px var(--bg-overlay-lo)' },
   label: { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' },
   input: { width: '100%', boxSizing: 'border-box', background: 'var(--bg-app-2)', border: '1px solid var(--border-strong)', borderRadius: 8, color: 'var(--text-primary)', padding: '11px 14px', fontSize: 14, outline: 'none' },
-  btn: { width: '100%', marginTop: 4, padding: '12px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' },
+  btn: { width: '100%', marginTop: 4, padding: '12px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' },
   btnOff: { background: 'var(--border-strong)', opacity: 0.7, cursor: 'not-allowed' },
-  err: { background: '#F43F5E18', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)' },
-  ok: { background: '#10B98118', border: '1px solid #10B98144', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: 'var(--success-2)', lineHeight: 1.5, textAlign: 'center' },
+  err: { background: 'color-mix(in srgb, var(--rose) 9%, transparent)', border: '1px solid #F43F5E44', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--danger)' },
+  ok: { background: 'color-mix(in srgb, var(--success) 9%, transparent)', border: '1px solid #10B98144', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: 'var(--success-2)', lineHeight: 1.5, textAlign: 'center' },
 };
 
 export default function ResetPasswordPage() {
@@ -66,15 +66,15 @@ export default function ResetPasswordPage() {
               <label style={S.label}>New password <span style={{ color: 'var(--text-faint)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(min 8 chars)</span></label>
               <input type="password" value={password} onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••" required autoFocus style={S.input}
-                onFocus={e => (e.target.style.borderColor = '#3B82F6')}
-                onBlur={e  => (e.target.style.borderColor = 'var(--border-strong)')} />
+                onFocus={e => (e.target.style.borderColor = 'var(--info-strong)')}
+                onBlur={e  => (e.target.style.borderColor = 'var(--text-faint)')} />
             </div>
             <div>
               <label style={S.label}>Confirm password</label>
               <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
                 placeholder="••••••••" required style={S.input}
-                onFocus={e => (e.target.style.borderColor = '#3B82F6')}
-                onBlur={e  => (e.target.style.borderColor = 'var(--border-strong)')} />
+                onFocus={e => (e.target.style.borderColor = 'var(--info-strong)')}
+                onBlur={e  => (e.target.style.borderColor = 'var(--text-faint)')} />
             </div>
             {error && <div style={S.err}>{error}</div>}
             <button type="submit" disabled={loading}

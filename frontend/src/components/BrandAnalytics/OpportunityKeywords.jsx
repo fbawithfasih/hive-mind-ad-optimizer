@@ -58,9 +58,9 @@ export default function OpportunityKeywords({ opportunities = [] }) {
                 style={{
                   fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 6,
                   border: '1px solid',
-                  borderColor: active ? `${meta.color}40` : 'transparent',
+                  borderColor: active ? `color-mix(in srgb, ${meta.color} 25%, transparent)` : 'transparent',
                   cursor: 'pointer',
-                  background: active ? `${meta.color}12` : 'transparent',
+                  background: active ? `color-mix(in srgb, ${meta.color} 7%, transparent)` : 'transparent',
                   color: active ? meta.color : 'var(--text-subtle)',
                   transition: 'all 0.1s',
                 }}>
@@ -111,7 +111,7 @@ export default function OpportunityKeywords({ opportunities = [] }) {
                 <td style={TDR}>{o.clickShare     ?? 0}%</td>
                 <td style={TDR}>{o.purchaseShare  ?? 0}%</td>
                 <td style={TD}>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: meta.color, background: `${meta.color}12`, padding: '2px 8px', borderRadius: 5, whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: meta.color, background: `color-mix(in srgb, ${meta.color} 7%, transparent)`, padding: '2px 8px', borderRadius: 5, whiteSpace: 'nowrap' }}>
                     {meta.label}
                   </span>
                 </td>

@@ -5,7 +5,7 @@ import { Command } from 'cmdk';
 import { NAV_COMMANDS, DATE_COMMANDS, ACTION_COMMANDS } from './commands.js';
 
 const BADGE_COLORS = {
-  sp: '#3B82F6', sb: '#8B5CF6', sd: '#10B981',
+  sp: 'var(--info-strong)', sb: 'var(--accent-strong)', sd: 'var(--success)',
 };
 
 function typeLabel(t) {
@@ -16,8 +16,8 @@ function typeLabel(t) {
 }
 
 const STATUS_COLOR = {
-  enabled: '#10B981', active: '#10B981',
-  paused: '#F59E0B', ended: '#F43F5E', archived: 'var(--text-muted)',
+  enabled: 'var(--success)', active: 'var(--success)',
+  paused: 'var(--warning)', ended: 'var(--rose)', archived: 'var(--text-muted)',
 };
 
 export default function CommandPalette({ open, onOpenChange, actionsRef }) {
@@ -101,7 +101,7 @@ export default function CommandPalette({ open, onOpenChange, actionsRef }) {
               placeholder="Search panels, campaigns, actions…"
               style={{
                 flex: 1, background: 'none', border: 'none', outline: 'none',
-                fontSize: 14, color: 'var(--text-primary)', caretColor: '#3B82F6',
+                fontSize: 14, color: 'var(--text-primary)', caretColor: 'var(--info-strong)',
                 fontFamily: 'inherit',
               }}
             />

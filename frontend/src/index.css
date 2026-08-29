@@ -121,10 +121,11 @@ html.light {
   --text-primary:  #111827;
   --text-strong:   #1F2937;
   --text-muted:    #4B5563;
-  --text-subtle:   #6B7280;
-  /* 4.51:1 on white — the dimmest step that still clears WCAG AA for body
-     text. #9CA3AF (the obvious slate-400 pick) is only 2.54:1. */
-  --text-faint:    #6F7785;
+  --text-subtle:   #656C79;
+  /* Clears WCAG AA on every light surface in the app, not just pure white:
+     5.15:1 on #FFFFFF, 4.73:1 on --bg-app (#F5F5F7), 4.92:1 on --bg-panel-2.
+     Tuning against #FFFFFF alone left it at 4.14:1 on the app background. */
+  --text-faint:    #616875;
   --text-invert:   #FFFFFF;
 
   --grad-hero:   linear-gradient(135deg, #4C1D95 0%, #7C3AED 40%, #2563EB 70%, #DB2777 100%);
@@ -140,14 +141,14 @@ html.light {
   /* Darker shades of the same hues — all >= 4.8:1 on white. */
   --success:   #047857;
   --success-2: #047857;
-  --danger:    #DC2626;
+  --danger:    #CE1F1F;
   --warning:   #B45309;
   --warning-2: #A16207;
   --accent:    #7C3AED;
   --info:      #2563EB;
   --info-2:    #1D4ED8;
   --danger-strong: #B91C1C;
-  --danger-soft:   #DC2626;
+  --danger-soft:   #CE1F1F;
   --rose:          #BE123C;
   --warning-3:     #A16207;
   --accent-strong: #6D28D9;

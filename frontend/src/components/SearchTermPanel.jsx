@@ -101,10 +101,10 @@ const STATUS_TABS = [
 ];
 
 const REC_META = {
-  SCALE_UP:     { label: 'Scale Up',      color: 'var(--success)', glow: 'rgba(16,185,129,0.5)',  gradient: 'linear-gradient(135deg,#10B981,#059669)', icon: '↑' },
-  ADD_EXACT:    { label: 'Add as Exact',  color: 'var(--info-strong)', glow: 'rgba(59,130,246,0.5)',  gradient: 'linear-gradient(135deg,#3B82F6,#2563EB)', icon: '⊕' },
-  ADD_NEGATIVE: { label: 'Add Negative',  color: 'var(--rose)', glow: 'rgba(244,63,94,0.5)',   gradient: 'linear-gradient(135deg,#F43F5E,#E11D48)', icon: '−' },
-  WATCH:        { label: 'Watch',         color: 'var(--warning)', glow: 'rgba(245,158,11,0.5)',  gradient: 'linear-gradient(135deg,#F59E0B,#D97706)', icon: '◎' },
+  SCALE_UP:     { label: 'Scale Up',      color: 'var(--success)', glow: 'rgba(16,185,129,0.5)',  gradient: 'linear-gradient(135deg,var(--success),#059669)', icon: '↑' },
+  ADD_EXACT:    { label: 'Add as Exact',  color: 'var(--info-strong)', glow: 'rgba(59,130,246,0.5)',  gradient: 'linear-gradient(135deg,var(--info-strong),#2563EB)', icon: '⊕' },
+  ADD_NEGATIVE: { label: 'Add Negative',  color: 'var(--rose)', glow: 'rgba(244,63,94,0.5)',   gradient: 'linear-gradient(135deg,var(--rose),#E11D48)', icon: '−' },
+  WATCH:        { label: 'Watch',         color: 'var(--warning)', glow: 'rgba(245,158,11,0.5)',  gradient: 'linear-gradient(135deg,var(--warning),#D97706)', icon: '◎' },
 };
 
 // ── Primitives ────────────────────────────────────────────────────────────────
@@ -150,7 +150,7 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
     <div style={{
       padding: '20px 22px', borderRadius: 20,
       background: 'var(--bg-overlay-hi)',
-      border: `1px solid ${accentColor}25`,
+      border: `1px solid color-mix(in srgb, ${accentColor} 15%, transparent)`,
       backdropFilter: 'blur(16px)',
       position: 'relative', overflow: 'hidden',
       boxShadow: `0 4px 32px ${glow}20`,
@@ -193,7 +193,7 @@ function TopTermsBar({ terms }) {
     </div>
   );
   const max = top[0].impressions ?? 1;
-  const colors = ['#6366F1','#8B5CF6','#A78BFA','#3B82F6','#60A5FA','#10B981','#34D399'];
+  const colors = ['var(--indigo)','var(--accent-strong)','var(--accent)','var(--info-strong)','var(--info)','var(--success)','var(--success-2)'];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
       {top.map((t, i) => (
@@ -242,7 +242,7 @@ function RecommendationDonut({ stats, total }) {
                 stroke={seg.value ? seg.color : 'transparent'} strokeWidth={stroke}
                 strokeDasharray={`${dash} ${circ - dash}`}
                 strokeDashoffset={-offset} strokeLinecap="butt"
-                style={{ filter: seg.value ? `drop-shadow(0 0 4px ${seg.color}80)` : 'none', transition: 'stroke-dasharray 1.2s ease' }} />
+                style={{ filter: seg.value ? `drop-shadow(0 0 4px color-mix(in srgb, ${seg.color} 50%, transparent))` : 'none', transition: 'stroke-dasharray 1.2s ease' }} />
             );
             offset += dash;
             return el;
@@ -501,7 +501,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
                 <button key={p.days} onClick={() => handlePreset(p.days)} style={{
                   padding: '5px 13px', borderRadius: 20, border: 'none', fontSize: 11, cursor: 'pointer',
                   fontWeight: activePreset === p.days ? 700 : 500,
-                  background: activePreset === p.days ? 'linear-gradient(135deg,#6366F1,#8B5CF6)' : 'var(--overlay-4)',
+                  background: activePreset === p.days ? 'linear-gradient(135deg,var(--indigo),var(--accent-strong))' : 'var(--overlay-4)',
                   color: activePreset === p.days ? '#fff' : 'var(--text-subtle)',
                   boxShadow: activePreset === p.days ? '0 2px 12px rgba(99,102,241,0.4)' : 'none',
                   transition: 'all 0.15s',
@@ -525,7 +525,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
             <button onClick={handleLoad} disabled={isLoading} style={{
               display: 'flex', alignItems: 'center', gap: 7, padding: '8px 18px',
               borderRadius: 10, border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer',
-              background: isLoading ? 'var(--overlay-5)' : 'linear-gradient(135deg,#6366F1,#8B5CF6)',
+              background: isLoading ? 'var(--overlay-5)' : 'linear-gradient(135deg,var(--indigo),var(--accent-strong))',
               color: '#fff', fontWeight: 700, fontSize: 13,
               boxShadow: isLoading ? 'none' : '0 4px 20px rgba(99,102,241,0.4)',
               opacity: isLoading ? 0.7 : 1, whiteSpace: 'nowrap', transition: 'all 0.15s',
@@ -607,7 +607,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
                 {/* Ask AI */}
                 <button onClick={handleAskAI} style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, border: 'none',
-                  background: 'linear-gradient(135deg,#8B5CF6,#3B82F6)', color: '#fff', fontWeight: 700, fontSize: 12,
+                  background: 'linear-gradient(135deg,var(--accent-strong),var(--info-strong))', color: '#fff', fontWeight: 700, fontSize: 12,
                   cursor: 'pointer', boxShadow: '0 4px 16px rgba(139,92,246,0.4)', whiteSpace: 'nowrap',
                 }}>
                   <svg style={{ width: 13, height: 13 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -639,7 +639,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
               }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 10, border: 'none',
-                background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 12,
+                background: 'linear-gradient(135deg,var(--indigo),var(--accent-strong))', color: '#fff', fontWeight: 700, fontSize: 12,
                 cursor: 'pointer', boxShadow: '0 4px 16px rgba(99,102,241,0.35)',
               }}>
               Re-classify
@@ -655,7 +655,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
               </div>
               <input type="range" min="5" max="60" step="1" value={thresholds.scaleUpAcos}
                 onChange={e => setThresholds(t => ({ ...t, scaleUpAcos: Number(e.target.value) }))}
-                style={{ width: '100%', accentColor: '#10B981' }} />
+                style={{ width: '100%', accentColor: 'var(--success)' }} />
             </div>
 
             {/* Add Exact min */}
@@ -666,7 +666,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
               </div>
               <input type="range" min="5" max="80" step="1" value={thresholds.addExactAcosMin}
                 onChange={e => setThresholds(t => ({ ...t, addExactAcosMin: Number(e.target.value) }))}
-                style={{ width: '100%', accentColor: '#3B82F6' }} />
+                style={{ width: '100%', accentColor: 'var(--info-strong)' }} />
             </div>
 
             {/* Add Exact max */}
@@ -677,7 +677,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
               </div>
               <input type="range" min="10" max="100" step="1" value={thresholds.addExactAcosMax}
                 onChange={e => setThresholds(t => ({ ...t, addExactAcosMax: Number(e.target.value) }))}
-                style={{ width: '100%', accentColor: '#3B82F6' }} />
+                style={{ width: '100%', accentColor: 'var(--info-strong)' }} />
             </div>
 
             {/* Add Negative clicks */}
@@ -688,7 +688,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
               </div>
               <input type="range" min="3" max="50" step="1" value={thresholds.addNegativeClicks}
                 onChange={e => setThresholds(t => ({ ...t, addNegativeClicks: Number(e.target.value) }))}
-                style={{ width: '100%', accentColor: '#F43F5E' }} />
+                style={{ width: '100%', accentColor: 'var(--rose)' }} />
             </div>
 
             {/* Add Negative spend */}
@@ -699,7 +699,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
               </div>
               <input type="range" min="1" max="50" step="1" value={thresholds.addNegativeSpend}
                 onChange={e => setThresholds(t => ({ ...t, addNegativeSpend: Number(e.target.value) }))}
-                style={{ width: '100%', accentColor: '#F43F5E' }} />
+                style={{ width: '100%', accentColor: 'var(--rose)' }} />
             </div>
 
             {/* Reset */}
@@ -737,7 +737,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
               </svg>
               <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>Campaign Filter</span>
               {selectedCampaignIds.size > 0
-                ? <span style={{ background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', borderRadius: 12, padding: '2px 10px', fontSize: 11, fontWeight: 700 }}>{selectedCampaignIds.size} selected</span>
+                ? <span style={{ background: 'linear-gradient(135deg,var(--indigo),var(--accent-strong))', color: '#fff', borderRadius: 12, padding: '2px 10px', fontSize: 11, fontWeight: 700 }}>{selectedCampaignIds.size} selected</span>
                 : <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>All campaigns</span>
               }
             </div>
@@ -753,7 +753,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
                 {STATUS_TABS.map(tab => (
                   <button key={tab.key} onClick={() => setCampaignStatusFilter(tab.key)} style={{
                     padding: '8px 14px', background: 'none', border: 'none',
-                    borderBottom: campaignStatusFilter === tab.key ? '2px solid #6366F1' : '2px solid transparent',
+                    borderBottom: campaignStatusFilter === tab.key ? '2px solid var(--indigo)' : '2px solid transparent',
                     color: campaignStatusFilter === tab.key ? 'var(--accent)' : 'var(--text-faint)',
                     fontWeight: campaignStatusFilter === tab.key ? 700 : 500,
                     fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap',
@@ -779,10 +779,10 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
                   const id = c.campaignId || c.id;
                   const checked = selectedCampaignIds.has(id);
                   const s = (c.status || '').toLowerCase();
-                  const statusColor = (s === 'active' || s === 'enabled') ? '#10B981' : s === 'paused' ? '#F59E0B' : 'var(--border-med)';
+                  const statusColor = (s === 'active' || s === 'enabled') ? 'var(--success)' : s === 'paused' ? 'var(--warning)' : 'var(--text-faint)';
                   return (
                     <label key={id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0', cursor: 'pointer', userSelect: 'none' }}>
-                      <input type="checkbox" checked={checked} onChange={() => toggleCampaign(id)} style={{ accentColor: '#6366F1', width: 14, height: 14, flexShrink: 0 }} />
+                      <input type="checkbox" checked={checked} onChange={() => toggleCampaign(id)} style={{ accentColor: 'var(--indigo)', width: 14, height: 14, flexShrink: 0 }} />
                       <span style={{ fontSize: 12, color: 'var(--text-muted)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {c.name || c.campaignName || id}
                       </span>
@@ -804,8 +804,8 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           label="Total Terms"
           value={hasData ? searchTerms.length.toLocaleString() : '—'}
           sub={hasData ? `${filtered.length} matching filters` : 'Load report to see data'}
-          gradient="linear-gradient(135deg,#6366F1,#4F46E5)"
-          glow="rgba(99,102,241,0.5)" accentColor="#6366F1"
+          gradient="linear-gradient(135deg,var(--indigo),#4F46E5)"
+          glow="rgba(99,102,241,0.5)" accentColor="var(--indigo)"
           sparkValues={imprSpark}
           icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>}
         />
@@ -813,8 +813,8 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           label="Scale Up"
           value={hasData ? stats.scaleUp : '—'}
           sub="High-performing terms"
-          gradient="linear-gradient(135deg,#10B981,#059669)"
-          glow="rgba(16,185,129,0.5)" accentColor="#10B981"
+          gradient="linear-gradient(135deg,var(--success),#059669)"
+          glow="rgba(16,185,129,0.5)" accentColor="var(--success)"
           sparkValues={hasData ? Array(10).fill(0).map((_, i) => i < stats.scaleUp ? stats.scaleUp - i : 0) : undefined}
           icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>}
         />
@@ -822,16 +822,16 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           label="Add Negative"
           value={hasData ? stats.addNegative : '—'}
           sub="Wasted spend terms"
-          gradient="linear-gradient(135deg,#F43F5E,#E11D48)"
-          glow="rgba(244,63,94,0.5)" accentColor="#F43F5E"
+          gradient="linear-gradient(135deg,var(--rose),#E11D48)"
+          glow="rgba(244,63,94,0.5)" accentColor="var(--rose)"
           ringPct={hasData ? negativePct : undefined}
         />
         <VibrantStatCard
           label="Total Spend"
           value={hasData ? `$${stats.totalSpend.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '—'}
           sub={hasData && stats.acos != null ? `ACoS ${stats.acos.toFixed(1)}%` : 'Across all terms'}
-          gradient="linear-gradient(135deg,#8B5CF6,#7C3AED)"
-          glow="rgba(139,92,246,0.5)" accentColor="#8B5CF6"
+          gradient="linear-gradient(135deg,var(--accent-strong),#7C3AED)"
+          glow="rgba(139,92,246,0.5)" accentColor="var(--accent-strong)"
           sparkValues={clicksSpark}
           icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>}
         />
@@ -839,8 +839,8 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           label="Total Sales"
           value={hasData ? `$${stats.totalSales.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '—'}
           sub={hasData ? `${stats.totalClicks.toLocaleString()} clicks` : 'Load report first'}
-          gradient="linear-gradient(135deg,#F59E0B,#D97706)"
-          glow="rgba(245,158,11,0.5)" accentColor="#F59E0B"
+          gradient="linear-gradient(135deg,var(--warning),#D97706)"
+          glow="rgba(245,158,11,0.5)" accentColor="var(--warning)"
           icon={<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>}
         />
       </div>
@@ -854,7 +854,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           borderRadius: 20, padding: '20px 24px', backdropFilter: 'blur(16px)',
           position: 'relative', overflow: 'hidden',
         }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,#6366F1,#8B5CF6,#3B82F6)' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,var(--indigo),var(--accent-strong),var(--info-strong))' }} />
           <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Recommendation Breakdown</p>
           <RecommendationDonut stats={stats} total={searchTerms.length} />
         </div>
@@ -865,7 +865,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           borderRadius: 20, padding: '20px 24px', backdropFilter: 'blur(16px)',
           position: 'relative', overflow: 'hidden',
         }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,#F59E0B,#10B981,#3B82F6)' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,var(--warning),var(--success),var(--info-strong))' }} />
           <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Top Search Terms by Impressions</p>
           <TopTermsBar terms={filtered} />
         </div>
@@ -883,7 +883,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           ].map(item => (
             <button key={item.key} onClick={() => setRecFilter(item.key)} style={{
               padding: '5px 14px', borderRadius: 20, border: `1px solid ${recFilter === item.key ? item.color : 'var(--overlay-6)'}`,
-              background: recFilter === item.key ? `${item.color}20` : 'transparent',
+              background: recFilter === item.key ? `color-mix(in srgb, ${item.color} 13%, transparent)` : 'transparent',
               color: recFilter === item.key ? item.color : 'var(--text-faint)',
               fontSize: 12, fontWeight: recFilter === item.key ? 700 : 500, cursor: 'pointer',
               transition: 'all 0.15s',
@@ -896,7 +896,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
           <input type="text" placeholder="Search terms, campaigns…"
             value={search} onChange={e => setSearch(e.target.value)}
             style={{ ...inputStyle, marginLeft: 'auto', minWidth: 220 }}
-            onFocus={e => e.target.style.borderColor = '#6366F1'}
+            onFocus={e => e.target.style.borderColor = 'var(--indigo)'}
             onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'}
           />
         </div>
@@ -920,7 +920,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px',
                   borderRadius: 8, border: 'none', cursor: applying ? 'not-allowed' : 'pointer',
-                  background: applying ? 'var(--border-med)' : 'linear-gradient(135deg,#F43F5E,#E11D48)',
+                  background: applying ? 'var(--border-med)' : 'linear-gradient(135deg,var(--rose),#E11D48)',
                   color: '#fff', fontWeight: 700, fontSize: 12,
                   boxShadow: applying ? 'none' : '0 4px 12px rgba(244,63,94,0.35)',
                 }}>
@@ -934,7 +934,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px',
                   borderRadius: 8, border: 'none', cursor: applying ? 'not-allowed' : 'pointer',
-                  background: applying ? 'var(--border-med)' : 'linear-gradient(135deg,#3B82F6,#2563EB)',
+                  background: applying ? 'var(--border-med)' : 'linear-gradient(135deg,var(--info-strong),#2563EB)',
                   color: '#fff', fontWeight: 700, fontSize: 12,
                   boxShadow: applying ? 'none' : '0 4px 12px rgba(59,130,246,0.35)',
                 }}>

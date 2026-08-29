@@ -7,7 +7,7 @@ const fmtX   = v => v == null ? '—' : `${Number(v).toFixed(2)}x`;
 
 export default function CampaignMetricGrid({ campaign }) {
   const acos  = campaign.acos;
-  const acosColor = acos == null ? 'var(--text-muted)' : acos < 20 ? '#10B981' : acos <= 30 ? '#F59E0B' : '#F43F5E';
+  const acosColor = acos == null ? 'var(--text-muted)' : acos < 20 ? 'var(--success)' : acos <= 30 ? 'var(--warning)' : 'var(--rose)';
 
   const cells = [
     { label: 'Spend',       value: fmt2(campaign.spend),       color: 'var(--accent-strong)' },

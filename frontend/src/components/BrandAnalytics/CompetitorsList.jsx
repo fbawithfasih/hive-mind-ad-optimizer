@@ -151,8 +151,8 @@ function DeepDive({ competitor, brandAppearances }) {
         {tabs.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{
             padding: '4px 12px', borderRadius: 6,
-            border: `1px solid ${tab === t.key ? t.color + '40' : 'var(--overlay-6)'}`,
-            background: tab === t.key ? `${t.color}12` : 'transparent',
+            border: `1px solid ${tab === t.key ? `color-mix(in srgb, ${t.color} 25%, transparent)` : 'var(--overlay-6)'}`,
+            background: tab === t.key ? `color-mix(in srgb, ${t.color} 7%, transparent)` : 'transparent',
             color: tab === t.key ? t.color : 'var(--text-subtle)',
             fontSize: 11, fontWeight: tab === t.key ? 600 : 400, cursor: 'pointer',
           }}>
@@ -354,7 +354,7 @@ export default function CompetitorsList({ competitors = [], marketConcentration,
               />
               <Bar dataKey="click" radius={[0, 3, 3, 0]} animationDuration={800}>
                 {competitors.slice(0, 10).map((c, i) => (
-                  <Cell key={c.asin} fill={c.appearances >= 8 ? '#F43F5E' : c.appearances >= 4 ? '#D97706' : '#3B82F6'} fillOpacity={1 - i * 0.06} />
+                  <Cell key={c.asin} fill={c.appearances >= 8 ? 'var(--rose)' : c.appearances >= 4 ? '#D97706' : 'var(--info-strong)'} fillOpacity={1 - i * 0.06} />
                 ))}
               </Bar>
             </BarChart>
