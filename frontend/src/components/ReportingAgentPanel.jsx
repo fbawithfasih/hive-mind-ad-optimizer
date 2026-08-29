@@ -69,7 +69,7 @@ const REPORT_TYPES = [
     shortLabel: 'Overview',
     desc: 'Quick account health snapshot: portfolio summary, KPIs, and top 5 quick wins.',
     defaultDays: 30,
-    gradient: 'linear-gradient(135deg,#64748B,#94A3B8)',
+    gradient: 'linear-gradient(135deg,var(--text-subtle),var(--text-muted))',
     icon: (
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 22, height: 22 }}>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
@@ -311,37 +311,37 @@ ${htmlBrandingFooter()}
         .ra-report thead tr     { background:#1a2a3f; }
         .ra-report th           { padding:9px 14px; text-align:left; font-size:11px;
                                   font-weight:700; text-transform:uppercase;
-                                  letter-spacing:.07em; color:#94A3B8;
-                                  border-bottom:2px solid #334155; white-space:nowrap; }
-        .ra-report td           { padding:9px 14px; font-size:12.5px; color:#E2E8F0;
-                                  border-bottom:1px solid #1E293B; }
-        .ra-report tbody tr:hover td { background:#263348; }
-        .ra-report tbody tr:nth-child(even) td { background:#1a2535; }
-        .ra-report tbody tr:nth-child(even):hover td { background:#263348; }
-        .ra-report p            { margin:0 0 10px; line-height:1.7; color:#CBD5E1; }
+                                  letter-spacing:.07em; color:var(--text-muted);
+                                  border-bottom:2px solid var(--border-strong); white-space:nowrap; }
+        .ra-report td           { padding:9px 14px; font-size:12.5px; color:var(--text-strong);
+                                  border-bottom:1px solid var(--bg-panel); }
+        .ra-report tbody tr:hover td { background:var(--bg-panel-2); }
+        .ra-report tbody tr:nth-child(even) td { background:var(--bg-panel-3); }
+        .ra-report tbody tr:nth-child(even):hover td { background:var(--bg-panel-2); }
+        .ra-report p            { margin:0 0 10px; line-height:1.7; color:var(--text-muted); }
         .ra-report ul,.ra-report ol { padding-left:20px; margin:0 0 12px; }
-        .ra-report li           { margin:5px 0; color:#CBD5E1; line-height:1.6; }
+        .ra-report li           { margin:5px 0; color:var(--text-muted); line-height:1.6; }
         .ra-report strong       { color:#F59E0B; font-weight:700; }
-        .ra-report em           { color:#94A3B8; }
-        .ra-report code         { background:#1a2535; color:#38BDF8; padding:2px 7px;
+        .ra-report em           { color:var(--text-muted); }
+        .ra-report code         { background:var(--bg-panel-3); color:#38BDF8; padding:2px 7px;
                                   border-radius:4px; font-size:11.5px; font-family:monospace; }
-        .ra-report h1           { font-size:20px; font-weight:800; color:#F1F5F9;
+        .ra-report h1           { font-size:20px; font-weight:800; color:var(--text-primary);
                                   margin:0 0 6px; line-height:1.3; }
-        .ra-report h2           { font-size:16px; font-weight:700; color:#F1F5F9;
-                                  margin:24px 0 10px; border-bottom:1px solid #334155;
+        .ra-report h2           { font-size:16px; font-weight:700; color:var(--text-primary);
+                                  margin:24px 0 10px; border-bottom:1px solid var(--border-strong);
                                   padding-bottom:6px; }
-        .ra-report h3           { font-size:13px; font-weight:700; color:#94A3B8;
+        .ra-report h3           { font-size:13px; font-weight:700; color:var(--text-muted);
                                   margin:16px 0 8px; text-transform:uppercase;
                                   letter-spacing:.06em; }
         .ra-report blockquote   { border-left:3px solid #8B5CF6; margin:0 0 12px;
                                   padding:4px 14px; background:#8B5CF610;
                                   border-radius:0 6px 6px 0; }
-        .ra-report hr           { border:none; border-top:1px solid #334155; margin:20px 0; }
+        .ra-report hr           { border:none; border-top:1px solid var(--border-strong); margin:20px 0; }
 
       `}</style>
 
       {/* ── Header ── */}
-      <div style={{ background: '#1E293B', border: '1px solid #334155', borderRadius: 12, padding: '18px 22px' }}>
+      <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-strong)', borderRadius: 12, padding: '18px 22px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0,
             background: 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
@@ -352,15 +352,15 @@ ${htmlBrandingFooter()}
             </svg>
           </div>
           <div>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: '#F1F5F9' }}>AI Reporting Agent</p>
-            <p style={{ margin: '3px 0 0', fontSize: 12, color: '#64748B' }}>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>AI Reporting Agent</p>
+            <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--text-subtle)' }}>
               Pulls live Amazon Ads data and generates presentation-ready reports in ~3 minutes.
             </p>
           </div>
           {report && (
             <button onClick={handleReset}
               style={{ marginLeft: 'auto', fontSize: 11, padding: '5px 14px', borderRadius: 6,
-                border: '1px solid #334155', background: 'transparent', color: '#64748B', cursor: 'pointer' }}>
+                border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--text-subtle)', cursor: 'pointer' }}>
               New Report
             </button>
           )}
@@ -372,7 +372,7 @@ ${htmlBrandingFooter()}
         <>
           <div>
             <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-              letterSpacing: '0.07em', color: '#64748B' }}>
+              letterSpacing: '0.07em', color: 'var(--text-subtle)' }}>
               Step 1 — Choose Report Type
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 10 }}>
@@ -380,10 +380,10 @@ ${htmlBrandingFooter()}
                 <button key={rt.id} onClick={() => setReportType(rt.id === reportType ? null : rt.id)}
                   style={{
                     textAlign: 'left', padding: '14px 16px', borderRadius: 10, cursor: 'pointer',
-                    border: reportType === rt.id ? '2px solid transparent' : '1px solid #334155',
+                    border: reportType === rt.id ? '2px solid transparent' : '1px solid var(--border-strong)',
                     background: reportType === rt.id
                       ? rt.gradient.replace('linear-gradient', 'linear-gradient').replace(')', ',0.15)').replace('linear-gradient(', 'linear-gradient(')
-                      : '#1E293B',
+                      : 'var(--bg-panel)',
                     outline: reportType === rt.id ? `2px solid ${rt.gradient.match(/#[A-Fa-f0-9]{6}/)?.[0] ?? '#3B82F6'}` : 'none',
                     transition: 'all .15s',
                   }}>
@@ -394,13 +394,13 @@ ${htmlBrandingFooter()}
                       {rt.icon}
                     </div>
                     <div>
-                      <p style={{ margin: 0, fontWeight: 700, fontSize: 12, color: '#F1F5F9' }}>{rt.label}</p>
-                      <p style={{ margin: 0, fontSize: 10, color: '#64748B' }}>
+                      <p style={{ margin: 0, fontWeight: 700, fontSize: 12, color: 'var(--text-primary)' }}>{rt.label}</p>
+                      <p style={{ margin: 0, fontSize: 10, color: 'var(--text-subtle)' }}>
                         {rt.shortLabel} · {rt.defaultDays}-day window
                       </p>
                     </div>
                   </div>
-                  <p style={{ margin: 0, fontSize: 11, color: '#94A3B8', lineHeight: 1.5 }}>{rt.desc}</p>
+                  <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{rt.desc}</p>
                 </button>
               ))}
             </div>
@@ -408,9 +408,9 @@ ${htmlBrandingFooter()}
 
           {/* ── Configuration ── */}
           {reportType && (
-            <div style={{ background: '#1E293B', border: '1px solid #334155', borderRadius: 12, padding: '16px 20px' }}>
+            <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-strong)', borderRadius: 12, padding: '16px 20px' }}>
               <p style={{ margin: '0 0 14px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.07em', color: '#64748B' }}>
+                letterSpacing: '0.07em', color: 'var(--text-subtle)' }}>
                 Step 2 — Configure
               </p>
 
@@ -429,8 +429,8 @@ ${htmlBrandingFooter()}
                         style={{
                           fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 6,
                           border: 'none', cursor: 'pointer', transition: 'all .1s',
-                          background: active ? '#3B82F6' : '#263348',
-                          color: active ? '#fff' : '#64748B',
+                          background: active ? '#3B82F6' : 'var(--bg-panel-2)',
+                          color: active ? '#fff' : 'var(--text-subtle)',
                         }}>
                         {label}
                       </button>
@@ -438,24 +438,24 @@ ${htmlBrandingFooter()}
                   })}
                 </div>
 
-                <span style={{ color: '#334155', fontSize: 12 }}>|</span>
+                <span style={{ color: 'var(--border-strong)', fontSize: 12 }}>|</span>
 
                 {/* Custom date range */}
                 <input type="date" value={dateFrom} max={dateTo}
                   onChange={e => setDateFrom(e.target.value)}
-                  style={{ background: '#263348', border: '1px solid #334155', color: '#F1F5F9',
+                  style={{ background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)',
                     borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none' }} />
-                <span style={{ color: '#475569', fontSize: 12 }}>→</span>
+                <span style={{ color: 'var(--border-med)', fontSize: 12 }}>→</span>
                 <input type="date" value={dateTo} min={dateFrom} max={today}
                   onChange={e => setDateTo(e.target.value)}
-                  style={{ background: '#263348', border: '1px solid #334155', color: '#F1F5F9',
+                  style={{ background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)',
                     borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none' }} />
 
-                <span style={{ color: '#334155', fontSize: 12 }}>|</span>
+                <span style={{ color: 'var(--border-strong)', fontSize: 12 }}>|</span>
 
                 {/* Model toggle */}
-                <div style={{ display: 'flex', gap: 4, background: '#263348', borderRadius: 8,
-                  padding: 3, border: '1px solid #334155' }}>
+                <div style={{ display: 'flex', gap: 4, background: 'var(--bg-panel-2)', borderRadius: 8,
+                  padding: 3, border: '1px solid var(--border-strong)' }}>
                   {[
                     { id: 'claude', label: 'Claude Sonnet', color: '#8B5CF6' },
                     { id: 'gemini', label: 'Gemini 2.5 Flash', color: '#3B82F6' },
@@ -465,7 +465,7 @@ ${htmlBrandingFooter()}
                         fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 6,
                         border: 'none', cursor: 'pointer', transition: 'all .15s',
                         background: model === id ? color : 'transparent',
-                        color: model === id ? '#fff' : '#64748B',
+                        color: model === id ? '#fff' : 'var(--text-subtle)',
                       }}>
                       {label}
                     </button>
@@ -478,7 +478,7 @@ ${htmlBrandingFooter()}
                   onChange={e => { setBrand(e.target.value); localStorage.setItem('amaiop_brand', e.target.value); }}
                   placeholder="Brand name (optional)"
                   style={{
-                    background: '#263348', border: '1px solid #334155', color: '#F1F5F9',
+                    background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)',
                     borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none',
                     width: 160,
                   }}
@@ -526,7 +526,7 @@ ${htmlBrandingFooter()}
 
       {/* ── Progress tracker ── */}
       {isRunning && (
-        <div style={{ background: '#1E293B', border: '1px solid #334155', borderRadius: 12, padding: '20px 24px' }}>
+        <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-strong)', borderRadius: 12, padding: '20px 24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 32, height: 32, borderRadius: 8,
@@ -535,19 +535,19 @@ ${htmlBrandingFooter()}
                 {selectedType?.icon}
               </div>
               <div>
-                <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#F1F5F9' }}>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
                   Generating {selectedType?.label}
                 </p>
-                <p style={{ margin: '2px 0 0', fontSize: 11, color: '#64748B' }}>
+                <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>
                   {dateFrom} → {dateTo}
                 </p>
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <p style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#F1F5F9', fontVariantNumeric: 'tabular-nums' }}>
+              <p style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
                 {fmtElapsed(elapsed)}
               </p>
-              <p style={{ margin: 0, fontSize: 10, color: '#475569' }}>elapsed</p>
+              <p style={{ margin: 0, fontSize: 10, color: 'var(--border-med)' }}>elapsed</p>
             </div>
           </div>
 
@@ -563,8 +563,8 @@ ${htmlBrandingFooter()}
                   <div style={{
                     width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: done ? '#10B981' : active ? '#3B82F620' : '#1a2535',
-                    border: `2px solid ${done ? '#10B981' : active ? '#3B82F6' : '#334155'}`,
+                    background: done ? '#10B981' : active ? '#3B82F620' : 'var(--bg-panel-3)',
+                    border: `2px solid ${done ? '#10B981' : active ? '#3B82F6' : 'var(--border-strong)'}`,
                     transition: 'all .3s',
                   }}>
                     {done ? (
@@ -578,18 +578,18 @@ ${htmlBrandingFooter()}
                         <path style={{ opacity: .75 }} fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                       </svg>
                     ) : (
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#334155' }} />
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--border-strong)' }} />
                     )}
                   </div>
 
                   {/* Label */}
                   <div style={{ flex: 1 }}>
                     <p style={{ margin: 0, fontSize: 13, fontWeight: active ? 600 : 500,
-                      color: done ? '#10B981' : active ? '#F1F5F9' : '#475569' }}>
+                      color: done ? '#10B981' : active ? 'var(--text-primary)' : 'var(--border-med)' }}>
                       {step.label}
                     </p>
                     {active && jobProgress && (
-                      <p style={{ margin: '2px 0 0', fontSize: 11, color: '#64748B' }}>{jobProgress}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>{jobProgress}</p>
                     )}
                   </div>
 
@@ -597,7 +597,7 @@ ${htmlBrandingFooter()}
                     <span style={{ fontSize: 11, color: '#10B981' }}>AI synthesis complete</span>
                   )}
                   {active && idx === 1 && elapsed > 30 && (
-                    <span style={{ fontSize: 11, color: '#64748B' }}>Amazon reports take 1–3 min</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-subtle)' }}>Amazon reports take 1–3 min</span>
                   )}
                 </div>
               );
@@ -608,12 +608,12 @@ ${htmlBrandingFooter()}
 
       {/* ── Report output ── */}
       {report && (
-        <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #334155' }}>
+        <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-strong)' }}>
 
           {/* Report toolbar */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '12px 18px', borderBottom: '1px solid #334155',
+            padding: '12px 18px', borderBottom: '1px solid var(--border-strong)',
             background: 'linear-gradient(90deg,#8B5CF614,#3B82F614)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -623,11 +623,11 @@ ${htmlBrandingFooter()}
                 {selectedType?.icon}
               </div>
               <div>
-                <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#F1F5F9' }}>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
                   {selectedType?.label}
                 </p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <p style={{ margin: 0, fontSize: 11, color: '#64748B' }}>
+                  <p style={{ margin: 0, fontSize: 11, color: 'var(--text-subtle)' }}>
                     {dateFrom} → {dateTo} · generated in {fmtElapsed(elapsed)} · {model === 'claude' ? 'Claude Sonnet' : 'Gemini 2.5 Flash'}
                   </p>
                   {brandEnriched && reportBrandName && (
@@ -642,7 +642,7 @@ ${htmlBrandingFooter()}
                   {!brandEnriched && brand.trim() && (
                     <span style={{
                       fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 999,
-                      background: 'rgba(100,116,139,0.1)', color: '#64748B',
+                      background: 'rgba(100,116,139,0.1)', color: 'var(--text-subtle)',
                       border: '1px solid rgba(100,116,139,0.2)', whiteSpace: 'nowrap',
                     }}>
                       No brand data — upload CSVs in Brand Analytics
@@ -658,8 +658,8 @@ ${htmlBrandingFooter()}
                   display: 'flex', alignItems: 'center', gap: 5, fontSize: 11,
                   padding: '5px 12px', borderRadius: 6, cursor: 'pointer',
                   background: 'transparent', transition: 'all .15s',
-                  border: `1px solid ${copied ? '#10B981' : '#334155'}`,
-                  color: copied ? '#10B981' : '#94A3B8',
+                  border: `1px solid ${copied ? '#10B981' : 'var(--border-strong)'}`,
+                  color: copied ? '#10B981' : 'var(--text-muted)',
                 }}>
                 {copied
                   ? <><svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>Copied</>
@@ -669,7 +669,7 @@ ${htmlBrandingFooter()}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5, fontSize: 11,
                   padding: '5px 12px', borderRadius: 6, cursor: 'pointer',
-                  background: '#263348', border: '1px solid #334155', color: '#94A3B8',
+                  background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', color: 'var(--text-muted)',
                   transition: 'all .15s',
                 }}>
                 <svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -683,7 +683,7 @@ ${htmlBrandingFooter()}
 
           {/* Rendered report */}
           <div ref={reportRef} className="ra-print-area"
-            style={{ padding: '24px 28px', background: '#0F172A' }}>
+            style={{ padding: '24px 28px', background: 'var(--bg-app-2)' }}>
             <div className="ra-report">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{report}</ReactMarkdown>
             </div>
@@ -693,10 +693,10 @@ ${htmlBrandingFooter()}
 
       {/* ── Past Reports ── */}
       {history.length > 0 && !jobStatus && (
-        <div style={{ borderRadius: 12, border: '1px solid #334155', overflow: 'hidden' }}>
-          <div style={{ padding: '10px 18px', background: '#1E293B', borderBottom: '1px solid #334155' }}>
+        <div style={{ borderRadius: 12, border: '1px solid var(--border-strong)', overflow: 'hidden' }}>
+          <div style={{ padding: '10px 18px', background: 'var(--bg-panel)', borderBottom: '1px solid var(--border-strong)' }}>
             <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-              letterSpacing: '0.07em', color: '#64748B' }}>
+              letterSpacing: '0.07em', color: 'var(--text-subtle)' }}>
               Past Reports
             </p>
           </div>
@@ -713,19 +713,19 @@ ${htmlBrandingFooter()}
               const from = h.dateFrom ? new Date(h.dateFrom).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
               const to   = h.dateTo   ? new Date(h.dateTo).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
               const created = h.createdAt ? new Date(h.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
-              const statusColor = h.status === 'COMPLETED' ? '#34D399' : h.status === 'FAILED' ? '#F87171' : '#64748B';
+              const statusColor = h.status === 'COMPLETED' ? '#34D399' : h.status === 'FAILED' ? '#F87171' : 'var(--text-subtle)';
 
               return (
                 <div key={h.jobId} style={{
                   display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px',
-                  borderBottom: i < history.length - 1 ? '1px solid #1E293B' : 'none',
+                  borderBottom: i < history.length - 1 ? '1px solid var(--bg-panel)' : 'none',
                   background: 'transparent',
                 }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: statusColor, flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: '#F1F5F9' }}>{typeLabel}</span>
-                      <span style={{ fontSize: 11, color: '#475569' }}>{from} → {to}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{typeLabel}</span>
+                      <span style={{ fontSize: 11, color: 'var(--border-med)' }}>{from} → {to}</span>
                       {h.brandEnriched && h.brandName && (
                         <span style={{
                           fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 999,
@@ -736,7 +736,7 @@ ${htmlBrandingFooter()}
                         </span>
                       )}
                     </div>
-                    <span style={{ fontSize: 10, color: '#334155' }}>{created}</span>
+                    <span style={{ fontSize: 10, color: 'var(--border-strong)' }}>{created}</span>
                   </div>
                   <span style={{ fontSize: 10, fontWeight: 600, color: statusColor, flexShrink: 0 }}>
                     {h.status === 'COMPLETED' ? 'Done' : h.status === 'FAILED' ? 'Failed' : h.status}

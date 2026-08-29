@@ -1,12 +1,110 @@
 @import "tailwindcss";
 
-@theme {
+/* ─────────────────────────────────────────────────────────────
+   Semantic color tokens (dark = default).
+   The .light class on <html> swaps them for the light palette.
+   Every inline-style hex across pages/components maps to one of
+   these vars so the ThemeProvider toggle takes effect everywhere.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --bg-app:        #05080F;
+  --bg-app-2:      #0F172A;
+  --bg-panel:      #1E293B;
+  --bg-panel-2:    #263348;
+  --bg-panel-3:    #1a2535;
+  --bg-overlay-hi: rgba(10,14,30,0.85);
+  --bg-overlay-lo: rgba(10,14,30,0.60);
+
+  /* Borders / strokes */
+  --border-strong: #334155;
+  --border-med:    #475569;
+  --border-hair:   rgba(255,255,255,0.06);
+  --border-hair2:  rgba(255,255,255,0.08);
+  --border-hair3:  rgba(255,255,255,0.04);
+
+  /* Surface overlays */
+  --overlay-1:  rgba(255,255,255,0.02);
+  --overlay-2:  rgba(255,255,255,0.03);
+  --overlay-3:  rgba(255,255,255,0.04);
+  --overlay-4:  rgba(255,255,255,0.05);
+  --overlay-5:  rgba(255,255,255,0.06);
+  --overlay-6:  rgba(255,255,255,0.07);
+  --overlay-7:  rgba(255,255,255,0.08);
+  --overlay-8:  rgba(255,255,255,0.10);
+
+  /* Text */
+  --text-primary:  #F1F5F9;
+  --text-strong:   #E2E8F0;
+  --text-muted:    #94A3B8;
+  --text-subtle:   #64748B;
+  --text-faint:    #475569;
+  --text-invert:   #0F172A;    /* text on colored gradient buttons */
+
+  /* Legacy tailwind semantic aliases still exported */
   --color-ink:     #0F172A;
   --color-surface: #1E293B;
   --color-card:    #263348;
   --color-border:  #334155;
   --color-muted:   #94A3B8;
   --color-ivory:   #F1F5F9;
+  --color-gold:    #F59E0B;
+}
+
+/* Light theme — Neutral clinical SaaS (Helium10-style) */
+html.light {
+  /* Backgrounds — off-white sidebar, pure-white content */
+  --bg-app:        #F5F5F7;   /* sidebar / edge tone */
+  --bg-app-2:      #FFFFFF;   /* main page bg */
+  --bg-panel:      #FFFFFF;   /* cards, primary surfaces */
+  --bg-panel-2:    #F9FAFB;   /* subtle hover / secondary surface */
+  --bg-panel-3:    #F3F4F6;   /* alt surface */
+  --bg-overlay-hi: rgba(255,255,255,0.95);
+  --bg-overlay-lo: rgba(255,255,255,0.75);
+
+  /* Borders — soft neutral hairlines */
+  --border-strong: #E5E7EB;
+  --border-med:    #D1D5DB;
+  --border-hair:   rgba(17,24,39,0.08);
+  --border-hair2:  rgba(17,24,39,0.12);
+  --border-hair3:  rgba(17,24,39,0.05);
+
+  /* Overlays — dark ink for layering on white */
+  --overlay-1:  rgba(17,24,39,0.02);
+  --overlay-2:  rgba(17,24,39,0.03);
+  --overlay-3:  rgba(17,24,39,0.04);
+  --overlay-4:  rgba(17,24,39,0.05);
+  --overlay-5:  rgba(17,24,39,0.06);
+  --overlay-6:  rgba(17,24,39,0.08);
+  --overlay-7:  rgba(17,24,39,0.10);
+  --overlay-8:  rgba(17,24,39,0.14);
+
+  /* Text — clean ink scale */
+  --text-primary:  #111827;
+  --text-strong:   #1F2937;
+  --text-muted:    #4B5563;
+  --text-subtle:   #6B7280;
+  --text-faint:    #9CA3AF;
+  --text-invert:   #FFFFFF;
+
+  /* Legacy tailwind aliases */
+  --color-ink:     #F5F5F7;
+  --color-surface: #FFFFFF;
+  --color-card:    #F9FAFB;
+  --color-border:  #E5E7EB;
+  --color-muted:   #4B5563;
+  --color-ivory:   #111827;
+}
+
+@theme {
+  /* Bind Tailwind utility colors to the CSS vars above so
+     bg-ink / text-ivory / border-border also react to theme. */
+  --color-ink:     var(--color-ink);
+  --color-surface: var(--color-surface);
+  --color-card:    var(--color-card);
+  --color-border:  var(--color-border);
+  --color-muted:   var(--color-muted);
+  --color-ivory:   var(--color-ivory);
   --color-gold:    #F59E0B;
 
   --animate-fade-in:  fadeIn 0.3s ease-out both;
@@ -25,11 +123,12 @@
 
 body {
   margin: 0;
-  background-color: #0F172A;
-  color: #F1F5F9;
+  background-color: var(--bg-app-2);
+  color: var(--text-primary);
   font-family: system-ui, -apple-system, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 ::-webkit-scrollbar       { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #1E293B; }
-::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+::-webkit-scrollbar-track { background: var(--bg-panel); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }

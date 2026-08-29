@@ -10,7 +10,7 @@ const BTN = {
   green:  { background: 'linear-gradient(135deg,#10B981,#059669)', color: '#fff', boxShadow: '0 2px 8px rgba(16,185,129,0.35)' },
   amber:  { background: 'linear-gradient(135deg,#F59E0B,#D97706)', color: '#fff', boxShadow: '0 2px 8px rgba(245,158,11,0.35)' },
   blue:   { background: 'linear-gradient(135deg,#3B82F6,#2563EB)', color: '#fff', boxShadow: '0 2px 8px rgba(59,130,246,0.35)' },
-  ghost:  { background: 'rgba(255,255,255,0.06)', color: '#94A3B8', border: '1px solid rgba(255,255,255,0.08)' },
+  ghost:  { background: 'var(--overlay-5)', color: 'var(--text-muted)', border: '1px solid var(--overlay-7)' },
   danger: { background: 'rgba(244,63,94,0.12)',   color: '#F43F5E', border: '1px solid rgba(244,63,94,0.25)' },
 };
 
@@ -57,7 +57,7 @@ export default function BulkActionBar({ count, campaigns, selectedIds, onAction,
       margin: '0 0 12px',
       padding: '10px 16px',
       borderRadius: 12,
-      background: 'rgba(10,14,30,0.95)',
+      background: 'var(--bg-overlay-hi)',
       border: '1px solid rgba(59,130,246,0.35)',
       backdropFilter: 'blur(12px)',
       boxShadow: '0 4px 24px rgba(59,130,246,0.15)',
@@ -71,7 +71,7 @@ export default function BulkActionBar({ count, campaigns, selectedIds, onAction,
         {count} campaign{count !== 1 ? 's' : ''} selected
       </span>
 
-      <span style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)', display:'inline-block' }} />
+      <span style={{ width: 1, height: 20, background: 'var(--overlay-8)', display:'inline-block' }} />
 
       {/* Status actions */}
       <Btn variant="green" disabled={isExecuting} onClick={() => onAction('enable')}>
@@ -83,7 +83,7 @@ export default function BulkActionBar({ count, campaigns, selectedIds, onAction,
         Pause
       </Btn>
 
-      <span style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)', display:'inline-block' }} />
+      <span style={{ width: 1, height: 20, background: 'var(--overlay-8)', display:'inline-block' }} />
 
       {/* Budget action */}
       <div style={{ position: 'relative' }}>
@@ -96,9 +96,9 @@ export default function BulkActionBar({ count, campaigns, selectedIds, onAction,
         {budgetOpen && (
           <div style={{
             position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 100,
-            background: '#0F172A', border: '1px solid rgba(255,255,255,0.12)',
+            background: 'var(--bg-app-2)', border: '1px solid rgba(255,255,255,0.12)',
             borderRadius: 10, padding: 14, minWidth: 230,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            boxShadow: '0 8px 32px var(--bg-overlay-lo)',
           }}>
             {/* Mode toggle */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
@@ -107,8 +107,8 @@ export default function BulkActionBar({ count, campaigns, selectedIds, onAction,
                   style={{
                     flex: 1, padding: '5px 0', borderRadius: 6, border: 'none', fontSize: 11,
                     fontWeight: 700, cursor: 'pointer',
-                    background: budgetMode === m ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.05)',
-                    color: budgetMode === m ? '#93C5FD' : '#64748B',
+                    background: budgetMode === m ? 'rgba(59,130,246,0.25)' : 'var(--overlay-4)',
+                    color: budgetMode === m ? '#93C5FD' : 'var(--text-subtle)',
                   }}>
                   {label}
                 </button>
@@ -116,7 +116,7 @@ export default function BulkActionBar({ count, campaigns, selectedIds, onAction,
             </div>
 
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <span style={{ fontSize: 13, color: '#64748B', fontWeight: 700 }}>
+              <span style={{ fontSize: 13, color: 'var(--text-subtle)', fontWeight: 700 }}>
                 {budgetMode === 'fixed' ? '$' : '±'}
               </span>
               <input
@@ -128,17 +128,17 @@ export default function BulkActionBar({ count, campaigns, selectedIds, onAction,
                 onKeyDown={e => e.key === 'Enter' && handleBudgetApply()}
                 style={{
                   flex: 1, padding: '6px 10px', borderRadius: 6,
-                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-                  color: '#F1F5F9', fontSize: 13, outline: 'none',
+                  background: 'var(--overlay-5)', border: '1px solid rgba(255,255,255,0.12)',
+                  color: 'var(--text-primary)', fontSize: 13, outline: 'none',
                 }}
               />
-              <span style={{ fontSize: 11, color: '#475569' }}>
+              <span style={{ fontSize: 11, color: 'var(--border-med)' }}>
                 {budgetMode === 'pct' ? '%' : '/day'}
               </span>
             </div>
 
             {budgetMode === 'pct' && budgetValue && (
-              <p style={{ margin: '6px 0 0', fontSize: 10, color: '#64748B' }}>
+              <p style={{ margin: '6px 0 0', fontSize: 10, color: 'var(--text-subtle)' }}>
                 {parseFloat(budgetValue) > 0 ? '▲' : '▼'} Increases/decreases each campaign's budget by {Math.abs(parseFloat(budgetValue) || 0)}%
               </p>
             )}
@@ -174,7 +174,7 @@ export default function BulkActionBar({ count, campaigns, selectedIds, onAction,
       )}
 
       {isExecuting && (
-        <span style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 5 }}>
+        <span style={{ fontSize: 11, color: 'var(--text-subtle)', display: 'flex', alignItems: 'center', gap: 5 }}>
           <svg style={{ width: 12, height: 12, animation: 'spin 1s linear infinite' }} fill="none" viewBox="0 0 24 24">
             <circle style={{ opacity: .25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
             <path style={{ opacity: .75 }} fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>

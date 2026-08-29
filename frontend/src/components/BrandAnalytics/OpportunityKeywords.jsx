@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 
-const CARD = { background: 'rgba(10,14,30,0.60)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden' };
-const TH  = { padding: '8px 12px', fontSize: 11, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid rgba(255,255,255,0.08)', whiteSpace: 'nowrap', textAlign: 'left', background: 'rgba(255,255,255,0.02)' };
+const CARD = { background: 'var(--bg-overlay-lo)', border: '1px solid var(--overlay-7)', borderRadius: 12, overflow: 'hidden' };
+const TH  = { padding: '8px 12px', fontSize: 11, fontWeight: 600, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--overlay-7)', whiteSpace: 'nowrap', textAlign: 'left', background: 'var(--overlay-1)' };
 const THR = { ...TH, textAlign: 'right' };
-const TD  = { padding: '9px 12px', fontSize: 12, color: '#CBD5E1', borderBottom: '1px solid rgba(255,255,255,0.04)', verticalAlign: 'middle' };
+const TD  = { padding: '9px 12px', fontSize: 12, color: 'var(--text-muted)', borderBottom: '1px solid var(--overlay-3)', verticalAlign: 'middle' };
 const TDR = { ...TD, textAlign: 'right', fontVariantNumeric: 'tabular-nums' };
 
 const TYPE_META = {
@@ -15,7 +15,7 @@ const TYPE_META = {
 function VolumeBar({ volume, max }) {
   const pct = max > 0 ? (volume / max) * 100 : 0;
   return (
-    <div style={{ width: 48, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden', flexShrink: 0 }}>
+    <div style={{ width: 48, height: 4, background: 'var(--overlay-5)', borderRadius: 99, overflow: 'hidden', flexShrink: 0 }}>
       <div style={{ width: `${pct}%`, height: '100%', background: 'rgba(16,185,129,0.60)', borderRadius: 99 }} />
     </div>
   );
@@ -43,15 +43,15 @@ export default function OpportunityKeywords({ opportunities = [] }) {
   return (
     <div style={CARD}>
       {/* Header + controls */}
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#94A3B8' }}>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--overlay-5)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
           Opportunity Keywords
         </p>
-        <span style={{ fontSize: 11, color: '#64748B' }}>·</span>
-        <p style={{ margin: 0, fontSize: 11, color: '#64748B' }}>High-volume keywords where brand under-performs</p>
+        <span style={{ fontSize: 11, color: 'var(--text-subtle)' }}>·</span>
+        <p style={{ margin: 0, fontSize: 11, color: 'var(--text-subtle)' }}>High-volume keywords where brand under-performs</p>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
           {['ALL', 'INVISIBLE', 'LOW_CONVERSION', 'LOW_CLICK_SHARE'].map(t => {
-            const meta = t === 'ALL' ? { label: 'All', color: '#64748B' } : TYPE_META[t];
+            const meta = t === 'ALL' ? { label: 'All', color: 'var(--text-subtle)' } : TYPE_META[t];
             const active = filter === t;
             return (
               <button key={t} onClick={() => { setFilter(t); setLimit(25); }}
@@ -61,7 +61,7 @@ export default function OpportunityKeywords({ opportunities = [] }) {
                   borderColor: active ? `${meta.color}40` : 'transparent',
                   cursor: 'pointer',
                   background: active ? `${meta.color}12` : 'transparent',
-                  color: active ? meta.color : '#64748B',
+                  color: active ? meta.color : 'var(--text-subtle)',
                   transition: 'all 0.1s',
                 }}>
                 {meta.label} ({counts[t] ?? 0})
@@ -69,7 +69,7 @@ export default function OpportunityKeywords({ opportunities = [] }) {
             );
           })}
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"
-            style={{ marginLeft: 4, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#F1F5F9', borderRadius: 7, padding: '4px 10px', fontSize: 12, outline: 'none', width: 130 }} />
+            style={{ marginLeft: 4, background: 'var(--overlay-3)', border: '1px solid var(--overlay-7)', color: 'var(--text-primary)', borderRadius: 7, padding: '4px 10px', fontSize: 12, outline: 'none', width: 130 }} />
         </div>
       </div>
 
@@ -94,11 +94,11 @@ export default function OpportunityKeywords({ opportunities = [] }) {
         </thead>
         <tbody>
           {filtered.slice(0, limit).map((o, i) => {
-            const meta = TYPE_META[o.opportunityType] ?? { label: o.opportunityType, color: '#64748B' };
+            const meta = TYPE_META[o.opportunityType] ?? { label: o.opportunityType, color: 'var(--text-subtle)' };
             return (
               <tr key={i}
                 style={{ transition: 'background 0.1s' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--overlay-2)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 <td style={TD}>{o.searchTerm}</td>
                 <td style={TDR}>
@@ -119,7 +119,7 @@ export default function OpportunityKeywords({ opportunities = [] }) {
             );
           })}
           {filtered.length === 0 && (
-            <tr><td colSpan={6} style={{ ...TD, textAlign: 'center', padding: '36px', color: '#475569', borderBottom: 'none' }}>
+            <tr><td colSpan={6} style={{ ...TD, textAlign: 'center', padding: '36px', color: 'var(--border-med)', borderBottom: 'none' }}>
               {search ? `No keywords matching "${search}"` : 'No opportunity keywords found.'}
             </td></tr>
           )}
@@ -127,9 +127,9 @@ export default function OpportunityKeywords({ opportunities = [] }) {
       </table>
 
       {filtered.length > limit && (
-        <div style={{ padding: '10px 16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ padding: '10px 16px', borderTop: '1px solid var(--overlay-4)' }}>
           <button onClick={() => setLimit(l => l + 25)}
-            style={{ width: '100%', padding: '7px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#64748B', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+            style={{ width: '100%', padding: '7px', borderRadius: 8, border: '1px solid var(--overlay-7)', background: 'transparent', color: 'var(--text-subtle)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             Show more ({filtered.length - limit} remaining)
           </button>
         </div>

@@ -22,7 +22,7 @@ export default function AppShell({
   children,
 }) {
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#05080F', color: '#F1F5F9' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-app)', color: 'var(--text-primary)' }}>
       <TerminalSidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}

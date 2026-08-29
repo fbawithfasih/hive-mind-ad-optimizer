@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { logoutApi, switchOrgApi, syncProfilesApi } from '../services/api.js';
+import { useTheme } from '../hooks/useTheme.jsx';
 
 const Icon = ({ d, size = 18, stroke = 'currentColor', strokeWidth = 2 }) => (
   <svg width={size} height={size} fill="none" stroke={stroke} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
@@ -174,15 +175,15 @@ function ToolCard({ tool, onClick }) {
         padding: '24px',
         borderRadius: 20,
         background: hovered
-          ? `linear-gradient(145deg, ${tool.bg}, rgba(10,14,30,0.95))`
-          : 'rgba(10,14,30,0.75)',
-        border: `1px solid ${hovered ? tool.border : 'rgba(255,255,255,0.06)'}`,
+          ? `linear-gradient(145deg, ${tool.bg}, var(--bg-overlay-hi))`
+          : 'var(--bg-overlay-lo)',
+        border: `1px solid ${hovered ? tool.border : 'var(--overlay-5)'}`,
         cursor: 'pointer',
         transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
         transform: hovered ? 'translateY(-5px) scale(1.01)' : 'translateY(0) scale(1)',
         boxShadow: hovered
-          ? `0 20px 60px ${tool.glow}, 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07)`
-          : '0 2px 12px rgba(0,0,0,0.3)',
+          ? `0 20px 60px ${tool.glow}, 0 4px 16px var(--bg-overlay-lo), inset 0 1px 0 var(--overlay-6)`
+          : '0 2px 12px var(--overlay-8)',
         display: 'flex',
         flexDirection: 'column',
         backdropFilter: 'blur(16px)',
@@ -235,7 +236,7 @@ function ToolCard({ tool, onClick }) {
 
       <h3 style={{
         fontSize: 16, fontWeight: 800, margin: '0 0 8px',
-        color: hovered ? '#FFFFFF' : '#E2E8F0',
+        color: hovered ? '#FFFFFF' : 'var(--text-strong)',
         letterSpacing: '-0.2px',
         transition: 'color 0.2s',
       }}>
@@ -243,7 +244,7 @@ function ToolCard({ tool, onClick }) {
       </h3>
 
       <p style={{
-        fontSize: 13, color: hovered ? '#94A3B8' : '#475569',
+        fontSize: 13, color: hovered ? 'var(--text-muted)' : 'var(--border-med)',
         lineHeight: 1.65, flex: 1, margin: '0 0 20px',
         transition: 'color 0.2s',
       }}>
@@ -253,7 +254,7 @@ function ToolCard({ tool, onClick }) {
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
         fontSize: 12, fontWeight: 800, letterSpacing: '0.02em',
-        color: hovered ? tool.color : '#334155',
+        color: hovered ? tool.color : 'var(--border-strong)',
         transition: 'color 0.2s',
       }}>
         Open tool
@@ -273,9 +274,9 @@ function NavItem({ label, icon, to, active, external }) {
     padding: '9px 12px', borderRadius: 10, marginBottom: 2,
     background: active
       ? 'linear-gradient(135deg, rgba(167,139,250,0.18), rgba(96,165,250,0.10))'
-      : hov ? 'rgba(255,255,255,0.05)' : 'transparent',
+      : hov ? 'var(--overlay-4)' : 'transparent',
     border: active ? '1px solid rgba(167,139,250,0.3)' : '1px solid transparent',
-    color: active ? '#C4B5FD' : hov ? '#E2E8F0' : '#64748B',
+    color: active ? '#C4B5FD' : hov ? 'var(--text-strong)' : 'var(--text-subtle)',
     textDecoration: 'none', fontSize: 13, fontWeight: active ? 700 : 500,
     cursor: 'pointer', transition: 'all 0.15s',
     boxShadow: active ? '0 0 20px rgba(167,139,250,0.1)' : 'none',
@@ -333,6 +334,8 @@ function TrialBanner({ trialDaysLeft }) {
 export default function HubPage({ user, onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [switchingOrg, setSwitchingOrg] = useState(false);
   const [oauthStep, setOauthStep] = useState(null); // 'connecting-ads' | 'syncing' | 'done' | null
 
@@ -385,33 +388,30 @@ export default function HubPage({ user, onLogout }) {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex',
-      background: '#05080F',
+      background: 'var(--bg-app)',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif',
       position: 'relative', overflow: 'hidden',
-      color: '#F1F5F9',
+      color: 'var(--text-primary)',
     }}>
 
-      {/* ── Background atmosphere ── */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
-        {/* Big violet orb top-left */}
-        <div style={{ position: 'absolute', top: -300, left: -150, width: 900, height: 900, background: 'radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 60%)' }} />
-        {/* Orange orb bottom-right */}
-        <div style={{ position: 'absolute', bottom: -250, right: -150, width: 800, height: 800, background: 'radial-gradient(circle, rgba(249,115,22,0.14) 0%, transparent 60%)' }} />
-        {/* Cyan orb mid-right */}
-        <div style={{ position: 'absolute', top: '30%', right: '-5%', width: 600, height: 600, background: 'radial-gradient(circle, rgba(0,201,255,0.10) 0%, transparent 60%)' }} />
-        {/* Pink orb center */}
-        <div style={{ position: 'absolute', top: '55%', left: '35%', width: 500, height: 500, background: 'radial-gradient(circle, rgba(249,83,198,0.08) 0%, transparent 60%)' }} />
-        {/* Dot grid */}
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
-        {/* Vignette */}
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0,0,0,0.5) 100%)' }} />
-      </div>
+      {/* ── Background atmosphere (dark theme only — the orbs turn a light
+          theme muddy, so we skip them entirely and let the clean bg breathe) ── */}
+      {isDark && (
+        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+          <div style={{ position: 'absolute', top: -300, left: -150, width: 900, height: 900, background: 'radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 60%)' }} />
+          <div style={{ position: 'absolute', bottom: -250, right: -150, width: 800, height: 800, background: 'radial-gradient(circle, rgba(249,115,22,0.14) 0%, transparent 60%)' }} />
+          <div style={{ position: 'absolute', top: '30%', right: '-5%', width: 600, height: 600, background: 'radial-gradient(circle, rgba(0,201,255,0.10) 0%, transparent 60%)' }} />
+          <div style={{ position: 'absolute', top: '55%', left: '35%', width: 500, height: 500, background: 'radial-gradient(circle, rgba(249,83,198,0.08) 0%, transparent 60%)' }} />
+          <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 50%, transparent 40%, var(--bg-overlay-lo) 100%)' }} />
+        </div>
+      )}
 
       {/* ══════════════════ SIDEBAR ══════════════════ */}
       <aside style={{
         width: 265, flexShrink: 0,
-        background: 'rgba(5,8,20,0.92)',
-        borderRight: '1px solid rgba(255,255,255,0.06)',
+        background: 'var(--bg-app)',
+        borderRight: '1px solid var(--overlay-5)',
         display: 'flex', flexDirection: 'column',
         height: '100vh', position: 'sticky', top: 0,
         backdropFilter: 'blur(32px)',
@@ -421,7 +421,7 @@ export default function HubPage({ user, onLogout }) {
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(167,139,250,0.5), transparent)', pointerEvents: 'none' }} />
 
         {/* Logo */}
-        <div style={{ padding: '22px 18px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ padding: '22px 18px 18px', borderBottom: '1px solid var(--overlay-4)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
             <div style={{
               width: 40, height: 40, borderRadius: 12, overflow: 'hidden', flexShrink: 0,
@@ -434,14 +434,14 @@ export default function HubPage({ user, onLogout }) {
                 onError={e => { e.target.style.display = 'none'; }} />
             </div>
             <div>
-              <p style={{ fontWeight: 800, fontSize: 14, color: '#F1F5F9', lineHeight: 1.2, margin: 0, letterSpacing: '-0.2px' }}>Hive Mind</p>
+              <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.2, margin: 0, letterSpacing: '-0.2px' }}>Hive Mind</p>
               <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: '#A78BFA', lineHeight: 1, margin: 0 }}>AD OPTIMIZER 360</p>
             </div>
           </div>
         </div>
 
         {/* User card */}
-        <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--overlay-4)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
             <div style={{
               width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
@@ -453,7 +453,7 @@ export default function HubPage({ user, onLogout }) {
               {clientInitials}
             </div>
             <div style={{ minWidth: 0 }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: '#E2E8F0', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-strong)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {clientName}
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }}>
@@ -475,8 +475,8 @@ export default function HubPage({ user, onLogout }) {
             <select value={activeOrgId} onChange={e => handleSwitchOrg(e.target.value)} disabled={switchingOrg}
               style={{
                 marginTop: 11, width: '100%',
-                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                color: '#94A3B8', borderRadius: 8, padding: '6px 8px', fontSize: 12,
+                background: 'var(--overlay-3)', border: '1px solid var(--overlay-7)',
+                color: 'var(--text-muted)', borderRadius: 8, padding: '6px 8px', fontSize: 12,
                 cursor: 'pointer', outline: 'none',
               }}>
               {organizations.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
@@ -486,7 +486,7 @@ export default function HubPage({ user, onLogout }) {
 
         {/* Nav */}
         <nav style={{ flex: 1, padding: '16px 10px', overflowY: 'auto' }}>
-          <p style={{ fontSize: 9, fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.14em', padding: '0 10px', marginBottom: 8 }}>
+          <p style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.14em', padding: '0 10px', marginBottom: 8 }}>
             Main
           </p>
           <NavItem label="Home"             icon={<HomeIcon />}      to="/"               active />
@@ -496,16 +496,16 @@ export default function HubPage({ user, onLogout }) {
           <NavItem label="Team"             icon={<TeamIcon />}      to="/app?tab=team"   />
           <NavItem label="Settings"         icon={<SettingsIcon />}  to="/app?tab=amazon" />
 
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.04)', margin: '16px 0' }} />
+          <div style={{ height: 1, background: 'var(--overlay-3)', margin: '16px 0' }} />
 
-          <p style={{ fontSize: 9, fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.14em', padding: '0 10px', marginBottom: 8 }}>
+          <p style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.14em', padding: '0 10px', marginBottom: 8 }}>
             Support
           </p>
           <NavItem label="Email Support" icon={<EmailIcon />} to="mailto:info@hivemindnestor.com" external />
           <NavItem label="Website"       icon={<GlobeIcon />} to="https://www.hivemindnestor.com" external />
         </nav>
 
-        <div style={{ padding: '12px 10px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ padding: '12px 10px', borderTop: '1px solid var(--overlay-4)' }}>
           <SignOutButton onLogout={onLogout} />
         </div>
       </aside>
@@ -516,15 +516,15 @@ export default function HubPage({ user, onLogout }) {
         {/* Top bar */}
         <header style={{
           position: 'sticky', top: 0, zIndex: 10,
-          background: 'rgba(5,8,20,0.80)',
+          background: 'var(--bg-overlay-hi)',
           backdropFilter: 'blur(24px)',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: '1px solid var(--overlay-5)',
           padding: '14px 40px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-            <span style={{ color: '#1E293B' }}>Hive Mind Nestor</span>
-            <span style={{ color: '#0F172A' }}>/</span>
+            <span style={{ color: 'var(--text-muted)' }}>Hive Mind Nestor</span>
+            <span style={{ color: 'var(--text-faint)' }}>/</span>
             <span style={{
               fontSize: 13, fontWeight: 700,
               background: 'linear-gradient(135deg, #A78BFA, #60A5FA)',
@@ -543,10 +543,11 @@ export default function HubPage({ user, onLogout }) {
               <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 8px #10B981' }} />
               <span style={{ fontSize: 11, fontWeight: 700, color: '#34D399' }}>All systems live</span>
             </div>
+            <ThemeToggle />
             <Link to="/billing" style={{
-              fontSize: 12, fontWeight: 700, color: '#94A3B8', padding: '6px 16px',
-              borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)',
-              background: 'rgba(255,255,255,0.04)', textDecoration: 'none',
+              fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', padding: '6px 16px',
+              borderRadius: 8, border: '1px solid var(--overlay-7)',
+              background: 'var(--overlay-3)', textDecoration: 'none',
               transition: 'all 0.15s',
             }}>
               Billing
@@ -574,7 +575,7 @@ export default function HubPage({ user, onLogout }) {
                 <span style={{ fontSize: 18 }}>✅</span>
                 <div>
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#A78BFA' }}>Seller Central connected!</span>
-                  <span style={{ fontSize: 13, color: '#64748B', marginLeft: 8 }}>Redirecting to authorize Amazon Advertising…</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-subtle)', marginLeft: 8 }}>Redirecting to authorize Amazon Advertising…</span>
                 </div>
                 <div style={{ marginLeft: 'auto', width: 18, height: 18, border: '2px solid rgba(167,139,250,0.3)', borderTopColor: '#A78BFA', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
               </>
@@ -584,7 +585,7 @@ export default function HubPage({ user, onLogout }) {
                 <span style={{ fontSize: 18 }}>🔗</span>
                 <div>
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#60A5FA' }}>Amazon Advertising connected!</span>
-                  <span style={{ fontSize: 13, color: '#64748B', marginLeft: 8 }}>Syncing your profiles…</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-subtle)', marginLeft: 8 }}>Syncing your profiles…</span>
                 </div>
                 <div style={{ marginLeft: 'auto', width: 18, height: 18, border: '2px solid rgba(96,165,250,0.3)', borderTopColor: '#60A5FA', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
               </>
@@ -594,9 +595,9 @@ export default function HubPage({ user, onLogout }) {
                 <span style={{ fontSize: 18 }}>🎉</span>
                 <div>
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#34D399' }}>Amazon account fully connected!</span>
-                  <span style={{ fontSize: 13, color: '#64748B', marginLeft: 8 }}>Your campaigns are ready to load.</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-subtle)', marginLeft: 8 }}>Your campaigns are ready to load.</span>
                 </div>
-                <button onClick={() => setOauthStep(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
+                <button onClick={() => setOauthStep(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-subtle)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
               </>
             )}
           </div>
@@ -624,7 +625,7 @@ export default function HubPage({ user, onLogout }) {
               }}>
                 Welcome {clientName} 👋
               </h1>
-              <p style={{ fontSize: 15, color: '#64748B', lineHeight: 1.7, margin: 0, maxWidth: 500 }}>
+              <p style={{ fontSize: 15, color: 'var(--text-subtle)', lineHeight: 1.7, margin: 0, maxWidth: 500 }}>
                 Your <strong style={{ color: '#A78BFA' }}>Hive Mind Ad Optimizer 360</strong> suite is live and ready.
                 Pick a tool below to start scaling your Amazon performance.
               </p>
@@ -642,7 +643,7 @@ export default function HubPage({ user, onLogout }) {
             ].map(s => (
               <div key={s.label} style={{
                 padding: '20px 22px', borderRadius: 16,
-                background: 'rgba(10,14,30,0.7)',
+                background: 'var(--bg-overlay-lo)',
                 border: `1px solid ${s.color}25`,
                 backdropFilter: 'blur(16px)',
                 display: 'flex', alignItems: 'center', gap: 14,
@@ -662,7 +663,7 @@ export default function HubPage({ user, onLogout }) {
                   {s.icon}
                 </div>
                 <div style={{ position: 'relative' }}>
-                  <p style={{ fontSize: 22, fontWeight: 900, color: '#FFFFFF', margin: 0, lineHeight: 1, letterSpacing: '-0.5px' }}>{s.value}</p>
+                  <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', margin: 0, lineHeight: 1, letterSpacing: '-0.5px' }}>{s.value}</p>
                   <p style={{ fontSize: 11, color: s.color, margin: '4px 0 0', fontWeight: 700, letterSpacing: '0.02em' }}>{s.label}</p>
                 </div>
               </div>
@@ -674,12 +675,12 @@ export default function HubPage({ user, onLogout }) {
             <div>
               <h2 style={{
                 fontSize: 22, fontWeight: 900, margin: '0 0 5px', letterSpacing: '-0.5px',
-                background: 'linear-gradient(135deg, #F1F5F9, #94A3B8)',
+                background: 'linear-gradient(135deg, var(--text-primary), var(--text-muted))',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               }}>
                 Your Tools
               </h2>
-              <p style={{ fontSize: 13, color: '#334155', margin: 0, fontWeight: 500 }}>
+              <p style={{ fontSize: 13, color: 'var(--text-subtle)', margin: 0, fontWeight: 500 }}>
                 {TOOLS.length} tools · AI-powered · Amazon native
               </p>
             </div>
@@ -736,10 +737,10 @@ export default function HubPage({ user, onLogout }) {
                 🚀
               </div>
               <div>
-                <p style={{ fontSize: 16, fontWeight: 800, color: '#F1F5F9', margin: '0 0 5px', letterSpacing: '-0.2px' }}>
+                <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 5px', letterSpacing: '-0.2px' }}>
                   Need help getting started?
                 </p>
-                <p style={{ fontSize: 13, color: '#64748B', margin: 0, lineHeight: 1.5 }}>
+                <p style={{ fontSize: 13, color: 'var(--text-subtle)', margin: 0, lineHeight: 1.5 }}>
                   Our Amazon experts are ready to walk you through the platform.
                 </p>
               </div>
@@ -770,7 +771,7 @@ function PlanCard({ planCfg, plan }) {
   return (
     <div style={{
       padding: '22px 26px', borderRadius: 20,
-      background: 'rgba(10,14,30,0.80)',
+      background: 'var(--bg-overlay-hi)',
       border: `1px solid ${planCfg.color}30`,
       backdropFilter: 'blur(20px)',
       minWidth: 240,
@@ -782,7 +783,7 @@ function PlanCard({ planCfg, plan }) {
       {/* Glow blob */}
       <div style={{ position: 'absolute', bottom: -40, right: -40, width: 160, height: 160, background: `radial-gradient(circle, ${planCfg.glow} 0%, transparent 70%)`, pointerEvents: 'none' }} />
 
-      <p style={{ fontSize: 9, fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 16 }}>
+      <p style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 16 }}>
         Active Plan
       </p>
 
@@ -799,7 +800,7 @@ function PlanCard({ planCfg, plan }) {
           </svg>
         </div>
         <div>
-          <p style={{ fontSize: 14, fontWeight: 800, color: '#FFFFFF', margin: 0, lineHeight: 1.2, letterSpacing: '-0.3px' }}>
+          <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', margin: 0, lineHeight: 1.2, letterSpacing: '-0.3px' }}>
             Ad Optimizer 360
           </p>
           <span style={{
@@ -814,8 +815,8 @@ function PlanCard({ planCfg, plan }) {
         </div>
       </div>
 
-      <div style={{ fontSize: 12, color: '#475569', marginBottom: 18 }}>
-        Up to <strong style={{ color: '#94A3B8' }}>{planCfg.profiles} profiles</strong> · All tools
+      <div style={{ fontSize: 12, color: 'var(--text-subtle)', marginBottom: 18 }}>
+        Up to <strong style={{ color: 'var(--text-primary)' }}>{planCfg.profiles} profiles</strong> · All tools
       </div>
 
       <Link to="/billing" style={{
@@ -834,6 +835,41 @@ function PlanCard({ planCfg, plan }) {
   );
 }
 
+function ThemeToggle() {
+  const { theme, toggle } = useTheme();
+  const [hov, setHov] = useState(false);
+  const isLight = theme === 'light';
+  return (
+    <button
+      onClick={toggle}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      aria-label={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
+      title={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
+      style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        width: 34, height: 34, borderRadius: 10, cursor: 'pointer',
+        background: hov ? 'var(--overlay-6)' : 'var(--overlay-3)',
+        border: '1px solid var(--overlay-7)',
+        color: 'var(--text-muted)',
+        transition: 'background 0.15s, color 0.15s, transform 0.2s',
+        transform: hov ? 'translateY(-1px)' : 'none',
+      }}
+    >
+      {isLight ? (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
 function SignOutButton({ onLogout }) {
   const [hov, setHov] = useState(false);
   return (
@@ -846,7 +882,7 @@ function SignOutButton({ onLogout }) {
         width: '100%', padding: '9px 12px', borderRadius: 10,
         background: hov ? 'rgba(239,68,68,0.10)' : 'transparent',
         border: hov ? '1px solid rgba(239,68,68,0.25)' : '1px solid transparent',
-        color: hov ? '#FCA5A5' : '#334155',
+        color: hov ? '#EF4444' : 'var(--text-subtle)',
         fontSize: 13, fontWeight: 600, cursor: 'pointer',
         transition: 'all 0.15s', textAlign: 'left',
         boxShadow: hov ? '0 0 16px rgba(239,68,68,0.15)' : 'none',

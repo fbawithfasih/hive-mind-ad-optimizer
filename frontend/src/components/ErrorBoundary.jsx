@@ -21,11 +21,11 @@ export default class ErrorBoundary extends Component {
     if (!this.state.error) return this.props.children;
 
     return (
-      <div style={{ minHeight: '100vh', background: '#0F172A', color: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-app-2)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <div style={{ maxWidth: 460, textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
           <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 8px' }}>Something went wrong</h1>
-          <p style={{ fontSize: 14, color: '#94A3B8', lineHeight: 1.6, margin: '0 0 20px' }}>
+          <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6, margin: '0 0 20px' }}>
             This page hit an unexpected error and couldn’t finish loading. Try reloading —
             if it keeps happening, contact support.
           </p>

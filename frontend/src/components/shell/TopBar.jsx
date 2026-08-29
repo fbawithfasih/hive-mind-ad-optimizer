@@ -30,7 +30,7 @@ export default function TopBar({
       justifyContent: 'space-between',
       padding: '0 20px',
       background: 'rgba(4,6,16,0.97)',
-      borderBottom: '1px solid rgba(255,255,255,0.05)',
+      borderBottom: '1px solid var(--overlay-4)',
       backdropFilter: 'blur(24px)',
       position: 'sticky',
       top: 0,
@@ -41,21 +41,21 @@ export default function TopBar({
 
       {/* Left: breadcrumb */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: '#1E293B', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--bg-panel)', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
           Dashboard
         </span>
-        <svg width="10" height="10" fill="none" stroke="#1E293B" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+        <svg width="10" height="10" fill="none" stroke="var(--bg-panel)" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
         </svg>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {moduleLabel}
         </span>
         {selectedProfile && activeTab === 'campaigns' && (
           <>
-            <svg width="10" height="10" fill="none" stroke="#1E293B" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+            <svg width="10" height="10" fill="none" stroke="var(--bg-panel)" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
             </svg>
-            <span style={{ fontSize: 11, color: '#334155', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 11, color: 'var(--border-strong)', whiteSpace: 'nowrap' }}>
               {FLAG(selectedProfile.countryCode)} {selectedProfile.countryCode}
             </span>
           </>
@@ -71,7 +71,7 @@ export default function TopBar({
             value={activeOrgId}
             onChange={e => onSwitchOrg(e.target.value)}
             disabled={switchingOrg}
-            style={{ background: '#0A0E1E', border: '1px solid rgba(255,255,255,0.08)', color: '#F1F5F9', borderRadius: 6, padding: '3px 8px', fontSize: 11, maxWidth: 140, cursor: 'pointer' }}
+            style={{ background: '#0A0E1E', border: '1px solid var(--overlay-7)', color: 'var(--text-primary)', borderRadius: 6, padding: '3px 8px', fontSize: 11, maxWidth: 140, cursor: 'pointer' }}
           >
             {organizations.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
           </select>
@@ -102,19 +102,19 @@ export default function TopBar({
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '3px 10px', borderRadius: 6,
-            border: '1px solid rgba(255,255,255,0.08)',
-            background: 'rgba(255,255,255,0.04)',
-            color: '#475569', fontSize: 11, fontWeight: 600,
+            border: '1px solid var(--overlay-7)',
+            background: 'var(--overlay-3)',
+            color: 'var(--border-med)', fontSize: 11, fontWeight: 600,
             cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(59,130,246,0.40)'; e.currentTarget.style.color = '#94A3B8'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#475569'; }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(59,130,246,0.40)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--overlay-7)'; e.currentTarget.style.color = 'var(--border-med)'; }}
         >
           <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <span>Search</span>
-          <kbd style={{ fontSize: 10, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 4, padding: '1px 4px', lineHeight: 1.4 }}>⌘K</kbd>
+          <kbd style={{ fontSize: 10, background: 'var(--overlay-7)', border: '1px solid var(--overlay-8)', borderRadius: 4, padding: '1px 4px', lineHeight: 1.4 }}>⌘K</kbd>
         </button>
 
         {/* Live indicator */}
@@ -128,9 +128,9 @@ export default function TopBar({
           onClick={onAlertsClick}
           style={{
             position: 'relative', padding: '4px 10px', borderRadius: 6,
-            border: `1px solid ${alertUnread > 0 ? 'rgba(244,63,94,0.35)' : 'rgba(255,255,255,0.08)'}`,
-            background: alertUnread > 0 ? 'rgba(244,63,94,0.08)' : 'rgba(255,255,255,0.04)',
-            color: alertUnread > 0 ? '#F87171' : '#64748B',
+            border: `1px solid ${alertUnread > 0 ? 'rgba(244,63,94,0.35)' : 'var(--overlay-7)'}`,
+            background: alertUnread > 0 ? 'rgba(244,63,94,0.08)' : 'var(--overlay-3)',
+            color: alertUnread > 0 ? '#F87171' : 'var(--text-subtle)',
             fontSize: 12, fontWeight: 600, cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 4,
           }}
@@ -148,14 +148,14 @@ export default function TopBar({
         {/* Billing */}
         <Link
           to="/billing"
-          style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#475569', fontSize: 11, fontWeight: 600, textDecoration: 'none' }}
+          style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--overlay-7)', background: 'var(--overlay-3)', color: 'var(--border-med)', fontSize: 11, fontWeight: 600, textDecoration: 'none' }}
         >
           Billing
         </Link>
 
         {/* User email + sign out */}
         {user?.email && (
-          <span style={{ fontSize: 10, color: '#1E293B', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 10, color: 'var(--bg-panel)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {user.email}
           </span>
         )}

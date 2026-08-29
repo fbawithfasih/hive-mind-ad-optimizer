@@ -41,7 +41,7 @@ export default function AdsNotConnectedBanner() {
           href="/api/sp-oauth/ads-start"
           style={{
             background: 'linear-gradient(90deg, #F59E0B, #D97706)',
-            color: '#0F172A',
+            color: 'var(--bg-app-2)',
             fontWeight: 700,
             fontSize: 12,
             padding: '8px 14px',

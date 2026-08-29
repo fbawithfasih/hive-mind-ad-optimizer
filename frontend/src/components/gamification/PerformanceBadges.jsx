@@ -13,8 +13,8 @@ export default function PerformanceBadges({ badges }) {
           style={{
             padding: '10px 12px',
             borderRadius: 10,
-            background: badge.earned ? `${badge.color}10` : 'rgba(255,255,255,0.02)',
-            border: `1px solid ${badge.earned ? `${badge.color}30` : 'rgba(255,255,255,0.05)'}`,
+            background: badge.earned ? `${badge.color}10` : 'var(--overlay-1)',
+            border: `1px solid ${badge.earned ? `${badge.color}30` : 'var(--overlay-4)'}`,
             boxShadow: badge.earned ? `0 0 14px ${badge.color}18` : 'none',
             transition: 'box-shadow 0.3s',
           }}
@@ -37,10 +37,10 @@ export default function PerformanceBadges({ badges }) {
               </motion.span>
             )}
           </div>
-          <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 800, color: badge.earned ? '#F1F5F9' : '#334155', lineHeight: 1.2 }}>
+          <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 800, color: badge.earned ? 'var(--text-primary)' : 'var(--border-strong)', lineHeight: 1.2 }}>
             {badge.label}
           </p>
-          <p style={{ margin: 0, fontSize: 10, color: '#475569', lineHeight: 1.3 }}>
+          <p style={{ margin: 0, fontSize: 10, color: 'var(--border-med)', lineHeight: 1.3 }}>
             {badge.desc}
           </p>
         </motion.div>

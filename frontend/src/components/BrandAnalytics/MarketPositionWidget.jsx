@@ -1,7 +1,7 @@
 import React from 'react';
 import { Delta } from './shared.jsx';
 
-const CARD = { background: 'rgba(10,14,30,0.60)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden' };
+const CARD = { background: 'var(--bg-overlay-lo)', border: '1px solid var(--overlay-7)', borderRadius: 12, overflow: 'hidden' };
 
 function visColor(rate) {
   if (rate >= 20) return '#10B981';
@@ -24,8 +24,8 @@ export default function MarketPositionWidget({ summary, brandAppearances = [], c
 
   return (
     <div style={CARD}>
-      <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+      <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--overlay-5)' }}>
+        <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           Market Position
         </p>
       </div>
@@ -33,35 +33,35 @@ export default function MarketPositionWidget({ summary, brandAppearances = [], c
       <div style={{ padding: '18px 20px', display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         {/* Visibility rate */}
         <div style={{ flex: 1, minWidth: 100 }}>
-          <p style={{ margin: 0, fontSize: 10, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Visibility Rate</p>
+          <p style={{ margin: 0, fontSize: 10, fontWeight: 600, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Visibility Rate</p>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
             <span style={{ fontSize: 32, fontWeight: 800, color: accent, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{visRate}%</span>
             <Delta d={comparison?.deltas?.brandedKwCount} mode="abs" />
           </div>
-          <p style={{ margin: '4px 0 0', fontSize: 11, color: '#64748B' }}>in top 3 for {appearances} of {totalKw} keywords</p>
+          <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>in top 3 for {appearances} of {totalKw} keywords</p>
         </div>
 
         {/* Not in top 3 */}
         <div style={{ flex: 1, minWidth: 100 }}>
-          <p style={{ margin: 0, fontSize: 10, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Not in Top 3</p>
-          <p style={{ margin: '4px 0 0', fontSize: 32, fontWeight: 800, color: invisible > 0 ? '#F43F5E' : '#CBD5E1', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{invisible}</p>
-          <p style={{ margin: '4px 0 0', fontSize: 11, color: '#64748B' }}>keywords invisible to brand</p>
+          <p style={{ margin: 0, fontSize: 10, fontWeight: 600, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Not in Top 3</p>
+          <p style={{ margin: '4px 0 0', fontSize: 32, fontWeight: 800, color: invisible > 0 ? '#F43F5E' : 'var(--text-muted)', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{invisible}</p>
+          <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>keywords invisible to brand</p>
         </div>
 
         {/* Brand appearances */}
         <div style={{ flex: 1, minWidth: 100 }}>
-          <p style={{ margin: 0, fontSize: 10, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Brand Appearances</p>
+          <p style={{ margin: 0, fontSize: 10, fontWeight: 600, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Brand Appearances</p>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
-            <span style={{ fontSize: 32, fontWeight: 800, color: '#CBD5E1', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{appearances}</span>
+            <span style={{ fontSize: 32, fontWeight: 800, color: 'var(--text-muted)', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{appearances}</span>
             <Delta d={comparison?.deltas?.clicks} mode="pct" />
           </div>
-          <p style={{ margin: '4px 0 0', fontSize: 11, color: '#64748B' }}>keyword slots captured</p>
+          <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>keyword slots captured</p>
         </div>
       </div>
 
       {appearances > 0 && (
         <div style={{ padding: '0 20px 18px' }}>
-          <p style={{ margin: '0 0 10px', fontSize: 10, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <p style={{ margin: '0 0 10px', fontSize: 10, fontWeight: 600, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             Position Breakdown
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -83,11 +83,11 @@ export default function MarketPositionWidget({ summary, brandAppearances = [], c
 
 function PositionBadge({ rank, count, color }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', flex: 1 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderRadius: 8, background: 'var(--overlay-2)', border: '1px solid var(--overlay-5)', flex: 1 }}>
       <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}12`, border: `1px solid ${color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <span style={{ fontSize: 16, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums' }}>{count}</span>
       </div>
-      <span style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{rank} Position</span>
+      <span style={{ fontSize: 11, color: 'var(--text-subtle)', fontWeight: 600 }}>{rank} Position</span>
     </div>
   );
 }

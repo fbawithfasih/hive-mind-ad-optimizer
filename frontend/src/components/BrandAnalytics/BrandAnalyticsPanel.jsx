@@ -104,7 +104,7 @@ export default function BrandAnalyticsPanel() {
         <GlowBlob color="rgba(139,92,246,0.2)" />
         <div style={{ position: 'relative' }}>
           <div style={{ marginBottom: 16 }}>
-            <p style={{ margin: 0, fontWeight: 900, fontSize: 17, color: '#F1F5F9', letterSpacing: '-0.4px' }}>
+            <p style={{ margin: 0, fontWeight: 900, fontSize: 17, color: 'var(--text-primary)', letterSpacing: '-0.4px' }}>
               Brand Analytics
               {hasData && (
                 <span style={{ marginLeft: 10, fontSize: 12, fontWeight: 600, color: '#8B5CF6', background: 'rgba(139,92,246,0.12)', padding: '2px 10px', borderRadius: 20, border: '1px solid rgba(139,92,246,0.25)' }}>
@@ -112,7 +112,7 @@ export default function BrandAnalyticsPanel() {
                 </span>
               )}
             </p>
-            <p style={{ margin: '4px 0 0', fontSize: 12, color: '#334155' }}>
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--border-strong)' }}>
               Competitive intelligence from Amazon Brand Analytics data
             </p>
           </div>
@@ -121,14 +121,14 @@ export default function BrandAnalyticsPanel() {
               value={brandInput}
               onChange={e => { setBrandInput(e.target.value); localStorage.setItem('amaiop_brand', e.target.value); }}
               placeholder="Brand name (e.g. Queenza)"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#F1F5F9', borderRadius: 10, padding: '9px 14px', fontSize: 13, outline: 'none', width: 220 }}
+              style={{ background: 'var(--overlay-3)', border: '1px solid var(--overlay-7)', color: 'var(--text-primary)', borderRadius: 10, padding: '9px 14px', fontSize: 13, outline: 'none', width: 220 }}
               onFocus={e => e.target.style.borderColor = '#8B5CF6'}
-              onBlur={e  => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+              onBlur={e  => e.target.style.borderColor = 'var(--overlay-7)'}
             />
             <button type="submit" disabled={loading || !brandInput.trim()} style={{
               display: 'flex', alignItems: 'center', gap: 7, padding: '9px 22px', borderRadius: 10, border: 'none',
               cursor: (loading || !brandInput.trim()) ? 'not-allowed' : 'pointer',
-              background: loading ? 'rgba(255,255,255,0.07)' : 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
+              background: loading ? 'var(--overlay-6)' : 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
               color: '#fff', fontWeight: 700, fontSize: 13,
               boxShadow: (!loading && brandInput.trim()) ? '0 4px 20px rgba(139,92,246,0.45)' : 'none',
               opacity: !brandInput.trim() ? 0.4 : 1,
@@ -157,7 +157,7 @@ export default function BrandAnalyticsPanel() {
           <div>
             <strong>Showing partial data.</strong> {summary.missingDatasets.join(', ')} not yet available for this org.
             {summary.missingDatasets.includes('Search Query Performance') && (
-              <> Search Query reports require an ASIN list — trigger a manual refresh with your brand ASINs via <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12 }}>POST /api/brand-analytics/reports/refresh</code> (body: <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12 }}>{`{ "reportType": "SQP_BRAND", "asins": ["B0…"] }`}</code>).</>
+              <> Search Query reports require an ASIN list — trigger a manual refresh with your brand ASINs via <code style={{ background: 'var(--overlay-5)', padding: '1px 5px', borderRadius: 4, fontSize: 12 }}>POST /api/brand-analytics/reports/refresh</code> (body: <code style={{ background: 'var(--overlay-5)', padding: '1px 5px', borderRadius: 4, fontSize: 12 }}>{`{ "reportType": "SQP_BRAND", "asins": ["B0…"] }`}</code>).</>
             )}
           </div>
         </div>
@@ -191,12 +191,12 @@ export default function BrandAnalyticsPanel() {
 
       {/* ── Tab bar ── */}
       {(hasData || !loading) && (
-        <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 4, border: '1px solid rgba(255,255,255,0.05)', width: 'fit-content' }}>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--overlay-2)', borderRadius: 12, padding: 4, border: '1px solid var(--overlay-4)', width: 'fit-content' }}>
           {TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
               fontSize: 12, fontWeight: 700, padding: '7px 16px', borderRadius: 9, border: 'none', cursor: 'pointer', transition: 'all .15s',
               background: activeTab === tab.id ? 'linear-gradient(135deg,#8B5CF6,#3B82F6)' : 'transparent',
-              color:      activeTab === tab.id ? '#fff' : '#475569',
+              color:      activeTab === tab.id ? '#fff' : 'var(--border-med)',
               boxShadow:  activeTab === tab.id ? '0 2px 12px rgba(139,92,246,0.4)' : 'none',
             }}>
               {tab.label}
@@ -214,9 +214,9 @@ export default function BrandAnalyticsPanel() {
             </svg>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <p style={{ fontSize: 15, fontWeight: 700, color: '#F1F5F9', margin: '0 0 6px' }}>Analysing Brand Data</p>
-            <p style={{ fontSize: 12, color: '#475569', margin: 0 }}>{loadStep || 'Parsing CSV files…'}</p>
-            <p style={{ fontSize: 11, color: '#1E293B', margin: '8px 0 0' }}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px' }}>Analysing Brand Data</p>
+            <p style={{ fontSize: 12, color: 'var(--border-med)', margin: 0 }}>{loadStep || 'Parsing CSV files…'}</p>
+            <p style={{ fontSize: 11, color: 'var(--bg-panel)', margin: '8px 0 0' }}>
               First load streams the Top Search Terms file (up to 470 MB). This takes 30–60 seconds — subsequent loads are instant from cache.
             </p>
           </div>
@@ -239,18 +239,18 @@ export default function BrandAnalyticsPanel() {
               <GradientBar top="linear-gradient(90deg,#3B82F6,#8B5CF6)" />
               <GlowBlob color="rgba(59,130,246,0.1)" />
               <div style={{ position: 'relative' }}>
-                <p style={{ fontSize: 11, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 16px' }}>Top Products by Impressions</p>
+                <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 16px' }}>Top Products by Impressions</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {summary.topProducts.slice(0, 5).map((p, i) => {
                     const maxImpr = summary.topProducts[0].impressions;
                     return (
                       <div key={p.asin} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: '#334155', width: 16, flexShrink: 0 }}>{i+1}</span>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--border-strong)', width: 16, flexShrink: 0 }}>{i+1}</span>
                         <span style={{ fontFamily: 'monospace', fontSize: 11, color: COLORS.blue.accent, fontWeight: 700, flexShrink: 0, width: 90 }}>{p.asin}</span>
-                        <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.04)', borderRadius: 99, overflow: 'hidden' }}>
+                        <div style={{ flex: 1, height: 6, background: 'var(--overlay-3)', borderRadius: 99, overflow: 'hidden' }}>
                           <div style={{ width: `${(p.impressions/maxImpr)*100}%`, height: '100%', background: 'linear-gradient(90deg,#3B82F6,#8B5CF6)', borderRadius: 99, transition: 'width 0.8s ease' }} />
                         </div>
-                        <span style={{ fontSize: 11, color: '#475569', flexShrink: 0, width: 60, textAlign: 'right' }}>{p.impressions.toLocaleString()}</span>
+                        <span style={{ fontSize: 11, color: 'var(--border-med)', flexShrink: 0, width: 60, textAlign: 'right' }}>{p.impressions.toLocaleString()}</span>
                         <span style={{ fontSize: 11, color: COLORS.green.accent, fontWeight: 600, flexShrink: 0, width: 50, textAlign: 'right' }}>{p.convRate}% CR</span>
                       </div>
                     );
@@ -266,10 +266,10 @@ export default function BrandAnalyticsPanel() {
               <GradientBar top="linear-gradient(90deg,#8B5CF6,#3B82F6,#10B981)" />
               <GlowBlob color="rgba(139,92,246,0.1)" />
               <div style={{ position: 'relative' }}>
-                <p style={{ fontSize: 11, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 4px' }}>
+                <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 4px' }}>
                   Top Brand Search Queries — Click Share
                 </p>
-                <p style={{ fontSize: 11, color: '#475569', margin: '0 0 16px' }}>
+                <p style={{ fontSize: 11, color: 'var(--border-med)', margin: '0 0 16px' }}>
                   Color = top-3 position · {brandAppearances.length} total queries found
                 </p>
                 <SearchQueryChart brandAppearances={brandAppearances} />
@@ -277,7 +277,7 @@ export default function BrandAnalyticsPanel() {
                   {[['#10B981', '#1 Position'], ['#3B82F6', '#2 Position'], ['#8B5CF6', '#3 Position']].map(([color, label]) => (
                     <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                       <div style={{ width: 8, height: 8, borderRadius: 2, background: color }} />
-                      <span style={{ fontSize: 10, color: '#475569' }}>{label}</span>
+                      <span style={{ fontSize: 10, color: 'var(--border-med)' }}>{label}</span>
                     </div>
                   ))}
                 </div>
@@ -339,8 +339,8 @@ export default function BrandAnalyticsPanel() {
             </svg>
           </div>
           <div>
-            <p style={{ fontSize: 15, fontWeight: 700, color: '#334155', margin: '0 0 6px' }}>Enter a brand name to begin</p>
-            <p style={{ fontSize: 12, color: '#1E293B', margin: 0 }}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--border-strong)', margin: '0 0 6px' }}>Enter a brand name to begin</p>
+            <p style={{ fontSize: 12, color: 'var(--bg-panel)', margin: 0 }}>
               Or <button onClick={() => setActiveTab('upload')} style={{ background: 'none', border: 'none', color: '#60A5FA', fontWeight: 700, cursor: 'pointer', padding: 0, fontSize: 12 }}>upload your CSV files</button> first if you haven't already
             </p>
           </div>

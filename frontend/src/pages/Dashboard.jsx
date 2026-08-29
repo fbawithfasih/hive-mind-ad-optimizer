@@ -66,7 +66,7 @@ function RingProgress({ pct, color, glow, size = 88, stroke = 9, children }) {
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', display: 'block' }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--overlay-5)" strokeWidth={stroke} />
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
           strokeDasharray={`${filled} ${circ}`} strokeLinecap="round"
           style={{ filter: `drop-shadow(0 0 6px ${glow ?? color})`, transition: 'stroke-dasharray 1.2s ease' }} />
@@ -93,7 +93,7 @@ function DonutChart({ enabled, paused, archived, total, size = 160 }) {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
       <div style={{ position: 'relative', width: size, height: size }}>
         <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', display: 'block' }}>
-          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={stroke} />
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--overlay-3)" strokeWidth={stroke} />
           {segments.map((seg, i) => {
             const dash = (seg.value / tot) * circ;
             const gap  = circ - dash;
@@ -111,14 +111,14 @@ function DonutChart({ enabled, paused, archived, total, size = 160 }) {
         </svg>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ fontSize: 26, fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>{total}</span>
-          <span style={{ fontSize: 10, fontWeight: 600, color: '#64748B', letterSpacing: '0.05em', marginTop: 2 }}>TOTAL</span>
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-subtle)', letterSpacing: '0.05em', marginTop: 2 }}>TOTAL</span>
         </div>
       </div>
       <div style={{ display: 'flex', gap: 14 }}>
         {segments.map(seg => (
           <div key={seg.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: seg.color, boxShadow: `0 0 6px ${seg.color}` }} />
-            <span style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{seg.label} <strong style={{ color: '#94A3B8' }}>{seg.value}</strong></span>
+            <span style={{ fontSize: 11, color: 'var(--text-subtle)', fontWeight: 600 }}>{seg.label} <strong style={{ color: 'var(--text-muted)' }}>{seg.value}</strong></span>
           </div>
         ))}
       </div>
@@ -132,7 +132,7 @@ function BudgetBars({ campaigns }) {
     .sort((a, b) => (b.budget ?? 0) - (a.budget ?? 0))
     .slice(0, 7);
   if (!top.length) return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 140, color: '#334155', fontSize: 13 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 140, color: 'var(--border-strong)', fontSize: 13 }}>
       <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ opacity: .3, marginBottom: 8 }}>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
@@ -145,10 +145,10 @@ function BudgetBars({ campaigns }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {top.map((c, i) => (
         <div key={c.campaignId ?? c.id ?? i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 120, fontSize: 11, color: '#64748B', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
+          <div style={{ width: 120, fontSize: 11, color: 'var(--text-subtle)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
             {c.name}
           </div>
-          <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 99, overflow: 'hidden', position: 'relative' }}>
+          <div style={{ flex: 1, height: 8, background: 'var(--overlay-4)', borderRadius: 99, overflow: 'hidden', position: 'relative' }}>
             <div style={{
               position: 'absolute', left: 0, top: 0, bottom: 0,
               width: `${(c.budget / max) * 100}%`,
@@ -190,7 +190,7 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
   return (
     <div style={{
       padding: '20px 22px', borderRadius: 20,
-      background: 'rgba(10,14,30,0.85)',
+      background: 'var(--bg-overlay-hi)',
       border: `1px solid ${accentColor}25`,
       backdropFilter: 'blur(16px)',
       position: 'relative', overflow: 'hidden',
@@ -204,9 +204,9 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, position: 'relative' }}>
         <div>
-          <p style={{ fontSize: 10, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 10px' }}>{label}</p>
+          <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 10px' }}>{label}</p>
           <p style={{ fontSize: 30, fontWeight: 900, color: '#FFFFFF', margin: 0, lineHeight: 1, letterSpacing: '-1px' }}>{value}</p>
-          {sub && <p style={{ fontSize: 11, color: '#475569', margin: '6px 0 0', fontWeight: 500 }}>{sub}</p>}
+          {sub && <p style={{ fontSize: 11, color: 'var(--border-med)', margin: '6px 0 0', fontWeight: 500 }}>{sub}</p>}
         </div>
 
         {ringPct !== undefined ? (
@@ -536,7 +536,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                 {f.alertName} · {f.campaignName}
               </span>
             ))}
-            {alertBanner.count > 2 && <span style={{ fontSize: 11, color: '#475569' }}>+{alertBanner.count - 2} more</span>}
+            {alertBanner.count > 2 && <span style={{ fontSize: 11, color: 'var(--border-med)' }}>+{alertBanner.count - 2} more</span>}
           </span>
           <button onClick={() => { setActiveTab('alerts'); resetAlertPolling(); markFiresReadApi().catch(() => {}); }}
             style={{ fontSize: 12, fontWeight: 700, color: '#F43F5E', background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', flexShrink: 0 }}>
@@ -550,18 +550,18 @@ export default function Dashboard({ user, onboarded, onLogout }) {
         {/* ── Module title ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 900, margin: 0, letterSpacing: '-0.5px', background: 'linear-gradient(135deg, #F1F5F9, #A78BFA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <h1 style={{ fontSize: 24, fontWeight: 900, margin: 0, letterSpacing: '-0.5px', background: 'linear-gradient(135deg, var(--text-primary), #A78BFA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               {MODULE_LABELS[activeTab] ?? '📊 Campaigns'}
             </h1>
             {activeTab === 'campaigns' && selectedProfile && (
-              <p style={{ margin: '4px 0 0', fontSize: 12, color: '#334155', fontWeight: 500 }}>
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--border-strong)', fontWeight: 500 }}>
                 {FLAG(selectedProfile.countryCode)} {selectedProfile.profileName ?? selectedProfile.accountName} · {selectedProfile.countryCode} marketplace
               </p>
             )}
           </div>
           {activeTab === 'campaigns' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 11, color: '#334155' }}>
+              <span style={{ fontSize: 11, color: 'var(--border-strong)' }}>
                 {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
               </span>
             </div>
@@ -715,7 +715,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             {/* Donut chart */}
             <div style={{
               padding: '24px', borderRadius: 20,
-              background: 'rgba(10,14,30,0.85)',
+              background: 'var(--bg-overlay-hi)',
               border: '1px solid rgba(99,102,241,0.2)',
               backdropFilter: 'blur(16px)',
               display: 'flex', flexDirection: 'column',
@@ -723,7 +723,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               position: 'relative', overflow: 'hidden',
             }}>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #6366F1, #8B5CF6, #A78BFA)' }} />
-              <p style={{ fontSize: 11, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 20px' }}>Campaign Status</p>
+              <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 20px' }}>Campaign Status</p>
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <DonutChart enabled={stats.enabled} paused={stats.paused} archived={stats.archived} total={stats.total} size={160} />
               </div>
@@ -732,7 +732,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             {/* Budget distribution */}
             <div style={{
               padding: '24px', borderRadius: 20,
-              background: 'rgba(10,14,30,0.85)',
+              background: 'var(--bg-overlay-hi)',
               border: '1px solid rgba(139,92,246,0.2)',
               backdropFilter: 'blur(16px)',
               display: 'flex', flexDirection: 'column',
@@ -741,8 +741,8 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             }}>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #8B5CF6, #3B82F6, #10B981)' }} />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                <p style={{ fontSize: 11, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>Top Budget Campaigns</p>
-                <span style={{ fontSize: 10, color: '#334155', fontWeight: 600 }}>Daily spend</span>
+                <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>Top Budget Campaigns</p>
+                <span style={{ fontSize: 10, color: 'var(--border-strong)', fontWeight: 600 }}>Daily spend</span>
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <BudgetBars campaigns={campaigns} />
@@ -753,7 +753,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
           {/* ── AI Command ── */}
           <div style={{
             padding: '22px 24px', borderRadius: 20,
-            background: 'rgba(10,14,30,0.85)',
+            background: 'var(--bg-overlay-hi)',
             border: '1px solid rgba(139,92,246,0.25)',
             backdropFilter: 'blur(16px)',
             position: 'relative', overflow: 'hidden',
@@ -770,11 +770,11 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                   </svg>
                 </div>
                 <div>
-                  <span style={{ fontWeight: 800, fontSize: 14, color: '#F1F5F9' }}>AI Command</span>
-                  <span style={{ display: 'block', fontSize: 10, color: '#475569', fontWeight: 500 }}>Ask anything about your campaigns</span>
+                  <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)' }}>AI Command</span>
+                  <span style={{ display: 'block', fontSize: 10, color: 'var(--border-med)', fontWeight: 500 }}>Ask anything about your campaigns</span>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ display: 'flex', gap: 4, background: 'var(--overlay-3)', borderRadius: 10, padding: 3, border: '1px solid var(--overlay-5)' }}>
                 {[
                   { id: 'gemini', label: 'Gemini 2.5 Flash', color: '#3B82F6', glow: 'rgba(59,130,246,0.4)' },
                   { id: 'claude', label: 'Claude Sonnet',    color: '#8B5CF6', glow: 'rgba(139,92,246,0.4)' },
@@ -783,7 +783,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                     fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 7,
                     border: 'none', cursor: 'pointer', transition: 'all .15s',
                     background: aiModel === id ? color : 'transparent',
-                    color: aiModel === id ? '#fff' : '#475569',
+                    color: aiModel === id ? '#fff' : 'var(--border-med)',
                     boxShadow: aiModel === id ? `0 2px 12px ${glow}` : 'none',
                   }}>
                     {label}
@@ -800,7 +800,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
           {/* ── Campaign Table ── */}
           <div style={{
             borderRadius: 20, overflow: 'hidden',
-            background: 'rgba(10,14,30,0.85)',
+            background: 'var(--bg-overlay-hi)',
             border: '1px solid rgba(59,130,246,0.2)',
             backdropFilter: 'blur(16px)',
             boxShadow: '0 4px 32px rgba(59,130,246,0.08)',
@@ -808,12 +808,12 @@ export default function Dashboard({ user, onboarded, onLogout }) {
           }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #3B82F6, #8B5CF6, #10B981)' }} />
 
-            <div style={{ padding: '18px 22px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--overlay-4)', display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* Row 1: title + date range + Load Metrics */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                 <div>
-                  <p style={{ fontWeight: 800, fontSize: 15, color: '#F1F5F9', margin: 0 }}>Campaigns</p>
-                  <p style={{ fontSize: 11, color: '#334155', margin: '3px 0 0', fontWeight: 500 }}>
+                  <p style={{ fontWeight: 800, fontSize: 15, color: 'var(--text-primary)', margin: 0 }}>Campaigns</p>
+                  <p style={{ fontSize: 11, color: 'var(--border-strong)', margin: '3px 0 0', fontWeight: 500 }}>
                     {filtered.length} of {stats.total} shown
                     {metricsDateRange.start && (
                       <span style={{ color: '#10B981', marginLeft: 8 }}>
@@ -832,8 +832,8 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                         cursor: isLoadingMetrics ? 'not-allowed' : 'pointer',
                         background: activePreset === key
                           ? 'linear-gradient(135deg, #10B981, #3B82F6)'
-                          : 'rgba(255,255,255,0.06)',
-                        color: activePreset === key ? '#fff' : '#64748B',
+                          : 'var(--overlay-5)',
+                        color: activePreset === key ? '#fff' : 'var(--text-subtle)',
                         boxShadow: activePreset === key ? '0 2px 8px rgba(16,185,129,0.3)' : 'none',
                         transition: 'all 0.15s',
                         whiteSpace: 'nowrap',
@@ -841,24 +841,24 @@ export default function Dashboard({ user, onboarded, onLogout }) {
                       {key === 'L7' ? '7d' : key === 'L30' ? '30d' : key}
                     </button>
                   ))}
-                  <span style={{ color: 'rgba(255,255,255,0.1)', fontSize: 14 }}>|</span>
+                  <span style={{ color: 'var(--overlay-8)', fontSize: 14 }}>|</span>
                   <input type="date" value={dateFrom}
                     onChange={e => { handleDateFromChange(e.target.value); setActivePreset(null); }}
                     min={sixtyDaysAgo} max={dateTo}
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#94A3B8', borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none' }} />
-                  <span style={{ color: '#334155', fontSize: 12 }}>→</span>
+                    style={{ background: 'var(--overlay-3)', border: '1px solid var(--overlay-7)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none' }} />
+                  <span style={{ color: 'var(--border-strong)', fontSize: 12 }}>→</span>
                   <input type="date" value={dateTo}
                     onChange={e => { handleDateToChange(e.target.value); setActivePreset(null); }}
                     min={dateFrom} max={today}
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#94A3B8', borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none' }} />
+                    style={{ background: 'var(--overlay-3)', border: '1px solid var(--overlay-7)', color: 'var(--text-muted)', borderRadius: 8, padding: '6px 10px', fontSize: 12, outline: 'none' }} />
                   <button onClick={handleLoadMetrics} disabled={isLoadingMetrics} style={{
                     position: 'relative', overflow: 'hidden',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     padding: '7px 16px', borderRadius: 8, border: 'none',
                     cursor: isLoadingMetrics ? 'not-allowed' : 'pointer',
-                    background: isLoadingMetrics ? '#0F172A' : 'linear-gradient(135deg, #10B981, #3B82F6)',
+                    background: isLoadingMetrics ? 'var(--bg-app-2)' : 'linear-gradient(135deg, #10B981, #3B82F6)',
                     color: '#fff', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap',
-                    boxShadow: isLoadingMetrics ? '0 0 0 1px rgba(255,255,255,0.08)' : '0 4px 16px rgba(16,185,129,0.35)',
+                    boxShadow: isLoadingMetrics ? '0 0 0 1px var(--overlay-7)' : '0 4px 16px rgba(16,185,129,0.35)',
                     minWidth: 180,
                   }}>
                     {/* progress fill */}
@@ -924,15 +924,15 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               {/* Row 2: search + status filter */}
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-                  <svg width="14" height="14" fill="none" stroke="#334155" viewBox="0 0 24 24"
+                  <svg width="14" height="14" fill="none" stroke="var(--border-strong)" viewBox="0 0 24 24"
                     style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                   </svg>
                   <input type="text" placeholder="Search campaigns…" value={search} onChange={e => setSearch(e.target.value)}
-                    style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 32, paddingRight: 12, paddingTop: 7, paddingBottom: 7, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#F1F5F9', borderRadius: 8, fontSize: 12, outline: 'none' }} />
+                    style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 32, paddingRight: 12, paddingTop: 7, paddingBottom: 7, background: 'var(--overlay-3)', border: '1px solid var(--overlay-7)', color: 'var(--text-primary)', borderRadius: 8, fontSize: 12, outline: 'none' }} />
                 </div>
                 <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#94A3B8', borderRadius: 8, padding: '7px 12px', fontSize: 12, outline: 'none', cursor: 'pointer' }}>
+                  style={{ background: 'var(--overlay-3)', border: '1px solid var(--overlay-7)', color: 'var(--text-muted)', borderRadius: 8, padding: '7px 12px', fontSize: 12, outline: 'none', cursor: 'pointer' }}>
                   <option value="all">All Status</option>
                   <option value="enabled">Active</option>
                   <option value="paused">Paused</option>
@@ -952,7 +952,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               lastResult={bulkResult}
             />
             {isRefreshing && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 600, color: '#94A3B8', padding: '6px 12px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 6, marginBottom: 8, width: 'fit-content' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', padding: '6px 12px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 6, marginBottom: 8, width: 'fit-content' }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3B82F6', animation: 'pulse 1.4s ease-in-out infinite' }} />
                 Refreshing — showing last cached data
               </div>

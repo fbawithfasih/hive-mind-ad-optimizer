@@ -38,15 +38,15 @@ const STATUS_COLOR = {
   success: '#10B981',
   partial: '#F59E0B',
   failed:  '#EF4444',
-  skipped: '#64748B',
+  skipped: 'var(--text-subtle)',
 };
 
 const S = {
-  card:   { background: '#1E293B', border: '1px solid #334155', borderRadius: 12, padding: 20, marginBottom: 12 },
-  label:  { fontSize: 11, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 },
-  input:  { background: '#0F172A', border: '1px solid #334155', borderRadius: 8, padding: '8px 12px', color: '#F1F5F9', fontSize: 13, width: '100%' },
+  card:   { background: 'var(--bg-panel)', border: '1px solid var(--border-strong)', borderRadius: 12, padding: 20, marginBottom: 12 },
+  label:  { fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 },
+  input:  { background: 'var(--bg-app-2)', border: '1px solid var(--border-strong)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 13, width: '100%' },
   btn:    (color = '#3B82F6') => ({ background: color, border: 'none', borderRadius: 8, padding: '8px 16px', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }),
-  ghost:  { background: 'transparent', border: '1px solid #334155', borderRadius: 8, padding: '8px 16px', color: '#94A3B8', fontSize: 13, cursor: 'pointer' },
+  ghost:  { background: 'transparent', border: '1px solid var(--border-strong)', borderRadius: 8, padding: '8px 16px', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' },
   badge:  (color) => ({ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: color + '22', color, border: `1px solid ${color}44` }),
 };
 
@@ -181,7 +181,7 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
   if (isEditing) {
     return (
       <div style={{ ...S.card, borderColor: '#3B82F644' }}>
-        <p style={{ fontWeight: 600, fontSize: 14, color: '#F1F5F9', marginBottom: 16 }}>Edit Rule</p>
+        <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', marginBottom: 16 }}>Edit Rule</p>
         <RuleForm
           initialValues={rule}
           ruleId={rule.id}
@@ -197,8 +197,8 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 600, fontSize: 14, color: '#F1F5F9' }}>{rule.name}</span>
-            <span style={S.badge(rule.isActive ? '#10B981' : '#64748B')}>
+            <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>{rule.name}</span>
+            <span style={S.badge(rule.isActive ? '#10B981' : 'var(--text-subtle)')}>
               {rule.isActive ? 'Active' : 'Paused'}
             </span>
             {rule.schedule && (() => {
@@ -208,17 +208,17 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
               ) : null;
             })()}
           </div>
-          <p style={{ fontSize: 12, color: '#94A3B8', marginBottom: 8 }}>
-            If <b style={{ color: '#F1F5F9' }}>{metricLabel}</b>{' '}
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+            If <b style={{ color: 'var(--text-primary)' }}>{metricLabel}</b>{' '}
             <b style={{ color: '#3B82F6' }}>{condLabel} {rule.threshold}</b>
             {' '}&rarr; <b style={{ color: '#8B5CF6' }}>{actionLabel}</b>
             {['increase_budget','decrease_budget'].includes(rule.action) && ` by ${rule.adjustment}%`}
             {' '}· lookback {rule.lookbackDays}d
           </p>
           {lastExec && (
-            <p style={{ fontSize: 11, color: '#64748B' }}>
+            <p style={{ fontSize: 11, color: 'var(--text-subtle)' }}>
               Last run:{' '}
-              <span style={{ color: STATUS_COLOR[lastExec.status] ?? '#94A3B8' }}>{lastExec.status}</span>
+              <span style={{ color: STATUS_COLOR[lastExec.status] ?? 'var(--text-muted)' }}>{lastExec.status}</span>
               {' '}· {lastExec.affectedCount} campaigns
               {' '}· {new Date(lastExec.executedAt).toLocaleDateString()}
             </p>
@@ -227,12 +227,12 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
             <p style={{ fontSize: 11, color: '#8B5CF6' }}>Scheduled — will run automatically</p>
           )}
           {!rule.schedule && (
-            <p style={{ fontSize: 11, color: '#334155' }}>Manual only — use Run to execute</p>
+            <p style={{ fontSize: 11, color: 'var(--border-strong)' }}>Manual only — use Run to execute</p>
           )}
         </div>
 
         <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          <button style={S.btn(running ? '#475569' : '#10B981')} disabled={running} onClick={handleRun}>
+          <button style={S.btn(running ? 'var(--border-med)' : '#10B981')} disabled={running} onClick={handleRun}>
             {running ? '…' : 'Run'}
           </button>
           <button style={S.ghost} onClick={() => onViewHistory(rule)}>History</button>
@@ -255,18 +255,18 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
       </div>
 
       {result && (
-        <div style={{ marginTop: 12, padding: 12, background: '#0F172A', borderRadius: 8, border: `1px solid ${STATUS_COLOR[result.status] ?? '#334155'}33` }}>
-          <p style={{ fontSize: 12, color: STATUS_COLOR[result.status] ?? '#94A3B8', fontWeight: 600 }}>
+        <div style={{ marginTop: 12, padding: 12, background: 'var(--bg-app-2)', borderRadius: 8, border: `1px solid ${STATUS_COLOR[result.status] ?? 'var(--border-strong)'}33` }}>
+          <p style={{ fontSize: 12, color: STATUS_COLOR[result.status] ?? 'var(--text-muted)', fontWeight: 600 }}>
             {result.status === 'skipped' ? 'Skipped' : `${result.affectedCount} campaign(s) affected`}
           </p>
           {result.error && <p style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{result.error}</p>}
           {result.changes?.slice(0, 5).map((c, i) => (
-            <p key={i} style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+            <p key={i} style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
               {c.campaignName}: {c.field} {c.oldValue} → {c.newValue}
             </p>
           ))}
           {result.changes?.length > 5 && (
-            <p style={{ fontSize: 11, color: '#64748B' }}>+{result.changes.length - 5} more…</p>
+            <p style={{ fontSize: 11, color: 'var(--text-subtle)' }}>+{result.changes.length - 5} more…</p>
           )}
         </div>
       )}
@@ -284,19 +284,19 @@ function HistoryModal({ rule, onClose }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#00000088', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div style={{ background: '#1E293B', border: '1px solid #334155', borderRadius: 12, padding: 24, width: '100%', maxWidth: 640, maxHeight: '80vh', overflow: 'auto' }}>
+      <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-strong)', borderRadius: 12, padding: 24, width: '100%', maxWidth: 640, maxHeight: '80vh', overflow: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <p style={{ fontWeight: 600, color: '#F1F5F9' }}>Execution History — {rule.name}</p>
+          <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Execution History — {rule.name}</p>
           <button style={S.ghost} onClick={onClose}>Close</button>
         </div>
-        {loading && <p style={{ color: '#94A3B8', fontSize: 13 }}>Loading…</p>}
-        {!loading && history.length === 0 && <p style={{ color: '#64748B', fontSize: 13 }}>No executions yet.</p>}
+        {loading && <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading…</p>}
+        {!loading && history.length === 0 && <p style={{ color: 'var(--text-subtle)', fontSize: 13 }}>No executions yet.</p>}
         {history.map(h => (
-          <div key={h.id} style={{ padding: '10px 0', borderBottom: '1px solid #334155' }}>
+          <div key={h.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border-strong)' }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span style={S.badge(STATUS_COLOR[h.status] ?? '#94A3B8')}>{h.status}</span>
-              <span style={{ fontSize: 12, color: '#94A3B8' }}>{new Date(h.executedAt).toLocaleString()}</span>
-              <span style={{ fontSize: 12, color: '#64748B' }}>{h.affectedCount} campaigns</span>
+              <span style={S.badge(STATUS_COLOR[h.status] ?? 'var(--text-muted)')}>{h.status}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(h.executedAt).toLocaleString()}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-subtle)' }}>{h.affectedCount} campaigns</span>
             </div>
             {h.error && <p style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{h.error}</p>}
           </div>
@@ -349,13 +349,13 @@ export default function AutomationPanel({ profileId }) {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <p style={{ fontWeight: 700, fontSize: 16, color: '#F1F5F9' }}>Campaign Automation</p>
-          <p style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
+          <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>Campaign Automation</p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
             Rules run against your latest campaign performance report.
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button style={S.btn('#475569')} onClick={handleRunAll} disabled={runningAll || rules.filter(r => r.isActive).length === 0}>
+          <button style={S.btn('var(--border-med)')} onClick={handleRunAll} disabled={runningAll || rules.filter(r => r.isActive).length === 0}>
             {runningAll ? 'Running…' : `Run All (${rules.filter(r => r.isActive).length})`}
           </button>
           <button style={S.btn()} onClick={() => setShowForm(true)}>+ New Rule</button>
@@ -365,12 +365,12 @@ export default function AutomationPanel({ profileId }) {
       {/* Run-all result */}
       {runAllResult && (
         <div style={{ ...S.card, marginBottom: 16 }}>
-          <p style={{ fontWeight: 600, fontSize: 13, color: '#F1F5F9', marginBottom: 8 }}>Run All Results</p>
+          <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', marginBottom: 8 }}>Run All Results</p>
           {runAllResult.map(r => (
             <div key={r.ruleId} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-              <span style={S.badge(STATUS_COLOR[r.status] ?? '#94A3B8')}>{r.status}</span>
-              <span style={{ fontSize: 12, color: '#F1F5F9' }}>{r.ruleName}</span>
-              <span style={{ fontSize: 12, color: '#64748B' }}>{r.affectedCount} affected</span>
+              <span style={S.badge(STATUS_COLOR[r.status] ?? 'var(--text-muted)')}>{r.status}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>{r.ruleName}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-subtle)' }}>{r.affectedCount} affected</span>
               {r.error && <span style={{ fontSize: 11, color: '#EF4444' }}>{r.error}</span>}
             </div>
           ))}
@@ -380,7 +380,7 @@ export default function AutomationPanel({ profileId }) {
       {/* New rule form */}
       {showForm && (
         <div style={{ ...S.card, borderColor: '#3B82F644' }}>
-          <p style={{ fontWeight: 600, fontSize: 14, color: '#F1F5F9', marginBottom: 16 }}>New Rule</p>
+          <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', marginBottom: 16 }}>New Rule</p>
           <RuleForm
             profileId={profileId}
             onSave={rule => { setRules(r => [rule, ...r]); setShowForm(false); }}
@@ -390,10 +390,10 @@ export default function AutomationPanel({ profileId }) {
       )}
 
       {/* Rules list */}
-      {loading && <p style={{ color: '#94A3B8', fontSize: 13, textAlign: 'center', padding: 40 }}>Loading rules…</p>}
+      {loading && <p style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', padding: 40 }}>Loading rules…</p>}
 
       {!loading && rules.length === 0 && !showForm && (
-        <div style={{ textAlign: 'center', padding: 48, color: '#64748B' }}>
+        <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-subtle)' }}>
           <p style={{ fontSize: 14, marginBottom: 8 }}>No automation rules yet.</p>
           <p style={{ fontSize: 12 }}>Create a rule to automatically adjust bids and budgets based on performance.</p>
         </div>

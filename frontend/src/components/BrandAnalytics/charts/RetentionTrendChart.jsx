@@ -12,14 +12,14 @@ const CustomTooltip = ({ active, payload }) => {
   return (
     <div style={{
       background: 'rgba(8,12,26,0.97)',
-      border: '1px solid rgba(255,255,255,0.10)',
+      border: '1px solid var(--overlay-8)',
       borderRadius: 10, padding: '10px 14px', fontSize: 11,
     }}>
-      <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#F1F5F9', fontFamily: 'monospace' }}>{d.asin}</p>
+      <p style={{ margin: '0 0 4px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{d.asin}</p>
       <p style={{ margin: 0, color: d.repeatRate >= SNS_THRESHOLD ? '#10B981' : '#F59E0B' }}>
         Repeat rate: <b>{d.repeatRate?.toFixed(1)}%</b>
       </p>
-      <p style={{ margin: 0, color: '#64748B' }}>
+      <p style={{ margin: 0, color: 'var(--text-subtle)' }}>
         {d.repeatCustomers?.toLocaleString()} of {d.totalCustomers?.toLocaleString()} returned
       </p>
       {d.repeatRate >= SNS_THRESHOLD && (
@@ -49,7 +49,7 @@ export default function RetentionTrendChart({ items = [] }) {
   if (!data.length) {
     return (
       <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontSize: 12, color: '#334155' }}>No retention items to display</span>
+        <span style={{ fontSize: 12, color: 'var(--border-strong)' }}>No retention items to display</span>
       </div>
     );
   }
@@ -59,11 +59,11 @@ export default function RetentionTrendChart({ items = [] }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <div style={{ width: 8, height: 8, borderRadius: 2, background: '#10B981' }} />
-          <span style={{ fontSize: 10, color: '#64748B' }}>≥ {SNS_THRESHOLD}% (S&amp;S candidate)</span>
+          <span style={{ fontSize: 10, color: 'var(--text-subtle)' }}>≥ {SNS_THRESHOLD}% (S&amp;S candidate)</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <div style={{ width: 8, height: 8, borderRadius: 2, background: '#F59E0B' }} />
-          <span style={{ fontSize: 10, color: '#64748B' }}>&lt; {SNS_THRESHOLD}%</span>
+          <span style={{ fontSize: 10, color: 'var(--text-subtle)' }}>&lt; {SNS_THRESHOLD}%</span>
         </div>
       </div>
       <ResponsiveContainer width="100%" height={Math.max(180, data.length * 28)}>
@@ -76,7 +76,7 @@ export default function RetentionTrendChart({ items = [] }) {
           <XAxis
             type="number"
             domain={[0, 100]}
-            tick={{ fontSize: 9, fill: '#334155' }}
+            tick={{ fontSize: 9, fill: 'var(--border-strong)' }}
             tickFormatter={v => `${v}%`}
             axisLine={false}
             tickLine={false}
@@ -85,11 +85,11 @@ export default function RetentionTrendChart({ items = [] }) {
             type="category"
             dataKey="short"
             width={88}
-            tick={{ fontSize: 10, fill: '#64748B', fontFamily: 'monospace' }}
+            tick={{ fontSize: 10, fill: 'var(--text-subtle)', fontFamily: 'monospace' }}
             axisLine={false}
             tickLine={false}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--overlay-2)' }} />
           <ReferenceLine
             x={SNS_THRESHOLD}
             stroke="#10B981"
@@ -109,7 +109,7 @@ export default function RetentionTrendChart({ items = [] }) {
               dataKey="repeatRate"
               position="right"
               formatter={v => `${Number(v).toFixed(1)}%`}
-              style={{ fontSize: 10, fill: '#64748B', fontFamily: 'monospace' }}
+              style={{ fontSize: 10, fill: 'var(--text-subtle)', fontFamily: 'monospace' }}
             />
           </Bar>
         </BarChart>

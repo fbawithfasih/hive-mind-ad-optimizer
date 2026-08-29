@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { getBillingStatus, createCheckoutSession, verifyPaymentApi, cancelSubscriptionApi, logoutApi } from '../services/api.js';
 
 const TIER_LABEL  = { BASIC: 'Starter', PRO: 'Growth', ENTERPRISE: 'Scale', CUSTOM: 'Custom' };
-const TIER_COLOR  = { BASIC: '#64748B', PRO: '#3B82F6', ENTERPRISE: '#8B5CF6', CUSTOM: '#F59E0B' };
-const STATUS_COLOR = { ACTIVE: '#10B981', PAST_DUE: '#F59E0B', CANCELLED: '#F43F5E', EXPIRED: '#64748B' };
+const TIER_COLOR  = { BASIC: 'var(--text-subtle)', PRO: '#3B82F6', ENTERPRISE: '#8B5CF6', CUSTOM: '#F59E0B' };
+const STATUS_COLOR = { ACTIVE: '#10B981', PAST_DUE: '#F59E0B', CANCELLED: '#F43F5E', EXPIRED: 'var(--text-subtle)' };
 
 // Prices mirror src/config/pricing.js — keep aligned with the backend source of truth.
 const PLAN_DETAILS = [
@@ -39,9 +39,9 @@ function Badge({ label, color }) {
 
 function UsageStat({ label, value }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #334155' }}>
-      <span style={{ fontSize: 13, color: '#94A3B8' }}>{label}</span>
-      <span style={{ fontSize: 13, fontWeight: 600, color: '#F1F5F9' }}>{value.toLocaleString()}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border-strong)' }}>
+      <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{value.toLocaleString()}</span>
     </div>
   );
 }
@@ -176,16 +176,16 @@ export default function BillingPage({ user, onLogout }) {
   const trialDaysLeft  = user?.currentOrg?.trialDaysLeft ?? trial.trialDaysLeft ?? 0;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0F172A', color: '#F1F5F9' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-app-2)', color: 'var(--text-primary)' }}>
       {/* Navbar */}
-      <header style={{ background: '#1E293B', borderBottom: '1px solid #334155', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <header style={{ background: 'var(--bg-panel)', borderBottom: '1px solid var(--border-strong)', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link to="/" style={{ fontSize: 13, color: '#64748B', textDecoration: 'none' }}>← Dashboard</Link>
-          <span style={{ color: '#334155' }}>|</span>
-          <span style={{ fontWeight: 700, fontSize: 15, color: '#F1F5F9' }}>Billing</span>
+          <Link to="/" style={{ fontSize: 13, color: 'var(--text-subtle)', textDecoration: 'none' }}>← Dashboard</Link>
+          <span style={{ color: 'var(--border-strong)' }}>|</span>
+          <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>Billing</span>
         </div>
         <button onClick={async () => { await logoutApi(); onLogout(); }}
-          style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #334155', background: 'transparent', color: '#94A3B8', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+          style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
           Sign out
         </button>
       </header>
@@ -199,7 +199,7 @@ export default function BillingPage({ user, onLogout }) {
             borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
           }}>
             <span style={{ fontSize: 13, color: banner.type === 'success' ? '#10B981' : '#93C5FD' }}>{banner.msg}</span>
-            <button onClick={() => setBanner(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#64748B', padding: '0 4px', lineHeight: 1 }}>×</button>
+            <button onClick={() => setBanner(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text-subtle)', padding: '0 4px', lineHeight: 1 }}>×</button>
           </div>
         )}
 
@@ -219,7 +219,7 @@ export default function BillingPage({ user, onLogout }) {
               <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 900, color: '#FCA5A5' }}>
                 Your free trial has ended
               </h2>
-              <p style={{ margin: '0 0 20px', fontSize: 14, color: '#94A3B8', lineHeight: 1.6 }}>
+              <p style={{ margin: '0 0 20px', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>
                 Your 3-day trial has expired. Choose a plan below to restore full access to
                 Hive Mind Ad Optimizer 360 — campaigns, AI tools, and everything else.
               </p>
@@ -257,21 +257,21 @@ export default function BillingPage({ user, onLogout }) {
         )}
 
         {loading ? (
-          <p style={{ color: '#475569', fontSize: 14, textAlign: 'center', padding: 40 }}>Loading billing info…</p>
+          <p style={{ color: 'var(--border-med)', fontSize: 14, textAlign: 'center', padding: 40 }}>Loading billing info…</p>
         ) : (
           <>
             {/* Current plan */}
-            <div style={{ background: '#1E293B', borderRadius: 14, border: '1px solid #334155', padding: '24px' }}>
-              <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Current Plan</p>
+            <div style={{ background: 'var(--bg-panel)', borderRadius: 14, border: '1px solid var(--border-strong)', padding: '24px' }}>
+              <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Current Plan</p>
               {sub ? (
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                      <span style={{ fontSize: 22, fontWeight: 800, color: TIER_COLOR[sub.tier] ?? '#F1F5F9' }}>{TIER_LABEL[sub.tier] ?? sub.tier}</span>
-                      <Badge label={sub.status} color={STATUS_COLOR[sub.status] ?? '#64748B'} />
+                      <span style={{ fontSize: 22, fontWeight: 800, color: TIER_COLOR[sub.tier] ?? 'var(--text-primary)' }}>{TIER_LABEL[sub.tier] ?? sub.tier}</span>
+                      <Badge label={sub.status} color={STATUS_COLOR[sub.status] ?? 'var(--text-subtle)'} />
                     </div>
                     {sub.currentPeriodEnd && (
-                      <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>
+                      <p style={{ margin: 0, fontSize: 12, color: 'var(--text-subtle)' }}>
                         {sub.status === 'CANCELLED' ? 'Access ends' : 'Renews'} {new Date(sub.currentPeriodEnd).toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' })}
                       </p>
                     )}
@@ -284,7 +284,7 @@ export default function BillingPage({ user, onLogout }) {
                   )}
                 </div>
               ) : (
-                <p style={{ margin: 0, fontSize: 14, color: '#94A3B8' }}>
+                <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)' }}>
                   No active subscription. {isAdmin ? 'Choose a plan below to get started.' : 'Ask your Admin to set up a subscription.'}
                 </p>
               )}
@@ -300,7 +300,7 @@ export default function BillingPage({ user, onLogout }) {
                       {working ? 'Cancelling…' : 'Yes, cancel'}
                     </button>
                     <button onClick={() => setShowCancel(false)} disabled={working}
-                      style={{ padding: '7px 16px', borderRadius: 7, border: '1px solid #334155', background: 'transparent', color: '#94A3B8', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                      style={{ padding: '7px 16px', borderRadius: 7, border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--text-muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                       Keep subscription
                     </button>
                   </div>
@@ -310,9 +310,9 @@ export default function BillingPage({ user, onLogout }) {
 
             {/* Usage this month */}
             {usage && (
-              <div style={{ background: '#1E293B', borderRadius: 14, border: '1px solid #334155', padding: '24px' }}>
-                <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Usage This Month</p>
-                <p style={{ margin: '0 0 16px', fontSize: 12, color: '#475569' }}>{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
+              <div style={{ background: 'var(--bg-panel)', borderRadius: 14, border: '1px solid var(--border-strong)', padding: '24px' }}>
+                <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Usage This Month</p>
+                <p style={{ margin: '0 0 16px', fontSize: 12, color: 'var(--border-med)' }}>{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
                 <UsageStat label="Listings optimized"  value={usage.listingsOptimized} />
                 <UsageStat label="Bulk operations"     value={usage.bulkOperations} />
                 <UsageStat label="Reports generated"   value={usage.reportsGenerated} />
@@ -321,13 +321,13 @@ export default function BillingPage({ user, onLogout }) {
             )}
 
             {/* Plan cards */}
-            <div style={{ background: '#1E293B', borderRadius: 14, border: '1px solid #334155', padding: '24px' }}>
-              <p style={{ margin: '0 0 20px', fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            <div style={{ background: 'var(--bg-panel)', borderRadius: 14, border: '1px solid var(--border-strong)', padding: '24px' }}>
+              <p style={{ margin: '0 0 20px', fontSize: 12, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 {sub ? 'Change Plan' : 'Choose a Plan'}
               </p>
 
               {availableTiers.size === 0 && (
-                <p style={{ fontSize: 12, color: '#475569', marginBottom: 16 }}>
+                <p style={{ fontSize: 12, color: 'var(--border-med)', marginBottom: 16 }}>
                   Razorpay is not configured on this server — plan selection is unavailable.
                 </p>
               )}
@@ -341,8 +341,8 @@ export default function BillingPage({ user, onLogout }) {
                   return (
                     <div key={plan.tier} style={{
                       borderRadius: 12, padding: '20px',
-                      border: `1px solid ${isCurrent ? '#10B98150' : highlight ? TIER_COLOR[plan.tier] + '40' : '#334155'}`,
-                      background: isCurrent ? '#10B98108' : highlight ? TIER_COLOR[plan.tier] + '08' : '#0F172A',
+                      border: `1px solid ${isCurrent ? '#10B98150' : highlight ? TIER_COLOR[plan.tier] + '40' : 'var(--border-strong)'}`,
+                      background: isCurrent ? '#10B98108' : highlight ? TIER_COLOR[plan.tier] + '08' : 'var(--bg-app-2)',
                       display: 'flex', flexDirection: 'column', gap: 14, position: 'relative',
                     }}>
                       {plan.popular && !isCurrent && (
@@ -356,12 +356,12 @@ export default function BillingPage({ user, onLogout }) {
                           <span style={{ fontSize: 16, fontWeight: 800, color: TIER_COLOR[plan.tier] }}>{TIER_LABEL[plan.tier]}</span>
                           {isCurrent && <Badge label="Current" color="#10B981" />}
                         </div>
-                        <span style={{ fontSize: 20, fontWeight: 700, color: '#F1F5F9' }}>{plan.price}</span>
+                        <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{plan.price}</span>
                       </div>
 
                       <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
                         {plan.features.map(f => (
-                          <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: '#94A3B8' }}>
+                          <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: 'var(--text-muted)' }}>
                             <CheckIcon />
                             {f}
                           </li>
@@ -389,18 +389,18 @@ export default function BillingPage({ user, onLogout }) {
               </div>
 
               {!isAdmin && availableTiers.size > 0 && (
-                <p style={{ marginTop: 16, fontSize: 12, color: '#475569' }}>Contact your organization Admin to change the plan.</p>
+                <p style={{ marginTop: 16, fontSize: 12, color: 'var(--border-med)' }}>Contact your organization Admin to change the plan.</p>
               )}
             </div>
 
             {/* Invoice history */}
             {sub?.invoices?.length > 0 && (
-              <div style={{ background: '#1E293B', borderRadius: 14, border: '1px solid #334155', padding: '24px' }}>
-                <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Recent Invoices</p>
+              <div style={{ background: 'var(--bg-panel)', borderRadius: 14, border: '1px solid var(--border-strong)', padding: '24px' }}>
+                <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Recent Invoices</p>
                 {sub.invoices.map(inv => (
-                  <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #334155', gap: 8 }}>
-                    <span style={{ fontSize: 13, color: '#94A3B8' }}>{new Date(inv.createdAt).toLocaleDateString()}</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#F1F5F9' }}>
+                  <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-strong)', gap: 8 }}>
+                    <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{new Date(inv.createdAt).toLocaleDateString()}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
                       {inv.currency === 'INR' ? '₹' : '$'}{(inv.amount / 100).toFixed(2)} {inv.currency?.toUpperCase()}
                     </span>
                     <Badge label={inv.status} color={inv.status === 'PAID' ? '#10B981' : '#F59E0B'} />

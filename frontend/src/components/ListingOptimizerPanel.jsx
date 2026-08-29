@@ -11,8 +11,8 @@ const byteLen = (s) => new TextEncoder().encode(String(s ?? '')).length;
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
 const glass = {
-  background: 'rgba(10,14,30,0.85)',
-  border: '1px solid rgba(255,255,255,0.06)',
+  background: 'var(--bg-overlay-hi)',
+  border: '1px solid var(--overlay-5)',
   borderRadius: 20,
   backdropFilter: 'blur(16px)',
   position: 'relative',
@@ -20,9 +20,9 @@ const glass = {
 };
 
 const inputSt = {
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.08)',
-  color: '#F1F5F9',
+  background: 'var(--overlay-3)',
+  border: '1px solid var(--overlay-7)',
+  color: 'var(--text-primary)',
   borderRadius: 10,
   padding: '9px 13px',
   fontSize: 13,
@@ -32,9 +32,9 @@ const inputSt = {
 
 const taSt = (readOnly) => ({
   width: '100%',
-  background: readOnly ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)',
-  border: `1px solid ${readOnly ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.08)'}`,
-  borderRadius: 10, color: readOnly ? '#94A3B8' : '#F1F5F9',
+  background: readOnly ? 'var(--overlay-1)' : 'var(--overlay-3)',
+  border: `1px solid ${readOnly ? 'var(--overlay-4)' : 'var(--overlay-7)'}`,
+  borderRadius: 10, color: readOnly ? 'var(--text-muted)' : 'var(--text-primary)',
   padding: '10px 12px', fontSize: 12, resize: 'vertical',
   outline: 'none', lineHeight: 1.6, fontFamily: 'inherit',
   boxSizing: 'border-box',
@@ -73,9 +73,9 @@ function StatCard({ label, value, sub, gradient, glow, accentColor, icon, spark 
       <GlowBlob color={glow} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
         <div>
-          <p style={{ fontSize: 10, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 8px' }}>{label}</p>
+          <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 8px' }}>{label}</p>
           <p style={{ fontSize: 28, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1, letterSpacing: '-0.5px' }}>{value}</p>
-          {sub && <p style={{ fontSize: 11, color: '#475569', margin: '5px 0 0', fontWeight: 500 }}>{sub}</p>}
+          {sub && <p style={{ fontSize: 11, color: 'var(--border-med)', margin: '5px 0 0', fontWeight: 500 }}>{sub}</p>}
         </div>
         <div style={{ width: 42, height: 42, borderRadius: 13, background: gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 4px 14px ${glow}` }}>
           <div style={{ color: '#fff' }}>{icon}</div>
@@ -89,7 +89,7 @@ function StatCard({ label, value, sub, gradient, glow, accentColor, icon, spark 
 function CharCount({ value, limit }) {
   const len = (value ?? '').length;
   const pct = len / limit;
-  const color = pct > 1 ? '#F43F5E' : pct > 0.9 ? '#F59E0B' : '#334155';
+  const color = pct > 1 ? '#F43F5E' : pct > 0.9 ? '#F59E0B' : 'var(--border-strong)';
   return <span style={{ fontSize: 10, color, marginLeft: 6 }}>{len}/{limit}</span>;
 }
 
@@ -99,9 +99,9 @@ function CopyButton({ text }) {
     <button onClick={() => { navigator.clipboard.writeText(text ?? ''); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
       style={{
         fontSize: 10, padding: '3px 10px', borderRadius: 6,
-        border: `1px solid ${copied ? '#10B981' : 'rgba(255,255,255,0.1)'}`,
-        background: copied ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.04)',
-        cursor: 'pointer', color: copied ? '#10B981' : '#64748B', transition: 'all .15s',
+        border: `1px solid ${copied ? '#10B981' : 'var(--overlay-8)'}`,
+        background: copied ? 'rgba(16,185,129,0.1)' : 'var(--overlay-3)',
+        cursor: 'pointer', color: copied ? '#10B981' : 'var(--text-subtle)', transition: 'all .15s',
       }}>
       {copied ? '✓ Copied' : 'Copy'}
     </button>
@@ -112,7 +112,7 @@ function FieldRow({ label, chars, limit, children }) {
   return (
     <div style={{ marginBottom: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5 }}>
-        <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#475569' }}>{label}</span>
+        <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--border-med)' }}>{label}</span>
         {chars != null && <CharCount value={chars} limit={limit} />}
       </div>
       {children}
@@ -161,10 +161,10 @@ function DiffField({ label, current, proposed, limit, isOver, measureBytes = fal
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
       <div>
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
           {label} · Current
         </div>
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 10px', fontSize: 11, color: '#64748B', maxHeight: 80, overflow: 'auto', lineHeight: 1.5 }}>
+        <div style={{ background: 'var(--overlay-1)', border: '1px solid var(--overlay-4)', borderRadius: 8, padding: '8px 10px', fontSize: 11, color: 'var(--text-subtle)', maxHeight: 80, overflow: 'auto', lineHeight: 1.5 }}>
           {current || <em style={{ opacity: 0.5 }}>empty</em>}
         </div>
       </div>
@@ -174,7 +174,7 @@ function DiffField({ label, current, proposed, limit, isOver, measureBytes = fal
             {label} · Proposed
           </span>
           {limit != null && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: isOver ? 'rgba(244,63,94,0.15)' : 'rgba(255,255,255,0.05)', color: isOver ? '#F87171' : '#475569', border: `1px solid ${isOver ? 'rgba(244,63,94,0.3)' : 'transparent'}` }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: isOver ? 'rgba(244,63,94,0.15)' : 'var(--overlay-4)', color: isOver ? '#F87171' : 'var(--border-med)', border: `1px solid ${isOver ? 'rgba(244,63,94,0.3)' : 'transparent'}` }}>
               {len}/{limit}{isOver ? ' ✕' : ''}
             </span>
           )}
@@ -190,14 +190,14 @@ function DiffField({ label, current, proposed, limit, isOver, measureBytes = fal
 function PublishDiffPanel({ current, optimized, sku, overLimit, hasOverLimit, isPublishing, onConfirm, onCancel }) {
   const overCount = [overLimit.title, ...(overLimit.bullets ?? []), overLimit.description, overLimit.genericKeyword].filter(Boolean).length;
   return (
-    <div style={{ ...glass, padding: '20px 24px', borderColor: hasOverLimit ? 'rgba(244,63,94,0.3)' : 'rgba(139,92,246,0.25)', boxShadow: '0 4px 40px rgba(0,0,0,0.3)' }}>
+    <div style={{ ...glass, padding: '20px 24px', borderColor: hasOverLimit ? 'rgba(244,63,94,0.3)' : 'rgba(139,92,246,0.25)', boxShadow: '0 4px 40px var(--overlay-8)' }}>
       <GradientBar top={hasOverLimit ? 'linear-gradient(90deg,#EF4444,#F59E0B)' : 'linear-gradient(90deg,#8B5CF6,#10B981)'} />
       <div style={{ position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#F1F5F9' }}>Pre-publish Review</p>
-            <p style={{ margin: '2px 0 0', fontSize: 11, color: '#475569' }}>
-              SKU: <strong style={{ color: '#94A3B8' }}>{sku}</strong> · Confirm the changes below before pushing to Amazon
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: 'var(--text-primary)' }}>Pre-publish Review</p>
+            <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--border-med)' }}>
+              SKU: <strong style={{ color: 'var(--text-muted)' }}>{sku}</strong> · Confirm the changes below before pushing to Amazon
             </p>
           </div>
           {hasOverLimit && (
@@ -224,11 +224,11 @@ function PublishDiffPanel({ current, optimized, sku, overLimit, hasOverLimit, is
 
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button onClick={onCancel}
-            style={{ padding: '9px 20px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748B', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            style={{ padding: '9px 20px', borderRadius: 9, border: '1px solid var(--overlay-8)', background: 'transparent', color: 'var(--text-subtle)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             Cancel
           </button>
           <button onClick={onConfirm} disabled={hasOverLimit || isPublishing}
-            style={{ padding: '9px 24px', borderRadius: 9, border: 'none', background: (hasOverLimit || isPublishing) ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg,#10B981,#059669)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: (hasOverLimit || isPublishing) ? 'not-allowed' : 'pointer', opacity: (hasOverLimit || isPublishing) ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 7, boxShadow: (!hasOverLimit && !isPublishing) ? '0 4px 18px rgba(16,185,129,0.4)' : 'none' }}>
+            style={{ padding: '9px 24px', borderRadius: 9, border: 'none', background: (hasOverLimit || isPublishing) ? 'var(--overlay-4)' : 'linear-gradient(135deg,#10B981,#059669)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: (hasOverLimit || isPublishing) ? 'not-allowed' : 'pointer', opacity: (hasOverLimit || isPublishing) ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 7, boxShadow: (!hasOverLimit && !isPublishing) ? '0 4px 18px rgba(16,185,129,0.4)' : 'none' }}>
             {isPublishing ? <><Spinner /> Publishing…</> : '✓ Confirm & Publish'}
           </button>
         </div>
@@ -438,13 +438,13 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
           {/* Title row */}
           <div style={{ marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 14 }}>
             {fetchedImage && (
-              <div style={{ flexShrink: 0, width: 72, height: 72, borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)' }}>
+              <div style={{ flexShrink: 0, width: 72, height: 72, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--overlay-7)', background: 'var(--overlay-3)' }}>
                 <img src={fetchedImage} alt="Product" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
               </div>
             )}
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
-                <p style={{ margin: 0, fontWeight: 900, fontSize: 17, color: '#F1F5F9', letterSpacing: '-0.4px' }}>
+                <p style={{ margin: 0, fontWeight: 900, fontSize: 17, color: 'var(--text-primary)', letterSpacing: '-0.4px' }}>
                   Listing Optimizer
                 </p>
                 {hasFetched && fetchedAsin && (
@@ -463,7 +463,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                   </span>
                 )}
               </div>
-              <p style={{ margin: 0, fontSize: 12, color: '#334155' }}>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--border-strong)' }}>
                 Fetch by ASIN or SKU — AI finds your campaigns, pulls search terms, and rewrites the listing
               </p>
             </div>
@@ -474,13 +474,13 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
             <input value={asin} onChange={e => setAsin(e.target.value.toUpperCase())}
               placeholder="ASIN  (e.g. B0C…)" style={{ ...inputSt, width: 170 }}
               onFocus={e => e.target.style.borderColor = '#8B5CF6'}
-              onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+              onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'}
               onKeyDown={e => e.key === 'Enter' && handleFetch()} />
-            <span style={{ color: '#1E293B', fontSize: 12, fontWeight: 600 }}>or</span>
+            <span style={{ color: 'var(--bg-panel)', fontSize: 12, fontWeight: 600 }}>or</span>
             <input value={sku} onChange={e => setSku(e.target.value)}
               placeholder="SKU" style={{ ...inputSt, width: 140 }}
               onFocus={e => e.target.style.borderColor = '#8B5CF6'}
-              onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+              onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'}
               onKeyDown={e => e.key === 'Enter' && handleFetch()} />
 
             <button onClick={handleFetch} disabled={isFetching || (!asin.trim() && !sku.trim())}
@@ -488,7 +488,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                 display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px',
                 borderRadius: 10, border: 'none',
                 cursor: isFetching || (!asin.trim() && !sku.trim()) ? 'not-allowed' : 'pointer',
-                background: isFetching ? 'rgba(255,255,255,0.07)' : 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
+                background: isFetching ? 'var(--overlay-6)' : 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
                 color: '#fff', fontWeight: 700, fontSize: 13,
                 boxShadow: (!isFetching && (asin.trim() || sku.trim())) ? '0 4px 20px rgba(139,92,246,0.45)' : 'none',
                 opacity: (!asin.trim() && !sku.trim()) ? 0.4 : 1, whiteSpace: 'nowrap',
@@ -505,10 +505,10 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
             <button onClick={() => fileInputRef.current?.click()} disabled={isParsingFile}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px',
-                borderRadius: 10, border: `1px dashed ${uploadedKeywords.length > 0 ? 'rgba(167,139,250,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                borderRadius: 10, border: `1px dashed ${uploadedKeywords.length > 0 ? 'rgba(167,139,250,0.4)' : 'var(--overlay-8)'}`,
                 background: uploadedKeywords.length > 0 ? 'rgba(167,139,250,0.08)' : 'transparent',
                 cursor: isParsingFile ? 'not-allowed' : 'pointer',
-                color: uploadedKeywords.length > 0 ? '#A78BFA' : '#475569',
+                color: uploadedKeywords.length > 0 ? '#A78BFA' : 'var(--border-med)',
                 fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap',
               }}>
               {isParsingFile ? <><Spinner /> Parsing…</> : (
@@ -520,7 +520,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
             </button>
             {uploadedKeywords.length > 0 && (
               <button onClick={() => { setUploadedKeywords([]); setUploadFileName(''); }}
-                style={{ fontSize: 11, padding: '4px 10px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#475569', cursor: 'pointer' }}>
+                style={{ fontSize: 11, padding: '4px 10px', borderRadius: 7, border: '1px solid var(--overlay-7)', background: 'transparent', color: 'var(--border-med)', cursor: 'pointer' }}>
                 ✕ Clear
               </button>
             )}
@@ -528,18 +528,18 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
 
           {/* Load product-specific search terms */}
           {hasFetched && (sku.trim() || fetchedAsin) && (
-            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, color: '#334155', fontWeight: 600 }}>Search terms:</span>
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--overlay-4)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, color: 'var(--border-strong)', fontWeight: 600 }}>Search terms:</span>
               <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} max={dateTo}
                 style={{ ...inputSt, fontSize: 11, padding: '6px 10px' }} />
-              <span style={{ color: '#1E293B', fontSize: 12 }}>→</span>
+              <span style={{ color: 'var(--bg-panel)', fontSize: 12 }}>→</span>
               <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} min={dateFrom} max={today}
                 style={{ ...inputSt, fontSize: 11, padding: '6px 10px' }} />
               <button onClick={handleLoadProductTerms} disabled={!canLoadTerms}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 9, border: 'none',
                   cursor: canLoadTerms ? 'pointer' : 'not-allowed',
-                  background: isLoadingTerms ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#10B981,#3B82F6)',
+                  background: isLoadingTerms ? 'var(--overlay-5)' : 'linear-gradient(135deg,#10B981,#3B82F6)',
                   color: '#fff', fontWeight: 700, fontSize: 12,
                   boxShadow: canLoadTerms && !isLoadingTerms ? '0 3px 14px rgba(16,185,129,0.4)' : 'none',
                   opacity: canLoadTerms ? 1 : 0.4, whiteSpace: 'nowrap',
@@ -585,7 +585,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
         <div style={{ ...glass, padding: '18px 22px', borderColor: listingScore >= 85 ? 'rgba(16,185,129,0.2)' : listingScore >= 70 ? 'rgba(245,158,11,0.2)' : 'rgba(244,63,94,0.2)' }}>
           <GradientBar top={listingScore >= 85 ? 'linear-gradient(90deg,#10B981,#3B82F6)' : listingScore >= 70 ? 'linear-gradient(90deg,#F59E0B,#EF4444)' : 'linear-gradient(90deg,#EF4444,#8B5CF6)'} />
           <div style={{ position: 'relative' }}>
-            <p style={{ fontSize: 10, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 14px' }}>
+            <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 14px' }}>
               Listing Quality Breakdown
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -594,8 +594,8 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                 const dimBg    = dim.score >= 85 ? 'rgba(16,185,129,0.08)' : dim.score >= 60 ? 'rgba(245,158,11,0.08)' : 'rgba(244,63,94,0.08)';
                 return (
                   <div key={dim.name} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 36px', gap: 10, alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8' }}>{dim.name}</span>
-                    <div style={{ position: 'relative', height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 99, overflow: 'hidden' }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>{dim.name}</span>
+                    <div style={{ position: 'relative', height: 6, background: 'var(--overlay-4)', borderRadius: 99, overflow: 'hidden' }}>
                       <div style={{ width: `${dim.score}%`, height: '100%', background: `linear-gradient(90deg,${dimColor}99,${dimColor})`, borderRadius: 99, transition: 'width 0.8s ease' }} />
                     </div>
                     <span style={{ fontSize: 11, fontWeight: 800, color: dimColor, textAlign: 'right' }}>{dim.score}</span>
@@ -605,7 +605,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
             </div>
             {listingDimensions.some(d => d.score < 60) && (
               <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                <p style={{ fontSize: 10, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>Issues to fix</p>
+                <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--border-strong)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>Issues to fix</p>
                 {listingDimensions.filter(d => d.score < 60).map(d => (
                   <p key={d.name} style={{ fontSize: 11, color: '#F87171', margin: 0 }}>
                     · <strong>{d.name}:</strong> {d.feedback}
@@ -648,14 +648,14 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
           {setAiModel ? (
             <div style={{
               padding: '18px 20px', borderRadius: 16,
-              background: 'rgba(10,14,30,0.6)', border: '1px solid rgba(245,158,11,0.25)',
+              background: 'var(--bg-overlay-lo)', border: '1px solid rgba(245,158,11,0.25)',
               display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'space-between',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <svg width="19" height="19" fill="none" stroke="#F59E0B" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
                 <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#F59E0B' }}>AI Model</span>
               </div>
-              <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ display: 'flex', gap: 4, background: 'var(--overlay-3)', borderRadius: 10, padding: 3, border: '1px solid var(--overlay-5)' }}>
                 {[
                   { id: 'gemini', label: 'Gemini 2.5 Flash', color: '#3B82F6', glow: 'rgba(59,130,246,0.4)' },
                   { id: 'claude', label: 'Claude Sonnet',    color: '#8B5CF6', glow: 'rgba(139,92,246,0.4)' },
@@ -664,7 +664,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                     flex: 1, fontSize: 11, fontWeight: 700, padding: '6px 10px', borderRadius: 7,
                     border: 'none', cursor: 'pointer', transition: 'all .15s',
                     background: aiModel === id ? color : 'transparent',
-                    color: aiModel === id ? '#fff' : '#94A3B8',
+                    color: aiModel === id ? '#fff' : 'var(--text-muted)',
                     boxShadow: aiModel === id ? `0 2px 12px ${glow}` : 'none',
                   }}>
                     {label}
@@ -694,7 +694,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {uploadedKeywords.slice(0, 60).map((kw, i) => <Pill key={i} text={kw} color="#A78BFA" />)}
-              {uploadedKeywords.length > 60 && <span style={{ fontSize: 11, color: '#475569', padding: '3px 0' }}>+{uploadedKeywords.length - 60} more</span>}
+              {uploadedKeywords.length > 60 && <span style={{ fontSize: 11, color: 'var(--border-med)', padding: '3px 0' }}>+{uploadedKeywords.length - 60} more</span>}
             </div>
           </div>
         </div>
@@ -705,7 +705,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
           <GradientBar top="linear-gradient(90deg,#10B981,#3B82F6)" />
           <GlowBlob color="rgba(16,185,129,0.15)" />
           <div style={{ position: 'relative' }}>
-            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#334155' }}>
+            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--border-strong)' }}>
               Campaign Keywords ({relevantTerms.length})
               {productSearchTerms.length > 0 && <span style={{ color: '#10B981', marginLeft: 8, fontWeight: 600 }}>· product-specific</span>}
             </p>
@@ -713,7 +713,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
               {relevantTerms.slice(0, 50).map((t, i) => (
                 <Pill key={i} text={t.searchTerm} color={t.recommendation === 'SCALE_UP' ? '#10B981' : '#3B82F6'} />
               ))}
-              {relevantTerms.length > 50 && <span style={{ fontSize: 11, color: '#475569', padding: '3px 0' }}>+{relevantTerms.length - 50} more</span>}
+              {relevantTerms.length > 50 && <span style={{ fontSize: 11, color: 'var(--border-med)', padding: '3px 0' }}>+{relevantTerms.length - 50} more</span>}
             </div>
           </div>
         </div>
@@ -726,42 +726,42 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
           {/* LEFT — Current (editable) */}
           <div style={{ ...glass, padding: 0, overflow: 'hidden' }}>
             <GradientBar top="linear-gradient(90deg,#3B82F6,#6366F1)" />
-            <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-              <p style={{ margin: 0, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#334155' }}>Current Listing</p>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--overlay-4)' }}>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--border-strong)' }}>Current Listing</p>
             </div>
             <div style={{ padding: '16px 18px' }}>
               <FieldRow label="Title" chars={title} limit={CHAR_LIMIT.title}>
                 <textarea value={title} onChange={e => setTitle(e.target.value)} rows={3} style={taSt(false)}
                   onFocus={e => e.target.style.borderColor = '#3B82F6'}
-                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'} />
+                  onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'} />
               </FieldRow>
               {bullets.map((b, i) => (
                 <FieldRow key={i} label={`Bullet ${i + 1}`} chars={b} limit={CHAR_LIMIT.bullet}>
                   <textarea value={b} onChange={e => setBullet(i, e.target.value)} rows={2} style={taSt(false)}
                     onFocus={e => e.target.style.borderColor = '#3B82F6'}
-                    onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'} />
+                    onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'} />
                 </FieldRow>
               ))}
               <FieldRow label="Description" chars={description} limit={CHAR_LIMIT.description}>
                 <textarea value={description} onChange={e => setDescription(e.target.value)} rows={6} style={taSt(false)}
                   onFocus={e => e.target.style.borderColor = '#3B82F6'}
-                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'} />
+                  onBlur={e => e.target.style.borderColor = 'var(--overlay-7)'} />
               </FieldRow>
               <FieldRow label="Generic Keyword (backend search terms)" chars={byteLen(genericKeyword) + ' bytes'} limit={CHAR_LIMIT.genericKeyword + ' bytes'}>
                 <textarea value={genericKeyword} onChange={e => setGenericKeyword(e.target.value)} rows={3}
                   placeholder="space-separated keywords for Amazon's hidden search-terms field"
                   style={taSt(byteLen(genericKeyword) > CHAR_LIMIT.genericKeyword)}
                   onFocus={e => e.target.style.borderColor = '#3B82F6'}
-                  onBlur={e => e.target.style.borderColor = byteLen(genericKeyword) > CHAR_LIMIT.genericKeyword ? '#EF4444' : 'rgba(255,255,255,0.08)'} />
+                  onBlur={e => e.target.style.borderColor = byteLen(genericKeyword) > CHAR_LIMIT.genericKeyword ? '#EF4444' : 'var(--overlay-7)'} />
               </FieldRow>
             </div>
           </div>
 
           {/* RIGHT — Optimized */}
-          <div style={{ ...glass, padding: 0, overflow: 'hidden', borderColor: optimized ? 'rgba(139,92,246,0.25)' : 'rgba(255,255,255,0.06)', boxShadow: optimized ? '0 4px 40px rgba(139,92,246,0.15)' : 'none' }}>
+          <div style={{ ...glass, padding: 0, overflow: 'hidden', borderColor: optimized ? 'rgba(139,92,246,0.25)' : 'var(--overlay-5)', boxShadow: optimized ? '0 4px 40px rgba(139,92,246,0.15)' : 'none' }}>
             {optimized && <GradientBar top="linear-gradient(90deg,#8B5CF6,#3B82F6,#10B981)" />}
-            <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: optimized ? 'rgba(139,92,246,0.06)' : 'transparent' }}>
-              <p style={{ margin: 0, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: optimized ? '#A78BFA' : '#334155' }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--overlay-4)', background: optimized ? 'rgba(139,92,246,0.06)' : 'transparent' }}>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: optimized ? '#A78BFA' : 'var(--border-strong)' }}>
                 {optimized ? '✦ AI-Optimized Listing' : 'Optimized Listing'}
               </p>
             </div>
@@ -802,28 +802,28 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                     `TITLE:\n${optimized.title}\n\nBULLETS:\n${(optimized.bullets ?? []).map((b, i) => `${i+1}. ${b}`).join('\n')}\n\nDESCRIPTION:\n${optimized.description}${optimized.genericKeyword ? `\n\nGENERIC KEYWORD:\n${optimized.genericKeyword}` : ''}`
                   )} style={{
                     width: '100%', marginBottom: 10, padding: '8px', borderRadius: 9,
-                    border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)',
-                    color: '#64748B', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    border: '1px solid var(--overlay-7)', background: 'var(--overlay-2)',
+                    color: 'var(--text-subtle)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
                     transition: 'all 0.15s',
                   }}
-                    onMouseEnter={e => { e.target.style.background = 'rgba(255,255,255,0.06)'; e.target.style.color = '#94A3B8'; }}
-                    onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.03)'; e.target.style.color = '#64748B'; }}>
+                    onMouseEnter={e => { e.target.style.background = 'var(--overlay-5)'; e.target.style.color = 'var(--text-muted)'; }}
+                    onMouseLeave={e => { e.target.style.background = 'var(--overlay-2)'; e.target.style.color = 'var(--text-subtle)'; }}>
                     Copy All
                   </button>
 
                   {/* Publish section */}
                   {(sku.trim() || fetchedSku) && (
-                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 12 }}>
+                    <div style={{ borderTop: '1px solid var(--overlay-4)', paddingTop: 12 }}>
                       <div style={{ marginBottom: 8 }}>
-                        <label style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: fetchedProductType ? '#475569' : '#F59E0B' }}>
+                        <label style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: fetchedProductType ? 'var(--border-med)' : '#F59E0B' }}>
                           Product Type {!fetchedProductType && <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 500 }}>— enter manually</span>}
                         </label>
                         <input value={fetchedProductType} onChange={e => setFetchedProductType(e.target.value.toUpperCase())}
                           placeholder="e.g. HOME_FURNISHINGS"
                           style={{ ...inputSt, width: '100%', marginTop: 5, fontSize: 12, boxSizing: 'border-box',
-                            borderColor: fetchedProductType ? 'rgba(255,255,255,0.08)' : 'rgba(245,158,11,0.4)' }}
+                            borderColor: fetchedProductType ? 'var(--overlay-7)' : 'rgba(245,158,11,0.4)' }}
                           onFocus={e => e.target.style.borderColor = '#8B5CF6'}
-                          onBlur={e => e.target.style.borderColor = fetchedProductType ? 'rgba(255,255,255,0.08)' : 'rgba(245,158,11,0.4)'} />
+                          onBlur={e => e.target.style.borderColor = fetchedProductType ? 'var(--overlay-7)' : 'rgba(245,158,11,0.4)'} />
                       </div>
 
                       {hasOverLimit && (
@@ -836,7 +836,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                         style={{
                           width: '100%', padding: '10px', borderRadius: 10, border: 'none',
                           cursor: (isPublishing || !fetchedProductType || hasOverLimit) ? 'not-allowed' : 'pointer',
-                          background: (isPublishing || !fetchedProductType || hasOverLimit) ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg,#10B981,#059669)',
+                          background: (isPublishing || !fetchedProductType || hasOverLimit) ? 'var(--overlay-4)' : 'linear-gradient(135deg,#10B981,#059669)',
                           color: '#fff', fontWeight: 700, fontSize: 13,
                           boxShadow: (!isPublishing && fetchedProductType && !hasOverLimit) ? '0 4px 18px rgba(16,185,129,0.4)' : 'none',
                           opacity: (isPublishing || !fetchedProductType || hasOverLimit) ? 0.5 : 1,
@@ -848,13 +848,13 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                   )}
                 </>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 12, color: '#1E293B' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 12, color: 'var(--bg-panel)' }}>
                   <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#8B5CF620,#3B82F620)', border: '1px solid rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <svg style={{ width: 28, height: 28, color: '#8B5CF6', opacity: 0.5 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z"/>
                     </svg>
                   </div>
-                  <p style={{ margin: 0, fontSize: 13, color: '#334155' }}>Click "Optimize Listing" to generate</p>
+                  <p style={{ margin: 0, fontSize: 13, color: 'var(--border-strong)' }}>Click "Optimize Listing" to generate</p>
                 </div>
               )}
             </div>
@@ -902,7 +902,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '14px 40px', borderRadius: 14, border: 'none',
               cursor: isOptimizing ? 'not-allowed' : 'pointer',
-              background: isOptimizing ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
+              background: isOptimizing ? 'var(--overlay-5)' : 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
               color: '#fff', fontWeight: 800, fontSize: 15, letterSpacing: '-0.2px',
               boxShadow: isOptimizing ? 'none' : '0 6px 32px rgba(139,92,246,0.5)',
               opacity: isOptimizing ? 0.7 : 1, transition: 'all 0.2s',

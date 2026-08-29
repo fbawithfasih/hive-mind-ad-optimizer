@@ -79,17 +79,17 @@ export default function WeeklyScoreCard({ metricsSummary, metricsHistory }) {
               style={{
                 padding: '14px 16px',
                 background: 'rgba(8,12,26,0.95)',
-                border: '1px solid rgba(255,255,255,0.06)',
+                border: '1px solid var(--overlay-5)',
                 borderRadius: 12,
                 display: 'flex', flexDirection: 'column', gap: 6,
               }}
             >
-              <span style={{ fontSize: 9, fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+              <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--bg-panel)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
                 {card.label}
               </span>
               <span style={{
                 fontSize: 20, fontWeight: 900, lineHeight: 1,
-                color: card.value != null ? card.color : '#1E293B',
+                color: card.value != null ? card.color : 'var(--bg-panel)',
                 fontFamily: 'ui-monospace, monospace',
               }}>
                 {card.value != null ? fmt[card.format](card.value) : '—'}
@@ -97,7 +97,7 @@ export default function WeeklyScoreCard({ metricsSummary, metricsHistory }) {
               {card.betterWhenHigher != null && delta != null ? (
                 <DeltaBadge delta={delta} betterWhenHigher={card.betterWhenHigher} />
               ) : (
-                <span style={{ fontSize: 9, color: '#1E293B' }}>
+                <span style={{ fontSize: 9, color: 'var(--bg-panel)' }}>
                   {!hasAnyValue ? 'Load metrics' : prevRoas == null ? 'Load again to see delta' : '—'}
                 </span>
               )}

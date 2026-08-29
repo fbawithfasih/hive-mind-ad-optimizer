@@ -39,15 +39,15 @@ function ProgressBoard({ pct, elapsedSec }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12, gap: 12 }}>
         <div>
           <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#A78BFA', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Optimizing</p>
-          <p style={{ margin: '4px 0 0', fontSize: 14, fontWeight: 700, color: '#F1F5F9' }}>{currentPhase.label}…</p>
-          <p style={{ margin: '2px 0 0', fontSize: 11, color: '#64748B' }}>elapsed {Math.floor(elapsedSec / 60)}m {Math.round(elapsedSec % 60)}s</p>
+          <p style={{ margin: '4px 0 0', fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{currentPhase.label}…</p>
+          <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>elapsed {Math.floor(elapsedSec / 60)}m {Math.round(elapsedSec % 60)}s</p>
         </div>
         <div style={{ textAlign: 'right' }}>
           <p style={{ margin: 0, fontSize: 28, fontWeight: 900, color: currentPhase.color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{Math.round(remaining)}%</p>
-          <p style={{ margin: '2px 0 0', fontSize: 10, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>remaining</p>
+          <p style={{ margin: '2px 0 0', fontSize: 10, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>remaining</p>
         </div>
       </div>
-      <div style={{ height: 8, borderRadius: 99, background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', position: 'relative' }}>
+      <div style={{ height: 8, borderRadius: 99, background: 'rgba(15,23,42,0.6)', border: '1px solid var(--overlay-4)', overflow: 'hidden', position: 'relative' }}>
         <div style={{
           width: `${pct}%`, height: '100%',
           background: 'linear-gradient(90deg,#8B5CF6,#3B82F6,#10B981)',
@@ -62,8 +62,8 @@ function ProgressBoard({ pct, elapsedSec }) {
           const done   = pct >= p.range[1];
           const active = pct >= p.range[0] && pct < p.range[1];
           const bg     = done ? `${p.color}25` : active ? `${p.color}30` : 'rgba(15,23,42,0.5)';
-          const fg     = done || active ? p.color : '#475569';
-          const border = done || active ? `${p.color}55` : 'rgba(255,255,255,0.06)';
+          const fg     = done || active ? p.color : 'var(--border-med)';
+          const border = done || active ? `${p.color}55` : 'var(--overlay-5)';
           return (
             <span key={p.id} style={{
               fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 99,
@@ -73,7 +73,7 @@ function ProgressBoard({ pct, elapsedSec }) {
             }}>
               {done   ? <span>✓</span> : null}
               {active ? <span style={{ width: 6, height: 6, borderRadius: 99, background: p.color, animation: 'iopt-pulse 1.2s ease-in-out infinite' }} /> : null}
-              {!done && !active ? <span style={{ width: 6, height: 6, borderRadius: 99, background: '#1E293B', border: '1px solid #334155' }} /> : null}
+              {!done && !active ? <span style={{ width: 6, height: 6, borderRadius: 99, background: 'var(--bg-panel)', border: '1px solid var(--border-strong)' }} /> : null}
               {p.label}
             </span>
           );
@@ -101,8 +101,8 @@ function fileToBase64(file) {
 }
 
 const inputSt = {
-  width: '100%', background: '#0F172A', border: '1px solid #334155',
-  borderRadius: 8, color: '#F1F5F9', padding: '9px 12px', fontSize: 13,
+  width: '100%', background: 'var(--bg-app-2)', border: '1px solid var(--border-strong)',
+  borderRadius: 8, color: 'var(--text-primary)', padding: '9px 12px', fontSize: 13,
   outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
 };
 
@@ -185,16 +185,16 @@ export default function ImageOptimizerPanel() {
   }
 
   return (
-    <div style={{ background: '#1E293B', borderRadius: 12, border: '1px solid #334155', padding: '20px 24px' }}>
+    <div style={{ background: 'var(--bg-panel)', borderRadius: 12, border: '1px solid var(--border-strong)', padding: '20px 24px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
         <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#8B5CF6,#3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(139,92,246,0.4)' }}>
           <svg width="16" height="16" fill="none" stroke="white" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
           </svg>
         </div>
-        <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: '#F1F5F9' }}>Main Image Optimizer</p>
+        <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--text-primary)' }}>Main Image Optimizer</p>
       </div>
-      <p style={{ margin: '0 0 18px 42px', fontSize: 12, color: '#64748B' }}>
+      <p style={{ margin: '0 0 18px 42px', fontSize: 12, color: 'var(--text-subtle)' }}>
         Upload your product photo, fill the brief, and get an Amazon-compliant main image — pure white background, single product, no props or text.
       </p>
 
@@ -221,8 +221,8 @@ export default function ImageOptimizerPanel() {
                 <svg width="32" height="32" fill="none" stroke="#A78BFA" viewBox="0 0 24 24" style={{ margin: '0 auto 8px', display: 'block' }}>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#F1F5F9' }}>Upload product image</p>
-                <p style={{ margin: '4px 0 0', fontSize: 11, color: '#64748B' }}>JPG / PNG / WebP · up to 9 MB</p>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Upload product image</p>
+                <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>JPG / PNG / WebP · up to 9 MB</p>
               </>
             )}
           </div>
@@ -230,7 +230,7 @@ export default function ImageOptimizerPanel() {
           {/* Brief fields */}
           {FIELD_DEFS.map(f => (
             <div key={f.name}>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>
                 {f.label}{f.required && <span style={{ color: '#F43F5E' }}> *</span>}
               </label>
               {f.isTextarea ? (
@@ -245,10 +245,10 @@ export default function ImageOptimizerPanel() {
 
           {/* Provider toggle */}
           <div>
-            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
               Image Generation Engine
             </label>
-            <div style={{ display: 'flex', gap: 4, background: 'rgba(15,23,42,0.6)', borderRadius: 10, padding: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'flex', gap: 4, background: 'rgba(15,23,42,0.6)', borderRadius: 10, padding: 3, border: '1px solid var(--overlay-5)' }}>
               {[
                 { id: 'openai', label: 'OpenAI gpt-image-1', sub: 'Best fidelity', color: '#10B981', glow: 'rgba(16,185,129,0.4)' },
                 { id: 'gemini', label: 'Gemini 2.5 Flash',   sub: 'Faster, cheaper', color: '#8B5CF6', glow: 'rgba(139,92,246,0.4)' },
@@ -256,7 +256,7 @@ export default function ImageOptimizerPanel() {
                 <button key={id} onClick={() => setProvider(id)} style={{
                   flex: 1, padding: '8px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
                   background: provider === id ? color : 'transparent',
-                  color: provider === id ? '#fff' : '#94A3B8',
+                  color: provider === id ? '#fff' : 'var(--text-muted)',
                   boxShadow: provider === id ? `0 2px 12px ${glow}` : 'none',
                   transition: 'all .15s', textAlign: 'left',
                 }}>
@@ -270,7 +270,7 @@ export default function ImageOptimizerPanel() {
           <button onClick={handleOptimize} disabled={loading}
             style={{
               padding: '12px 22px', borderRadius: 10, border: 'none',
-              background: loading ? '#334155' : 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
+              background: loading ? 'var(--border-strong)' : 'linear-gradient(135deg,#8B5CF6,#3B82F6)',
               color: '#fff', fontWeight: 800, fontSize: 13, cursor: loading ? 'not-allowed' : 'pointer',
               opacity: loading ? 0.7 : 1, boxShadow: loading ? 'none' : '0 4px 16px rgba(139,92,246,0.4)',
             }}>
@@ -288,8 +288,8 @@ export default function ImageOptimizerPanel() {
 
           {!loading && !result && (
             <div style={{
-              border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 12, padding: '40px 20px',
-              textAlign: 'center', color: '#475569', fontSize: 13,
+              border: '1px dashed var(--overlay-7)', borderRadius: 12, padding: '40px 20px',
+              textAlign: 'center', color: 'var(--border-med)', fontSize: 13,
             }}>
               Optimized image will appear here.
             </div>
@@ -304,7 +304,7 @@ export default function ImageOptimizerPanel() {
               </div>
               <button onClick={handleDownload}
                 style={{
-                  padding: '10px 16px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)',
+                  padding: '10px 16px', borderRadius: 9, border: '1px solid var(--overlay-8)',
                   background: 'rgba(139,92,246,0.1)', color: '#A78BFA', fontSize: 12, fontWeight: 700, cursor: 'pointer',
                 }}>
                 ⬇ Download
@@ -313,21 +313,21 @@ export default function ImageOptimizerPanel() {
               {result.promptSpec?.complianceNotes?.length > 0 && (
                 <div style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 10, padding: '12px 14px' }}>
                   <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 800, color: '#10B981', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Compliance Checklist</p>
-                  <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: '#94A3B8', lineHeight: 1.6 }}>
+                  <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
                     {result.promptSpec.complianceNotes.map((c, i) => <li key={i}>{c}</li>)}
                   </ul>
                 </div>
               )}
 
-              <details style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
-                <summary style={{ cursor: 'pointer', fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <details style={{ background: 'var(--overlay-1)', border: '1px solid var(--overlay-4)', borderRadius: 10, padding: '10px 14px' }}>
+                <summary style={{ cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   AI prompt used
                 </summary>
-                <p style={{ margin: '10px 0 0', fontSize: 12, color: '#CBD5E1', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
                   {result.promptSpec?.prompt}
                 </p>
                 {result.promptSpec?.negativePrompt && (
-                  <p style={{ margin: '8px 0 0', fontSize: 11, color: '#64748B' }}>
+                  <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>
                     <strong style={{ color: '#F87171' }}>Negative:</strong> {result.promptSpec.negativePrompt}
                   </p>
                 )}

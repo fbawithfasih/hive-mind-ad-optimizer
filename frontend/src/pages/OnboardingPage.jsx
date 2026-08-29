@@ -38,27 +38,27 @@ function CreateOrgGate({ onCreated }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0F172A', display: 'flex', flexDirection: 'column' }}>
-      <header style={{ background: '#1E293B', borderBottom: '1px solid #334155', padding: '16px 24px' }}>
-        <span style={{ fontWeight: 700, fontSize: 16, color: '#F1F5F9' }}>AMAIOP Setup</span>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-app-2)', display: 'flex', flexDirection: 'column' }}>
+      <header style={{ background: 'var(--bg-panel)', borderBottom: '1px solid var(--border-strong)', padding: '16px 24px' }}>
+        <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>AMAIOP Setup</span>
       </header>
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 16px' }}>
         <div style={{ width: '100%', maxWidth: 480 }}>
-          <h1 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 700, color: '#F1F5F9', textAlign: 'center' }}>
+          <h1 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', textAlign: 'center' }}>
             Create your organization
           </h1>
-          <p style={{ margin: '0 0 32px', fontSize: 14, color: '#94A3B8', textAlign: 'center' }}>
+          <p style={{ margin: '0 0 32px', fontSize: 14, color: 'var(--text-muted)', textAlign: 'center' }}>
             An organization groups your Amazon accounts and team members.
           </p>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#94A3B8', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
                 Organization name
               </label>
               <input
                 type="text" value={name} onChange={e => setName(e.target.value)} required autoFocus
                 placeholder="Acme Sellers"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 8, border: '1px solid #334155', background: '#1E293B', color: '#F1F5F9', fontSize: 14, outline: 'none' }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-strong)', background: 'var(--bg-panel)', color: 'var(--text-primary)', fontSize: 14, outline: 'none' }}
               />
             </div>
             {error && <p style={{ margin: 0, fontSize: 13, color: '#F43F5E' }}>{error}</p>}
@@ -132,8 +132,8 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
   }
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: '#475569', fontSize: 14 }}>Loading…</p>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-app-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <p style={{ color: 'var(--border-med)', fontSize: 14 }}>Loading…</p>
     </div>
   );
 
@@ -144,11 +144,11 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
   const next   = status?.nextStep;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0F172A', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-app-2)', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <header style={{ background: '#1E293B', borderBottom: '1px solid #334155', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontWeight: 700, fontSize: 16, color: '#F1F5F9' }}>AMAIOP Setup</span>
-        <Link to="/" style={{ fontSize: 13, color: '#64748B', textDecoration: 'none' }}>Skip for now →</Link>
+      <header style={{ background: 'var(--bg-panel)', borderBottom: '1px solid var(--border-strong)', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>AMAIOP Setup</span>
+        <Link to="/" style={{ fontSize: 13, color: 'var(--text-subtle)', textDecoration: 'none' }}>Skip for now →</Link>
       </header>
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 16px' }}>
@@ -156,14 +156,14 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
 
           {/* Progress header */}
           <div style={{ marginBottom: 32, textAlign: 'center' }}>
-            <h1 style={{ margin: '0 0 6px', fontSize: 24, fontWeight: 700, color: '#F1F5F9' }}>
+            <h1 style={{ margin: '0 0 6px', fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>
               {status?.complete ? '🎉 All set!' : 'Get started with AMAIOP'}
             </h1>
-            <p style={{ margin: '0 0 20px', fontSize: 14, color: '#94A3B8' }}>
+            <p style={{ margin: '0 0 20px', fontSize: 14, color: 'var(--text-muted)' }}>
               {status?.complete ? 'Redirecting to your dashboard…' : `${done} of ${total} steps complete`}
             </p>
             {/* Progress bar */}
-            <div style={{ height: 6, background: '#1E293B', borderRadius: 99, overflow: 'hidden', border: '1px solid #334155' }}>
+            <div style={{ height: 6, background: 'var(--bg-panel)', borderRadius: 99, overflow: 'hidden', border: '1px solid var(--border-strong)' }}>
               <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg,#3B82F6,#8B5CF6)', borderRadius: 99, transition: 'width 0.4s ease' }} />
             </div>
           </div>
@@ -176,25 +176,25 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
               return (
                 <div key={step.key} style={{
                   display: 'flex', alignItems: 'flex-start', gap: 16, padding: '16px 20px',
-                  background: '#1E293B', borderRadius: 12,
-                  border: `1px solid ${complete ? '#10B98140' : isCurrent ? '#3B82F640' : '#334155'}`,
+                  background: 'var(--bg-panel)', borderRadius: 12,
+                  border: `1px solid ${complete ? '#10B98140' : isCurrent ? '#3B82F640' : 'var(--border-strong)'}`,
                   opacity: complete ? 0.75 : 1,
                 }}>
                   {/* Check / icon */}
                   <div style={{
                     width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
-                    background: complete ? '#10B98120' : isCurrent ? '#3B82F620' : '#0F172A',
-                    border: `2px solid ${complete ? '#10B981' : isCurrent ? '#3B82F6' : '#334155'}`,
-                    color: complete ? '#10B981' : '#94A3B8',
+                    background: complete ? '#10B98120' : isCurrent ? '#3B82F620' : 'var(--bg-app-2)',
+                    border: `2px solid ${complete ? '#10B981' : isCurrent ? '#3B82F6' : 'var(--border-strong)'}`,
+                    color: complete ? '#10B981' : 'var(--text-muted)',
                   }}>
                     {complete ? '✓' : step.icon}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: '0 0 2px', fontSize: 14, fontWeight: 600, color: complete ? '#94A3B8' : '#F1F5F9' }}>
+                    <p style={{ margin: '0 0 2px', fontSize: 14, fontWeight: 600, color: complete ? 'var(--text-muted)' : 'var(--text-primary)' }}>
                       {step.title}
                     </p>
-                    <p style={{ margin: 0, fontSize: 13, color: '#64748B' }}>{step.desc}</p>
+                    <p style={{ margin: 0, fontSize: 13, color: 'var(--text-subtle)' }}>{step.desc}</p>
                     {/* Inline action for current step */}
                     {isCurrent && ACTIONS[next] && (
                       <div style={{ marginTop: 10 }}>
@@ -240,8 +240,8 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
             })}
           </div>
 
-          <p style={{ textAlign: 'center', marginTop: 24, fontSize: 13, color: '#475569' }}>
-            <Link to="/" style={{ color: '#64748B', textDecoration: 'none' }}>Skip setup and go to dashboard →</Link>
+          <p style={{ textAlign: 'center', marginTop: 24, fontSize: 13, color: 'var(--border-med)' }}>
+            <Link to="/" style={{ color: 'var(--text-subtle)', textDecoration: 'none' }}>Skip setup and go to dashboard →</Link>
           </p>
         </div>
       </div>

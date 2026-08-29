@@ -27,7 +27,7 @@ export default function StreakTracker({ streak, visitedDays }) {
           >
             {streak}
           </motion.p>
-          <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: 'var(--border-med)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             day streak
           </p>
         </div>
@@ -54,10 +54,10 @@ export default function StreakTracker({ streak, visitedDays }) {
           const isToday = date === today;
           const dotColor = visited
             ? isToday ? '#F59E0B' : '#10B981'
-            : 'rgba(255,255,255,0.06)';
+            : 'var(--overlay-5)';
           const dotBorder = visited
             ? 'transparent'
-            : '1px solid rgba(255,255,255,0.08)';
+            : '1px solid var(--overlay-7)';
 
           return (
             <div key={date} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
@@ -72,7 +72,7 @@ export default function StreakTracker({ streak, visitedDays }) {
                   boxShadow: visited ? `0 0 6px ${dotColor}60` : 'none',
                 }}
               />
-              <span style={{ fontSize: 9, color: isToday ? '#94A3B8' : '#1E293B', fontWeight: isToday ? 700 : 500 }}>
+              <span style={{ fontSize: 9, color: isToday ? 'var(--text-muted)' : 'var(--bg-panel)', fontWeight: isToday ? 700 : 500 }}>
                 {label}
               </span>
             </div>

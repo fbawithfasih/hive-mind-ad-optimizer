@@ -6,17 +6,17 @@ function MetricPill({ label, value, color, sub }) {
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       padding: '8px 20px',
-      borderRight: '1px solid rgba(255,255,255,0.05)',
+      borderRight: '1px solid var(--overlay-4)',
       gap: 2,
       minWidth: 100,
     }}>
-      <span style={{ fontSize: 9, fontWeight: 800, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+      <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--bg-panel)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
         {label}
       </span>
-      <span style={{ fontSize: 18, fontWeight: 900, color: color ?? '#F1F5F9', fontFamily: 'ui-monospace, monospace', lineHeight: 1.2 }}>
+      <span style={{ fontSize: 18, fontWeight: 900, color: color ?? 'var(--text-primary)', fontFamily: 'ui-monospace, monospace', lineHeight: 1.2 }}>
         {value}
       </span>
-      {sub && <span style={{ fontSize: 9, color: '#334155', fontWeight: 500 }}>{sub}</span>}
+      {sub && <span style={{ fontSize: 9, color: 'var(--border-strong)', fontWeight: 500 }}>{sub}</span>}
     </div>
   );
 }
@@ -27,7 +27,7 @@ export default function AccountHealthBar({ stats, metricsSummary, loadingSales }
     ? Math.min(100, Math.round(((metricsSummary.totalSpend ?? 0) / stats.budget) * 100))
     : null;
 
-  const roasColor = metricsSummary.roas == null ? '#334155'
+  const roasColor = metricsSummary.roas == null ? 'var(--border-strong)'
     : metricsSummary.roas >= 4   ? '#10B981'
     : metricsSummary.roas >= 2.5 ? '#3B82F6'
     : metricsSummary.roas >= 1.5 ? '#F59E0B'
@@ -36,7 +36,7 @@ export default function AccountHealthBar({ stats, metricsSummary, loadingSales }
   return (
     <div style={{
       background: 'rgba(6,9,20,0.95)',
-      border: '1px solid rgba(255,255,255,0.05)',
+      border: '1px solid var(--overlay-4)',
       borderRadius: 14,
       display: 'flex',
       alignItems: 'stretch',
@@ -47,7 +47,7 @@ export default function AccountHealthBar({ stats, metricsSummary, loadingSales }
       <div style={{
         padding: '10px 18px',
         background: 'rgba(167,139,250,0.08)',
-        borderRight: '1px solid rgba(255,255,255,0.05)',
+        borderRight: '1px solid var(--overlay-4)',
         display: 'flex', alignItems: 'center', gap: 8,
         flexShrink: 0,
       }}>
@@ -103,7 +103,7 @@ export default function AccountHealthBar({ stats, metricsSummary, loadingSales }
 
       {/* Grade */}
       {metricsSummary.roas != null && (
-        <div style={{ padding: '10px 18px', display: 'flex', alignItems: 'center', borderLeft: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+        <div style={{ padding: '10px 18px', display: 'flex', alignItems: 'center', borderLeft: '1px solid var(--overlay-4)', flexShrink: 0 }}>
           <PerformanceGrade roas={metricsSummary.roas} acos={metricsSummary.acos} size="lg" />
         </div>
       )}

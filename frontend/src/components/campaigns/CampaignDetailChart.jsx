@@ -9,7 +9,7 @@ const CustomTooltip = ({ active, payload }) => {
   return (
     <div style={{
       background: 'rgba(6,9,20,0.98)',
-      border: '1px solid rgba(255,255,255,0.1)',
+      border: '1px solid var(--overlay-8)',
       borderRadius: 10,
       padding: '10px 14px',
       fontSize: 11,
@@ -50,10 +50,10 @@ export default function CampaignDetailChart({ campaign }) {
         height: 160, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', gap: 8,
       }}>
-        <svg width="28" height="28" fill="none" stroke="#334155" viewBox="0 0 24 24">
+        <svg width="28" height="28" fill="none" stroke="var(--border-strong)" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4v16" />
         </svg>
-        <span style={{ fontSize: 12, color: '#334155' }}>Load metrics to see chart</span>
+        <span style={{ fontSize: 12, color: 'var(--border-strong)' }}>Load metrics to see chart</span>
       </div>
     );
   }
@@ -67,10 +67,10 @@ export default function CampaignDetailChart({ campaign }) {
             <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-        <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#334155' }} axisLine={false} tickLine={false} />
-        <YAxis yAxisId="left"  tick={{ fontSize: 10, fill: '#334155' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={48} />
-        <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: '#334155' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} width={36} />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--overlay-3)" />
+        <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--border-strong)' }} axisLine={false} tickLine={false} />
+        <YAxis yAxisId="left"  tick={{ fontSize: 10, fill: 'var(--border-strong)' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={48} />
+        <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: 'var(--border-strong)' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} width={36} />
         <Tooltip content={<CustomTooltip />} />
         <Area yAxisId="left" type="monotone" dataKey="spend" name="Spend" stroke="#3B82F6" strokeWidth={2} fill="url(#drawerSpend)" dot={{ r: 4, fill: '#3B82F6', strokeWidth: 0 }} animationDuration={600} />
         <Line  yAxisId="right" type="monotone" dataKey="acos"  name="ACoS %" stroke="#F43F5E" strokeWidth={2} strokeDasharray="5 3" dot={{ r: 4, fill: '#F43F5E', strokeWidth: 0 }} animationDuration={600} connectNulls={false} />

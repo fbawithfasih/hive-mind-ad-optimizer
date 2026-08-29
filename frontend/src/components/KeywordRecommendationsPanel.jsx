@@ -46,14 +46,14 @@ function ProgressBoard({ pct, elapsedSec }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12, gap: 12 }}>
         <div>
           <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#A78BFA', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Analyzing</p>
-          <p style={{ margin: '4px 0 0', fontSize: 14, fontWeight: 700, color: '#F1F5F9' }}>{currentPhase.label}…</p>
-          <p style={{ margin: '2px 0 0', fontSize: 11, color: '#64748B' }}>elapsed {Math.floor(elapsedSec / 60)}m {Math.round(elapsedSec % 60)}s</p>
+          <p style={{ margin: '4px 0 0', fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{currentPhase.label}…</p>
+          <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>elapsed {Math.floor(elapsedSec / 60)}m {Math.round(elapsedSec % 60)}s</p>
         </div>
         <div style={{ textAlign: 'right' }}>
           <p style={{ margin: 0, fontSize: 28, fontWeight: 900, color: currentPhase.color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
             {Math.round(remainingPct)}%
           </p>
-          <p style={{ margin: '2px 0 0', fontSize: 10, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>remaining</p>
+          <p style={{ margin: '2px 0 0', fontSize: 10, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>remaining</p>
         </div>
       </div>
 
@@ -61,7 +61,7 @@ function ProgressBoard({ pct, elapsedSec }) {
       <div style={{
         height: 8, borderRadius: 99,
         background: 'rgba(15,23,42,0.6)',
-        border: '1px solid rgba(255,255,255,0.05)',
+        border: '1px solid var(--overlay-4)',
         overflow: 'hidden', position: 'relative',
       }}>
         <div style={{
@@ -81,8 +81,8 @@ function ProgressBoard({ pct, elapsedSec }) {
           const active  = pct >= p.range[0] && pct < p.range[1];
           const idle    = pct < p.range[0];
           const bg = done ? `${p.color}25` : active ? `${p.color}30` : 'rgba(15,23,42,0.5)';
-          const fg = done ? p.color        : active ? p.color        : '#475569';
-          const border = done || active ? `${p.color}55` : 'rgba(255,255,255,0.06)';
+          const fg = done ? p.color        : active ? p.color        : 'var(--border-med)';
+          const border = done || active ? `${p.color}55` : 'var(--overlay-5)';
           return (
             <span key={p.id} style={{
               fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 99,
@@ -93,7 +93,7 @@ function ProgressBoard({ pct, elapsedSec }) {
             }}>
               {done   ? <span style={{ fontSize: 11 }}>✓</span> : null}
               {active ? <span style={{ width: 6, height: 6, borderRadius: 99, background: p.color, animation: 'kw-progress-pulse 1.2s ease-in-out infinite' }} /> : null}
-              {idle && !done && !active ? <span style={{ width: 6, height: 6, borderRadius: 99, background: '#1E293B', border: '1px solid #334155' }} /> : null}
+              {idle && !done && !active ? <span style={{ width: 6, height: 6, borderRadius: 99, background: 'var(--bg-panel)', border: '1px solid var(--border-strong)' }} /> : null}
               {p.label}
             </span>
           );
@@ -126,9 +126,9 @@ const SIGNAL_LABEL  = {
 
 function SummaryCard({ label, value, color }) {
   return (
-    <div style={{ flex: '1 1 120px', background: '#0F172A', borderRadius: 8, border: `1px solid ${color}30`, padding: '12px 14px', textAlign: 'center' }}>
+    <div style={{ flex: '1 1 120px', background: 'var(--bg-app-2)', borderRadius: 8, border: `1px solid ${color}30`, padding: '12px 14px', textAlign: 'center' }}>
       <p style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 800, color }}>{typeof value === 'number' ? value.toLocaleString() : value}</p>
-      <p style={{ margin: 0, fontSize: 11, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+      <p style={{ margin: 0, fontSize: 11, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
     </div>
   );
 }
@@ -144,42 +144,42 @@ function Pill({ text, color }) {
 function ListingRow({ item }) {
   const sourceColor = item.source === 'BRAND_ANALYTICS' ? '#8B5CF6' : '#3B82F6';
   return (
-    <div style={{ background: '#0F172A', borderRadius: 8, border: '1px solid #334155', padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+    <div style={{ background: 'var(--bg-app-2)', borderRadius: 8, border: '1px solid var(--border-strong)', padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#F1F5F9', fontFamily: 'monospace' }}>{item.keyword}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{item.keyword}</span>
           <Pill text={SOURCE_LABEL[item.source] ?? item.source} color={sourceColor} />
           <Pill text={SIGNAL_LABEL[item.signal] ?? item.signal} color="#10B981" />
         </div>
-        <p style={{ margin: 0, fontSize: 12, color: '#94A3B8', lineHeight: 1.4 }}>{item.reason}</p>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4 }}>{item.reason}</p>
       </div>
-      <div style={{ flexShrink: 0, fontSize: 11, color: '#64748B' }}>score <strong style={{ color: '#CBD5E1' }}>{item.score}</strong></div>
+      <div style={{ flexShrink: 0, fontSize: 11, color: 'var(--text-subtle)' }}>score <strong style={{ color: 'var(--text-muted)' }}>{item.score}</strong></div>
     </div>
   );
 }
 
 function CampaignRow({ item, action }) {
-  const color = ACTION_COLOR[action] ?? '#64748B';
+  const color = ACTION_COLOR[action] ?? 'var(--text-subtle)';
   return (
-    <div style={{ background: '#0F172A', borderRadius: 8, border: '1px solid #334155', padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+    <div style={{ background: 'var(--bg-app-2)', borderRadius: 8, border: '1px solid var(--border-strong)', padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
       <div style={{ flexShrink: 0, marginTop: 1 }}>
         <Pill text={ACTION_LABEL[action]} color={color} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#F1F5F9', fontFamily: 'monospace', marginBottom: 3 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace', marginBottom: 3 }}>
           {item.searchTerm ?? item.term}
         </div>
-        {item.campaignName && <p style={{ margin: '0 0 3px', fontSize: 11, color: '#64748B' }}>{item.campaignName}{item.adGroupName ? ` · ${item.adGroupName}` : ''}</p>}
-        {item.rationale && <p style={{ margin: 0, fontSize: 12, color: '#94A3B8', lineHeight: 1.4 }}>{item.rationale}</p>}
+        {item.campaignName && <p style={{ margin: '0 0 3px', fontSize: 11, color: 'var(--text-subtle)' }}>{item.campaignName}{item.adGroupName ? ` · ${item.adGroupName}` : ''}</p>}
+        {item.rationale && <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4 }}>{item.rationale}</p>}
       </div>
-      <div style={{ flexShrink: 0, textAlign: 'right', fontSize: 11, color: '#64748B', lineHeight: 1.8 }}>
-        {item.cost          != null && <div>Spend: <strong style={{ color: '#CBD5E1' }}>${Number(item.cost).toFixed(2)}</strong></div>}
-        {item.sales         != null && <div>Sales: <strong style={{ color: '#CBD5E1' }}>${Number(item.sales).toFixed(2)}</strong></div>}
-        {item.acos          != null && <div>ACoS: <strong style={{ color: '#CBD5E1' }}>{item.acos}%</strong></div>}
-        {item.purchases     != null && <div>Orders: <strong style={{ color: '#CBD5E1' }}>{item.purchases}</strong></div>}
-        {item.clicks        != null && <div>Clicks: <strong style={{ color: '#CBD5E1' }}>{item.clicks}</strong></div>}
-        {item.volume        != null && <div>Vol: <strong style={{ color: '#CBD5E1' }}>{item.volume}</strong></div>}
-        {item.purchaseShare != null && <div>Share: <strong style={{ color: '#CBD5E1' }}>{item.purchaseShare}%</strong></div>}
+      <div style={{ flexShrink: 0, textAlign: 'right', fontSize: 11, color: 'var(--text-subtle)', lineHeight: 1.8 }}>
+        {item.cost          != null && <div>Spend: <strong style={{ color: 'var(--text-muted)' }}>${Number(item.cost).toFixed(2)}</strong></div>}
+        {item.sales         != null && <div>Sales: <strong style={{ color: 'var(--text-muted)' }}>${Number(item.sales).toFixed(2)}</strong></div>}
+        {item.acos          != null && <div>ACoS: <strong style={{ color: 'var(--text-muted)' }}>{item.acos}%</strong></div>}
+        {item.purchases     != null && <div>Orders: <strong style={{ color: 'var(--text-muted)' }}>{item.purchases}</strong></div>}
+        {item.clicks        != null && <div>Clicks: <strong style={{ color: 'var(--text-muted)' }}>{item.clicks}</strong></div>}
+        {item.volume        != null && <div>Vol: <strong style={{ color: 'var(--text-muted)' }}>{item.volume}</strong></div>}
+        {item.purchaseShare != null && <div>Share: <strong style={{ color: 'var(--text-muted)' }}>{item.purchaseShare}%</strong></div>}
       </div>
     </div>
   );
@@ -245,27 +245,27 @@ export default function KeywordRecommendationsPanel({ profileId }) {
   };
 
   return (
-    <div style={{ background: '#1E293B', borderRadius: 12, border: '1px solid #334155', padding: '20px 24px' }}>
-      <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 15, color: '#F1F5F9' }}>Keyword Intelligence</p>
-      <p style={{ margin: '0 0 18px', fontSize: 12, color: '#64748B' }}>
+    <div style={{ background: 'var(--bg-panel)', borderRadius: 12, border: '1px solid var(--border-strong)', padding: '20px 24px' }}>
+      <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>Keyword Intelligence</p>
+      <p style={{ margin: '0 0 18px', fontSize: 12, color: 'var(--text-subtle)' }}>
         Enter an ASIN or SKU to pull search-term performance, brand analytics, and recommended keywords for both listing copy and campaigns.
       </p>
 
       {/* Controls */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18, alignItems: 'center' }}>
         <input type="text" placeholder="ASIN" value={asin} onChange={e => setAsin(e.target.value)}
-          style={{ background: '#263348', border: '1px solid #334155', borderRadius: 7, color: '#F1F5F9', padding: '8px 12px', fontSize: 12, outline: 'none', width: 140, fontFamily: 'monospace' }} />
-        <span style={{ color: '#475569', fontSize: 11 }}>or</span>
+          style={{ background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', borderRadius: 7, color: 'var(--text-primary)', padding: '8px 12px', fontSize: 12, outline: 'none', width: 140, fontFamily: 'monospace' }} />
+        <span style={{ color: 'var(--border-med)', fontSize: 11 }}>or</span>
         <input type="text" placeholder="SKU" value={sku} onChange={e => setSku(e.target.value)}
-          style={{ background: '#263348', border: '1px solid #334155', borderRadius: 7, color: '#F1F5F9', padding: '8px 12px', fontSize: 12, outline: 'none', width: 160, fontFamily: 'monospace' }} />
-        <span style={{ width: 1, height: 20, background: '#334155' }} />
+          style={{ background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', borderRadius: 7, color: 'var(--text-primary)', padding: '8px 12px', fontSize: 12, outline: 'none', width: 160, fontFamily: 'monospace' }} />
+        <span style={{ width: 1, height: 20, background: 'var(--border-strong)' }} />
         <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} max={endDate}
-          style={{ background: '#263348', border: '1px solid #334155', borderRadius: 7, color: '#F1F5F9', padding: '8px 12px', fontSize: 12, outline: 'none' }} />
-        <span style={{ color: '#475569', fontSize: 12 }}>→</span>
+          style={{ background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', borderRadius: 7, color: 'var(--text-primary)', padding: '8px 12px', fontSize: 12, outline: 'none' }} />
+        <span style={{ color: 'var(--border-med)', fontSize: 12 }}>→</span>
         <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} min={startDate} max={today}
-          style={{ background: '#263348', border: '1px solid #334155', borderRadius: 7, color: '#F1F5F9', padding: '8px 12px', fontSize: 12, outline: 'none' }} />
+          style={{ background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', borderRadius: 7, color: 'var(--text-primary)', padding: '8px 12px', fontSize: 12, outline: 'none' }} />
         <button onClick={handleLoad} disabled={loading}
-          style={{ padding: '8px 18px', borderRadius: 7, border: 'none', background: loading ? '#334155' : 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 12, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+          style={{ padding: '8px 18px', borderRadius: 7, border: 'none', background: loading ? 'var(--border-strong)' : 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: '#fff', fontWeight: 700, fontSize: 12, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
           {loading ? 'Loading…' : 'Analyze'}
         </button>
       </div>
@@ -279,11 +279,11 @@ export default function KeywordRecommendationsPanel({ profileId }) {
       {data && !loading && (
         <>
           {/* Source / scope banner */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14, fontSize: 11, color: '#64748B' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14, fontSize: 11, color: 'var(--text-subtle)' }}>
             {data.asin && <Pill text={`ASIN: ${data.asin}`} color="#3B82F6" />}
             {data.sku  && <Pill text={`SKU: ${data.sku}`} color="#3B82F6" />}
-            <Pill text={data.sources?.searchTermReport ? '✓ Search Term Report' : '✕ Search Term Report'} color={data.sources?.searchTermReport ? '#10B981' : '#475569'} />
-            <Pill text={data.sources?.brandAnalytics  ? '✓ Brand Analytics'    : '⚪ Brand Analytics (no SQP uploaded)'} color={data.sources?.brandAnalytics ? '#10B981' : '#475569'} />
+            <Pill text={data.sources?.searchTermReport ? '✓ Search Term Report' : '✕ Search Term Report'} color={data.sources?.searchTermReport ? '#10B981' : 'var(--border-med)'} />
+            <Pill text={data.sources?.brandAnalytics  ? '✓ Brand Analytics'    : '⚪ Brand Analytics (no SQP uploaded)'} color={data.sources?.brandAnalytics ? '#10B981' : 'var(--border-med)'} />
             {data.sources?.productScope != null && (
               <Pill text={`${data.sources.productScope} campaigns matched`} color={data.sources.productScope > 0 ? '#10B981' : '#F59E0B'} />
             )}
@@ -300,13 +300,13 @@ export default function KeywordRecommendationsPanel({ profileId }) {
           </div>
 
           {/* Top tabs: Listing vs Campaigns */}
-          <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid #334155', marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid var(--border-strong)', marginBottom: 16 }}>
             {[
               { id: 'LISTING',   label: `Listing Candidates (${forListing.length})`, color: '#8B5CF6' },
               { id: 'CAMPAIGNS', label: `Campaign Actions`,                          color: '#3B82F6' },
             ].map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)}
-                style={{ padding: '8px 16px', fontSize: 12, fontWeight: 700, border: 'none', borderBottom: activeTab === t.id ? `2px solid ${t.color}` : '2px solid transparent', background: 'transparent', cursor: 'pointer', marginBottom: -1, color: activeTab === t.id ? t.color : '#64748B', transition: 'all .15s' }}>
+                style={{ padding: '8px 16px', fontSize: 12, fontWeight: 700, border: 'none', borderBottom: activeTab === t.id ? `2px solid ${t.color}` : '2px solid transparent', background: 'transparent', cursor: 'pointer', marginBottom: -1, color: activeTab === t.id ? t.color : 'var(--text-subtle)', transition: 'all .15s' }}>
                 {t.label}
               </button>
             ))}
@@ -315,7 +315,7 @@ export default function KeywordRecommendationsPanel({ profileId }) {
           {activeTab === 'LISTING' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 480, overflowY: 'auto' }}>
               {forListing.length === 0 && (
-                <p style={{ color: '#64748B', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>
+                <p style={{ color: 'var(--text-subtle)', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>
                   No listing candidates yet. Upload Brand Analytics SQP data or run more ad traffic to surface conversion-driven keywords.
                 </p>
               )}
@@ -329,9 +329,9 @@ export default function KeywordRecommendationsPanel({ profileId }) {
                 {['SCALE_UP', 'ADD_EXACT', 'ADD_NEGATIVE', 'NEW', 'WATCH'].map(b => (
                   <button key={b} onClick={() => setCampaignBucket(b)}
                     style={{ padding: '5px 12px', fontSize: 11, fontWeight: 700, borderRadius: 7,
-                      border: `1px solid ${campaignBucket === b ? ACTION_COLOR[b] : '#334155'}`,
+                      border: `1px solid ${campaignBucket === b ? ACTION_COLOR[b] : 'var(--border-strong)'}`,
                       background: campaignBucket === b ? ACTION_COLOR[b] + '20' : 'transparent',
-                      color: campaignBucket === b ? ACTION_COLOR[b] : '#64748B',
+                      color: campaignBucket === b ? ACTION_COLOR[b] : 'var(--text-subtle)',
                       cursor: 'pointer' }}>
                     {ACTION_LABEL[b]} ({campaignBuckets[b]?.length ?? 0})
                   </button>
@@ -339,7 +339,7 @@ export default function KeywordRecommendationsPanel({ profileId }) {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 480, overflowY: 'auto' }}>
                 {(campaignBuckets[campaignBucket] ?? []).length === 0 && (
-                  <p style={{ color: '#64748B', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>No items in this bucket.</p>
+                  <p style={{ color: 'var(--text-subtle)', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>No items in this bucket.</p>
                 )}
                 {(campaignBuckets[campaignBucket] ?? []).map((item, i) => (
                   <CampaignRow key={i} item={item} action={campaignBucket} />

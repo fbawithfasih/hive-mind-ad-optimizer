@@ -14,7 +14,7 @@ const PIE_COLORS = { enabled: '#10B981', paused: '#F59E0B', archived: '#6366F1' 
 function SectionLabel({ children }) {
   return (
     <p style={{
-      fontSize: 9, fontWeight: 800, color: '#1E293B',
+      fontSize: 9, fontWeight: 800, color: 'var(--bg-panel)',
       textTransform: 'uppercase', letterSpacing: '0.14em',
       margin: '0 0 12px',
     }}>
@@ -27,7 +27,7 @@ function ChartCard({ children, style }) {
   return (
     <div style={{
       background: 'rgba(8,12,26,0.9)',
-      border: '1px solid rgba(255,255,255,0.06)',
+      border: '1px solid var(--overlay-5)',
       borderRadius: 16,
       padding: '18px 20px',
       position: 'relative',
@@ -44,7 +44,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   return (
     <div style={{
       background: 'rgba(8,12,26,0.97)',
-      border: '1px solid rgba(255,255,255,0.1)',
+      border: '1px solid var(--overlay-8)',
       borderRadius: 10,
       padding: '10px 14px',
       fontSize: 11,
@@ -105,7 +105,7 @@ export default function OverviewPanel({
       {/* ── Refresh control ── */}
       {onRefresh && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ fontSize: 12, color: '#64748B', fontWeight: 500 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-subtle)', fontWeight: 500 }}>
             {refreshing
               ? 'Refreshing — last loaded data shown until new data arrives'
               : dateRange?.from
@@ -120,7 +120,7 @@ export default function OverviewPanel({
               padding: '8px 14px', borderRadius: 8,
               border: '1px solid rgba(59,130,246,0.35)',
               background: refreshing ? 'rgba(59,130,246,0.05)' : 'linear-gradient(135deg,#3B82F6,#8B5CF6)',
-              color: refreshing ? '#94A3B8' : '#fff',
+              color: refreshing ? 'var(--text-muted)' : '#fff',
               fontSize: 12, fontWeight: 700,
               cursor: refreshing ? 'not-allowed' : 'pointer',
               boxShadow: refreshing ? 'none' : '0 4px 14px rgba(59,130,246,0.35)',
@@ -242,11 +242,11 @@ export default function OverviewPanel({
             </ResponsiveContainer>
           ) : (
             <div style={{ height: 180, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <svg width="32" height="32" fill="none" stroke="#1E293B" viewBox="0 0 24 24" style={{ opacity: 0.4 }}>
+              <svg width="32" height="32" fill="none" stroke="var(--bg-panel)" viewBox="0 0 24 24" style={{ opacity: 0.4 }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4v16" />
               </svg>
-              <span style={{ fontSize: 12, color: '#334155' }}>Load metrics to see trend</span>
-              <span style={{ fontSize: 10, color: '#1E293B' }}>Multiple loads build the chart</span>
+              <span style={{ fontSize: 12, color: 'var(--border-strong)' }}>Load metrics to see trend</span>
+              <span style={{ fontSize: 10, color: 'var(--bg-panel)' }}>Multiple loads build the chart</span>
             </div>
           )}
           {spendRevenueData.length >= 2 && (
@@ -254,7 +254,7 @@ export default function OverviewPanel({
               {[{ color: '#3B82F6', label: 'Revenue' }, { color: '#8B5CF6', label: 'Spend' }].map(l => (
                 <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <div style={{ width: 8, height: 2, background: l.color, borderRadius: 1 }} />
-                  <span style={{ fontSize: 10, color: '#334155', fontWeight: 600 }}>{l.label}</span>
+                  <span style={{ fontSize: 10, color: 'var(--border-strong)', fontWeight: 600 }}>{l.label}</span>
                 </div>
               ))}
             </div>
@@ -287,7 +287,7 @@ export default function OverviewPanel({
                     if (!active || !payload?.length) return null;
                     const d = payload[0].payload;
                     return (
-                      <div style={{ background: 'rgba(8,12,26,0.97)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 12px', fontSize: 11 }}>
+                      <div style={{ background: 'rgba(8,12,26,0.97)', border: '1px solid var(--overlay-8)', borderRadius: 8, padding: '8px 12px', fontSize: 11 }}>
                         <span style={{ color: PIE_COLORS[d.key], fontWeight: 700 }}>{d.name}: {d.value}</span>
                       </div>
                     );
@@ -297,14 +297,14 @@ export default function OverviewPanel({
                   iconType="circle"
                   iconSize={7}
                   formatter={(v, e) => (
-                    <span style={{ fontSize: 10, color: '#475569', fontWeight: 600 }}>{v} ({e.payload.value})</span>
+                    <span style={{ fontSize: 10, color: 'var(--border-med)', fontWeight: 600 }}>{v} ({e.payload.value})</span>
                   )}
                 />
               </PieChart>
             </ResponsiveContainer>
           ) : (
             <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 12, color: '#334155' }}>No campaigns loaded</span>
+              <span style={{ fontSize: 12, color: 'var(--border-strong)' }}>No campaigns loaded</span>
             </div>
           )}
         </ChartCard>

@@ -33,8 +33,8 @@ const SECTIONS = [
     items: [
       { tab: 'health',           label: 'Listing Health',    icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: '#34D399' },
       { tab: 'listing-history',  label: 'Optim. History',   icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', color: '#A5B4FC' },
-      { tab: 'profiles',         label: 'Profiles',         icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', color: '#94A3B8' },
-      { tab: 'team',             label: 'Team & Roles',     icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z', color: '#94A3B8' },
+      { tab: 'profiles',         label: 'Profiles',         icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', color: 'var(--text-muted)' },
+      { tab: 'team',             label: 'Team & Roles',     icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z', color: 'var(--text-muted)' },
       { tab: 'amazon',           label: 'Amazon Account',   icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1', color: '#F97316' },
     ],
   },
@@ -69,7 +69,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
       display: 'flex',
       flexDirection: 'column',
       background: 'rgba(4,6,16,0.97)',
-      borderRight: '1px solid rgba(255,255,255,0.05)',
+      borderRight: '1px solid var(--overlay-4)',
       backdropFilter: 'blur(24px)',
       transition: 'width 0.2s ease, min-width 0.2s ease',
       overflowY: 'auto',
@@ -84,7 +84,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
         display: 'flex',
         alignItems: 'center',
         justifyContent: collapsed ? 'center' : 'space-between',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        borderBottom: '1px solid var(--overlay-4)',
         gap: 8,
         flexShrink: 0,
       }}>
@@ -92,7 +92,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', flex: 1, minWidth: 0 }}>
             <img src="/HMN-APP-ICON.png" alt="HMN" style={{ width: 28, height: 28, borderRadius: 7, objectFit: 'contain', flexShrink: 0 }} />
             <div style={{ minWidth: 0 }}>
-              <p style={{ fontWeight: 800, fontSize: 12, color: '#F1F5F9', lineHeight: 1.2, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Hive Mind</p>
+              <p style={{ fontWeight: 800, fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.2, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Hive Mind</p>
               <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#A78BFA', margin: 0 }}>ADS TERMINAL</p>
             </div>
           </Link>
@@ -100,7 +100,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
         <button
           onClick={() => setCollapsed(c => !c)}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#334155', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--border-strong)', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center', flexShrink: 0 }}
         >
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -115,7 +115,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
           <div key={section.label} style={{ marginBottom: 4 }}>
             {!collapsed && (
               <p style={{
-                fontSize: 9, fontWeight: 800, color: '#1E293B',
+                fontSize: 9, fontWeight: 800, color: 'var(--bg-panel)',
                 letterSpacing: '0.14em', textTransform: 'uppercase',
                 padding: '10px 16px 4px',
                 margin: 0,
@@ -142,7 +142,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
                     border: 'none',
                     borderLeft: isActive ? `2px solid ${item.color}` : '2px solid transparent',
                     cursor: 'pointer',
-                    color: isActive ? item.color : '#475569',
+                    color: isActive ? item.color : 'var(--border-med)',
                     fontSize: 12,
                     fontWeight: isActive ? 700 : 500,
                     textAlign: 'left',
@@ -151,8 +151,8 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                   }}
-                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = '#94A3B8'; }}
-                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = '#475569'; }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--text-muted)'; }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--border-med)'; }}
                 >
                   <span style={{ color: isActive ? item.color : 'inherit', display: 'flex', flexShrink: 0 }}>
                     <SvgIcon d={item.icon} size={15} />
@@ -174,7 +174,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
       </nav>
 
       {/* Footer: badges + Hub link */}
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: collapsed ? '10px 0' : '10px 12px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ borderTop: '1px solid var(--overlay-4)', padding: collapsed ? '10px 0' : '10px 12px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
         {/* Trophy row */}
         <div
           title={collapsed ? `${earnedBadgeCount} badge${earnedBadgeCount !== 1 ? 's' : ''} earned` : undefined}
@@ -186,7 +186,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
         >
           <span style={{ fontSize: 14, lineHeight: 1 }}>🏆</span>
           {!collapsed && (
-            <span style={{ fontSize: 11, fontWeight: 700, color: earnedBadgeCount > 0 ? '#F59E0B' : '#1E293B' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: earnedBadgeCount > 0 ? '#F59E0B' : 'var(--bg-panel)' }}>
               {earnedBadgeCount} / 4 badges
             </span>
           )}
@@ -209,11 +209,11 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
             display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start',
             gap: 8, padding: collapsed ? '7px 0' : '7px 8px',
             borderRadius: 8, textDecoration: 'none',
-            color: '#334155', fontSize: 11, fontWeight: 600,
+            color: 'var(--border-strong)', fontSize: 11, fontWeight: 600,
             transition: 'color 0.12s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#94A3B8'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = '#334155'; }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--border-strong)'; }}
         >
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
