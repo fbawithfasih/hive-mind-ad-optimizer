@@ -1,10 +1,23 @@
 import express from 'express';
+import { randomBytes } from 'crypto';
 import { prisma } from '../../db/prisma.js';
 import { runAsSystem, runWithTenant } from '../../db/tenant-context.js';
 import { createLogger } from '../utils/logger.js';
+import { normalizeEmail } from '../utils/normalizeEmail.js';
+import { sendOrgInvitationEmail } from '../../services/email.js';
+import { requireVerifiedEmail } from '../middleware/requireVerifiedEmail.js';
 
 const router = express.Router();
 const logger = createLogger('ORGS');
+
+/** How long an emailed invitation stays valid. */
+const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+/** Display name for an inviter, falling back to their email. */
+function displayName(user) {
+  const full = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim();
+  return full || user?.email || 'A teammate';
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -130,6 +143,143 @@ router.get('/', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// Invitation acceptance (token-addressed, not org-addressed).
+//
+// These MUST be registered before the `/:orgId` middleware below: Express
+// matches in order, and `router.use('/:orgId', ...)` would otherwise capture
+// `/invitations/...` and open a tenant context for an org literally named
+// "invitations".
+//
+// Both run above that middleware, so there is no tenant context — the lookup
+// by token is what discovers which org is involved.
+// ---------------------------------------------------------------------------
+
+/** Shared: resolve a token to a usable invitation, or an error message. */
+async function loadInvitation(token) {
+  if (!token) return { error: 'token is required.', status: 400 };
+
+  // Runs as system: the token is the only thing we have, and finding out which
+  // org it belongs to is precisely the point — so this necessarily pre-dates
+  // any tenant context. The token is a 32-byte secret, so it identifies exactly
+  // one row.
+  const invite = await runAsSystem(() =>
+    prisma.orgInvitation.findUnique({ where: { token } })
+  );
+
+  if (!invite || invite.revokedAt || invite.acceptedAt) {
+    return { error: 'This invitation is no longer valid.', status: 400 };
+  }
+  if (invite.expiresAt < new Date()) {
+    return { error: 'This invitation has expired. Ask an admin to send a new one.', status: 400 };
+  }
+  return { invite };
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/orgs/invitations/:token — Preview an invitation before accepting
+// ---------------------------------------------------------------------------
+router.get('/invitations/:token', async (req, res) => {
+  try {
+    const { invite, error, status } = await loadInvitation(req.params.token);
+    if (error) return res.status(status).json({ error });
+
+    const org = await runAsSystem(() =>
+      prisma.organization.findUnique({
+        where:  { id: invite.orgId },
+        select: { id: true, name: true },
+      })
+    );
+
+    res.json({
+      invitation: {
+        orgId:     invite.orgId,
+        orgName:   org?.name ?? null,
+        role:      invite.role,
+        email:     invite.email,
+        expiresAt: invite.expiresAt,
+        // Lets the UI explain the mismatch instead of just failing on accept.
+        matchesCurrentUser: normalizeEmail(req.user.email) === invite.email,
+      },
+    });
+  } catch (err) {
+    logger.error(`Preview invitation error: ${err.message}`);
+    res.status(500).json({ error: 'Failed to load invitation.' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/orgs/invitations/accept — Accept an invitation
+// Body: { token }
+// ---------------------------------------------------------------------------
+router.post('/invitations/accept', async (req, res) => {
+  try {
+    const { invite, error, status } = await loadInvitation(req.body?.token);
+    if (error) return res.status(status).json({ error });
+
+    // The consent step. Holding the token is not enough — the accepting session
+    // must BE the invited address, so an admin cannot conscript an account and
+    // a forwarded link cannot enrol the wrong person.
+    if (normalizeEmail(req.user.email) !== invite.email) {
+      logger.warn(
+        `Invitation ${invite.id} rejected: signed in as ${req.user.userId}, invited ${invite.email}`
+      );
+      return res.status(403).json({
+        error: 'This invitation was sent to a different email address. ' +
+               'Sign in as that address to accept it.',
+      });
+    }
+
+    // Now that the org is known, do the writes inside its tenant context rather
+    // than as system — both rows are org-scoped.
+    const result = await runWithTenant(invite.orgId, async () => {
+      const existing = await prisma.orgMember.findFirst({
+        where: { orgId: invite.orgId, userId: req.user.userId },
+      });
+
+      if (existing) {
+        // Already a member (invited twice, or joined another way). Burn the
+        // invitation so it can't linger, and report success.
+        await prisma.orgInvitation.update({
+          where: { id: invite.id },
+          data:  { acceptedAt: new Date() },
+        });
+        return { alreadyMember: true, role: existing.role };
+      }
+
+      await prisma.$transaction([
+        prisma.orgMember.create({
+          data: {
+            orgId:     invite.orgId,
+            userId:    req.user.userId,
+            role:      invite.role,
+            invitedBy: invite.invitedBy,
+            invitedAt: invite.createdAt,
+          },
+        }),
+        prisma.orgInvitation.update({
+          where: { id: invite.id },
+          data:  { acceptedAt: new Date() },
+        }),
+      ]);
+      return { alreadyMember: false, role: invite.role };
+    });
+
+    const org = await runAsSystem(() =>
+      prisma.organization.findUnique({
+        where:  { id: invite.orgId },
+        select: { id: true, name: true },
+      })
+    );
+
+    logger.info(`User ${req.user.userId} accepted invitation to org ${invite.orgId}`);
+    res.json({ ok: true, org, role: result.role, alreadyMember: result.alreadyMember });
+  } catch (err) {
+    logger.error(`Accept invitation error: ${err.message}`);
+    res.status(500).json({ error: 'Failed to accept invitation.' });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Tenant context for the /:orgId subtree.
 //
 // This router is mounted ABOVE withTenant (a user may have no org yet), so
@@ -223,57 +373,137 @@ router.get('/:orgId/members', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// POST /api/orgs/:orgId/members — Add member by email (ADMIN only)
+// POST /api/orgs/:orgId/invitations — Invite someone by email (ADMIN only)
+//
+// This replaced a route that created the OrgMember row outright. Adding a
+// person to an org grants them visibility into its Amazon data and, for anyone
+// who had no org of their own, silently makes it their default tenant — so it
+// needs the invitee's agreement, not just an admin's say-so. The membership is
+// created when they accept at /invitations/accept.
 // ---------------------------------------------------------------------------
-router.post('/:orgId/members', async (req, res) => {
+router.post('/:orgId/invitations', requireVerifiedEmail, async (req, res) => {
   try {
     const m = await getAccess(req.user.userId, req.params.orgId, 'ADMIN');
     if (!m) return res.status(403).json({ error: 'Admin access required.' });
 
-    const { email, role = 'MEMBER' } = req.body;
+    const { role = 'MEMBER' } = req.body;
+    // Normalise so an admin typing "Person@Company.com" invites the same
+    // address the invitee will later be signed in as.
+    const email = normalizeEmail(req.body.email);
     if (!email) return res.status(400).json({ error: 'email is required.' });
     if (!['ADMIN', 'MEMBER', 'VIEWER'].includes(role)) {
       return res.status(400).json({ error: 'role must be ADMIN, MEMBER, or VIEWER.' });
     }
 
-    const targetUser = await prisma.user.findUnique({ where: { email } });
-    if (!targetUser) {
-      return res.status(404).json({
-        error: 'No account found for that email. The user must sign up first.',
-      });
-    }
-
-    const existing = await prisma.orgMember.findFirst({
-      where: { orgId: req.params.orgId, userId: targetUser.id },
+    // Existing members are a no-op, not an invitation. Note this deliberately
+    // does NOT reveal whether an account exists for the address — unlike the
+    // old route, you can invite someone who has not signed up yet.
+    const alreadyMember = await prisma.orgMember.findFirst({
+      where: { orgId: req.params.orgId, user: { email } },
     });
-    if (existing) {
-      return res.status(409).json({ error: 'User is already a member of this organization.' });
+    if (alreadyMember) {
+      return res.status(409).json({ error: 'That person is already a member of this organization.' });
     }
 
-    const newMember = await prisma.orgMember.create({
+    // One live invitation per address per org: supersede any earlier one so a
+    // re-invite can't leave two valid tokens outstanding.
+    await prisma.orgInvitation.deleteMany({
+      where: { orgId: req.params.orgId, email, acceptedAt: null },
+    });
+
+    const invitation = await prisma.orgInvitation.create({
       data: {
-        orgId: req.params.orgId,
-        userId: targetUser.id,
+        orgId:     req.params.orgId,
+        email,
         role,
+        token:     randomBytes(32).toString('hex'),
         invitedBy: req.user.userId,
-        invitedAt: new Date(),
-      },
-      include: {
-        user: { select: { id: true, email: true, firstName: true, lastName: true } },
+        expiresAt: new Date(Date.now() + INVITE_TTL_MS),
       },
     });
 
+    // Fire-and-forget: a mail failure shouldn't roll back the invitation — the
+    // admin can resend, and the token is already valid.
+    sendOrgInvitationEmail(email, {
+      orgName:     m.org.name,
+      inviterName: displayName(req.user),
+      role,
+      token:       invitation.token,
+    }).catch((err) =>
+      logger.error(`Failed to send invitation email to ${email}: ${err.message}`)
+    );
+
+    logger.info(`User ${req.user.userId} invited ${email} to org ${req.params.orgId} as ${role}`);
     res.status(201).json({
-      member: {
-        id: newMember.id,
-        role: newMember.role,
-        joinedAt: newMember.joinedAt,
-        user: newMember.user,
+      invitation: {
+        id:        invitation.id,
+        email:     invitation.email,
+        role:      invitation.role,
+        expiresAt: invitation.expiresAt,
+        createdAt: invitation.createdAt,
       },
     });
   } catch (err) {
-    logger.error(`Add member error: ${err.message}`);
-    res.status(500).json({ error: 'Failed to add member.' });
+    logger.error(`Invite member error: ${err.message}`);
+    res.status(500).json({ error: 'Failed to send invitation.' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/orgs/:orgId/invitations — List pending invitations (ADMIN only)
+// ---------------------------------------------------------------------------
+router.get('/:orgId/invitations', async (req, res) => {
+  try {
+    const m = await getAccess(req.user.userId, req.params.orgId, 'ADMIN');
+    if (!m) return res.status(403).json({ error: 'Admin access required.' });
+
+    const invitations = await prisma.orgInvitation.findMany({
+      where: {
+        orgId:      req.params.orgId,
+        acceptedAt: null,
+        revokedAt:  null,
+        expiresAt:  { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+      // Never return `token` — it is a bearer credential for joining the org.
+      select: { id: true, email: true, role: true, createdAt: true, expiresAt: true },
+    });
+
+    res.json({ invitations });
+  } catch (err) {
+    logger.error(`List invitations error: ${err.message}`);
+    res.status(500).json({ error: 'Failed to list invitations.' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /api/orgs/:orgId/invitations/:invitationId — Revoke (ADMIN only)
+// ---------------------------------------------------------------------------
+router.delete('/:orgId/invitations/:invitationId', async (req, res) => {
+  try {
+    const m = await getAccess(req.user.userId, req.params.orgId, 'ADMIN');
+    if (!m) return res.status(403).json({ error: 'Admin access required.' });
+
+    const invite = await prisma.orgInvitation.findFirst({
+      where: { id: req.params.invitationId, orgId: req.params.orgId },
+    });
+    if (!invite) return res.status(404).json({ error: 'Invitation not found.' });
+    if (invite.acceptedAt) {
+      return res.status(409).json({
+        error: 'That invitation was already accepted — remove the member instead.',
+      });
+    }
+
+    await prisma.orgInvitation.update({
+      where: { id: invite.id },
+      data:  { revokedAt: new Date() },
+    });
+
+    logger.info(`User ${req.user.userId} revoked invitation ${invite.id}`);
+    res.json({ ok: true });
+  } catch (err) {
+    logger.error(`Revoke invitation error: ${err.message}`);
+    res.status(500).json({ error: 'Failed to revoke invitation.' });
   }
 });
 

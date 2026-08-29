@@ -1,31 +1,34 @@
 import { useState, useEffect } from 'react';
-import { getOrgApi, updateOrgApi, getOrgMembersApi, addOrgMemberApi, updateOrgMemberRoleApi, removeOrgMemberApi } from '../services/api.js';
+import {
+  getOrgApi, updateOrgApi, getOrgMembersApi, updateOrgMemberRoleApi, removeOrgMemberApi,
+  inviteOrgMemberApi, getOrgInvitationsApi, revokeOrgInvitationApi,
+} from '../services/api.js';
 
 const ROLES = ['ADMIN', 'MEMBER', 'VIEWER'];
 
 const ROLE_COLOR = {
   ADMIN:  '#8B5CF6',
   MEMBER: '#3B82F6',
-  VIEWER: '#64748B',
+  VIEWER: 'var(--text-subtle)',
 };
 
 const S = {
-  card:   { background: '#1E293B', border: '1px solid #334155', borderRadius: 12 },
-  header: { padding: '16px 20px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 },
-  label:  { fontSize: 14, fontWeight: 600, color: '#F1F5F9' },
-  sub:    { fontSize: 12, color: '#64748B', marginTop: 2 },
+  card:   { background: 'var(--bg-panel)', border: '1px solid var(--border-strong)', borderRadius: 12 },
+  header: { padding: '16px 20px', borderBottom: '1px solid var(--border-strong)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 },
+  label:  { fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' },
+  sub:    { fontSize: 12, color: 'var(--text-subtle)', marginTop: 2 },
   btn:    (active, color = 'linear-gradient(135deg,#3B82F6,#8B5CF6)') => ({
     padding: '7px 14px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600,
     cursor: active ? 'pointer' : 'not-allowed',
-    background: active ? color : '#263348',
-    color: active ? '#fff' : '#475569',
+    background: active ? color : 'var(--bg-panel-2)',
+    color: active ? '#fff' : 'var(--border-med)',
   }),
-  ghost:  (color = '#94A3B8') => ({ padding: '4px 10px', borderRadius: 6, border: `1px solid ${color}40`, background: 'transparent', fontSize: 11, fontWeight: 600, color, cursor: 'pointer' }),
+  ghost:  (color = 'var(--text-muted)') => ({ padding: '4px 10px', borderRadius: 6, border: `1px solid ${color}40`, background: 'transparent', fontSize: 11, fontWeight: 600, color, cursor: 'pointer' }),
   badge:  (role) => ({ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: ROLE_COLOR[role] + '20', color: ROLE_COLOR[role], border: `1px solid ${ROLE_COLOR[role]}40` }),
-  row:    { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: '1px solid #334155' },
-  empty:  { padding: '32px 20px', textAlign: 'center', color: '#475569', fontSize: 13 },
-  input:  { background: '#263348', border: '1px solid #334155', borderRadius: 6, padding: '8px 12px', fontSize: 12, color: '#F1F5F9', outline: 'none' },
-  select: { background: '#263348', border: '1px solid #334155', borderRadius: 6, padding: '7px 10px', fontSize: 12, color: '#F1F5F9', outline: 'none' },
+  row:    { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: '1px solid var(--border-strong)' },
+  empty:  { padding: '32px 20px', textAlign: 'center', color: 'var(--border-med)', fontSize: 13 },
+  input:  { background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', borderRadius: 6, padding: '8px 12px', fontSize: 12, color: 'var(--text-primary)', outline: 'none' },
+  select: { background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', borderRadius: 6, padding: '7px 10px', fontSize: 12, color: 'var(--text-primary)', outline: 'none' },
 };
 
 function Spinner() {
@@ -43,11 +46,15 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
   const [error, setError]         = useState('');
   const [msg, setMsg]             = useState('');
 
-  // Add member form
+  // Invite form
   const [addEmail, setAddEmail]   = useState('');
   const [addRole, setAddRole]     = useState('MEMBER');
   const [adding, setAdding]       = useState(false);
   const [addError, setAddError]   = useState('');
+
+  // Pending invitations (admins only — the API rejects everyone else)
+  const [invites, setInvites]       = useState([]);
+  const [revoking, setRevoking]     = useState(null);
 
   // Per-row state
   const [changingRole, setChangingRole] = useState(null);
@@ -62,12 +69,15 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
     setLoading(true);
     setError('');
     try {
-      const [data, orgData] = await Promise.all([
+      const [data, orgData, inviteData] = await Promise.all([
         getOrgMembersApi(orgId),
         // Best-effort: the team list still renders if org settings fail to load.
         getOrgApi(orgId).catch(() => null),
+        // Admin-only endpoint — 403 for everyone else, which is not an error here.
+        isAdmin ? getOrgInvitationsApi(orgId).catch(() => null) : null,
       ]);
       setMembers(data.members ?? []);
+      setInvites(inviteData?.invitations ?? []);
       const brand = orgData?.org?.brandName ?? '';
       setBrandName(brand);
       setSavedBrand(brand);
@@ -98,7 +108,7 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
 
   useEffect(() => {
     if (orgId) load();
-  }, [orgId]);
+  }, [orgId, isAdmin]);
 
   async function handleAdd(e) {
     e.preventDefault();
@@ -107,15 +117,30 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
     setAddError('');
     setMsg('');
     try {
-      const res = await addOrgMemberApi(orgId, addEmail.trim(), addRole);
-      setMembers(prev => [...prev, res.member]);
+      const res = await inviteOrgMemberApi(orgId, addEmail.trim(), addRole);
+      setInvites(prev => [res.invitation, ...prev]);
       setAddEmail('');
       setAddRole('MEMBER');
-      setMsg(`${res.member.user.email} added as ${res.member.role}.`);
+      setMsg(`Invitation sent to ${res.invitation.email}. They join once they accept it.`);
     } catch (e) {
-      setAddError(e.response?.data?.error ?? 'Failed to add member.');
+      setAddError(e.response?.data?.error ?? 'Failed to send invitation.');
     } finally {
       setAdding(false);
+    }
+  }
+
+  async function handleRevoke(invitationId, email) {
+    setRevoking(invitationId);
+    setMsg('');
+    setError('');
+    try {
+      await revokeOrgInvitationApi(orgId, invitationId);
+      setInvites(prev => prev.filter(i => i.id !== invitationId));
+      setMsg(`Invitation to ${email} revoked.`);
+    } catch (e) {
+      setError(e.response?.data?.error ?? 'Failed to revoke invitation.');
+    } finally {
+      setRevoking(null);
     }
   }
 
@@ -166,7 +191,7 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
       </div>
 
       {(error || msg) && (
-        <div style={{ padding: '10px 20px', fontSize: 12, color: error ? '#F43F5E' : '#10B981', borderBottom: '1px solid #334155' }}>
+        <div style={{ padding: '10px 20px', fontSize: 12, color: error ? '#F43F5E' : '#10B981', borderBottom: '1px solid var(--border-strong)' }}>
           {error || msg}
         </div>
       )}
@@ -174,7 +199,7 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
       {/* Brand name — ADMIN only. Brand Analytics matches this against product
           titles to identify the org's own ASINs, and reports are labelled with it. */}
       {isAdmin && (
-        <form onSubmit={handleSaveBrand} style={{ padding: '14px 20px', borderBottom: '1px solid #334155' }}>
+        <form onSubmit={handleSaveBrand} style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-strong)' }}>
           <label htmlFor="org-brand-name" style={{ ...S.sub, display: 'block', marginBottom: 6 }}>
             Brand name — as it appears in your Amazon product titles
           </label>
@@ -206,10 +231,10 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
 
       {/* Add member form — ADMIN only */}
       {isAdmin && (
-        <form onSubmit={handleAdd} style={{ padding: '14px 20px', borderBottom: '1px solid #334155', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        <form onSubmit={handleAdd} style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-strong)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <input
             type="email"
-            placeholder="member@example.com"
+            placeholder="teammate@example.com"
             value={addEmail}
             onChange={e => { setAddEmail(e.target.value); setAddError(''); }}
             required
@@ -219,10 +244,38 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
             {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
           <button type="submit" disabled={adding || !addEmail.trim()} style={S.btn(!adding && !!addEmail.trim())}>
-            {adding ? <><Spinner /> Adding…</> : 'Add member'}
+            {adding ? <><Spinner /> Sending…</> : 'Send invite'}
           </button>
           {addError && <p style={{ width: '100%', margin: 0, fontSize: 11, color: '#F43F5E' }}>{addError}</p>}
         </form>
+      )}
+
+      {/* Pending invitations — ADMIN only. They are not members yet. */}
+      {isAdmin && invites.length > 0 && (
+        <div style={{ borderBottom: '1px solid var(--border-strong)' }}>
+          <p style={{ ...S.sub, padding: '10px 20px 4px', margin: 0 }}>
+            Pending invitations ({invites.length}) — not members until accepted
+          </p>
+          {invites.map(inv => (
+            <div key={inv.id} style={{ ...S.row, opacity: .85 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {inv.email}
+                </div>
+                <div style={S.sub}>
+                  Invited as {inv.role} · expires {new Date(inv.expiresAt).toLocaleDateString()}
+                </div>
+              </div>
+              <button
+                onClick={() => handleRevoke(inv.id, inv.email)}
+                disabled={revoking === inv.id}
+                style={S.btn(revoking !== inv.id)}
+              >
+                {revoking === inv.id ? <><Spinner /> Revoking…</> : 'Revoke'}
+              </button>
+            </div>
+          ))}
+        </div>
       )}
 
       {loading ? (
@@ -245,13 +298,13 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#F1F5F9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {memberName(m)}
                     </span>
                     <span style={S.badge(m.role)}>{m.role}</span>
-                    {isSelf && <span style={{ fontSize: 10, color: '#64748B' }}>(you)</span>}
+                    {isSelf && <span style={{ fontSize: 10, color: 'var(--text-subtle)' }}>(you)</span>}
                   </div>
-                  <span style={{ fontSize: 11, color: '#64748B' }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-subtle)' }}>
                     {m.user.email}
                     {m.joinedAt && ` · joined ${new Date(m.joinedAt).toLocaleDateString()}`}
                   </span>

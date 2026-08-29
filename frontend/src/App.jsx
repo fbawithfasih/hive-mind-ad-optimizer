@@ -13,11 +13,12 @@ import ResetPasswordPage  from './pages/ResetPasswordPage.jsx';
 import OnboardingPage   from './pages/OnboardingPage.jsx';
 import BillingPage      from './pages/BillingPage.jsx';
 import SpApiOAuthError  from './pages/auth/spapi/error.jsx';
+import InvitePage       from './pages/InvitePage.jsx';
 
 function Spinner() {
   return (
-    <div style={{ minHeight: '100vh', background: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ color: '#475569', fontSize: 14 }}>Loading…</div>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-app-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ color: 'var(--border-med)', fontSize: 14 }}>Loading…</div>
     </div>
   );
 }
@@ -103,6 +104,9 @@ export default function App() {
       {/* SP-API OAuth error landing — public so the page renders even if the
           session cookie wasn't set yet during the OAuth round-trip. */}
       <Route path="/auth/spapi/error" element={<SpApiOAuthError />} />
+      {/* Invitation landing. Handles its own auth redirect — an invitee may not
+          be signed in, or may be signed in as the wrong account. */}
+      <Route path="/invite" element={<InvitePage />} />
 
       {/* ── Protected routes ───────────────────────────────────────── */}
       <Route path="/onboarding" element={
