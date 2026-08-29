@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { logoutApi, switchOrgApi, syncProfilesApi } from '../services/api.js';
 import { useTheme } from '../hooks/useTheme.jsx';
+import SupportContact from '../components/SupportContact.jsx';
 
 const Icon = ({ d, size = 18, stroke = 'currentColor', strokeWidth = 2 }) => (
   <svg width={size} height={size} fill="none" stroke={stroke} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
@@ -267,7 +268,7 @@ function ToolCard({ tool, onClick }) {
   );
 }
 
-function NavItem({ label, icon, to, active, external }) {
+function NavItem({ label, icon, to, active, external, onClick }) {
   const [hov, setHov] = useState(false);
   const style = {
     display: 'flex', alignItems: 'center', gap: 10,
@@ -282,6 +283,18 @@ function NavItem({ label, icon, to, active, external }) {
     boxShadow: active ? '0 0 20px rgba(167,139,250,0.1)' : 'none',
   };
   const inner = <><span style={{ color: 'inherit', display: 'flex' }}>{icon}</span>{label}</>;
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        style={{ ...style, width: '100%', fontFamily: 'inherit', textAlign: 'left' }}
+        onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      >
+        {inner}
+      </button>
+    );
+  }
   if (external) {
     const isMail = typeof to === 'string' && to.startsWith('mailto:');
     return (
@@ -332,6 +345,7 @@ function TrialBanner({ trialDaysLeft }) {
 }
 
 export default function HubPage({ user, onLogout }) {
+  const [supportOpen, setSupportOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { theme } = useTheme();
@@ -501,7 +515,7 @@ export default function HubPage({ user, onLogout }) {
           <p style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.14em', padding: '0 10px', marginBottom: 8 }}>
             Support
           </p>
-          <NavItem label="Email Support" icon={<EmailIcon />} to="mailto:info@hivemindnestor.com" external />
+          <NavItem label="Email Support" icon={<EmailIcon />} onClick={() => setSupportOpen(true)} />
           <NavItem label="Website"       icon={<GlobeIcon />} to="https://www.hivemindnestor.com" external />
         </nav>
 
@@ -745,7 +759,8 @@ export default function HubPage({ user, onLogout }) {
                 </p>
               </div>
             </div>
-            <a href="mailto:info@hivemindnestor.com" style={{
+            <button type="button" onClick={() => setSupportOpen(true)} style={{
+              border: 'none', cursor: 'pointer', fontFamily: 'inherit',
               padding: '12px 26px', borderRadius: 12, flexShrink: 0,
               background: 'linear-gradient(135deg, #F97316, var(--warning-3))',
               color: '#fff', fontSize: 13, fontWeight: 800,
@@ -754,11 +769,13 @@ export default function HubPage({ user, onLogout }) {
               letterSpacing: '0.01em',
             }}>
               Contact Support →
-            </a>
+            </button>
           </div>
 
         </div>
       </main>
+
+      <SupportContact open={supportOpen} onClose={() => setSupportOpen(false)} />
 
       <style>{`
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
