@@ -13,7 +13,9 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "lint:theme": "node scripts/lint-theme.mjs",
+    "lint:theme:self-test": "node scripts/lint-theme.mjs --self-test"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
