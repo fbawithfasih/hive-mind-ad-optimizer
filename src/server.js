@@ -9,6 +9,7 @@ import routes from './api/routes/index.js';
 import { razorpayWebhookHandler } from './api/routes/billing.js';
 import { correlationIdMiddleware, createLogger } from './api/utils/logger.js';
 import { prisma } from './db/prisma.js';
+import { livenessHandler, readinessHandler } from './api/readiness.js';
 import { runAsSystem } from './db/tenant-context.js';
 import { createReportingWorker, createBulkListingWorker, createTokenCleanupWorker, createAutomationWorker, createBrandAnalyticsFetchWorker, createAlertEvaluationWorker, createBillingReconcileWorker, tokenCleanupQueue, automationQueue, brandAnalyticsFetchQueue, alertEvaluationQueue, billingReconcileQueue, closeQueue } from './services/queue.js';
 import { reportingProcessor }    from './workers/reporting.worker.js';
@@ -84,10 +85,15 @@ app.use(correlationIdMiddleware); // Add correlation ID to all requests
 
 const logger = createLogger('SERVER');
 
-app.get('/health', (req, res) => {
-  logger.info('Health check requested');
-  res.json({ status: 'ok' });
-});
+// Liveness — the process is up. Dependency-free on purpose: if this failed on a
+// database blip, Railway would restart every instance instead of waiting for
+// Postgres to come back. Not logged; the platform polls it constantly.
+app.get('/health', livenessHandler);
+
+// Readiness — the process can actually serve. This is what railway.toml points
+// its healthcheck at, so a new deployment that cannot reach Postgres or Redis
+// never takes over from a working one.
+app.get('/ready', readinessHandler);
 
 app.use('/api', routes);
 
