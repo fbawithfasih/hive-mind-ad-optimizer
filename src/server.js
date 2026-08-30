@@ -7,7 +7,7 @@ import { dirname, join } from 'path';
 import { existsSync } from 'fs';
 import routes from './api/routes/index.js';
 import { razorpayWebhookHandler } from './api/routes/billing.js';
-import { correlationIdMiddleware, createLogger } from './api/utils/logger.js';
+import { correlationIdMiddleware, createLogger, runWithCorrelationId } from './api/utils/logger.js';
 import { prisma } from './db/prisma.js';
 import { livenessHandler, readinessHandler } from './api/readiness.js';
 import { runAsSystem } from './db/tenant-context.js';
@@ -141,7 +141,13 @@ const server = app.listen(PORT, () => {
 // Start BullMQ workers. Each job runs as trusted system code: workers span
 // organizations and pass explicit orgId in their queries, so the tenant guard
 // must not impose a single-org filter on them.
-const asSystem = (processor) => (job) => runAsSystem(() => processor(job));
+// Each job also gets its own correlation id. Background work previously logged
+// 'NO-ID' for every line, so a failed job's log lines could not be told apart
+// from any other job running at the same time. The id names the queue and job
+// so it is greppable straight from a dead-letter record.
+const asSystem = (processor) => (job) =>
+  runWithCorrelationId(`job:${job.queueName ?? 'unknown'}:${job.id ?? '?'}`,
+    () => runAsSystem(() => processor(job)));
 const reportingWorker    = createReportingWorker(asSystem(reportingProcessor));
 const bulkListingWorker  = createBulkListingWorker(asSystem(bulkListingProcessor));
 const tokenCleanupWorker = createTokenCleanupWorker(asSystem(tokenCleanupProcessor));
