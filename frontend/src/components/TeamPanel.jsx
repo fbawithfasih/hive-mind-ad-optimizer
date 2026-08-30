@@ -7,8 +7,8 @@ import {
 const ROLES = ['ADMIN', 'MEMBER', 'VIEWER'];
 
 const ROLE_COLOR = {
-  ADMIN:  'var(--accent-deep)',
-  MEMBER: 'var(--info-deep)',
+  ADMIN:  'var(--accent-soft)',
+  MEMBER: 'var(--info-2)',
   VIEWER: 'var(--text-muted)',
 };
 
@@ -327,7 +327,7 @@ export default function TeamPanel({ orgId, currentUserId, isAdmin }) {
                   <button
                     onClick={() => handleRemove(m.user.id, m.user.email)}
                     disabled={isRemoving}
-                    style={S.ghost('var(--rose)')}
+                    style={S.ghost('var(--danger-soft)')}
                   >
                     {isRemoving ? 'Removing…' : isSelf ? 'Leave' : 'Remove'}
                   </button>
