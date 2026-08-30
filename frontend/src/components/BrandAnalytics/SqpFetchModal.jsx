@@ -208,7 +208,7 @@ export default function SqpFetchModal({ onClose, onSubmitted }) {
                 fontSize: 12, fontWeight: 700, padding: '8px 18px', borderRadius: 8, border: 'none',
                 cursor: (submitting || selected.size === 0 || loading) ? 'not-allowed' : 'pointer',
                 background: (submitting || selected.size === 0 || loading) ? 'var(--overlay-5)' : COLORS.purple.gradient,
-                color: (submitting || selected.size === 0 || loading) ? 'var(--text-faint)' : '#fff',
+                color: (submitting || selected.size === 0 || loading) ? 'var(--text-muted)' : '#fff',
                 boxShadow: (selected.size > 0 && !submitting && !loading) ? `0 4px 16px ${COLORS.purple.glow}` : 'none',
               }}>
               {submitting ? <><Spinner size={11} /> Enqueuing…</> : 'Fetch SQP report'}
