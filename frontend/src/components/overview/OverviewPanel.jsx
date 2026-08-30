@@ -146,7 +146,7 @@ export default function OverviewPanel({
             label="Total Revenue"
             value={totalSales}
             format="currency"
-            accentColor="#14B8A6"
+            accentColor="var(--teal)"
             sparkData={salesHistory}
             loading={loadingSales && totalSales == null}
             sub={salesCurrency && salesCurrency !== 'USD' ? salesCurrency : 'Organic + Ads'}
@@ -199,7 +199,7 @@ export default function OverviewPanel({
             label="TACoS"
             value={metricsSummary.tacos}
             format="pct"
-            accentColor="#06B6D4"
+            accentColor="var(--cyan)"
             sparkData={tacosHistory}
             loading={loading}
             sub="Total ad cost"

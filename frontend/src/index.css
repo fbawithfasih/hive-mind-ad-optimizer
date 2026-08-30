@@ -94,6 +94,11 @@
   /* Amber deep enough to clear AA on its own light tint — plain --warning
      lands at 2.9-4.4:1 there. */
   --warning-deep:  #F59E0B;
+  /* Accents that only ever appeared as hex JSX props (color=, accentColor=),
+     so no `color:` scan ever saw them. */
+  --cyan:          #06B6D4;
+  --orange:        #F97316;
+  --sky:           #0EA5E9;
   /* Text on a warning-FILLED chip. This is the flip --text-invert described
      but got backwards; unlike that token, this one is actually used. */
   --on-warning:    #0F172A;
@@ -185,6 +190,9 @@ html.light {
   --acc-amber:     #C2410C;
 
   --warning-deep:  #92400E;
+  --cyan:          #0E7490;
+  --orange:        #C2410C;
+  --sky:           #0369A1;
   --on-warning:    #FFFFFF;
 
   /* Legacy tailwind aliases */

@@ -114,7 +114,7 @@ export default function TopBar({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <span>Search</span>
-          <kbd style={{ fontSize: 10, background: 'var(--overlay-7)', border: '1px solid var(--overlay-8)', borderRadius: 4, padding: '1px 4px', lineHeight: 1.4 }}>⌘K</kbd>
+          <kbd style={{ fontSize: 10, color: 'var(--text-muted)', background: 'var(--overlay-7)', border: '1px solid var(--overlay-8)', borderRadius: 4, padding: '1px 4px', lineHeight: 1.4 }}>⌘K</kbd>
         </button>
 
         {/* Live indicator */}
