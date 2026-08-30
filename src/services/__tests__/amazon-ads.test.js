@@ -3,21 +3,28 @@
  * Validates token refresh, caching, and error handling
  */
 
-import axios from 'axios';
+// The service calls the shared client in services/http.js, which exists to put a
+// timeout on every outbound request. That is the seam to mock: mocking 'axios'
+// directly would stub out http.create() and leave the shared instance undefined.
+jest.mock('../http.js', () => ({
+  http:          { get: jest.fn(), post: jest.fn() },
+  TIMEOUT_MS:    { api: 30000, token: 15000, download: 120000, llm: 120000 },
+  fetchWithTimeout: jest.fn(),
+  isTimeout:     jest.fn(() => false),
+}));
+
+import { http } from '../http.js';
 import { getProfiles, getCampaigns } from '../amazon-ads.js';
 import { invalidateTokenManager } from '../auth-utils.js';
-
-// Mock axios to avoid real API calls
-jest.mock('axios');
 
 describe('Amazon Ads API', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // mockReset (not just clearAllMocks) so persistent mockResolvedValue impls and
     // queued mock*Once values from a prior test don't leak into the next one —
-    // e.g. the "reuse cached token" test sets axios.get.mockResolvedValue(...).
-    axios.get.mockReset();
-    axios.post.mockReset();
+    // e.g. the "reuse cached token" test sets http.get.mockResolvedValue(...).
+    http.get.mockReset();
+    http.post.mockReset();
     // Clear the cached token so each test starts with a fresh token fetch.
     // The default client uses cacheKey 'ads:default' in the module-level registry.
     invalidateTokenManager('ads:default');
@@ -26,32 +33,32 @@ describe('Amazon Ads API', () => {
   describe('Token Refresh', () => {
     it('should fetch and cache access token', async () => {
       // Mock successful token response
-      axios.post.mockResolvedValueOnce({
+      http.post.mockResolvedValueOnce({
         data: {
           access_token: 'test-token-123',
           expires_in: 3600,
         },
       });
 
-      axios.get.mockResolvedValueOnce({
+      http.get.mockResolvedValueOnce({
         data: [{ id: 'profile-1', name: 'Test Profile' }],
       });
 
       // First call should fetch token
       const result = await getProfiles();
       expect(result).toBeDefined();
-      expect(axios.post).toHaveBeenCalledTimes(1);
+      expect(http.post).toHaveBeenCalledTimes(1);
     });
 
     it('should reuse cached token within expiry window', async () => {
-      axios.post.mockResolvedValueOnce({
+      http.post.mockResolvedValueOnce({
         data: {
           access_token: 'cached-token',
           expires_in: 3600,
         },
       });
 
-      axios.get.mockResolvedValue({
+      http.get.mockResolvedValue({
         data: [{ id: 'p1' }],
       });
 
@@ -60,11 +67,11 @@ describe('Amazon Ads API', () => {
       await getProfiles();
 
       // Token should only be fetched once (cached second time)
-      expect(axios.post).toHaveBeenCalledTimes(1);
+      expect(http.post).toHaveBeenCalledTimes(1);
     });
 
     it('should handle token refresh errors', async () => {
-      axios.post.mockRejectedValueOnce(new Error('Token endpoint down'));
+      http.post.mockRejectedValueOnce(new Error('Token endpoint down'));
 
       await expect(getProfiles()).rejects.toThrow('Token endpoint down');
     });
@@ -72,7 +79,7 @@ describe('Amazon Ads API', () => {
     it('should handle 401 unauthorized responses', async () => {
       const error = new Error('Unauthorized');
       error.response = { status: 401 };
-      axios.post.mockRejectedValueOnce(error);
+      http.post.mockRejectedValueOnce(error);
 
       await expect(getProfiles()).rejects.toThrow();
     });
@@ -80,7 +87,7 @@ describe('Amazon Ads API', () => {
     it('should handle 429 rate limit responses', async () => {
       const error = new Error('Rate Limited');
       error.response = { status: 429, headers: { 'retry-after': '60' } };
-      axios.post.mockRejectedValueOnce(error);
+      http.post.mockRejectedValueOnce(error);
 
       await expect(getProfiles()).rejects.toThrow();
     });
@@ -88,7 +95,7 @@ describe('Amazon Ads API', () => {
     it('should handle 503 service unavailable', async () => {
       const error = new Error('Service Unavailable');
       error.response = { status: 503 };
-      axios.post.mockRejectedValueOnce(error);
+      http.post.mockRejectedValueOnce(error);
 
       await expect(getProfiles()).rejects.toThrow();
     });
@@ -96,7 +103,7 @@ describe('Amazon Ads API', () => {
 
   describe('getProfiles', () => {
     it('should fetch profiles successfully', async () => {
-      axios.post.mockResolvedValueOnce({
+      http.post.mockResolvedValueOnce({
         data: {
           access_token: 'token',
           expires_in: 3600,
@@ -110,24 +117,24 @@ describe('Amazon Ads API', () => {
         { profileId: 2, countryCode: 'CA', accountInfo: { name: 'Profile 2', type: 'seller' } },
       ];
 
-      axios.get
+      http.get
         .mockResolvedValueOnce({ data: mockProfiles }) // NA
         .mockResolvedValue({ data: [] });               // EU, FE
 
       const result = await getProfiles();
       expect(result).toEqual(mockProfiles);
-      expect(axios.get).toHaveBeenCalledWith(
+      expect(http.get).toHaveBeenCalledWith(
         'https://advertising-api.amazon.com/v2/profiles',
         expect.any(Object)
       );
     });
 
     it('should handle empty profile list', async () => {
-      axios.post.mockResolvedValueOnce({
+      http.post.mockResolvedValueOnce({
         data: { access_token: 'token', expires_in: 3600 },
       });
 
-      axios.get.mockResolvedValueOnce({
+      http.get.mockResolvedValueOnce({
         data: [],
       });
 
@@ -136,17 +143,17 @@ describe('Amazon Ads API', () => {
     });
 
     it('should pass correct authorization headers', async () => {
-      axios.post.mockResolvedValueOnce({
+      http.post.mockResolvedValueOnce({
         data: { access_token: 'test-token', expires_in: 3600 },
       });
 
-      axios.get.mockResolvedValueOnce({
+      http.get.mockResolvedValueOnce({
         data: [],
       });
 
       await getProfiles();
 
-      const getCall = axios.get.mock.calls[0];
+      const getCall = http.get.mock.calls[0];
       expect(getCall[1].headers).toHaveProperty('Authorization');
       expect(getCall[1].headers.Authorization).toMatch(/^Bearer test-token/);
     });
@@ -154,11 +161,11 @@ describe('Amazon Ads API', () => {
 
   describe('getCampaigns', () => {
     it('should fetch campaigns for profile and normalize v3 shape', async () => {
-      axios.post.mockResolvedValueOnce({
+      http.post.mockResolvedValueOnce({
         data: { access_token: 'token', expires_in: 3600 },
       });
 
-      axios.post.mockResolvedValueOnce({
+      http.post.mockResolvedValueOnce({
         data: {
           campaigns: [
             { campaignId: 'c1', name: 'Campaign 1', state: 'ENABLED',
@@ -183,16 +190,16 @@ describe('Amazon Ads API', () => {
     });
 
     it('should follow nextToken pagination', async () => {
-      axios.post.mockResolvedValueOnce({
+      http.post.mockResolvedValueOnce({
         data: { access_token: 'token', expires_in: 3600 },
       });
-      axios.post.mockResolvedValueOnce({
+      http.post.mockResolvedValueOnce({
         data: {
           campaigns: [{ campaignId: 'c1', name: 'A', state: 'ENABLED', budget: { budget: 1 } }],
           nextToken: 'page2',
         },
       });
-      axios.post.mockResolvedValueOnce({
+      http.post.mockResolvedValueOnce({
         data: {
           campaigns: [{ campaignId: 'c2', name: 'B', state: 'ENABLED', budget: { budget: 2 } }],
         },
@@ -203,7 +210,7 @@ describe('Amazon Ads API', () => {
       expect(result.map(c => c.campaignId)).toEqual(['c1', 'c2']);
 
       // First post is the token refresh; subsequent posts are the v3 list calls.
-      const listCalls = axios.post.mock.calls.filter(([url]) =>
+      const listCalls = http.post.mock.calls.filter(([url]) =>
         url === 'https://advertising-api.amazon.com/sp/campaigns/list'
       );
       expect(listCalls).toHaveLength(2);
@@ -212,14 +219,14 @@ describe('Amazon Ads API', () => {
     });
 
     it('should include profile scope and v3 headers', async () => {
-      axios.post.mockResolvedValueOnce({
+      http.post.mockResolvedValueOnce({
         data: { access_token: 'token', expires_in: 3600 },
       });
-      axios.post.mockResolvedValueOnce({ data: { campaigns: [] } });
+      http.post.mockResolvedValueOnce({ data: { campaigns: [] } });
 
       await getCampaigns('profile-456');
 
-      const listCall = axios.post.mock.calls.find(([url]) =>
+      const listCall = http.post.mock.calls.find(([url]) =>
         url === 'https://advertising-api.amazon.com/sp/campaigns/list'
       );
       expect(listCall[2].headers['Amazon-Advertising-API-Scope']).toBe('profile-456');
@@ -228,13 +235,13 @@ describe('Amazon Ads API', () => {
     });
 
     it('should propagate v3 endpoint errors', async () => {
-      axios.post.mockResolvedValueOnce({
+      http.post.mockResolvedValueOnce({
         data: { access_token: 'token', expires_in: 3600 },
       });
 
       const error = new Error('Not Found');
       error.response = { status: 404 };
-      axios.post.mockRejectedValueOnce(error);
+      http.post.mockRejectedValueOnce(error);
 
       await expect(getCampaigns('profile-123')).rejects.toThrow();
     });
@@ -242,30 +249,30 @@ describe('Amazon Ads API', () => {
 
   describe('Error Handling', () => {
     it('should handle network timeouts', async () => {
-      axios.post.mockRejectedValueOnce(new Error('ETIMEDOUT'));
+      http.post.mockRejectedValueOnce(new Error('ETIMEDOUT'));
       await expect(getProfiles()).rejects.toThrow();
     });
 
     it('should handle connection refused', async () => {
-      axios.post.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+      http.post.mockRejectedValueOnce(new Error('ECONNREFUSED'));
       await expect(getProfiles()).rejects.toThrow();
     });
 
     it('should preserve error messages', async () => {
       const originalError = new Error('Custom API error message');
-      axios.post.mockRejectedValueOnce(originalError);
+      http.post.mockRejectedValueOnce(originalError);
 
       await expect(getProfiles()).rejects.toThrow('Custom API error message');
     });
 
     it('is resilient when a region returns a malformed/failed response', async () => {
-      axios.post.mockResolvedValueOnce({
+      http.post.mockResolvedValueOnce({
         data: { access_token: 'token', expires_in: 3600 },
       });
 
       // NA succeeds; the other regions fail — getProfiles tolerates per-region
       // failures and still returns the regions that worked (never throws here).
-      axios.get
+      http.get
         .mockResolvedValueOnce({ data: [{ profileId: 1, countryCode: 'US' }] })
         .mockRejectedValue(new SyntaxError('Unexpected token <'));
 

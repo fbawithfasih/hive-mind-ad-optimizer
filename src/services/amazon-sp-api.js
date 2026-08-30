@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { http, TIMEOUT_MS } from './http.js';
 import dotenv from 'dotenv';
 import { gunzipSync } from 'zlib';
 import { getOrCreateTokenManager } from './auth-utils.js';
@@ -160,7 +160,7 @@ export function createSpApiClient({
     console.log(`Fetching SP-API listing for SKU ${sku}…`);
 
     try {
-      const res = await axios.get(
+      const res = await http.get(
         `${SP_BASE}/listings/2021-08-01/items/${sellerId}/${encodeURIComponent(sku)}`,
         {
           params:  { marketplaceIds: marketplaceId, includedData: 'attributes,summaries' },
@@ -188,7 +188,7 @@ export function createSpApiClient({
 
     // First try: seller's own listings by ASIN (works with Product Listing role)
     try {
-      const res = await axios.get(
+      const res = await http.get(
         `${SP_BASE}/listings/2021-08-01/items/${sellerId}`,
         {
           params: {
@@ -213,7 +213,7 @@ export function createSpApiClient({
 
     // Second try: Catalog Items API (requires Catalog Items role)
     try {
-      const res = await axios.get(
+      const res = await http.get(
         `${SP_BASE}/catalog/2022-04-01/items/${asin}`,
         {
           params:  { marketplaceIds: marketplaceId, includedData: 'attributes,summaries,images' },
@@ -275,7 +275,7 @@ export function createSpApiClient({
     if (!patches.length) throw new Error('Nothing to update — title, bullets, description, and generic keyword are all empty');
 
     console.log(`PATCH listing SKU ${sku} (productType: ${productType}, ${patches.length} fields)…`);
-    const res = await axios.patch(
+    const res = await http.patch(
       `${SP_BASE}/listings/2021-08-01/items/${sellerId}/${encodeURIComponent(sku)}`,
       { productType, patches },
       {
@@ -298,7 +298,7 @@ export function createSpApiClient({
     console.log(`Fetching productType for ASIN ${asin}…`);
 
     try {
-      const res = await axios.get(
+      const res = await http.get(
         `${SP_BASE}/catalog/2022-04-01/items/${asin}`,
         {
           params:  { marketplaceIds: marketplaceId },
@@ -336,7 +336,7 @@ export function createSpApiClient({
     };
 
     try {
-      const res = await axios.post(`${SP_BASE}/reports/2021-06-30/reports`, body, {
+      const res = await http.post(`${SP_BASE}/reports/2021-06-30/reports`, body, {
         headers: spHeaders(token),
       });
       console.log(`✅ Sales & Traffic report created: ${res.data.reportId} (${startDate} → ${endDate})`);
@@ -359,7 +359,7 @@ export function createSpApiClient({
 
     let report;
     try {
-      const r = await axios.get(`${SP_BASE}/reports/2021-06-30/reports/${reportId}`, {
+      const r = await http.get(`${SP_BASE}/reports/2021-06-30/reports/${reportId}`, {
         headers: spHeaders(token),
       });
       report = r.data;
@@ -376,7 +376,7 @@ export function createSpApiClient({
     // DONE — fetch the document
     let doc;
     try {
-      const d = await axios.get(`${SP_BASE}/reports/2021-06-30/documents/${report.reportDocumentId}`, {
+      const d = await http.get(`${SP_BASE}/reports/2021-06-30/documents/${report.reportDocumentId}`, {
         headers: spHeaders(token),
       });
       doc = d.data;
@@ -387,7 +387,7 @@ export function createSpApiClient({
 
     let payload;
     try {
-      const dl = await axios.get(doc.url, { responseType: 'arraybuffer' });
+      const dl = await http.get(doc.url, { responseType: 'arraybuffer', timeout: TIMEOUT_MS.download });
       const buf = Buffer.from(dl.data);
       const text = doc.compressionAlgorithm === 'GZIP' ? gunzipSync(buf).toString() : buf.toString();
       payload = JSON.parse(text);
@@ -427,7 +427,7 @@ export function createSpApiClient({
     for (let i = 0; i < unique.length; i += CHUNK) {
       const batch = unique.slice(i, i + CHUNK);
       try {
-        const res = await axios.get(`${SP_BASE}/catalog/2022-04-01/items`, {
+        const res = await http.get(`${SP_BASE}/catalog/2022-04-01/items`, {
           params: {
             marketplaceIds:  marketplaceId,
             identifiers:     batch.join(','),

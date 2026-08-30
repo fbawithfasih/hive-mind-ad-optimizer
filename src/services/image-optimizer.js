@@ -9,6 +9,8 @@
 //
 // Both providers are reused from existing env vars — no new keys required.
 
+import { fetchWithTimeout, TIMEOUT_MS } from './http.js';
+
 const GEMINI_API_KEY    = process.env.GOOGLE_AI_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY    = process.env.OPENAI_API_KEY;
@@ -60,7 +62,7 @@ async function callClaudeJson(userPrompt, { referenceImageBase64, referenceMimeT
   }
   content.push({ type: 'text', text: userPrompt });
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -73,7 +75,7 @@ async function callClaudeJson(userPrompt, { referenceImageBase64, referenceMimeT
       system: PROMPT_SYSTEM_PROMPT,
       messages: [{ role: 'user', content }],
     }),
-  });
+  }, TIMEOUT_MS.llm);
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(`Claude API error ${res.status}: ${err?.error?.message ?? res.statusText}`);
@@ -167,14 +169,14 @@ export async function generateMainImage({ prompt, negativePrompt, referenceImage
   // until one accepts the request. Anything else is a real error.
   let json, lastErr;
   for (const model of GEMINI_IMAGE_MODELS) {
-    const res = await fetch(geminiImageUrl(model), {
+    const res = await fetchWithTimeout(geminiImageUrl(model), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         contents:          [{ parts }],
         generationConfig:  { responseModalities: ['IMAGE'] },
       }),
-    });
+    }, TIMEOUT_MS.llm);
     if (res.ok) { json = await res.json(); break; }
     const err = await res.json().catch(() => ({}));
     const msg = err?.error?.message ?? res.statusText;
@@ -233,9 +235,9 @@ export async function generateMainImageOpenAI({ prompt, negativePrompt, referenc
     const blob  = new Blob([bytes], { type: referenceMimeType || 'image/jpeg' });
     const ext   = (referenceMimeType || 'image/jpeg').split('/')[1] || 'jpg';
     form.append('image', blob, `reference.${ext}`);
-    res = await fetch('https://api.openai.com/v1/images/edits', { method: 'POST', headers, body: form });
+    res = await fetchWithTimeout('https://api.openai.com/v1/images/edits', { method: 'POST', headers, body: form }, TIMEOUT_MS.llm);
   } else {
-    res = await fetch('https://api.openai.com/v1/images/generations', {
+    res = await fetchWithTimeout('https://api.openai.com/v1/images/generations', {
       method:  'POST',
       headers: { ...headers, 'content-type': 'application/json' },
       body:    JSON.stringify({
@@ -245,7 +247,7 @@ export async function generateMainImageOpenAI({ prompt, negativePrompt, referenc
         n: 1,
         background: 'opaque',
       }),
-    });
+    }, TIMEOUT_MS.llm);
   }
 
   if (!res.ok) {

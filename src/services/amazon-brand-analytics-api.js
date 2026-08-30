@@ -10,7 +10,7 @@
  * refresh logic.
  */
 
-import axios from 'axios';
+import { http, TIMEOUT_MS } from './http.js';
 import { gunzipSync, createGunzip } from 'zlib';
 import jsonParser from 'stream-json';
 import streamArrayMod from 'stream-json/streamers/stream-array.js';
@@ -172,7 +172,7 @@ export function createBrandAnalyticsClient({
       reportOptions,
     };
 
-    const res = await axios.post(`${SP_BASE}/reports/2021-06-30/reports`, body, {
+    const res = await http.post(`${SP_BASE}/reports/2021-06-30/reports`, body, {
       headers: headers(token),
     });
     return res.data.reportId;
@@ -186,7 +186,7 @@ export function createBrandAnalyticsClient({
    */
   async function getReportStatus(reportId) {
     const token = await getToken();
-    const r = await axios.get(`${SP_BASE}/reports/2021-06-30/reports/${reportId}`, {
+    const r = await http.get(`${SP_BASE}/reports/2021-06-30/reports/${reportId}`, {
       headers: headers(token),
     });
     const ps = r.data.processingStatus;
@@ -209,7 +209,7 @@ export function createBrandAnalyticsClient({
    */
   async function downloadReport(reportDocumentId, logicalType, { raw = false } = {}) {
     const token = await getToken();
-    const d = await axios.get(`${SP_BASE}/reports/2021-06-30/documents/${reportDocumentId}`, {
+    const d = await http.get(`${SP_BASE}/reports/2021-06-30/documents/${reportDocumentId}`, {
       headers: headers(token),
     });
 
@@ -226,7 +226,7 @@ export function createBrandAnalyticsClient({
 
     // Buffer path — fine for Catalog/SQP/Repeat-Purchase/Market-Basket whose
     // payloads stay well under the V8 string limit.
-    const dl = await axios.get(d.data.url, { responseType: 'arraybuffer' });
+    const dl = await http.get(d.data.url, { responseType: 'arraybuffer', timeout: TIMEOUT_MS.download });
     const buf = Buffer.from(dl.data);
     const text = isGzip ? gunzipSync(buf).toString() : buf.toString();
     const payload = JSON.parse(text);
@@ -263,7 +263,7 @@ const TOP_LEVEL_ARRAY_KEY = {
 const STREAM_ROW_CAP = 100_000;
 
 async function streamAndNormalise(url, isGzip, arrayKey, logicalType) {
-  const response = await axios.get(url, { responseType: 'stream' });
+  const response = await http.get(url, { responseType: 'stream' });
   const rowNormaliser = STREAM_ROW_NORMALISERS[logicalType];
   if (!rowNormaliser) {
     throw new Error(`No streaming row normaliser registered for ${logicalType}`);

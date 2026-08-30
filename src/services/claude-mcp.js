@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { fetchWithTimeout, TIMEOUT_MS } from './http.js';
 
 dotenv.config({ override: true });
 
@@ -55,11 +56,11 @@ async function callGemini(userCommand, conversationHistory = [], systemPrompt = 
     generationConfig: { maxOutputTokens: 4096, ...generationConfigOverrides },
   };
 
-  const res = await fetch(GEMINI_URL, {
+  const res = await fetchWithTimeout(GEMINI_URL, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
-  });
+  }, TIMEOUT_MS.llm);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -85,7 +86,7 @@ async function callClaude(userCommand, conversationHistory = [], systemPrompt = 
     messages,
   };
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -93,7 +94,7 @@ async function callClaude(userCommand, conversationHistory = [], systemPrompt = 
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify(body),
-  });
+  }, TIMEOUT_MS.llm);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

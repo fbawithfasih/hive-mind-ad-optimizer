@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { http, TIMEOUT_MS } from './http.js';
 import { gunzipSync } from 'zlib';
 import dotenv from 'dotenv';
 import { getOrCreateTokenManager } from './auth-utils.js';
@@ -87,7 +87,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     const token = await getAccessToken();
     const results = await Promise.all(ADS_REGIONS.map(async ({ name, host }) => {
       try {
-        const res = await axios.get(`${host}/v2/profiles`, { headers: adsHeaders(token) });
+        const res = await http.get(`${host}/v2/profiles`, { headers: adsHeaders(token) });
         const list = Array.isArray(res.data) ? res.data : [];
         console.log(`✅ Fetched ${list.length} profiles from ${name}`);
         return list;
@@ -132,7 +132,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     let nextToken;
     do {
       const body = { maxResults: 100, ...(nextToken ? { nextToken } : {}) };
-      const res = await axios.post(
+      const res = await http.post(
         `${hostFor(profileId)}/sp/campaigns/list`,
         body,
         { headers },
@@ -182,7 +182,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
           [filterKey]: { include: [filterVal] },
           ...(nextToken ? { nextToken } : {}),
         };
-        const res = await axios.post(
+        const res = await http.post(
           `${hostFor(profileId)}/sp/productAds/list`,
           body,
           { headers },
@@ -210,7 +210,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     console.log(`Creating SP metrics report for profile ${profileId} (${startDate} → ${endDate})…`);
     let createRes;
     try {
-      createRes = await axios.post(
+      createRes = await http.post(
         `${hostFor(profileId)}/reporting/reports`,
         {
           name: `SP Campaign Metrics ${Date.now()}`,
@@ -265,7 +265,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
 
     let poll;
     try {
-      poll = await axios.get(`${hostFor(profileId)}/reporting/reports/${reportId}`, { headers: h });
+      poll = await http.get(`${hostFor(profileId)}/reporting/reports/${reportId}`, { headers: h });
     } catch (e) {
       throw new Error(`Poll failed ${e.response?.status}: ${JSON.stringify(e.response?.data)}`);
     }
@@ -274,7 +274,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     console.log(`  Report ${reportId} status: ${status}`);
 
     if (status === 'COMPLETED') {
-      const dlRes = await axios.get(url, { responseType: 'arraybuffer' });
+      const dlRes = await http.get(url, { responseType: 'arraybuffer', timeout: TIMEOUT_MS.download });
       const data  = JSON.parse(gunzipSync(Buffer.from(dlRes.data)).toString());
       console.log(`✅ Report downloaded — ${data.length} SP campaign records`);
       return { status: 'COMPLETED', data };
@@ -322,7 +322,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
 
     let createRes;
     try {
-      createRes = await axios.post(
+      createRes = await http.post(
         `${hostFor(profileId)}/reporting/reports`,
         { name: `SP Search Term Report ${Date.now()}`, startDate, endDate, configuration: reportConfig },
         {
@@ -358,7 +358,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
 
     let poll;
     try {
-      poll = await axios.get(`${hostFor(profileId)}/reporting/reports/${reportId}`, { headers: h });
+      poll = await http.get(`${hostFor(profileId)}/reporting/reports/${reportId}`, { headers: h });
     } catch (e) {
       throw new Error(`Search term poll failed ${e.response?.status}: ${JSON.stringify(e.response?.data)}`);
     }
@@ -367,7 +367,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     console.log(`ST report ${reportId} status: ${status}`);
 
     if (status === 'COMPLETED') {
-      const dlRes = await axios.get(url, { responseType: 'arraybuffer' });
+      const dlRes = await http.get(url, { responseType: 'arraybuffer', timeout: TIMEOUT_MS.download });
       let records = JSON.parse(gunzipSync(Buffer.from(dlRes.data)).toString());
       console.log(`✅ Search term report downloaded — ${records.length} records`);
       if (campaignIds.length > 0) {
@@ -444,7 +444,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
       return patch;
     });
 
-    const res = await axios.put(
+    const res = await http.put(
       `${hostFor(profileId)}/v2/campaigns`,
       body,
       { headers: adsHeaders(token, profileId) }
@@ -467,7 +467,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
       keywordText: k.keywordText,
       matchType:   k.matchType ?? 'negativePhrase',
     }));
-    const res = await axios.post(
+    const res = await http.post(
       `${hostFor(profileId)}/v2/sp/negativeKeywords`,
       body,
       { headers: adsHeaders(token, profileId) }
@@ -491,7 +491,7 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
       matchType:   k.matchType ?? 'exact',
       bid:         k.bid ?? 0.75,
     }));
-    const res = await axios.post(
+    const res = await http.post(
       `${hostFor(profileId)}/v2/sp/keywords`,
       body,
       { headers: adsHeaders(token, profileId) }
