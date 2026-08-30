@@ -23,24 +23,30 @@ if (dsn) {
     // and the quota is better spent on exceptions than on span volume.
     tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0.05),
 
-    // Default in v8+, but stated explicitly: this app handles seller emails,
-    // Amazon refresh tokens and payment identifiers. None of it belongs in an
-    // error tracker, and a default is easier to change by accident than a line.
-    sendDefaultPii: false,
+    // Every one of these defaults to ON. sendDefaultPii is deprecated as of
+    // 10.57 in favour of this, so it is set explicitly rather than relied upon.
+    //
+    // stackFrameVariables is the one that matters most here. It captures local
+    // variable values in stack frames, and services/auth-utils.js holds
+    // clientSecret and refreshToken as locals around a call that can throw — a
+    // failed Amazon token refresh would ship those to a third party.
+    dataCollection: {
+      userInfo:            false,  // seller emails, ids, IP addresses
+      cookies:             false,  // the hmn_token session cookie
+      httpHeaders:         { request: false, response: false },
+      httpBodies:          [],     // Razorpay signatures, credentials, base64 photos
+      urlQueryParams:      false,  // claim tokens and OAuth codes ride in query strings
+      stackFrameVariables: false,
+    },
 
     beforeSend(event) {
-      // Belt and braces over sendDefaultPii. Request bodies and headers are the
-      // realistic leak path: /api/billing carries Razorpay signatures,
-      // /api/credentials carries Amazon refresh tokens, and image-optimizer
-      // posts multi-megabyte base64 photos that would be useless noise anyway.
+      // Redundant while dataCollection is honoured, kept as a floor: if the SDK
+      // is ever downgraded below 10.57 that option silently stops applying,
+      // whereas this keeps working.
       if (event.request) {
         delete event.request.data;
         delete event.request.cookies;
-        if (event.request.headers) {
-          for (const h of ['authorization', 'cookie', 'x-razorpay-signature', 'x-marketing-secret']) {
-            delete event.request.headers[h];
-          }
-        }
+        delete event.request.headers;
       }
       return event;
     },

@@ -20,20 +20,20 @@ export function initObservability() {
     environment: import.meta.env.MODE,
     // No tracesSampleRate / replaysSessionSampleRate: both add weight and neither
     // answers the question above.
-    sendDefaultPii: false,
 
-    beforeSend(event) {
-      // The app puts the Amazon profile id and org id in query strings, and a
-      // claim token appears in the signup URL. None of it belongs in an error
-      // tracker, and a URL is the easiest thing to leak by accident.
-      if (event.request?.url) {
-        try {
-          const u = new URL(event.request.url);
-          for (const key of ['token', 'claimToken', 'code', 'state']) u.searchParams.delete(key);
-          event.request.url = u.toString();
-        } catch { /* leave it alone if it will not parse */ }
-      }
-      return event;
+    // All of these default to ON. sendDefaultPii is deprecated as of 10.57 in
+    // favour of dataCollection, so it is set explicitly rather than relied upon.
+    // urlQueryParams matters here in particular: the verification link, the
+    // password-reset link and the marketing claim-signup all carry a token in
+    // the query string, and those are exactly the URLs a user is on when
+    // something goes wrong.
+    dataCollection: {
+      userInfo:            false,
+      cookies:             false,
+      httpHeaders:         { request: false, response: false },
+      httpBodies:          [],
+      urlQueryParams:      false,
+      stackFrameVariables: false,
     },
   });
   return true;
