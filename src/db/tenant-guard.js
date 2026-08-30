@@ -65,13 +65,83 @@ function delegateKey(model) {
   return model.charAt(0).toLowerCase() + model.slice(1);
 }
 
+// ─── Instrumentation for the warn → strict migration ────────────────────────
+//
+// In warn mode an unscoped query passes through, so the isolation guarantee is
+// advisory. Flipping to strict blind risks converting a silent gap into a
+// visible outage, so this records what actually happens: if the counter stays
+// at zero under real traffic, strict is safe.
+//
+// Per-process and reset by every deploy — deliberately so. It answers "has this
+// build, on this instance, seen an unscoped query", which is the question that
+// matters before flipping.
+
+/** Bounded so a hot unscoped path cannot grow this without limit. */
+const MAX_TRACKED_SITES = 50;
+const unscopedSites = new Map(); // "Model.operation" → { count, firstSeen, lastSeen, from }
+
+/** The first few application frames — enough to find the caller, not a novel. */
+function callSite() {
+  const raw = new Error().stack?.split('\n').slice(1) ?? [];
+  return raw
+    .filter(l => l.includes('/src/') && !l.includes('/src/db/tenant-guard.js'))
+    .slice(0, 3)
+    .map(l => l.trim().replace(/^at\s+/, ''));
+}
+
+function recordUnscoped(model, operation) {
+  const key = `${model}.${operation}`;
+  const now = new Date().toISOString();
+  let entry = unscopedSites.get(key);
+  if (!entry) {
+    if (unscopedSites.size >= MAX_TRACKED_SITES) return null;
+    entry = { count: 0, firstSeen: now, lastSeen: now, from: callSite() };
+    unscopedSites.set(key, entry);
+  }
+  entry.count += 1;
+  entry.lastSeen = now;
+  return entry;
+}
+
+/**
+ * Snapshot of unscoped tenant-model access since this process started.
+ * `total: 0` means every query ran inside runWithTenant or runAsSystem, and
+ * TENANT_GUARD_MODE=strict can be set without changing behaviour.
+ */
+export function tenantGuardStats() {
+  let total = 0;
+  for (const e of unscopedSites.values()) total += e.count;
+  return {
+    mode:     guardMode(),
+    total,
+    distinct: unscopedSites.size,
+    truncated: unscopedSites.size >= MAX_TRACKED_SITES,
+    sites: Object.fromEntries([...unscopedSites.entries()].map(([k, v]) => [k, v])),
+  };
+}
+
+/** Test seam. */
+export function resetTenantGuardStats() {
+  unscopedSites.clear();
+}
+
 /** Handle the "tenant-scoped query ran with no org context" case. */
 function handleNoContext(model, operation) {
   const msg = `${model}.${operation} ran with no tenant context`;
   if (guardMode() === 'strict') {
     throw new Error(`[tenant-guard] ${msg} (wrap in runWithTenant or runAsSystem)`);
   }
-  logger.warn(`${msg} — passing through (set TENANT_GUARD_MODE=strict to enforce)`);
+
+  const entry = recordUnscoped(model, operation);
+  // Log the first occurrence of each call site in full, then taper. A hot
+  // unscoped path would otherwise bury every other line in the log.
+  const n = entry?.count ?? 0;
+  if (n === 1 || n % 100 === 0) {
+    logger.warn(
+      `${msg} — passing through (occurrence ${n}; set TENANT_GUARD_MODE=strict to enforce)`,
+      { from: entry?.from },
+    );
+  }
 }
 
 /**
