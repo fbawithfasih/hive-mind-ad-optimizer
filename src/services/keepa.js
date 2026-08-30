@@ -18,7 +18,7 @@
  * Convert: unixMs = (keepaMinutes + 21564000) * 60000
  */
 
-import axios from 'axios';
+import { http } from './http.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -121,7 +121,7 @@ async function waitForTokens(required = 1) {
 }
 
 export async function getTokenStatus() {
-  const response = await axios.get(`${BASE_URL}/token`, {
+  const response = await http.get(`${BASE_URL}/token`, {
     params: { key: KEEPA_API_KEY }
   });
   return {
@@ -270,7 +270,7 @@ export async function getProducts(asins, options = {}) {
     await waitForTokens(chunk.length * (buybox ? 3 : 1));
 
     try {
-      const response = await axios.get(`${BASE_URL}/product`, {
+      const response = await http.get(`${BASE_URL}/product`, {
         params: {
           key: KEEPA_API_KEY,
           domain,
@@ -549,7 +549,7 @@ export async function findProducts(criteria = {}) {
   await waitForTokens(2); // Product finder costs more tokens
 
   try {
-    const response = await axios.get(`${BASE_URL}/query`, {
+    const response = await http.get(`${BASE_URL}/query`, {
       params: {
         key: KEEPA_API_KEY,
         domain: criteria.domain || DOMAIN.US,
@@ -588,7 +588,7 @@ export async function getBestSellers(categoryId, domain = DOMAIN.US) {
   await waitForTokens(1);
 
   try {
-    const response = await axios.get(`${BASE_URL}/bestsellers`, {
+    const response = await http.get(`${BASE_URL}/bestsellers`, {
       params: {
         key: KEEPA_API_KEY,
         domain,
@@ -616,7 +616,7 @@ export async function getBestSellers(categoryId, domain = DOMAIN.US) {
  */
 export async function searchCategory(query, domain = DOMAIN.US) {
   try {
-    const response = await axios.get(`${BASE_URL}/search`, {
+    const response = await http.get(`${BASE_URL}/search`, {
       params: {
         key: KEEPA_API_KEY,
         domain,

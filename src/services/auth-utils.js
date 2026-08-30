@@ -3,7 +3,7 @@
  * Eliminates duplicate code between amazon-ads.js and amazon-sp-api.js
  */
 
-import axios from 'axios';
+import { http, TIMEOUT_MS } from './http.js';
 
 /**
  * Create a token manager for an Amazon API service.
@@ -38,7 +38,7 @@ export function createTokenManager(clientId, clientSecret, refreshToken, logPref
 
       refreshPromise = (async () => {
         try {
-          const response = await axios.post(
+          const response = await http.post(
             'https://api.amazon.com/auth/o2/token',
             new URLSearchParams({
               grant_type: 'refresh_token',
@@ -46,7 +46,12 @@ export function createTokenManager(clientId, clientSecret, refreshToken, logPref
               client_id: clientId,
               client_secret: clientSecret,
             }),
-            { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+            {
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              // Shorter than the default: this sits on the critical path of every
+              // authenticated request, so it should fail fast rather than hold one open.
+              timeout: TIMEOUT_MS.token,
+            }
           );
 
           cachedToken = response.data.access_token;
