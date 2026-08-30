@@ -43,7 +43,7 @@ export default function AdsNotConnectedBanner() {
             background: 'linear-gradient(90deg, var(--warning), #D97706)',
             // Deliberately literal, not a token: the amber gradient behind this
             // text is fixed, so the text must stay dark in both themes. Any
-            // theme-flipping token here (--bg-app-2, --text-invert) turns white
+            // theme-flipping token here (e.g. --bg-app-2) turns white
             // in light mode and drops contrast on amber to ~2:1.
             color: '#0F172A',
             fontWeight: 700,
