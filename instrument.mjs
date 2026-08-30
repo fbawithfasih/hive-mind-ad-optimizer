@@ -19,9 +19,11 @@ if (dsn) {
     environment: process.env.NODE_ENV ?? 'development',
     release: process.env.RAILWAY_GIT_COMMIT_SHA ?? process.env.BUILD_VERSION ?? undefined,
 
-    // Errors are the point. Traces are sampled thinly — this is a small service
-    // and the quota is better spent on exceptions than on span volume.
-    tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0.05),
+    // Sentry's recommended default: everything in development, sampled in
+    // production. Overridable without a deploy if the volume turns out wrong.
+    tracesSampleRate: Number(
+      process.env.SENTRY_TRACES_SAMPLE_RATE ?? (process.env.NODE_ENV === 'development' ? 1.0 : 0.1)
+    ),
 
     // Every one of these defaults to ON. sendDefaultPii is deprecated as of
     // 10.57 in favour of this, so it is set explicitly rather than relied upon.
