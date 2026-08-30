@@ -28,7 +28,7 @@ const TOOLS = [
     glow: 'rgba(255,107,53,0.45)',
     bg: 'rgba(255,107,53,0.12)',
     border: 'rgba(255,107,53,0.35)',
-    color: '#FF8C5A',
+    color: 'var(--acc-orange)',
     icon: <Icon d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" size={22} />,
   },
   {
@@ -48,7 +48,7 @@ const TOOLS = [
     glow: 'rgba(218,34,255,0.40)',
     bg: 'rgba(218,34,255,0.10)',
     border: 'rgba(218,34,255,0.32)',
-    color: '#E879F9',
+    color: 'var(--acc-fuchsia)',
     icon: <Icon d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" size={22} />,
   },
   {
@@ -78,7 +78,7 @@ const TOOLS = [
     glow: 'rgba(0,201,255,0.40)',
     bg: 'rgba(0,201,255,0.10)',
     border: 'rgba(0,201,255,0.32)',
-    color: '#22D3EE',
+    color: 'var(--acc-cyan)',
     icon: <Icon d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" size={22} />,
   },
   {
@@ -108,7 +108,7 @@ const TOOLS = [
     glow: 'rgba(249,83,198,0.42)',
     bg: 'rgba(249,83,198,0.10)',
     border: 'rgba(249,83,198,0.32)',
-    color: '#F472B6',
+    color: 'var(--acc-pink)',
     icon: <Icon d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" size={22} />,
   },
   {
@@ -128,7 +128,7 @@ const TOOLS = [
     glow: 'rgba(71,118,230,0.42)',
     bg: 'rgba(71,118,230,0.10)',
     border: 'rgba(71,118,230,0.32)',
-    color: '#818CF8',
+    color: 'var(--acc-indigo)',
     icon: <Icon d="M13 10V3L4 14h7v7l9-11h-7z" size={22} />,
   },
   {
@@ -148,7 +148,7 @@ const TOOLS = [
     glow: 'rgba(17,153,142,0.42)',
     bg: 'rgba(17,153,142,0.10)',
     border: 'rgba(17,153,142,0.32)',
-    color: '#2DD4BF',
+    color: 'var(--acc-teal)',
     icon: <Icon d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" size={22} />,
   },
 ];
@@ -156,7 +156,7 @@ const TOOLS = [
 const PLAN_CONFIG = {
   STARTER: { label: 'Starter', color: 'var(--info)', glow: 'rgba(96,165,250,0.4)',  profiles: '2' },
   GROWTH:  { label: 'Growth',  color: 'var(--accent)', glow: 'rgba(167,139,250,0.4)', profiles: '6' },
-  SCALE:   { label: 'Scale',   color: '#FB923C', glow: 'rgba(251,146,60,0.4)',  profiles: 'Unlimited' },
+  SCALE:   { label: 'Scale',   color: 'var(--acc-amber)', glow: 'rgba(251,146,60,0.4)',  profiles: 'Unlimited' },
 };
 
 function initials(name, email) {
@@ -216,7 +216,7 @@ function ToolCard({ tool, onClick }) {
           background: hovered ? tool.gradient : tool.bg,
           border: `1px solid ${tool.border}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#fff',
+          color: hovered ? '#fff' : tool.color,
           transition: 'all 0.25s',
           boxShadow: hovered ? `0 0 24px ${tool.glow}` : 'none',
         }}>
@@ -652,7 +652,7 @@ export default function HubPage({ user, onLogout }) {
             {[
               { label: 'Tools Included',  value: TOOLS.length, icon: '⚡', gradient: 'linear-gradient(135deg, #7C3AED, #5B21B6)', glow: 'rgba(124,58,237,0.4)', color: 'var(--accent)' },
               { label: 'Amazon Profiles', value: planCfg.profiles, icon: '📦', gradient: 'linear-gradient(135deg, #1D4ED8, var(--info-strong))', glow: 'rgba(59,130,246,0.4)', color: 'var(--info)' },
-              { label: 'AI Models',       value: '2',  icon: '🤖', gradient: 'linear-gradient(135deg, #BE185D, #EC4899)', glow: 'rgba(236,72,153,0.4)', color: '#F472B6' },
+              { label: 'AI Models',       value: '2',  icon: '🤖', gradient: 'linear-gradient(135deg, #BE185D, #EC4899)', glow: 'rgba(236,72,153,0.4)', color: 'var(--acc-pink)' },
               { label: 'Support',         value: 'Priority', icon: '💬', gradient: 'linear-gradient(135deg, #065F46, var(--success))', glow: 'rgba(16,185,129,0.4)', color: 'var(--success-2)' },
             ].map(s => (
               <div key={s.label} style={{

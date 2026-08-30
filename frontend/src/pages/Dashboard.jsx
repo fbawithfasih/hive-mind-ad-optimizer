@@ -110,7 +110,7 @@ function DonutChart({ enabled, paused, archived, total, size = 160 }) {
           })}
         </svg>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: 26, fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>{total}</span>
+          <span style={{ fontSize: 26, fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>{total}</span>
           <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-subtle)', letterSpacing: '0.05em', marginTop: 2 }}>TOTAL</span>
         </div>
       </div>
@@ -205,7 +205,7 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, position: 'relative' }}>
         <div>
           <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 10px' }}>{label}</p>
-          <p style={{ fontSize: 30, fontWeight: 900, color: '#FFFFFF', margin: 0, lineHeight: 1, letterSpacing: '-1px' }}>{value}</p>
+          <p style={{ fontSize: 30, fontWeight: 900, color: 'var(--text-primary)', margin: 0, lineHeight: 1, letterSpacing: '-1px' }}>{value}</p>
           {sub && <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '6px 0 0', fontWeight: 500 }}>{sub}</p>}
         </div>
 
@@ -522,7 +522,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
             {resentVerify ? <span style={{ marginLeft: 8, color: 'var(--success)' }}>Email sent!</span>
               : <button onClick={handleResendVerify} style={{ marginLeft: 8, background: 'none', border: 'none', color: 'var(--warning)', fontWeight: 700, fontSize: 13, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Resend</button>}
           </span>
-          <button onClick={() => setVerifyBannerDismissed(true)} style={{ background: 'none', border: 'none', color: '#92400E', fontSize: 18, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
+          <button onClick={() => setVerifyBannerDismissed(true)} style={{ background: 'none', border: 'none', color: 'var(--warning-2)', fontSize: 18, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
         </div>
       )}
 
@@ -532,7 +532,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
           <span style={{ fontSize: 13, color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: 8 }}>
             🔔 <strong>{alertBanner.count} alert{alertBanner.count !== 1 ? 's' : ''} fired</strong>
             {alertBanner.fires.slice(0, 2).map((f, i) => (
-              <span key={i} style={{ fontSize: 11, color: '#FDA4AF', background: 'rgba(244,63,94,0.12)', padding: '2px 8px', borderRadius: 99, border: '1px solid rgba(244,63,94,0.2)' }}>
+              <span key={i} style={{ fontSize: 11, color: 'var(--danger)', background: 'rgba(244,63,94,0.12)', padding: '2px 8px', borderRadius: 99, border: '1px solid rgba(244,63,94,0.2)' }}>
                 {f.alertName} · {f.campaignName}
               </span>
             ))}

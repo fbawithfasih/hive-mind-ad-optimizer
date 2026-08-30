@@ -39,7 +39,6 @@
   --text-muted:    #94A3B8;
   --text-subtle:   #64748B;
   --text-faint:    #475569;
-  --text-invert:   #0F172A;    /* text on colored gradient buttons */
 
   /* Gradient-clipped display text. These are foreground colours, so they need a
      per-theme definition — the dark set is light-on-dark by construction and
@@ -78,6 +77,26 @@
   --info-strong:   #3B82F6;
   --indigo:        #6366F1;
   --indigo-soft:   #A5B4FC;
+
+  /* Extended accents. These existed only as raw hexes inline (HubPage tool
+     tiles, the Purchases metric) and so never flipped — every one of them
+     sits at 2.3-2.8:1 on a white page. Light values are the same hue at a
+     depth that clears AA on --bg-panel and on the colour's own 10-12% tint. */
+  --teal:          #14B8A6;
+  --acc-orange:    #FF8C5A;
+  --acc-fuchsia:   #E879F9;
+  --acc-cyan:      #22D3EE;
+  --acc-pink:      #F472B6;
+  --acc-indigo:    #818CF8;
+  --acc-teal:      #2DD4BF;
+  --acc-amber:     #FB923C;
+
+  /* Amber deep enough to clear AA on its own light tint — plain --warning
+     lands at 2.9-4.4:1 there. */
+  --warning-deep:  #F59E0B;
+  /* Text on a warning-FILLED chip. This is the flip --text-invert described
+     but got backwards; unlike that token, this one is actually used. */
+  --on-warning:    #0F172A;
 
   /* Legacy tailwind semantic aliases still exported */
   --color-ink:     #0F172A;
@@ -126,7 +145,6 @@ html.light {
      5.15:1 on #FFFFFF, 4.73:1 on --bg-app (#F5F5F7), 4.92:1 on --bg-panel-2.
      Tuning against #FFFFFF alone left it at 4.14:1 on the app background. */
   --text-faint:    #616875;
-  --text-invert:   #FFFFFF;
 
   --grad-hero:   linear-gradient(135deg, #4C1D95 0%, #7C3AED 40%, #2563EB 70%, #DB2777 100%);
   --grad-accent: linear-gradient(135deg, #7C3AED, #2563EB);
@@ -156,6 +174,18 @@ html.light {
   --info-strong:   #1D4ED8;
   --indigo:        #4338CA;
   --indigo-soft:   #4338CA;
+
+  --teal:          #0F766E;
+  --acc-orange:    #C2410C;
+  --acc-fuchsia:   #A21CAF;
+  --acc-cyan:      #0E7490;
+  --acc-pink:      #BE185D;
+  --acc-indigo:    #4338CA;
+  --acc-teal:      #0F766E;
+  --acc-amber:     #C2410C;
+
+  --warning-deep:  #92400E;
+  --on-warning:    #FFFFFF;
 
   /* Legacy tailwind aliases */
   --color-ink:     #F5F5F7;

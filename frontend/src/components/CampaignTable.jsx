@@ -148,7 +148,7 @@ export default function CampaignTable({
                     margin: 0,
                     fontWeight: 700,
                     fontSize: 12,
-                    color: '#FFFFFF',
+                    color: 'var(--text-primary)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',

@@ -194,7 +194,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
             <span style={{
               position: 'absolute', marginLeft: 10, marginTop: -12,
               fontSize: 9, fontWeight: 900,
-              background: 'var(--warning)', color: '#000',
+              background: 'var(--warning)', color: 'var(--on-warning)',
               borderRadius: 99, padding: '1px 4px', minWidth: 14, textAlign: 'center',
             }}>
               {earnedBadgeCount}

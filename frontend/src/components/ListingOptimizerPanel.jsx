@@ -74,7 +74,7 @@ function StatCard({ label, value, sub, gradient, glow, accentColor, icon, spark 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
         <div>
           <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 8px' }}>{label}</p>
-          <p style={{ fontSize: 28, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1, letterSpacing: '-0.5px' }}>{value}</p>
+          <p style={{ fontSize: 28, fontWeight: 900, color: 'var(--text-primary)', margin: 0, lineHeight: 1, letterSpacing: '-0.5px' }}>{value}</p>
           {sub && <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '5px 0 0', fontWeight: 500 }}>{sub}</p>}
         </div>
         <div style={{ width: 42, height: 42, borderRadius: 13, background: gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 4px 14px ${glow}` }}>
@@ -886,7 +886,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
               {Object.entries(mapIssuesToFields(publishResult.issues)).map(([field, messages]) => (
                 <div key={field} style={{ marginBottom: 4 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--warning-2)' }}>{field}: </span>
-                  <span style={{ fontSize: 11, color: '#D4A017' }}>{messages.join(' · ')}</span>
+                  <span style={{ fontSize: 11, color: 'var(--warning)' }}>{messages.join(' · ')}</span>
                 </div>
               ))}
             </div>

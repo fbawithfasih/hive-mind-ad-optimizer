@@ -162,7 +162,7 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, position: 'relative' }}>
         <div>
           <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 10px' }}>{label}</p>
-          <p style={{ fontSize: 30, fontWeight: 900, color: '#FFFFFF', margin: 0, lineHeight: 1, letterSpacing: '-1px' }}>{value}</p>
+          <p style={{ fontSize: 30, fontWeight: 900, color: 'var(--text-primary)', margin: 0, lineHeight: 1, letterSpacing: '-1px' }}>{value}</p>
           {sub && <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '6px 0 0', fontWeight: 500 }}>{sub}</p>}
         </div>
         {ringPct !== undefined ? (
@@ -249,7 +249,7 @@ function RecommendationDonut({ stats, total }) {
           })}
         </svg>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: 26, fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>{total}</span>
+          <span style={{ fontSize: 26, fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>{total}</span>
           <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-subtle)', letterSpacing: '0.05em', marginTop: 2 }}>TERMS</span>
         </div>
       </div>
