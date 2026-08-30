@@ -506,7 +506,7 @@ ${htmlBrandingFooter()}
 
       {/* ── Error ── */}
       {error && (
-        <div style={{ background: 'color-mix(in srgb, var(--rose) 9%, transparent)', border: '1px solid #F43F5E44', color: 'var(--rose)',
+        <div style={{ background: 'color-mix(in srgb, var(--rose) 9%, transparent)', border: '1px solid #F43F5E44', color: 'var(--danger-soft)',
           borderRadius: 8, padding: '12px 16px', fontSize: 13, display: 'flex',
           alignItems: 'flex-start', gap: 10 }}>
           <svg style={{ width: 16, height: 16, flexShrink: 0, marginTop: 1 }} fill="currentColor" viewBox="0 0 20 20">

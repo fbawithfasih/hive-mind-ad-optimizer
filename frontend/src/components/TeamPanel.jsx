@@ -7,9 +7,9 @@ import {
 const ROLES = ['ADMIN', 'MEMBER', 'VIEWER'];
 
 const ROLE_COLOR = {
-  ADMIN:  'var(--accent-strong)',
-  MEMBER: 'var(--info-strong)',
-  VIEWER: 'var(--text-subtle)',
+  ADMIN:  'var(--accent-deep)',
+  MEMBER: 'var(--info-deep)',
+  VIEWER: 'var(--text-muted)',
 };
 
 const S = {

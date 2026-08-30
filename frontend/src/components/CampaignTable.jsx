@@ -5,7 +5,7 @@ const STATUS_STYLE = {
   enabled:  { label: 'Active',    bg: 'color-mix(in srgb, var(--success) 9%, transparent)', color: 'var(--success-deep)', border: 'color-mix(in srgb, var(--success) 25%, transparent)' },
   active:   { label: 'Active',    bg: 'color-mix(in srgb, var(--success) 9%, transparent)', color: 'var(--success-deep)', border: 'color-mix(in srgb, var(--success) 25%, transparent)' },
   paused:   { label: 'Paused',    bg: 'color-mix(in srgb, var(--warning) 9%, transparent)', color: 'var(--warning-deep)', border: 'color-mix(in srgb, var(--warning) 25%, transparent)' },
-  ended:    { label: 'Ended',     bg: 'color-mix(in srgb, var(--rose) 9%, transparent)', color: 'var(--rose)', border: 'color-mix(in srgb, var(--rose) 25%, transparent)' },
+  ended:    { label: 'Ended',     bg: 'color-mix(in srgb, var(--rose) 9%, transparent)', color: 'var(--danger-soft)', border: 'color-mix(in srgb, var(--rose) 25%, transparent)' },
   archived: { label: 'Archived',  bg: 'color-mix(in srgb, var(--text-muted) 9%, transparent)', color: 'var(--text-muted)', border: 'color-mix(in srgb, var(--text-muted) 25%, transparent)' },
 };
 
