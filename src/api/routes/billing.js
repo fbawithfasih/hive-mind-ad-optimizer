@@ -213,14 +213,26 @@ router.post('/checkout', requireAuth, requireVerifiedEmail, razorpayRequired, re
     return res.status(502).json({ error: `Could not start checkout: ${detail}` });
   }
 
-  // Pre-create / update Subscription row so the webhook can find it by subscriptionId
+  // Pre-create / update the Subscription row so the webhook can find it by
+  // subscriptionId — syncSubscriptionFromRazorpay() bails when there is no row.
+  //
+  // It is created PENDING, never ACTIVE. Reaching this point means Razorpay has
+  // a subscription object, NOT that anyone has paid: the customer still has to
+  // complete the modal. Creating it ACTIVE handed out full paid access to anyone
+  // who opened checkout and closed the window. /verify (signature-checked) and
+  // the subscription webhook are the only things that promote it.
+  //
+  // The update branch deliberately leaves `status` alone. An existing row here is
+  // non-ACTIVE (the guard above 409s on ACTIVE), and a PAST_DUE customer starting
+  // a new checkout is still a paying customer in dunning — downgrading them to
+  // PENDING would cut off access they are entitled to.
   await prisma.subscription.upsert({
     where:  { orgId },
     create: {
       orgId,
       subscriptionId:     rzpSubscription.id,
       tier,
-      status:             'ACTIVE',
+      status:             'PENDING',
       currentPeriodStart: new Date(),
       currentPeriodEnd:   new Date(Date.now() + 30 * 86400000),
       renewalDate:        new Date(Date.now() + 30 * 86400000),
@@ -228,7 +240,6 @@ router.post('/checkout', requireAuth, requireVerifiedEmail, razorpayRequired, re
     update: {
       subscriptionId: rzpSubscription.id,
       tier,
-      status:         'ACTIVE',
     },
   });
 

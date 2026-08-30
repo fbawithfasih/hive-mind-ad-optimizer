@@ -572,6 +572,11 @@ enum BillingStatus {
 }
 
 enum SubscriptionStatus {
+  // Checkout has started but no payment is confirmed yet. The row exists only so
+  // the Razorpay webhook can find it by subscriptionId — syncSubscriptionFromRazorpay
+  // bails if there is no row. PENDING grants nothing: requireActiveSubscription
+  // admits ACTIVE and PAST_DUE only.
+  PENDING
   ACTIVE
   PAST_DUE
   CANCELLED

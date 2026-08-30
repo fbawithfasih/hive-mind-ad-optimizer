@@ -267,8 +267,12 @@ export async function reconcileSubscriptions({ limit = 500 } = {}) {
     return { checked: 0, synced: 0, errors: 0 };
   }
 
+  // PENDING is included deliberately. A customer who paid but whose
+  // subscription.activated webhook was lost sits at PENDING with no access and
+  // no other route back — /verify only runs in the browser callback that already
+  // failed. Asking Razorpay for the truth here is what heals them.
   const subs = await prisma.subscription.findMany({
-    where:  { subscriptionId: { not: null }, status: { in: ['ACTIVE', 'PAST_DUE'] } },
+    where:  { subscriptionId: { not: null }, status: { in: ['PENDING', 'ACTIVE', 'PAST_DUE'] } },
     select: { subscriptionId: true },
     take:   limit,
   });

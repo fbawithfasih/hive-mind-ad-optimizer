@@ -1,0 +1,21 @@
+-- Subscription no longer starts life ACTIVE -----------------------------------
+--
+-- POST /api/billing/checkout pre-creates the Subscription row so the Razorpay
+-- webhook can find it by subscriptionId (syncSubscriptionFromRazorpay bails when
+-- there is no row). It was creating that row with status ACTIVE, before any
+-- payment: an ADMIN could open checkout, close the Razorpay modal without
+-- paying, and hold full paid access indefinitely.
+--
+-- PENDING is the pre-payment state. It grants nothing —
+-- requireActiveSubscription admits ACTIVE and PAST_DUE only — and is promoted to
+-- ACTIVE by /verify (signature-checked) or by the subscription webhook.
+--
+-- Adding an enum value is additive and safe: no existing row changes, and
+-- Postgres 12+ permits ADD VALUE inside the transaction Prisma wraps migrations
+-- in, provided the new value is not also used there. It is not.
+--
+-- Rows already wrongly ACTIVE from the old behaviour are deliberately NOT
+-- rewritten here. There is no way to distinguish "abandoned checkout" from
+-- "legitimately paying" in the database alone; reconcileSubscriptions() asks
+-- Razorpay for the truth and is the right place to heal them.
+ALTER TYPE "SubscriptionStatus" ADD VALUE 'PENDING' BEFORE 'ACTIVE';
