@@ -16,6 +16,16 @@ router.get('/lookup', async (req, res) => {
   const { asin, sku } = req.query;
   if (!asin && !sku) return res.status(400).json({ error: 'asin or sku query param required' });
 
+  // Express puts an ETag on JSON responses, so the browser stored this one and
+  // revalidated it, replaying a body that predated the Catalog API fallback
+  // below — productType stayed missing no matter how often the client asked.
+  // These headers stop the browser and any CDN from storing it at all, so no
+  // conditional request is made. Note they do NOT stop Express answering 304
+  // to an explicit If-None-Match; that is not the path this bug took.
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+
   try {
     const product = asin
       ? await req.spClient.getProductByAsin(asin.trim().toUpperCase())
