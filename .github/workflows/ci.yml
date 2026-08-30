@@ -82,3 +82,13 @@ jobs:
       - name: Build frontend (Vite/Node 22 workaround)
         working-directory: frontend
         run: node node_modules/vite/dist/node/cli.js build
+
+      # Colour bugs the build cannot see. Each rule matches a shape that has
+      # shipped a visible defect and compiled without complaint.
+      - name: Theme lint self-test
+        working-directory: frontend
+        run: node scripts/lint-theme.mjs --self-test
+
+      - name: Theme lint
+        working-directory: frontend
+        run: node scripts/lint-theme.mjs
