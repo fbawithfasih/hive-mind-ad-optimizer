@@ -16,6 +16,7 @@
  */
 import { prisma } from '../db/prisma.js';
 import { reportingQueue } from '../services/queue.js';
+import { tenantGuardStats } from '../db/tenant-guard.js';
 
 /** A dependency check must never be the reason the endpoint hangs. */
 const PROBE_TIMEOUT_MS = 3_000;
@@ -76,10 +77,23 @@ export function livenessHandler(_req, res) {
 /** Readiness: 200 when every dependency answers, 503 with detail when not. */
 export async function readinessHandler(_req, res) {
   const result = await checkReadiness();
+
+  // Tenant-guard telemetry rides along so one curl answers "is it safe to set
+  // TENANT_GUARD_MODE=strict?". It never affects the status code — an unscoped
+  // query is an isolation concern, not a reason to withhold traffic. The full
+  // per-site breakdown appears only when there is something to report, so the
+  // response Railway polls constantly stays small.
+  const guard = tenantGuardStats();
+  const tenantGuard = guard.total === 0
+    ? { mode: guard.mode, unscoped: 0 }
+    : { mode: guard.mode, unscoped: guard.total, distinct: guard.distinct,
+        truncated: guard.truncated, sites: guard.sites };
+
   res.status(result.ok ? 200 : 503).json({
     status:  result.ok ? 'ready' : 'not_ready',
     version: process.env.BUILD_VERSION ?? null,
     commit:  process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
     ...result,
+    tenantGuard,
   });
 }
