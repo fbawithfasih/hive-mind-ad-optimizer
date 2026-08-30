@@ -47,7 +47,7 @@ const S = {
   input:  { background: 'var(--bg-app-2)', border: '1px solid var(--border-strong)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 13, width: '100%' },
   // White only reads on a saturated fill, so the disabled state gets a neutral
   // ground and ink that flips with the theme.
-  btn:    (color = 'var(--info-strong)', disabled = false) => ({ background: disabled ? 'var(--overlay-5)' : color, border: 'none', borderRadius: 8, padding: '8px 16px', color: disabled ? 'var(--text-muted)' : '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }),
+  btn:    (color = 'var(--fill-info)', disabled = false) => ({ background: disabled ? 'var(--overlay-5)' : color, border: 'none', borderRadius: 8, padding: '8px 16px', color: disabled ? 'var(--text-muted)' : '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }),
   ghost:  { background: 'transparent', border: '1px solid var(--border-strong)', borderRadius: 8, padding: '8px 16px', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' },
   badge:  (color) => ({ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: `color-mix(in srgb, ${color} 13%, transparent)`, color, border: `1px solid color-mix(in srgb, ${color} 27%, transparent)` }),
 };
@@ -234,7 +234,7 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
         </div>
 
         <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          <button style={S.btn('var(--success)', running)} disabled={running} onClick={handleRun}>
+          <button style={S.btn('var(--fill-success)', running)} disabled={running} onClick={handleRun}>
             {running ? '…' : 'Run'}
           </button>
           <button style={S.ghost} onClick={() => onViewHistory(rule)}>History</button>
@@ -245,7 +245,7 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
           {deleteConfirm ? (
             <>
               <span style={{ fontSize: 12, color: 'var(--danger-strong)', display: 'flex', alignItems: 'center', padding: '0 4px' }}>Delete?</span>
-              <button style={S.btn('var(--danger-strong)')} onClick={() => { onDelete(rule); setDeleteConfirm(false); }}>Yes</button>
+              <button style={S.btn('var(--fill-danger)')} onClick={() => { onDelete(rule); setDeleteConfirm(false); }}>Yes</button>
               <button style={S.ghost} onClick={() => setDeleteConfirm(false)}>No</button>
             </>
           ) : (
