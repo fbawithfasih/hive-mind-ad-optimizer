@@ -2,6 +2,7 @@ import express from 'express';
 import { prisma } from '../../db/prisma.js';
 import { createLogger } from '../utils/logger.js';
 import { randomUUID } from 'crypto';
+import { requireRole } from '../middleware/requireRole.js';
 
 const router = express.Router();
 const logger = createLogger('ALERTS');
@@ -38,13 +39,7 @@ function validateAlert(body) {
 // webhook URL is effectively a credential — anyone with it can post to the
 // channel.
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/slack', async (req, res) => {
-  const member = await prisma.orgMember.findUnique({
-    where:  { orgId_userId: { orgId: req.tenant.orgId, userId: req.user.userId } },
-    select: { role: true },
-  });
-  if (member?.role !== 'ADMIN') return res.status(403).json({ error: 'Admin only' });
-
+router.get('/slack', requireRole('ADMIN'), async (req, res) => {
   const org = await prisma.organization.findUnique({
     where:  { id: req.tenant.orgId },
     select: { slackWebhookUrl: true },
@@ -52,13 +47,7 @@ router.get('/slack', async (req, res) => {
   res.json({ slackWebhookUrl: org?.slackWebhookUrl ?? null });
 });
 
-router.patch('/slack', async (req, res) => {
-  const member = await prisma.orgMember.findUnique({
-    where:  { orgId_userId: { orgId: req.tenant.orgId, userId: req.user.userId } },
-    select: { role: true },
-  });
-  if (member?.role !== 'ADMIN') return res.status(403).json({ error: 'Admin only' });
-
+router.patch('/slack', requireRole('ADMIN'), async (req, res) => {
   const raw = req.body?.slackWebhookUrl;
   let value = null;
   if (raw != null && String(raw).trim() !== '') {
@@ -117,7 +106,7 @@ router.get('/rules', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/alerts/rules
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/rules', async (req, res) => {
+router.post('/rules', requireRole('MEMBER'), async (req, res) => {
   const err = validateAlert(req.body);
   if (err) return res.status(400).json({ error: err });
 
@@ -143,7 +132,7 @@ router.post('/rules', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // PATCH /api/alerts/rules/:id
 // ─────────────────────────────────────────────────────────────────────────────
-router.patch('/rules/:id', async (req, res) => {
+router.patch('/rules/:id', requireRole('MEMBER'), async (req, res) => {
   const rule = await prisma.campaignAlert.findFirst({
     where: { id: req.params.id, orgId: req.tenant.orgId },
   });
@@ -165,7 +154,7 @@ router.patch('/rules/:id', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // DELETE /api/alerts/rules/:id
 // ─────────────────────────────────────────────────────────────────────────────
-router.delete('/rules/:id', async (req, res) => {
+router.delete('/rules/:id', requireRole('MEMBER'), async (req, res) => {
   const rule = await prisma.campaignAlert.findFirst({
     where: { id: req.params.id, orgId: req.tenant.orgId },
   });

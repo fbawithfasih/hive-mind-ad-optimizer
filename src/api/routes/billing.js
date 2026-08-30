@@ -323,7 +323,7 @@ router.post('/cancel', requireAuth, requireVerifiedEmail, razorpayRequired, requ
 // Used for testing or add-on purchases. Amount in paise (min 100).
 // ─────────────────────────────────────────────────────────────────────────────
 
-router.post('/create-order', requireAuth, requireVerifiedEmail, razorpayRequired, async (req, res) => {
+router.post('/create-order', requireRole('ADMIN'), requireAuth, requireVerifiedEmail, razorpayRequired, async (req, res) => {
   const { amount, currency = 'USD', receipt } = req.body;
 
   if (!amount || Number(amount) < 100) {
@@ -354,7 +354,7 @@ router.post('/create-order', requireAuth, requireVerifiedEmail, razorpayRequired
 // POST /api/billing/verify-order — verify one-time order payment signature
 // ─────────────────────────────────────────────────────────────────────────────
 
-router.post('/verify-order', requireAuth, requireVerifiedEmail, razorpayRequired, async (req, res) => {
+router.post('/verify-order', requireRole('ADMIN'), requireAuth, requireVerifiedEmail, razorpayRequired, async (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
   if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
