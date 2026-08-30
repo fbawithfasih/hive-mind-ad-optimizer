@@ -1,4 +1,5 @@
 import { Component } from 'react';
+import { reportError } from '../observability.js';
 
 /**
  * Top-level error boundary. Without one, any render-time throw (e.g. trying to
@@ -15,6 +16,9 @@ export default class ErrorBoundary extends Component {
   componentDidCatch(error, info) {
     // Surfaced in the browser console; pairs with backend logs for debugging.
     console.error('Unhandled UI error:', error, info?.componentStack);
+    // A blanked app is the most severe thing a user can hit here, and until now
+    // the only record of it was a console line on their machine.
+    reportError(error, { componentStack: info?.componentStack });
   }
 
   render() {

@@ -5,8 +5,8 @@
   "description": "Amazon Multi-tenant AI Optimizer Platform - Multi-tenant SaaS for Amazon sellers",
   "main": "index.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "start": "node --import ./instrument.mjs src/server.js",
+    "dev": "nodemon --exec \"node --import ./instrument.mjs\" src/server.js",
     "build": "cd frontend && npm install && npm run build",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
@@ -24,6 +24,7 @@
     "@anthropic-ai/sdk": "^0.98.0",
     "@prisma/client": "^6.19.3",
     "@scaleleap/amazon-advertising-api-sdk": "^3.8.3",
+    "@sentry/node": "^10.72.0",
     "axios": "^1.14.0",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.74.1",

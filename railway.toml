@@ -13,7 +13,10 @@ buildCommand = "npm install && cd frontend && npm install && npm run build && cd
 # A failing migration fails the deploy and the previous version keeps serving.
 preDeployCommand = ["npx prisma migrate deploy"]
 
-startCommand = "node src/server.js"
+# --import loads instrument.mjs before any application module, which the Sentry
+# SDK requires: its auto-instrumentation patches http/express/pg at load time and
+# sees nothing if the app is imported first. Inert when SENTRY_DSN is unset.
+startCommand = "node --import ./instrument.mjs src/server.js"
 # /ready, not /health. /health only proves the process is up, so a deployment
 # that could not reach Postgres or Redis was declared healthy and replaced a
 # working one. /ready probes both and 503s with per-dependency detail, so a
