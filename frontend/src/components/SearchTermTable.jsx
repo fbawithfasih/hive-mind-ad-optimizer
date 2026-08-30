@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 
 const REC_STYLE = {
-  SCALE_UP:     { label: 'Scale Up',     bg: 'color-mix(in srgb, var(--success) 9%, transparent)', color: 'var(--success)', border: 'color-mix(in srgb, var(--success) 25%, transparent)' },
+  SCALE_UP:     { label: 'Scale Up',     bg: 'color-mix(in srgb, var(--success) 9%, transparent)', color: 'var(--success-deep)', border: 'color-mix(in srgb, var(--success) 25%, transparent)' },
   ADD_EXACT:    { label: 'Add as Exact', bg: 'color-mix(in srgb, var(--info-strong) 9%, transparent)', color: 'var(--info-strong)', border: 'color-mix(in srgb, var(--info-strong) 25%, transparent)' },
   ADD_NEGATIVE: { label: 'Add Negative', bg: 'color-mix(in srgb, var(--rose) 9%, transparent)', color: 'var(--rose)', border: 'color-mix(in srgb, var(--rose) 25%, transparent)' },
-  WATCH:        { label: 'Watch',        bg: 'color-mix(in srgb, var(--warning) 9%, transparent)', color: 'var(--warning)', border: 'color-mix(in srgb, var(--warning) 25%, transparent)' },
+  WATCH:        { label: 'Watch',        bg: 'color-mix(in srgb, var(--warning) 9%, transparent)', color: 'var(--warning-deep)', border: 'color-mix(in srgb, var(--warning) 25%, transparent)' },
 };
 
 const REC_ORDER = { SCALE_UP: 0, ADD_EXACT: 1, ADD_NEGATIVE: 2, WATCH: 3 };

@@ -4,7 +4,7 @@ import { getBillingStatus, createCheckoutSession, verifyPaymentApi, cancelSubscr
 
 const TIER_LABEL  = { BASIC: 'Starter', PRO: 'Growth', ENTERPRISE: 'Scale', CUSTOM: 'Custom' };
 const TIER_COLOR  = { BASIC: 'var(--text-subtle)', PRO: 'var(--info-strong)', ENTERPRISE: 'var(--accent-strong)', CUSTOM: 'var(--warning)' };
-const STATUS_COLOR = { ACTIVE: 'var(--success)', PAST_DUE: 'var(--warning)', CANCELLED: 'var(--rose)', EXPIRED: 'var(--text-subtle)' };
+const STATUS_COLOR = { ACTIVE: 'var(--success-deep)', PAST_DUE: 'var(--warning-deep)', CANCELLED: 'var(--rose)', EXPIRED: 'var(--text-subtle)' };
 
 // Prices mirror src/config/pricing.js — keep aligned with the backend source of truth.
 const PLAN_DETAILS = [
@@ -198,7 +198,7 @@ export default function BillingPage({ user, onLogout }) {
             border: `1px solid ${banner.type === 'success' ? 'color-mix(in srgb, var(--success) 25%, transparent)' : 'color-mix(in srgb, var(--info-strong) 25%, transparent)'}`,
             borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
           }}>
-            <span style={{ fontSize: 13, color: banner.type === 'success' ? 'var(--success)' : 'var(--info-2)' }}>{banner.msg}</span>
+            <span style={{ fontSize: 13, color: banner.type === 'success' ? 'var(--success-deep)' : 'var(--info-2)' }}>{banner.msg}</span>
             <button onClick={() => setBanner(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text-subtle)', padding: '0 4px', lineHeight: 1 }}>×</button>
           </div>
         )}
@@ -354,7 +354,7 @@ export default function BillingPage({ user, onLogout }) {
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                           <span style={{ fontSize: 16, fontWeight: 800, color: TIER_COLOR[plan.tier] }}>{TIER_LABEL[plan.tier]}</span>
-                          {isCurrent && <Badge label="Current" color="var(--success)" />}
+                          {isCurrent && <Badge label="Current" color="var(--success-deep)" />}
                         </div>
                         <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{plan.price}</span>
                       </div>
@@ -376,7 +376,7 @@ export default function BillingPage({ user, onLogout }) {
                             width: '100%', padding: '9px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600,
                             cursor: isCurrent || working ? 'not-allowed' : 'pointer',
                             background: isCurrent ? 'color-mix(in srgb, var(--success) 19%, transparent)' : `linear-gradient(135deg,${TIER_COLOR[plan.tier]},color-mix(in srgb, ${TIER_COLOR[plan.tier]} 80%, transparent))`,
-                            color: isCurrent ? 'var(--success)' : '#fff',
+                            color: isCurrent ? 'var(--success-deep)' : '#fff',
                             opacity: working && !isCurrent ? 0.6 : 1,
                           }}
                         >
@@ -403,7 +403,7 @@ export default function BillingPage({ user, onLogout }) {
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
                       {inv.currency === 'INR' ? '₹' : '$'}{(inv.amount / 100).toFixed(2)} {inv.currency?.toUpperCase()}
                     </span>
-                    <Badge label={inv.status} color={inv.status === 'PAID' ? 'var(--success)' : 'var(--warning)'} />
+                    <Badge label={inv.status} color={inv.status === 'PAID' ? 'var(--success-deep)' : 'var(--warning-deep)'} />
                   </div>
                 ))}
               </div>
