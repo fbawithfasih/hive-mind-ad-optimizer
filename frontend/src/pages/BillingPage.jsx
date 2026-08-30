@@ -243,7 +243,7 @@ export default function BillingPage({ user, onLogout }) {
               <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--warning-2)' }}>
                 Free trial active — {trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''} remaining
               </p>
-              <p style={{ margin: '2px 0 0', fontSize: 12, color: '#92400E' }}>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--warning-2)', opacity: 0.85 }}>
                 Subscribe now and your plan activates immediately — no gap in service.
               </p>
             </div>

@@ -36,7 +36,7 @@ export default function StreakTracker({ streak, visitedDays }) {
             initial={{ opacity: 0, x: 8 }}
             animate={{ opacity: 1, x: 0 }}
             style={{
-              fontSize: 9, fontWeight: 800, color: '#F97316',
+              fontSize: 9, fontWeight: 800, color: 'var(--warning-deep)',
               background: 'rgba(249,115,22,0.12)',
               border: '1px solid rgba(249,115,22,0.30)',
               borderRadius: 6, padding: '2px 7px',

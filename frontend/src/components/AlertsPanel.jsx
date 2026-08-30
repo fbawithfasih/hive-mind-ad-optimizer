@@ -482,7 +482,7 @@ export default function AlertsPanel() {
             <span style={{ fontSize: 16 }}>{slackUrl ? '💬' : '💤'}</span>
             <div style={{ flex: 1 }}>
               <p style={{ margin: 0, color: 'var(--text-muted)', fontWeight: 600 }}>
-                Slack notifications {slackUrl && <span style={{ color: '#4ADE80', fontSize: 10.5, fontWeight: 800 }}>· ENABLED</span>}
+                Slack notifications {slackUrl && <span style={{ color: 'var(--success-2)', fontSize: 10.5, fontWeight: 800 }}>· ENABLED</span>}
               </p>
               <p style={{ margin: '2px 0 0', color: 'var(--text-faint)', fontSize: 11 }}>
                 Org-level. When set, alert sweeps post a Block Kit summary to this channel alongside email.

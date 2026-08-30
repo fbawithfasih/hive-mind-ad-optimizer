@@ -9,7 +9,7 @@ import { Badge, COLORS } from './shared.jsx';
 
 const THREAT = {
   high: { color: 'var(--rose)', bg: 'rgba(244,63,94,0.10)', border: 'rgba(244,63,94,0.20)', label: 'HIGH' },
-  med:  { color: '#D97706', bg: 'rgba(217,119,6,0.10)',  border: 'rgba(217,119,6,0.20)',  label: 'MED'  },
+  med:  { color: 'var(--warning-deep)', bg: 'rgba(217,119,6,0.10)',  border: 'rgba(217,119,6,0.20)',  label: 'MED'  },
 };
 
 function ThreatBadge({ appearances }) {
@@ -221,7 +221,7 @@ function DeepDive({ competitor, brandAppearances }) {
                         <td style={{ ...DTD, fontWeight: 600, color: 'var(--text-primary)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.term}</td>
                         <td style={DTD}><PosBadge pos={row.compPos} /></td>
                         <td style={{ ...DTDR, color: 'var(--rose)', fontWeight: 600 }}>{row.compClick?.toFixed(1)}%</td>
-                        <td style={{ ...DTD, color: '#D97706', fontSize: 10 }}>Increase bid or improve listing</td>
+                        <td style={{ ...DTD, color: 'var(--warning-deep)', fontSize: 10 }}>Increase bid or improve listing</td>
                       </tr>
                     ))}
                   </tbody>

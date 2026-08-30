@@ -17,7 +17,7 @@ export default function CampaignMetricGrid({ campaign }) {
     { label: 'Impressions', value: fmtN(campaign.impressions), color: 'var(--text-muted)' },
     { label: 'Clicks',      value: fmtN(campaign.clicks),      color: 'var(--text-muted)' },
     { label: 'CTR',         value: campaign.ctr == null ? '—' : `${(Number(campaign.ctr) * 100).toFixed(2)}%`, color: 'var(--text-muted)' },
-    { label: 'Purchases',   value: fmtN(campaign.purchases),   color: '#14B8A6' },
+    { label: 'Purchases',   value: fmtN(campaign.purchases),   color: 'var(--teal)' },
   ];
 
   return (
