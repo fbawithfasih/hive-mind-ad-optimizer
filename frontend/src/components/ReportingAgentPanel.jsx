@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { startReportJob, pollReportJob, getReportHistory } from '../services/api.js';
 import { htmlBrandingStyles, htmlBrandingHeader, htmlBrandingFooter } from '../utils/reportBranding.js';
+import { reportError } from '../observability.js';
 
 // ── Report type definitions ───────────────────────────────────────────────────
 
@@ -133,7 +134,7 @@ export default function ReportingAgentPanel({ profileId, aiModel = 'claude' }) {
 
   // Load history on mount
   useEffect(() => {
-    getReportHistory().then(setHistory).catch(() => {});
+    getReportHistory().then(setHistory).catch(err => reportError(err, { where: 'ReportingAgent:history' }));
   }, []);
 
   // Auto-set date range when report type changes
@@ -159,7 +160,7 @@ export default function ReportingAgentPanel({ profileId, aiModel = 'claude' }) {
           setBrandEnriched(res.brandEnriched ?? false);
           setReportBrandName(res.brandName ?? null);
           clearInterval(pollRef.current);
-          getReportHistory().then(setHistory).catch(() => {});
+          getReportHistory().then(setHistory).catch(err => reportError(err, { where: 'ReportingAgent:history' }));
           clearInterval(timerRef.current);
         } else if (res.status === 'error') {
           setJobStatus('error');

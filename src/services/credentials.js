@@ -127,7 +127,8 @@ export async function loadOrgCredential(orgId) {
     }
   }
 
-  // Mark the credential as recently used (fire-and-forget)
+  // Mark the credential as recently used. Deliberately unreported: it is
+  // telemetry on a hot path, and a failed lastUsed stamp changes nothing.
   prisma.amazonCredential.update({
     where: { id: cred.id },
     data:  { lastUsed: new Date() },

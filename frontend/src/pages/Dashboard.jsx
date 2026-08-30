@@ -35,6 +35,7 @@ import { useMetricsPolling } from '../hooks/useMetricsPolling.js';
 import { useSalesPolling } from '../hooks/useSalesPolling.js';
 import { useAICommandExecution } from '../hooks/useAICommandExecution.js';
 import { useAlertPolling } from '../hooks/useAlertPolling.js';
+import { reportError } from '../observability.js';
 
 const MODULE_LABELS = {
   overview:         '⬡ Overview',
@@ -232,7 +233,7 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export default function Dashboard({ user, onboarded, onLogout }) {
-  const { profiles, primaryAccountGroups, selectedProfileId, setSelectedProfileId, selectedProfile, nameMatchFailed } = useProfileState();
+  const { profiles, primaryAccountGroups, selectedProfileId, setSelectedProfileId, selectedProfile, nameMatchFailed, profilesError } = useProfileState();
   const { dateFrom, dateTo, today, handleDateFromChange, handleDateToChange, setDateFromRaw, setDateToRaw } = useDateRangeState();
   const { campaigns, setCampaigns, search, setSearch, statusFilter, setStatusFilter, filtered, stats, isLoading, isRefreshing, error: campaignError } = useCampaignFiltering(selectedProfileId);
   const { isLoadingMetrics, metricsStatus, metricsProgress, metricsDateRange, error: metricsError, pendingReport, handleLoadMetrics: _handleLoadMetrics, handleCheckAgain: _handleCheckAgain } = useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampaigns);
@@ -347,7 +348,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               setAlertBanner({ count: totalFired, fires: fired });
               setTimeout(() => setAlertBanner(null), 12000);
             }
-          }).catch(() => {});
+          }).catch(err => reportError(err, { where: 'Dashboard:evaluateAlerts' }));
           return current;
         });
       } catch { /* silent */ }
@@ -367,7 +368,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
               setAlertBanner({ count: totalFired, fires: fired });
               setTimeout(() => setAlertBanner(null), 12000);
             }
-          }).catch(() => {});
+          }).catch(err => reportError(err, { where: 'Dashboard:evaluateAlerts' }));
           return current;
         });
       } catch { /* silent */ }
@@ -467,6 +468,24 @@ export default function Dashboard({ user, onboarded, onLogout }) {
     >
 
       <AdsNotConnectedBanner />
+
+      {/* A failed profiles load used to render as an empty profile list, which is
+          indistinguishable from having no Amazon account connected — so the user
+          was told to connect an account they had already connected. */}
+      {profilesError && (
+        <div style={{
+          background: 'color-mix(in srgb, var(--warning) 9%, transparent)',
+          borderBottom: '1px solid color-mix(in srgb, var(--warning) 25%, transparent)',
+          padding: '10px 24px', fontSize: 13, color: 'var(--warning-deep)',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <span>⚠️</span>
+          <span>
+            Couldn’t load your Amazon profiles ({profilesError}). This is a loading
+            problem, not a missing connection — reload to try again.
+          </span>
+        </div>
+      )}
 
       {/* ── Trial countdown banner ── */}
       {user?.currentOrg?.isOnTrial && (

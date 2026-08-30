@@ -92,6 +92,8 @@ export async function recordDeadLetter(queueName, job, err) {
 export function attachDeadLetter(worker, queueName) {
   worker.on('failed', (job, err) => {
     if (isPermanentFailure(job)) {
+      // Deliberately unreported: recordDeadLetter already reports internally,
+      // and throwing from a worker's failed-listener would take the worker down.
       recordDeadLetter(queueName, job, err).catch(() => {});
     }
   });

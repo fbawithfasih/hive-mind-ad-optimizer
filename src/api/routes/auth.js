@@ -15,6 +15,7 @@ import {
 } from '../middleware/rateLimiter.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../services/email.js';
 import { createLogger } from '../utils/logger.js';
+import { captureSwallowed } from '../utils/capture.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
 import { consumeClaimToken } from './billing.js';
 import { appleConfigured, getAppleClientSecret, verifyAppleIdToken } from '../../services/apple-auth.js';
@@ -176,17 +177,33 @@ router.post('/signup', authLimiter, async (req, res) => {
     }
 
     // Send verification email (fire-and-forget — don't block signup on email failure)
+    //
+    // The token write is NOT fire-and-forget. It used to swallow its error and
+    // then send the email anyway, which produced a verification link that could
+    // never work: the token was in the user's inbox and in no database. The user
+    // saw "check your email", clicked, and got "invalid or expired link" forever,
+    // with nothing recorded anywhere. Skipping the email is the better failure —
+    // /auth/resend-verification can issue a fresh one.
     const verifyToken = randomBytes(32).toString('hex');
-    await prisma.emailVerificationToken.create({
-      data: {
-        userId:    user.id,
-        token:     verifyToken,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      },
-    }).catch(() => {});
-    sendVerificationEmail(email, verifyToken).catch((err) =>
-      logger.error(`Failed to send verification email to ${email}: ${err.message}`)
-    );
+    let verifyTokenStored = true;
+    try {
+      await prisma.emailVerificationToken.create({
+        data: {
+          userId:    user.id,
+          token:     verifyToken,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        },
+      });
+    } catch (err) {
+      verifyTokenStored = false;
+      captureSwallowed(err, { where: 'signup:emailVerificationToken', context: { userId: user.id } });
+    }
+
+    if (verifyTokenStored) {
+      sendVerificationEmail(email, verifyToken).catch((err) =>
+        logger.error(`Failed to send verification email to ${email}: ${err.message}`)
+      );
+    }
 
     issueSession(res, user, { activeOrgId: claimedOrgId });
 
