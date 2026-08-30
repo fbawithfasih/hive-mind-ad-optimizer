@@ -73,7 +73,9 @@ export function useCampaignFiltering(selectedProfileId) {
         setIsRefreshing(false);
       })
       .catch(err => {
-        setError(err.message);
+        // The route already sends a `message` explaining the failure; err.message
+        // is only ever "Request failed with status code 500".
+        setError(err.response?.data?.message || err.response?.data?.error || err.message);
         setIsLoading(false);
         setIsRefreshing(false);
       });
