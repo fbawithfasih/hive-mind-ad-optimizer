@@ -231,7 +231,7 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
                     )}
                   </div>
                   {complete && (
-                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success)', background: 'color-mix(in srgb, var(--success) 13%, transparent)', padding: '3px 8px', borderRadius: 99, whiteSpace: 'nowrap', marginTop: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success-deep)', background: 'color-mix(in srgb, var(--success) 13%, transparent)', padding: '3px 8px', borderRadius: 99, whiteSpace: 'nowrap', marginTop: 4 }}>
                       Done
                     </span>
                   )}

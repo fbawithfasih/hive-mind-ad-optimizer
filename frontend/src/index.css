@@ -167,14 +167,14 @@ html.light {
   --success-2: #047857;
   --danger:    #CE1F1F;
   --warning:   #B45309;
-  --warning-2: #A16207;
+  --warning-2: #92400E;
   --accent:    #7C3AED;
   --info:      #2563EB;
   --info-2:    #1D4ED8;
   --danger-strong: #B91C1C;
   --danger-soft:   #CE1F1F;
   --rose:          #BE123C;
-  --warning-3:     #A16207;
+  --warning-3:     #92400E;
   --accent-strong: #6D28D9;
   --accent-soft:   #7C3AED;
   --info-strong:   #1D4ED8;
@@ -182,7 +182,7 @@ html.light {
   --indigo-soft:   #4338CA;
 
   --teal:          #0F766E;
-  --acc-orange:    #C2410C;
+  --acc-orange:    #9A3412;
   --acc-fuchsia:   #A21CAF;
   --acc-cyan:      #0E7490;
   --acc-pink:      #BE185D;

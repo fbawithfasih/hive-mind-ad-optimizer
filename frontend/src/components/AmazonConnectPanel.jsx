@@ -80,7 +80,7 @@ export default function AmazonConnectPanel({ onConnected }) {
         <div className="ml-auto">
           {status?.connected ? (
             <span className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full"
-                  style={{ background: 'color-mix(in srgb, var(--success) 13%, transparent)', border: '1px solid #10B98140', color: 'var(--success)' }}>
+                  style={{ background: 'color-mix(in srgb, var(--success) 13%, transparent)', border: '1px solid #10B98140', color: 'var(--success-deep)' }}>
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--success)', display: 'inline-block' }}/>
               Connected
             </span>
