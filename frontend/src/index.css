@@ -36,9 +36,13 @@
   /* Text */
   --text-primary:  #F1F5F9;
   --text-strong:   #E2E8F0;
-  --text-muted:    #94A3B8;
-  --text-subtle:   #64748B;
-  --text-faint:    #475569;
+  /* Tuned against every dark surface these actually land on, read out of the
+     live DOM — the dimmest step reaches --bg-panel-2 (#263348), where nothing
+     dimmer than #94A3B8 clears AA. The three dim steps therefore shift up
+     together rather than individually, which keeps the scale ordered. */
+  --text-muted:    #B8BFC9;
+  --text-subtle:   #A6AFBD;
+  --text-faint:    #94A3B8;
 
   /* Gradient-clipped display text. These are foreground colours, so they need a
      per-theme definition — the dark set is light-on-dark by construction and
