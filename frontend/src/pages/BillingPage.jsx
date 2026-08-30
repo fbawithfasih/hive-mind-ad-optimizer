@@ -4,6 +4,14 @@ import { getBillingStatus, createCheckoutSession, verifyPaymentApi, cancelSubscr
 
 const TIER_LABEL  = { BASIC: 'Starter', PRO: 'Growth', ENTERPRISE: 'Scale', CUSTOM: 'Custom' };
 const TIER_COLOR  = { BASIC: 'var(--text-subtle)', PRO: 'var(--info-strong)', ENTERPRISE: 'var(--accent-strong)', CUSTOM: 'var(--warning)' };
+// TIER_COLOR served two incompatible jobs. As TEXT on the card it must be light
+// in dark mode; as a saturated FILL under white text it must be dark in both.
+// One token cannot be both, so they are split.
+const TIER_TEXT = { BASIC: 'var(--text-muted)', PRO: 'var(--info)', ENTERPRISE: 'var(--accent)', CUSTOM: 'var(--warning)' };
+// Deliberately literal: white is the only ink that clears AA on these, and it
+// does so only while the fill stays dark. Flipping them breaks the badge in
+// dark mode, where neither white (4.23:1) nor ink (4.22:1) passes on #8B5CF6.
+const TIER_FILL = { BASIC: '#475569', PRO: '#1D4ED8', ENTERPRISE: '#6D28D9', CUSTOM: '#B45309' };
 const STATUS_COLOR = { ACTIVE: 'var(--success-deep)', PAST_DUE: 'var(--warning-deep)', CANCELLED: 'var(--rose)', EXPIRED: 'var(--text-subtle)' };
 
 // Prices mirror src/config/pricing.js — keep aligned with the backend source of truth.
@@ -346,14 +354,14 @@ export default function BillingPage({ user, onLogout }) {
                       display: 'flex', flexDirection: 'column', gap: 14, position: 'relative',
                     }}>
                       {plan.popular && !isCurrent && (
-                        <span style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: TIER_COLOR[plan.tier], color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 10px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                        <span style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: TIER_FILL[plan.tier], color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 10px', borderRadius: 99, whiteSpace: 'nowrap' }}>
                           Most popular
                         </span>
                       )}
 
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                          <span style={{ fontSize: 16, fontWeight: 800, color: TIER_COLOR[plan.tier] }}>{TIER_LABEL[plan.tier]}</span>
+                          <span style={{ fontSize: 16, fontWeight: 800, color: TIER_TEXT[plan.tier] }}>{TIER_LABEL[plan.tier]}</span>
                           {isCurrent && <Badge label="Current" color="var(--success-deep)" />}
                         </div>
                         <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{plan.price}</span>
@@ -375,7 +383,7 @@ export default function BillingPage({ user, onLogout }) {
                           style={{
                             width: '100%', padding: '9px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600,
                             cursor: isCurrent || working ? 'not-allowed' : 'pointer',
-                            background: isCurrent ? 'color-mix(in srgb, var(--success) 19%, transparent)' : `linear-gradient(135deg,${TIER_COLOR[plan.tier]},color-mix(in srgb, ${TIER_COLOR[plan.tier]} 80%, transparent))`,
+                            background: isCurrent ? 'color-mix(in srgb, var(--success) 19%, transparent)' : `linear-gradient(135deg,${TIER_FILL[plan.tier]},color-mix(in srgb, ${TIER_FILL[plan.tier]} 80%, transparent))`,
                             color: isCurrent ? 'var(--success-deep)' : '#fff',
                             opacity: working && !isCurrent ? 0.6 : 1,
                           }}
