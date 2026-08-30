@@ -2,6 +2,7 @@ import express from 'express';
 import { prisma } from '../../db/prisma.js';
 import mockCampaigns from '../../data/mock-campaigns.js';
 import { isProfileAccessDenied, pruneInaccessibleProfile } from '../utils/pruneProfile.js';
+import { requireRole } from '../middleware/requireRole.js';
 
 const router = express.Router();
 
@@ -71,7 +72,7 @@ router.get('/', async (req, res) => {
 });
 
 // PUT /api/campaigns/bulk — batch enable/pause/set-budget/adjust-budget
-router.put('/bulk', async (req, res) => {
+router.put('/bulk', requireRole('MEMBER'), async (req, res) => {
   try {
     const { action, campaignIds, value, currentBudgets } = req.body;
     const profileId = await resolveProfileId(req);

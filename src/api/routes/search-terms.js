@@ -4,6 +4,7 @@ import { isValidDateRange, isValidString } from '../utils/validation.js';
 import { prisma } from '../../db/prisma.js';
 import { isProfileAccessDenied, pruneInaccessibleProfile } from '../utils/pruneProfile.js';
 import { splitIntoSearchTermWindows as splitIntoWindows, mergeSearchTermWindows } from '../../services/search-term-windows.js';
+import { requireRole } from '../middleware/requireRole.js';
 
 const router = express.Router();
 
@@ -145,7 +146,7 @@ router.get('/status', async (req, res) => {
  *
  * Returns: { added, duplicates, failed, results }
  */
-router.post('/bulk-actions', async (req, res) => {
+router.post('/bulk-actions', requireRole('MEMBER'), async (req, res) => {
   const profileId = req.body.profileId || await resolveProfileId(req);
   if (!profileId) return res.status(400).json({ error: 'profileId required' });
 

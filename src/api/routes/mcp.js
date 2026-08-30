@@ -3,6 +3,7 @@ import { executeMCPCommand } from '../../services/claude-mcp.js';
 import campaigns from '../../data/mock-campaigns.js';
 import { rateLimitMiddleware } from '../utils/rateLimit.js';
 import { getBrandAnalyticsContext } from '../../services/brand-analytics/loader.js';
+import { requireRole } from '../middleware/requireRole.js';
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ const mcpRateLimit = rateLimitMiddleware(10, 60000, req => req.user?.email || re
  * @returns {Object} 400 - Missing command field
  * @returns {Object} 500 - Internal server error
  */
-router.post('/execute', mcpRateLimit, async (req, res) => {
+router.post('/execute', requireRole('MEMBER'), mcpRateLimit, async (req, res) => {
   const { command, history, model } = req.body;
 
   if (!command) {

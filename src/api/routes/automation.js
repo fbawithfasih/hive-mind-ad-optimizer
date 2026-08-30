@@ -2,6 +2,7 @@ import express from 'express';
 import { prisma } from '../../db/prisma.js';
 import { executeRule, executeAllRules } from '../../services/rule-engine.js';
 import { createLogger } from '../utils/logger.js';
+import { requireRole } from '../middleware/requireRole.js';
 
 const router = express.Router();
 const logger = createLogger('AUTOMATION');
@@ -35,7 +36,7 @@ function validateRule(body) {
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/automation/rules — create rule
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/rules', async (req, res) => {
+router.post('/rules', requireRole('MEMBER'), async (req, res) => {
   const err = validateRule(req.body);
   if (err) return res.status(400).json({ error: err });
 
@@ -85,7 +86,7 @@ router.get('/rules', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // PATCH /api/automation/rules/:id — update rule fields
 // ─────────────────────────────────────────────────────────────────────────────
-router.patch('/rules/:id', async (req, res) => {
+router.patch('/rules/:id', requireRole('MEMBER'), async (req, res) => {
   const rule = await prisma.campaignRule.findFirst({
     where: { id: req.params.id, orgId: req.tenant.orgId },
   });
@@ -115,7 +116,7 @@ router.patch('/rules/:id', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // DELETE /api/automation/rules/:id
 // ─────────────────────────────────────────────────────────────────────────────
-router.delete('/rules/:id', async (req, res) => {
+router.delete('/rules/:id', requireRole('MEMBER'), async (req, res) => {
   const rule = await prisma.campaignRule.findFirst({
     where: { id: req.params.id, orgId: req.tenant.orgId },
   });
@@ -128,7 +129,7 @@ router.delete('/rules/:id', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/automation/rules/:id/run — manually execute one rule
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/rules/:id/run', async (req, res) => {
+router.post('/rules/:id/run', requireRole('MEMBER'), async (req, res) => {
   const rule = await prisma.campaignRule.findFirst({
     where: { id: req.params.id, orgId: req.tenant.orgId },
   });
@@ -159,7 +160,7 @@ router.post('/rules/:id/run', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/automation/run-all — execute all active rules for the org
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/run-all', async (req, res) => {
+router.post('/run-all', requireRole('MEMBER'), async (req, res) => {
   const results = await executeAllRules(req.tenant.orgId, req.adsClient);
   logger.info(`run-all for org ${req.tenant.orgId}: ${results.length} rules processed`);
   res.json({ results });
