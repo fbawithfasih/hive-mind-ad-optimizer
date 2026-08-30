@@ -47,7 +47,7 @@ const S = {
   input:  { background: 'var(--bg-app-2)', border: '1px solid var(--border-strong)', borderRadius: 8, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 13, width: '100%' },
   btn:    (color = 'var(--info-strong)') => ({ background: color, border: 'none', borderRadius: 8, padding: '8px 16px', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }),
   ghost:  { background: 'transparent', border: '1px solid var(--border-strong)', borderRadius: 8, padding: '8px 16px', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' },
-  badge:  (color) => ({ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: color + '22', color, border: `1px solid ${color}44` }),
+  badge:  (color) => ({ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: `color-mix(in srgb, ${color} 13%, transparent)`, color, border: `1px solid color-mix(in srgb, ${color} 27%, transparent)` }),
 };
 
 function RuleForm({ profileId, initialValues, ruleId, onSave, onCancel }) {

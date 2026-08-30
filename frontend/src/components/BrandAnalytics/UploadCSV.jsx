@@ -48,9 +48,9 @@ function DropZone({ type, label, desc, icon, color, onFile, status }) {
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
       style={{
-        ...glass(isDone ? `${accent}35` : dragging ? `${accent}40` : `${accent}18`),
+        ...glass(isDone ? `color-mix(in srgb, ${accent} 21%, transparent)` : dragging ? `color-mix(in srgb, ${accent} 25%, transparent)` : `color-mix(in srgb, ${accent} 9%, transparent)`),
         padding: '18px 20px', cursor: 'pointer', transition: 'all 0.2s',
-        boxShadow: dragging ? `0 4px 32px ${glow}40` : isDone ? `0 4px 24px ${glow}25` : 'none',
+        boxShadow: dragging ? `0 4px 32px color-mix(in srgb, ${glow} 25%, transparent)` : isDone ? `0 4px 24px color-mix(in srgb, ${glow} 15%, transparent)` : 'none',
         display: 'flex', flexDirection: 'column', gap: 10,
       }}>
       <GradientBar top={isDone ? gradient : 'var(--overlay-4)'} />
@@ -69,7 +69,7 @@ function DropZone({ type, label, desc, icon, color, onFile, status }) {
         </div>
         <div style={{ flexShrink: 0 }}>
           {isDone ? (
-            <span style={{ fontSize: 11, fontWeight: 800, color: accent, background: `${accent}18`, padding: '3px 10px', borderRadius: 999, border: `1px solid ${accent}30` }}>✓ Uploaded</span>
+            <span style={{ fontSize: 11, fontWeight: 800, color: accent, background: `color-mix(in srgb, ${accent} 9%, transparent)`, padding: '3px 10px', borderRadius: 999, border: `1px solid color-mix(in srgb, ${accent} 19%, transparent)` }}>✓ Uploaded</span>
           ) : (
             <span style={{ fontSize: 11, color: 'var(--text-faint)', fontWeight: 600 }}>
               {dragging ? 'Drop it!' : 'Click or drag CSV'}

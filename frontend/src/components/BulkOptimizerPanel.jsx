@@ -57,7 +57,7 @@ function SparkBars({ values = [], color }) {
 
 function StatCard({ label, value, sub, gradient, glow, accentColor, icon, spark }) {
   return (
-    <div style={{ ...glass(), padding: '18px 20px', borderColor: `color-mix(in srgb, ${accentColor} 13%, transparent)`, boxShadow: `0 4px 28px ${glow}15`, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+    <div style={{ ...glass(), padding: '18px 20px', borderColor: `color-mix(in srgb, ${accentColor} 13%, transparent)`, boxShadow: `0 4px 28px color-mix(in srgb, ${glow} 8%, transparent)`, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
       <GradientBar top={gradient} />
       <GlowBlob color={glow} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
@@ -353,7 +353,7 @@ export default function BulkOptimizerPanel({ aiModel }) {
                 ].map(([id, label, color, glow]) => (
                   <button key={id} type="button" onClick={() => setModel(id)}
                     style={{ fontSize: 12, fontWeight: 700, padding: '7px 16px', borderRadius: 9, border: 'none', cursor: 'pointer', transition: 'all .15s',
-                      background: model === id ? `linear-gradient(135deg,${color},${color}cc)` : 'transparent',
+                      background: model === id ? `linear-gradient(135deg,${color},color-mix(in srgb, ${color} 80%, transparent))` : 'transparent',
                       color: model === id ? '#fff' : 'var(--text-faint)',
                       boxShadow: model === id ? `0 2px 12px ${glow}` : 'none',
                     }}>

@@ -13,7 +13,7 @@ const S = {
     color: active ? '#fff' : 'var(--text-faint)',
   }),
   ghost:   { padding: '5px 12px', borderRadius: 6, border: '1px solid var(--border-strong)', background: 'transparent', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', cursor: 'pointer' },
-  badge:   (color) => ({ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: color + '20', color, border: `1px solid ${color}40` }),
+  badge:   (color) => ({ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: `color-mix(in srgb, ${color} 13%, transparent)`, color, border: `1px solid color-mix(in srgb, ${color} 25%, transparent)` }),
   row:     { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: '1px solid var(--bg-panel)' },
   empty:   { padding: '32px 20px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 },
 };

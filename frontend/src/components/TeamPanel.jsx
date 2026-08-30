@@ -23,7 +23,7 @@ const S = {
     background: active ? color : 'var(--bg-panel-2)',
     color: active ? '#fff' : 'var(--text-faint)',
   }),
-  ghost:  (color = 'var(--text-muted)') => ({ padding: '4px 10px', borderRadius: 6, border: `1px solid ${color}40`, background: 'transparent', fontSize: 11, fontWeight: 600, color, cursor: 'pointer' }),
+  ghost:  (color = 'var(--text-muted)') => ({ padding: '4px 10px', borderRadius: 6, border: `1px solid color-mix(in srgb, ${color} 25%, transparent)`, background: 'transparent', fontSize: 11, fontWeight: 600, color, cursor: 'pointer' }),
   badge:  (role) => ({ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: `color-mix(in srgb, ${ROLE_COLOR[role]} 13%, transparent)`, color: ROLE_COLOR[role], border: `1px solid color-mix(in srgb, ${ROLE_COLOR[role]} 25%, transparent)` }),
   row:    { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: '1px solid var(--border-strong)' },
   empty:  { padding: '32px 20px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 },

@@ -39,12 +39,12 @@ function QuickAction({ label, color, onClick, disabled }) {
       onClick={onClick}
       disabled={disabled}
       style={{
-        flex: 1, padding: '8px 12px', borderRadius: 8, border: `1px solid ${color}40`,
-        background: `${color}14`, color, fontSize: 11, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer',
+        flex: 1, padding: '8px 12px', borderRadius: 8, border: `1px solid color-mix(in srgb, ${color} 25%, transparent)`,
+        background: `color-mix(in srgb, ${color} 8%, transparent)`, color, fontSize: 11, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1, transition: 'all 0.15s',
       }}
-      onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = `${color}28`; }}
-      onMouseLeave={e => { if (!disabled) e.currentTarget.style.background = `${color}14`; }}
+      onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = `color-mix(in srgb, ${color} 16%, transparent)`; }}
+      onMouseLeave={e => { if (!disabled) e.currentTarget.style.background = `color-mix(in srgb, ${color} 8%, transparent)`; }}
     >
       {label}
     </button>

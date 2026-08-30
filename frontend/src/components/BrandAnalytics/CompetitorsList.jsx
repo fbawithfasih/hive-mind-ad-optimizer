@@ -103,7 +103,7 @@ const POS_COLOR = { 1: COLORS.green.accent, 2: COLORS.blue.accent, 3: COLORS.pur
 function PosBadge({ pos }) {
   const color = POS_COLOR[pos] ?? 'var(--text-subtle)';
   return (
-    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: `${color}18`, color, border: `1px solid ${color}30` }}>
+    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: `color-mix(in srgb, ${color} 9%, transparent)`, color, border: `1px solid color-mix(in srgb, ${color} 19%, transparent)` }}>
       #{pos}
     </span>
   );
@@ -284,7 +284,7 @@ function NoOverlapMessage({ competitor }) {
           {competitor.keywords.slice(0, 15).map((kw, j) => {
             const color = kw.position === 1 ? COLORS.green.accent : kw.position === 2 ? COLORS.blue.accent : COLORS.purple.accent;
             return (
-              <span key={j} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: `${color}12`, color, border: `1px solid ${color}25`, fontVariantNumeric: 'tabular-nums' }}>
+              <span key={j} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: `color-mix(in srgb, ${color} 7%, transparent)`, color, border: `1px solid color-mix(in srgb, ${color} 15%, transparent)`, fontVariantNumeric: 'tabular-nums' }}>
                 #{kw.position} {kw.term} · {kw.clickShare}%
               </span>
             );

@@ -35,7 +35,7 @@ export function Spinner({ size = 14 }) {
 
 export function StatCard({ label, value, sub, gradient, glow, accentColor, icon, delta, deltaMode, deltaInvert }) {
   return (
-    <div style={{ ...glass(`color-mix(in srgb, ${accentColor} 13%, transparent)`), padding: '18px 20px', boxShadow: `0 4px 28px ${glow}15`, display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 140 }}>
+    <div style={{ ...glass(`color-mix(in srgb, ${accentColor} 13%, transparent)`), padding: '18px 20px', boxShadow: `0 4px 28px color-mix(in srgb, ${glow} 8%, transparent)`, display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 140 }}>
       <GradientBar top={gradient} />
       <GlowBlob color={glow} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
@@ -91,7 +91,7 @@ export function Delta({ d, mode = 'pct', invert = false }) {
   return (
     <span style={{
       fontSize: 10, fontWeight: 700, color,
-      background: `${color}15`, border: `1px solid ${color}25`,
+      background: `color-mix(in srgb, ${color} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${color} 15%, transparent)`,
       padding: '1px 6px', borderRadius: 999, whiteSpace: 'nowrap',
     }}>
       {label}
@@ -103,7 +103,7 @@ export function Badge({ text, color }) {
   return (
     <span style={{
       fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 999,
-      background: `${color}18`, color, border: `1px solid ${color}30`,
+      background: `color-mix(in srgb, ${color} 9%, transparent)`, color, border: `1px solid color-mix(in srgb, ${color} 19%, transparent)`,
       whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.05em',
     }}>
       {text}
