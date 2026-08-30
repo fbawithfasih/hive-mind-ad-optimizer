@@ -73,7 +73,7 @@ export default function ListingHealthPanel() {
           onBlur={e  => (e.target.style.borderColor = 'var(--text-faint)')}
         />
         <button type="submit" disabled={loading}
-          style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: loading ? 'var(--border-strong)' : 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))', color: '#fff', fontWeight: 700, fontSize: 13, cursor: loading ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
+          style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: loading ? 'var(--border-strong)' : 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))', color: loading ? 'var(--text-muted)' : '#fff', fontWeight: 700, fontSize: 13, cursor: loading ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
           {loading ? 'Checking…' : 'Check Health'}
         </button>
       </form>

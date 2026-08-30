@@ -115,7 +115,7 @@ export default function ProfilesPanel({ isAdmin }) {
                   <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {p.profileName}
                   </span>
-                  {p.isDefault && <span style={S.badge('var(--success)')}>Default</span>}
+                  {p.isDefault && <span style={S.badge('var(--success-deep)')}>Default</span>}
                 </div>
                 <span style={{ fontSize: 11, color: 'var(--text-subtle)' }}>
                   {p.countryCode} · ID {p.profileId}

@@ -136,7 +136,7 @@ function AlertForm({ initial, onSave, onCancel, isSaving }) {
           </button>
         )}
         <button onClick={() => valid && onSave(form)} disabled={!valid || isSaving}
-          style={{ padding: '7px 20px', borderRadius: 8, border: 'none', background: valid && !isSaving ? 'linear-gradient(135deg,var(--rose),var(--danger-strong))' : 'var(--overlay-4)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: valid && !isSaving ? 'pointer' : 'not-allowed', opacity: valid && !isSaving ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+          style={{ padding: '7px 20px', borderRadius: 8, border: 'none', background: valid && !isSaving ? 'linear-gradient(135deg,var(--rose),var(--danger-strong))' : 'var(--overlay-4)', color: valid && !isSaving ? '#fff' : 'var(--text-muted)', fontSize: 12, fontWeight: 700, cursor: valid && !isSaving ? 'pointer' : 'not-allowed', opacity: valid && !isSaving ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 6 }}>
           {isSaving ? <><Spinner size={12} /> Saving…</> : (initial ? 'Save changes' : '+ Create alert')}
         </button>
       </div>
