@@ -87,7 +87,7 @@ export default function AccountHealthBar({ stats, metricsSummary, loadingSales }
           <MetricPill
             label="TACoS"
             value={`${metricsSummary.tacos.toFixed(1)}%`}
-            color="#06B6D4"
+            color="var(--cyan)"
             sub="total ad cost"
           />
         )}
