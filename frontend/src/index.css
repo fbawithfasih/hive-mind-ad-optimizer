@@ -106,6 +106,7 @@
   --fill-info:     #1D4ED8;
   --fill-accent:   #6D28D9;
   --fill-success:  #047857;
+  --fill-danger:   #BE123C;
   /* Accents that only ever appeared as hex JSX props (color=, accentColor=),
      so no `color:` scan ever saw them. */
   --cyan:          #06B6D4;
@@ -208,6 +209,7 @@ html.light {
   --fill-info:     #1D4ED8;
   --fill-accent:   #6D28D9;
   --fill-success:  #047857;
+  --fill-danger:   #BE123C;
   --cyan:          #0E7490;
   --orange:        #C2410C;
   --sky:           #0369A1;

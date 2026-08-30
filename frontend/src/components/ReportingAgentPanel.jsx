@@ -429,7 +429,7 @@ ${htmlBrandingFooter()}
                         style={{
                           fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 6,
                           border: 'none', cursor: 'pointer', transition: 'all .1s',
-                          background: active ? 'var(--info-strong)' : 'var(--bg-panel-2)',
+                          background: active ? 'var(--fill-info)' : 'var(--bg-panel-2)',
                           color: active ? '#fff' : 'var(--text-subtle)',
                         }}>
                         {label}
@@ -457,8 +457,8 @@ ${htmlBrandingFooter()}
                 <div style={{ display: 'flex', gap: 4, background: 'var(--bg-panel-2)', borderRadius: 8,
                   padding: 3, border: '1px solid var(--border-strong)' }}>
                   {[
-                    { id: 'claude', label: 'Claude Sonnet', color: 'var(--accent-strong)' },
-                    { id: 'gemini', label: 'Gemini 2.5 Flash', color: 'var(--info-strong)' },
+                    { id: 'claude', label: 'Claude Sonnet', color: 'var(--fill-accent)' },
+                    { id: 'gemini', label: 'Gemini 2.5 Flash', color: 'var(--fill-info)' },
                   ].map(({ id, label, color }) => (
                     <button key={id} onClick={() => setModel(id)}
                       style={{

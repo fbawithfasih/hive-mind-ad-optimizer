@@ -304,7 +304,7 @@ export default function BillingPage({ user, onLogout }) {
                   </p>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button onClick={handleCancel} disabled={working}
-                      style={{ padding: '7px 16px', borderRadius: 7, border: 'none', background: 'var(--rose)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: working ? 'not-allowed' : 'pointer' }}>
+                      style={{ padding: '7px 16px', borderRadius: 7, border: 'none', background: 'var(--fill-danger)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: working ? 'not-allowed' : 'pointer' }}>
                       {working ? 'Cancelling…' : 'Yes, cancel'}
                     </button>
                     <button onClick={() => setShowCancel(false)} disabled={working}

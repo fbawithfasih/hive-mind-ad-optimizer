@@ -159,7 +159,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
                   </span>
                   {!collapsed && <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>}
                   {badgeCount > 0 && !collapsed && (
-                    <span style={{ background: 'var(--rose)', color: '#fff', fontSize: 9, fontWeight: 800, borderRadius: 99, padding: '1px 5px', minWidth: 14, textAlign: 'center', flexShrink: 0 }}>
+                    <span style={{ background: 'var(--fill-danger)', color: '#fff', fontSize: 9, fontWeight: 800, borderRadius: 99, padding: '1px 5px', minWidth: 14, textAlign: 'center', flexShrink: 0 }}>
                       {badgeCount}
                     </span>
                   )}
