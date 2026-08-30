@@ -99,6 +99,13 @@
      lands at 2.9-4.4:1 there. */
   --warning-deep:  #F59E0B;
   --success-deep:  #34D399;
+  --info-deep:     #60A5FA;
+  --accent-deep:   #A78BFA;
+  /* Saturated fills under white text. These deliberately DO NOT flip: white is
+     the only ink that clears AA on them, and only while they stay dark. */
+  --fill-info:     #1D4ED8;
+  --fill-accent:   #6D28D9;
+  --fill-success:  #047857;
   /* Accents that only ever appeared as hex JSX props (color=, accentColor=),
      so no `color:` scan ever saw them. */
   --cyan:          #06B6D4;
@@ -196,6 +203,11 @@ html.light {
 
   --warning-deep:  #92400E;
   --success-deep:  #065F46;
+  --info-deep:     #1D4ED8;
+  --accent-deep:   #6D28D9;
+  --fill-info:     #1D4ED8;
+  --fill-accent:   #6D28D9;
+  --fill-success:  #047857;
   --cyan:          #0E7490;
   --orange:        #C2410C;
   --sky:           #0369A1;
