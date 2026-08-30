@@ -14,7 +14,11 @@ buildCommand = "npm install && cd frontend && npm install && npm run build && cd
 preDeployCommand = ["npx prisma migrate deploy"]
 
 startCommand = "node src/server.js"
-healthcheckPath = "/health"
+# /ready, not /health. /health only proves the process is up, so a deployment
+# that could not reach Postgres or Redis was declared healthy and replaced a
+# working one. /ready probes both and 503s with per-dependency detail, so a
+# broken deploy fails here and the previous version keeps serving.
+healthcheckPath = "/ready"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
