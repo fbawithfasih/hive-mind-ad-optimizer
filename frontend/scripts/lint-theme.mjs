@@ -70,10 +70,12 @@ function* colorValues(text) {
 
 const lineOf = (text, i) => text.slice(0, i).split('\n').length;
 
-// hardcoded-hex is ADVISORY: brand marks, pages that are deliberately light in
-// both themes, and non-text icon accents are all legitimate. The other four
-// rules produce silently broken CSS with no legitimate use, so they block.
-const ADVISORY = new Set(['hardcoded-hex']);
+// hardcoded-hex was advisory on the theory its hits were all legitimate. That
+// was wrong: it had correctly flagged the sidebar's active-item colours and the
+// gamification badges, which render at 1.7-2.6:1 in light mode and were missed
+// only because neither state was active during the audit. The genuinely
+// deliberate cases now carry a pragma, so every rule blocks.
+const ADVISORY = new Set();
 
 const findings = [];
 let CURRENT = { file: '', text: '', disabled: new Set() };

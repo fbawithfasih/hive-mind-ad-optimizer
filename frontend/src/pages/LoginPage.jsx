@@ -1,3 +1,6 @@
+/* theme-lint-disable hardcoded-hex — this page is deliberately light in BOTH
+   themes, so its ink cannot come from theme tokens: --bg-panel is #FFFFFF in
+   light mode and would put white text on a white button. See #32. */
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { loginApi } from '../services/api.js';

@@ -8,7 +8,7 @@ const PROGRESS_PHASES = [
   { id: 'campaigns',   label: 'Locating campaigns for this product',     range: [0,  18], color: 'var(--info-strong)', glow: 'rgba(59,130,246,0.35)' },
   { id: 'search',      label: 'Pulling search term report',              range: [18, 38], color: 'var(--indigo)', glow: 'rgba(99,102,241,0.35)' },
   { id: 'poll',        label: 'Waiting for Amazon to finish the report', range: [38, 72], color: 'var(--accent-strong)', glow: 'rgba(139,92,246,0.35)' },
-  { id: 'analytics',   label: 'Cross-referencing brand analytics',       range: [72, 88], color: '#A855F7', glow: 'rgba(168,85,247,0.35)' },
+  { id: 'analytics',   label: 'Cross-referencing brand analytics',       range: [72, 88], color: 'var(--accent-deep)', glow: 'rgba(168,85,247,0.35)' },
   { id: 'score',       label: 'Scoring listing & campaign candidates',   range: [88, 99], color: 'var(--success)', glow: 'rgba(16,185,129,0.35)' },
 ];
 

@@ -121,7 +121,7 @@ function AlertForm({ initial, onSave, onCancel, isSaving }) {
         </div>
       </div>
 
-      <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 8, padding: '8px 12px', fontSize: 11, color: '#818CF8' }}>
+      <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 8, padding: '8px 12px', fontSize: 11, color: 'var(--indigo-soft)' }}>
         Fire when: <strong style={{ color: 'var(--indigo-soft)' }}>{metricLabel(form.metric)}</strong>{' '}
         <span style={{ color: 'var(--indigo)' }}>{condLabel(form.condition)}</span>{' '}
         <strong style={{ color: 'var(--indigo-soft)' }}>{form.threshold || '…'}{METRIC_UNITS[form.metric]}</strong>

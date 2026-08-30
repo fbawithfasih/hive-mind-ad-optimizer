@@ -67,7 +67,7 @@ export function useGamification(metricsSummary, campaigns) {
       {
         id:     'roas-elite',
         icon:   '🏆',
-        color:  '#F59E0B',
+        color:  'var(--warning-deep)',
         label:  'ROAS Elite',
         desc:   'ROAS ≥ 3×',
         earned: roas != null && roas >= 3.0,
@@ -75,7 +75,7 @@ export function useGamification(metricsSummary, campaigns) {
       {
         id:     'acos-expert',
         icon:   '🎯',
-        color:  '#10B981',
+        color:  'var(--success-deep)',
         label:  'ACoS Expert',
         desc:   'ACoS below 15%',
         earned: acos != null && acos < 15,
@@ -83,7 +83,7 @@ export function useGamification(metricsSummary, campaigns) {
       {
         id:     'budget-master',
         icon:   '💰',
-        color:  '#3B82F6',
+        color:  'var(--info-deep)',
         label:  'Budget Master',
         desc:   '3+ campaigns spending',
         earned: activeCampaignsWithSpend >= 3,
@@ -91,7 +91,7 @@ export function useGamification(metricsSummary, campaigns) {
       {
         id:     'week-streak',
         icon:   '🔥',
-        color:  '#F97316',
+        color:  'var(--orange)',
         label:  '7-Day Streak',
         desc:   'Visited 7 days in a row',
         earned: streak >= 7,

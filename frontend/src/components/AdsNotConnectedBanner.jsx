@@ -45,6 +45,7 @@ export default function AdsNotConnectedBanner() {
             // text is fixed, so the text must stay dark in both themes. Any
             // theme-flipping token here (e.g. --bg-app-2) turns white
             // in light mode and drops contrast on amber to ~2:1.
+            // theme-lint-ok — sits on a fixed amber gradient; see comment above
             color: '#0F172A',
             fontWeight: 700,
             fontSize: 12,
