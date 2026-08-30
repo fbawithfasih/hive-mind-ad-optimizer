@@ -348,8 +348,8 @@ export default function BulkOptimizerPanel({ aiModel }) {
               {/* Model toggle */}
               <div style={{ display: 'flex', gap: 4, background: 'var(--overlay-3)', borderRadius: 12, padding: 4, border: '1px solid var(--overlay-5)' }}>
                 {[
-                  ['gemini', 'Gemini 2.5 Flash', 'var(--info-strong)', 'rgba(59,130,246,0.4)'],
-                  ['claude', 'Claude Sonnet',    'var(--accent-strong)', 'rgba(139,92,246,0.4)'],
+                  ['gemini', 'Gemini 2.5 Flash', 'var(--fill-info)', 'rgba(59,130,246,0.4)'],
+                  ['claude', 'Claude Sonnet',    'var(--fill-accent)', 'rgba(139,92,246,0.4)'],
                 ].map(([id, label, color, glow]) => (
                   <button key={id} type="button" onClick={() => setModel(id)}
                     style={{ fontSize: 12, fontWeight: 700, padding: '7px 16px', borderRadius: 9, border: 'none', cursor: 'pointer', transition: 'all .15s',

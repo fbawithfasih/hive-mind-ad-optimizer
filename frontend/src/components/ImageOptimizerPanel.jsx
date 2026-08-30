@@ -231,7 +231,7 @@ export default function ImageOptimizerPanel() {
           {FIELD_DEFS.map(f => (
             <div key={f.name}>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>
-                {f.label}{f.required && <span style={{ color: 'var(--rose)' }}> *</span>}
+                {f.label}{f.required && <span style={{ color: 'var(--danger-soft)' }}> *</span>}
               </label>
               {f.isTextarea ? (
                 <textarea rows={2} placeholder={f.placeholder} style={inputSt}
@@ -250,8 +250,8 @@ export default function ImageOptimizerPanel() {
             </label>
             <div style={{ display: 'flex', gap: 4, background: 'var(--surface-inset)', borderRadius: 10, padding: 3, border: '1px solid var(--overlay-5)' }}>
               {[
-                { id: 'openai', label: 'OpenAI gpt-image-1', sub: 'Best fidelity', color: 'var(--success)', glow: 'rgba(16,185,129,0.4)' },
-                { id: 'gemini', label: 'Gemini 2.5 Flash',   sub: 'Faster, cheaper', color: 'var(--accent-strong)', glow: 'rgba(139,92,246,0.4)' },
+                { id: 'openai', label: 'OpenAI gpt-image-1', sub: 'Best fidelity', color: 'var(--fill-success)', glow: 'rgba(16,185,129,0.4)' },
+                { id: 'gemini', label: 'Gemini 2.5 Flash',   sub: 'Faster, cheaper', color: 'var(--fill-accent)', glow: 'rgba(139,92,246,0.4)' },
               ].map(({ id, label, sub, color, glow }) => (
                 <button key={id} onClick={() => setProvider(id)} style={{
                   flex: 1, padding: '8px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',

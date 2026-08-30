@@ -657,8 +657,8 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
               </div>
               <div style={{ display: 'flex', gap: 4, background: 'var(--overlay-3)', borderRadius: 10, padding: 3, border: '1px solid var(--overlay-5)' }}>
                 {[
-                  { id: 'gemini', label: 'Gemini 2.5 Flash', color: 'var(--info-strong)', glow: 'rgba(59,130,246,0.4)' },
-                  { id: 'claude', label: 'Claude Sonnet',    color: 'var(--accent-strong)', glow: 'rgba(139,92,246,0.4)' },
+                  { id: 'gemini', label: 'Gemini 2.5 Flash', color: 'var(--fill-info)', glow: 'rgba(59,130,246,0.4)' },
+                  { id: 'claude', label: 'Claude Sonnet',    color: 'var(--fill-accent)', glow: 'rgba(139,92,246,0.4)' },
                 ].map(({ id, label, color, glow }) => (
                   <button key={id} onClick={() => setAiModel(id)} style={{
                     flex: 1, fontSize: 11, fontWeight: 700, padding: '6px 10px', borderRadius: 7,

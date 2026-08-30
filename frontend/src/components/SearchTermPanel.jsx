@@ -193,7 +193,7 @@ function TopTermsBar({ terms }) {
     </div>
   );
   const max = top[0].impressions ?? 1;
-  const colors = ['var(--indigo)','var(--accent-strong)','var(--accent)','var(--info-strong)','var(--info)','var(--success)','var(--success-2)'];
+  const colors = ['var(--indigo-soft)','var(--accent)','var(--accent-soft)','var(--info)','var(--info-2)','var(--success-2)','var(--success-deep)'];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
       {top.map((t, i) => (

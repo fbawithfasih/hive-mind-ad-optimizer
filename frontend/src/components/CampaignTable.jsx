@@ -10,9 +10,9 @@ const STATUS_STYLE = {
 };
 
 const TYPE_COLOR = {
-  sponsoredProducts: 'var(--info-strong)',
-  sponsoredBrands:   'var(--accent-strong)',
-  sponsoredDisplay:  'var(--success)',
+  sponsoredProducts: 'var(--info-deep)',
+  sponsoredBrands:   'var(--accent-deep)',
+  sponsoredDisplay:  'var(--success-deep)',
 };
 
 const dash = <span style={{ color: 'var(--text-faint)' }}>—</span>;
