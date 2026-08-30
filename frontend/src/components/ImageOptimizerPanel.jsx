@@ -271,7 +271,7 @@ export default function ImageOptimizerPanel() {
             style={{
               padding: '12px 22px', borderRadius: 10, border: 'none',
               background: loading ? 'var(--border-strong)' : 'linear-gradient(135deg,var(--accent-strong),var(--info-strong))',
-              color: '#fff', fontWeight: 800, fontSize: 13, cursor: loading ? 'not-allowed' : 'pointer',
+              color: loading ? 'var(--text-muted)' : '#fff', fontWeight: 800, fontSize: 13, cursor: loading ? 'not-allowed' : 'pointer',
               opacity: loading ? 0.7 : 1, boxShadow: loading ? 'none' : '0 4px 16px rgba(139,92,246,0.4)',
             }}>
             {loading ? 'Optimizing…' : '✦ Optimize Main Image'}

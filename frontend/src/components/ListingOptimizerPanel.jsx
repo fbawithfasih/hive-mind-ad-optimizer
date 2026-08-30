@@ -837,7 +837,7 @@ export default function ListingOptimizerPanel({ profileId, searchTerms = [], aiM
                           width: '100%', padding: '10px', borderRadius: 10, border: 'none',
                           cursor: (isPublishing || !fetchedProductType || hasOverLimit) ? 'not-allowed' : 'pointer',
                           background: (isPublishing || !fetchedProductType || hasOverLimit) ? 'var(--overlay-4)' : 'linear-gradient(135deg,var(--success),#059669)',
-                          color: '#fff', fontWeight: 700, fontSize: 13,
+                          color: (isPublishing || !fetchedProductType || hasOverLimit) ? 'var(--text-muted)' : '#fff', fontWeight: 700, fontSize: 13,
                           boxShadow: (!isPublishing && fetchedProductType && !hasOverLimit) ? '0 4px 18px rgba(16,185,129,0.4)' : 'none',
                           opacity: (isPublishing || !fetchedProductType || hasOverLimit) ? 0.5 : 1,
                           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,

@@ -129,7 +129,7 @@ export default function BrandAnalyticsPanel() {
               display: 'flex', alignItems: 'center', gap: 7, padding: '9px 22px', borderRadius: 10, border: 'none',
               cursor: (loading || !brandInput.trim()) ? 'not-allowed' : 'pointer',
               background: loading ? 'var(--overlay-6)' : 'linear-gradient(135deg,var(--accent-strong),var(--info-strong))',
-              color: '#fff', fontWeight: 700, fontSize: 13,
+              color: loading ? 'var(--text-muted)' : '#fff', fontWeight: 700, fontSize: 13,
               boxShadow: (!loading && brandInput.trim()) ? '0 4px 20px rgba(139,92,246,0.45)' : 'none',
               opacity: !brandInput.trim() ? 0.4 : 1,
             }}>

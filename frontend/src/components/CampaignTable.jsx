@@ -2,11 +2,11 @@ import React from 'react';
 import { fmtN, fmt2 } from '../utils/formatting.js';
 
 const STATUS_STYLE = {
-  enabled:  { label: 'Active',    bg: 'color-mix(in srgb, var(--success) 9%, transparent)', color: 'var(--success)', border: 'color-mix(in srgb, var(--success) 25%, transparent)' },
-  active:   { label: 'Active',    bg: 'color-mix(in srgb, var(--success) 9%, transparent)', color: 'var(--success)', border: 'color-mix(in srgb, var(--success) 25%, transparent)' },
-  paused:   { label: 'Paused',    bg: 'color-mix(in srgb, var(--warning) 9%, transparent)', color: 'var(--warning)', border: 'color-mix(in srgb, var(--warning) 25%, transparent)' },
+  enabled:  { label: 'Active',    bg: 'color-mix(in srgb, var(--success) 9%, transparent)', color: 'var(--success-deep)', border: 'color-mix(in srgb, var(--success) 25%, transparent)' },
+  active:   { label: 'Active',    bg: 'color-mix(in srgb, var(--success) 9%, transparent)', color: 'var(--success-deep)', border: 'color-mix(in srgb, var(--success) 25%, transparent)' },
+  paused:   { label: 'Paused',    bg: 'color-mix(in srgb, var(--warning) 9%, transparent)', color: 'var(--warning-deep)', border: 'color-mix(in srgb, var(--warning) 25%, transparent)' },
   ended:    { label: 'Ended',     bg: 'color-mix(in srgb, var(--rose) 9%, transparent)', color: 'var(--rose)', border: 'color-mix(in srgb, var(--rose) 25%, transparent)' },
-  archived: { label: 'Archived',  bg: 'var(--text-muted)18', color: 'var(--text-muted)', border: 'var(--text-muted)40' },
+  archived: { label: 'Archived',  bg: 'color-mix(in srgb, var(--text-muted) 9%, transparent)', color: 'var(--text-muted)', border: 'color-mix(in srgb, var(--text-muted) 25%, transparent)' },
 };
 
 const TYPE_COLOR = {
@@ -113,7 +113,7 @@ export default function CampaignTable({
           {campaigns.map((c, i) => {
             const rowId    = c.id ?? c.campaignId;
             const isSelected = showCheckbox && selectedIds.has(rowId);
-            const st       = STATUS_STYLE[c.status] ?? { label: c.status, bg: 'var(--text-muted)18', color: 'var(--text-muted)', border: 'var(--text-muted)40' };
+            const st       = STATUS_STYLE[c.status] ?? { label: c.status, bg: 'color-mix(in srgb, var(--text-muted) 9%, transparent)', color: 'var(--text-muted)', border: 'color-mix(in srgb, var(--text-muted) 25%, transparent)' };
             const typeColor = TYPE_COLOR[c.campaignType] ?? 'var(--text-muted)';
             const acos     = c.acos;
             const acosColor = acos == null ? 'var(--text-muted)' : acos < 20 ? 'var(--success)' : acos <= 30 ? 'var(--warning)' : 'var(--rose)';

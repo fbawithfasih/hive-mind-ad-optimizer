@@ -372,7 +372,7 @@ export default function BulkOptimizerPanel({ aiModel }) {
                 style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 28px', borderRadius: 12, border: 'none',
                   cursor: loading || itemCount === 0 ? 'not-allowed' : 'pointer',
                   background: loading || itemCount === 0 ? 'var(--overlay-5)' : 'linear-gradient(135deg,var(--indigo),var(--accent-strong))',
-                  color: '#fff', fontWeight: 800, fontSize: 14,
+                  color: loading || itemCount === 0 ? 'var(--text-muted)' : '#fff', fontWeight: 800, fontSize: 14,
                   boxShadow: !loading && itemCount > 0 ? '0 6px 28px rgba(99,102,241,0.45)' : 'none',
                   opacity: itemCount === 0 ? 0.4 : 1, transition: 'all 0.2s', whiteSpace: 'nowrap',
                 }}>

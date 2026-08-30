@@ -6,9 +6,9 @@ import CampaignMetricGrid from './CampaignMetricGrid.jsx';
 import CampaignDetailChart from './CampaignDetailChart.jsx';
 
 const STATUS_STYLE = {
-  enabled:  { label: 'Active',   color: 'var(--success)', bg: 'rgba(16,185,129,0.15)'  },
-  active:   { label: 'Active',   color: 'var(--success)', bg: 'rgba(16,185,129,0.15)'  },
-  paused:   { label: 'Paused',   color: 'var(--warning)', bg: 'rgba(245,158,11,0.15)'  },
+  enabled:  { label: 'Active',   color: 'var(--success-deep)', bg: 'rgba(16,185,129,0.15)'  },
+  active:   { label: 'Active',   color: 'var(--success-deep)', bg: 'rgba(16,185,129,0.15)'  },
+  paused:   { label: 'Paused',   color: 'var(--warning-deep)', bg: 'rgba(245,158,11,0.15)'  },
   ended:    { label: 'Ended',    color: 'var(--rose)', bg: 'rgba(244,63,94,0.15)'   },
   archived: { label: 'Archived', color: 'var(--text-muted)', bg: 'rgba(148,163,184,0.12)' },
 };

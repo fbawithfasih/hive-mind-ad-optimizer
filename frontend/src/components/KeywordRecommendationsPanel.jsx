@@ -265,7 +265,7 @@ export default function KeywordRecommendationsPanel({ profileId }) {
         <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} min={startDate} max={today}
           style={{ background: 'var(--bg-panel-2)', border: '1px solid var(--border-strong)', borderRadius: 7, color: 'var(--text-primary)', padding: '8px 12px', fontSize: 12, outline: 'none' }} />
         <button onClick={handleLoad} disabled={loading}
-          style={{ padding: '8px 18px', borderRadius: 7, border: 'none', background: loading ? 'var(--border-strong)' : 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))', color: '#fff', fontWeight: 700, fontSize: 12, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+          style={{ padding: '8px 18px', borderRadius: 7, border: 'none', background: loading ? 'var(--border-strong)' : 'linear-gradient(135deg,var(--info-strong),var(--accent-strong))', color: loading ? 'var(--text-muted)' : '#fff', fontWeight: 700, fontSize: 12, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
           {loading ? 'Loading…' : 'Analyze'}
         </button>
       </div>
