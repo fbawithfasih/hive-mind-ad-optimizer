@@ -7,7 +7,8 @@ import { dirname, join } from 'path';
 import { existsSync } from 'fs';
 import routes from './api/routes/index.js';
 import { razorpayWebhookHandler } from './api/routes/billing.js';
-import { correlationIdMiddleware, createLogger, runWithCorrelationId } from './api/utils/logger.js';
+import * as Sentry from '@sentry/node';
+import { correlationIdMiddleware, createLogger, runWithCorrelationId, getCorrelationId } from './api/utils/logger.js';
 import { prisma } from './db/prisma.js';
 import { livenessHandler, readinessHandler } from './api/readiness.js';
 import { runAsSystem } from './db/tenant-context.js';
@@ -95,6 +96,14 @@ app.get('/health', livenessHandler);
 // never takes over from a working one.
 app.get('/ready', readinessHandler);
 
+// Tie Sentry events back to the log line that describes them. setTag writes to
+// the per-request isolation scope, which the Express integration forks, so this
+// does not bleed between concurrent requests.
+app.use((req, _res, next) => {
+  Sentry.setTag('correlation_id', getCorrelationId());
+  next();
+});
+
 app.use('/api', routes);
 
 // Serve built frontend in production
@@ -114,6 +123,10 @@ if (isProd) {
     });
   }
 }
+
+// Sentry's Express error handler must come after the routes and before our own,
+// otherwise ours ends the response and Sentry never sees the error.
+Sentry.setupExpressErrorHandler(app);
 
 // Global error handler with structured logging
 app.use((err, req, res, next) => {

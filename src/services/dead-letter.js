@@ -13,7 +13,8 @@
 
 import { prisma } from '../db/prisma.js';
 import { sendOpsAlert } from './slack.js';
-import { createLogger } from '../api/utils/logger.js';
+import { createLogger, getCorrelationId } from '../api/utils/logger.js';
+import * as Sentry from '@sentry/node';
 
 const logger = createLogger('DEAD_LETTER');
 
@@ -53,6 +54,26 @@ export async function recordDeadLetter(queueName, job, err) {
   } catch (e) {
     logger.error(`Failed to record dead-letter for ${queueName}/${jobId}: ${e.message}`);
   }
+
+  // Report to Sentry. This is the single funnel every permanently-failed job
+  // passes through, so it is the one place that guarantees background failures
+  // are seen — the Slack alert below is best-effort and silently swallowed, and
+  // a queue nobody watches is exactly how work stops without anyone noticing.
+  // withIsolationScope keeps concurrent jobs' tags apart (Sentry.setTag alone
+  // isolates per request, which background work does not have).
+  try {
+    Sentry.withIsolationScope((scope) => {
+      scope.setTag('queue', queueName);
+      scope.setTag('job_id', jobId);
+      scope.setTag('correlation_id', getCorrelationId());
+      scope.setContext('job', {
+        name: job?.name ?? null,
+        attemptsMade: job?.attemptsMade ?? 0,
+      });
+      scope.setFingerprint(['dead-letter', queueName, job?.name ?? 'unknown']);
+      Sentry.captureException(err instanceof Error ? err : new Error(String(err)));
+    });
+  } catch { /* never let reporting break dead-lettering */ }
 
   // Best-effort ops alert — no-op when OPS_SLACK_WEBHOOK_URL is unset.
   await sendOpsAlert(
