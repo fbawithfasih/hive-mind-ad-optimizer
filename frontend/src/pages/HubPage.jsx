@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { logoutApi, switchOrgApi, syncProfilesApi } from '../services/api.js';
 import { useTheme } from '../hooks/useTheme.jsx';
 import SupportContact from '../components/SupportContact.jsx';
+import { reportError } from '../observability.js';
 
 const Icon = ({ d, size = 18, stroke = 'currentColor', strokeWidth = 2 }) => (
   <svg width={size} height={size} fill="none" stroke={stroke} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
@@ -374,7 +375,12 @@ export default function HubPage({ user, onLogout }) {
       window.history.replaceState({}, '', '/');
       syncProfilesApi()
         .then(() => setOauthStep('done'))
-        .catch(() => setOauthStep('done'));
+        .catch((err) => {
+          // Still leave the step — the user is connected, the sync is retryable —
+          // but do not pretend it succeeded silently.
+          setOauthStep('done');
+          reportError(err, { where: 'HubPage:syncProfilesAfterOAuth' });
+        });
     }
   }, [location.search]);
 

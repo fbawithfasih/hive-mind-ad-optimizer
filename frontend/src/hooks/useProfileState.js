@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getProfiles } from '../services/api.js';
+import { reportError } from '../observability.js';
 
 // All profiles returned by GET /api/profiles are already scoped to the current
 // org by tenancy — the seller's OAuth token can only return their own profiles
 // across NA/EU/FE. No further name-based filtering is needed.
 export function useProfileState() {
   const [profiles, setProfiles] = useState([]);
+  const [profilesError, setProfilesError] = useState(null);
   const [selectedProfileId, setSelectedProfileId] = useState('');
 
   useEffect(() => {
@@ -13,6 +15,7 @@ export function useProfileState() {
       .then(d => {
         const list = Array.isArray(d) ? d : [];
         setProfiles(list);
+        setProfilesError(null);
         if (list.length === 0) return;
 
         // Default preference: US > any explicitly marked default > first entry
@@ -20,7 +23,13 @@ export function useProfileState() {
         const defaulted = list.find(p => p.isDefault);
         setSelectedProfileId(String((us ?? defaulted ?? list[0]).profileId));
       })
-      .catch(() => setProfiles([]));
+      .catch((err) => {
+        // Distinguish "the call failed" from "you have no profiles". They look
+        // identical to the user otherwise, and the advice for each is opposite.
+        setProfiles([]);
+        setProfilesError(err?.response?.data?.error || err?.message || 'Could not load Amazon profiles');
+        reportError(err, { where: 'useProfileState:getProfiles' });
+      });
   }, []);
 
   // Group profiles by their seller account.
@@ -47,6 +56,7 @@ export function useProfileState() {
 
   return {
     profiles,                                  // flat list
+    profilesError,                             // null, or why the load failed
     profilesByAccount,                         // grouped by seller account
     primaryAccountProfiles: profiles,          // back-compat alias
     primaryAccountGroups:   profilesByAccount, // back-compat alias

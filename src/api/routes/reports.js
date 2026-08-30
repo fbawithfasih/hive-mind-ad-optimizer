@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../../db/prisma.js';
 import { isProfileAccessDenied, pruneInaccessibleProfile } from '../utils/pruneProfile.js';
+import { swallow } from '../utils/capture.js';
 
 const router = express.Router();
 
@@ -109,7 +110,7 @@ router.get('/start', async (req, res) => {
   // reports. Run both in parallel but settle independently.
   const campaignsPromise = req.adsClient.getCampaigns(profileId).catch(err => {
     if (isProfileAccessDenied(err)) {
-      pruneInaccessibleProfile(req.tenant?.orgId, profileId, req.adsClient).catch(() => {});
+      pruneInaccessibleProfile(req.tenant?.orgId, profileId, req.adsClient).catch(swallow('pruneInaccessibleProfile'));
     }
     console.warn(`Live campaigns fetch failed for org ${req.tenant?.orgId}: ${err.message} — continuing with empty list`);
     return [];

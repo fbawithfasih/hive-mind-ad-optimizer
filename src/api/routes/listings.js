@@ -6,6 +6,7 @@ import { bulkListingQueue } from '../../services/queue.js';
 import { trackUsage } from '../../services/razorpay.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { flattenListingKeywords } from '../utils/listingKeywords.js';
+import { swallow } from '../utils/capture.js';
 
 const router = express.Router();
 
@@ -124,7 +125,7 @@ router.post('/optimize', requireRole('MEMBER'), async (req, res) => {
       });
     }
 
-    trackUsage(req.tenant.orgId, 'listingsOptimized').catch(() => {});
+    trackUsage(req.tenant.orgId, 'listingsOptimized').catch(swallow('trackUsage:listingsOptimized'));
     res.json(result);
   } catch (err) {
     console.error('Listing optimize error:', err.message);
@@ -267,7 +268,7 @@ router.post('/bulk-optimize', requireRole('MEMBER'), async (req, res) => {
 
   await bulkListingQueue.addBulk(jobs);
 
-  trackUsage(req.tenant.orgId, 'bulkOperations').catch(() => {});
+  trackUsage(req.tenant.orgId, 'bulkOperations').catch(swallow('trackUsage:bulkOperations'));
   console.log(`[bulk-optimize] Batch ${batchRef} enqueued — ${items.length} items for org ${req.tenant.orgId}`);
   res.json({ batchId: batchRef, total: items.length });
 });

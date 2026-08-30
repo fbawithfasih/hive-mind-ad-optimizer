@@ -2,6 +2,7 @@ import express from 'express';
 import { optimizeMainImage } from '../../services/image-optimizer.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { trackUsage } from '../../services/razorpay.js';
+import { swallow } from '../utils/capture.js';
 
 const router = express.Router();
 
@@ -48,7 +49,7 @@ router.post('/optimize', requireRole('MEMBER'), async (req, res) => {
       referenceMimeType,
       provider,
     });
-    trackUsage(req.tenant.orgId, 'imagesOptimized').catch(() => {});
+    trackUsage(req.tenant.orgId, 'imagesOptimized').catch(swallow('trackUsage:imagesOptimized'));
     res.json(result);
   } catch (err) {
     console.error('[image-optimizer] failed:', err.message);

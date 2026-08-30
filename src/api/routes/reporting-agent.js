@@ -5,6 +5,7 @@ import { reportingQueue } from '../../services/queue.js';
 import { trackUsage } from '../../services/razorpay.js';
 import { createLogger } from '../utils/logger.js';
 import { requireRole } from '../middleware/requireRole.js';
+import { swallow } from '../utils/capture.js';
 
 const router = express.Router();
 const logger = createLogger('REPORTING_AGENT');
@@ -83,7 +84,7 @@ router.post('/start', requireRole('MEMBER'), async (req, res) => {
     { jobId } // use our UUID as the BullMQ job ID for easier correlation
   );
 
-  trackUsage(req.tenant.orgId, 'reportsGenerated').catch(() => {});
+  trackUsage(req.tenant.orgId, 'reportsGenerated').catch(swallow('trackUsage:reportsGenerated'));
   logger.info(`Job ${jobId} enqueued for org ${req.tenant.orgId}`);
   res.json({ jobId, startDate: start, endDate: end });
 });
