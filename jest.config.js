@@ -8,6 +8,15 @@ process.env.SESSION_SECRET  = process.env.SESSION_SECRET  || 'test-secret-key-fo
 process.env.ENCRYPTION_KEY  = process.env.ENCRYPTION_KEY  || 'test-encryption-key-32-chars-ok!';
 process.env.NODE_ENV        = 'test';
 
+// The module-level Ads client in services/amazon-ads.js is built at import time
+// from these. Tests mock axios so the values never reach Amazon, but the token
+// manager now refuses to call out with blank credentials, so they have to exist.
+// Without them the suite passes locally (a developer .env supplies them) and
+// fails in CI, which is exactly how this was missed.
+process.env.AMAZON_ADS_CLIENT_ID     = process.env.AMAZON_ADS_CLIENT_ID     || 'test-ads-client-id';
+process.env.AMAZON_ADS_CLIENT_SECRET = process.env.AMAZON_ADS_CLIENT_SECRET || 'test-ads-client-secret';
+process.env.AMAZON_ADS_REFRESH_TOKEN = process.env.AMAZON_ADS_REFRESH_TOKEN || 'test-ads-refresh-token';
+
 export default {
   testEnvironment: 'node',
   collectCoverageFrom: [
