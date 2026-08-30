@@ -26,6 +26,16 @@ export function createTokenManager(clientId, clientSecret, refreshToken, logPref
         return refreshPromise;
       }
 
+      // Without this the request goes out with empty credentials and Amazon
+      // answers a bare 400, which surfaces to the user as an opaque failure.
+      // The actual cause is almost always an account that was never connected.
+      if (!clientId || !clientSecret || !refreshToken) {
+        throw new Error(
+          `Amazon credentials not configured for ${logPrefix}. ` +
+          'Connect your Amazon account under Settings → Amazon Account.'
+        );
+      }
+
       refreshPromise = (async () => {
         try {
           const response = await axios.post(
