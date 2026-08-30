@@ -177,7 +177,10 @@ export default function LoginPage({ onLogin }) {
             type="submit" disabled={loading}
             style={{
               marginTop: 4, padding: '13px 16px', borderRadius: 10, border: 'none',
-              background: loading ? 'var(--text-muted)' : 'var(--bg-panel)',
+              // This page is deliberately light in both themes, so its button fill
+              // cannot use theme tokens: --bg-panel is #FFFFFF in light, which put
+              // white label text on a white button at 1.00:1.
+              background: loading ? '#475569' : '#111827',
               color: '#fff', fontWeight: 600, fontSize: 15,
               cursor: loading ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
