@@ -126,7 +126,7 @@ const SIGNAL_LABEL  = {
 
 function SummaryCard({ label, value, color }) {
   return (
-    <div style={{ flex: '1 1 120px', background: 'var(--bg-app-2)', borderRadius: 8, border: `1px solid ${color}30`, padding: '12px 14px', textAlign: 'center' }}>
+    <div style={{ flex: '1 1 120px', background: 'var(--bg-app-2)', borderRadius: 8, border: `1px solid color-mix(in srgb, ${color} 19%, transparent)`, padding: '12px 14px', textAlign: 'center' }}>
       <p style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 800, color }}>{typeof value === 'number' ? value.toLocaleString() : value}</p>
       <p style={{ margin: 0, fontSize: 11, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
     </div>
@@ -135,7 +135,7 @@ function SummaryCard({ label, value, color }) {
 
 function Pill({ text, color }) {
   return (
-    <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: color + '20', color, border: `1px solid ${color}40`, whiteSpace: 'nowrap' }}>
+    <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: `color-mix(in srgb, ${color} 13%, transparent)`, color, border: `1px solid color-mix(in srgb, ${color} 25%, transparent)`, whiteSpace: 'nowrap' }}>
       {text}
     </span>
   );

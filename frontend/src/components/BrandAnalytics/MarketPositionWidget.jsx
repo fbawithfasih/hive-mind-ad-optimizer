@@ -84,7 +84,7 @@ export default function MarketPositionWidget({ summary, brandAppearances = [], c
 function PositionBadge({ rank, count, color }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderRadius: 8, background: 'var(--overlay-2)', border: '1px solid var(--overlay-5)', flex: 1 }}>
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}12`, border: `1px solid ${color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 36, height: 36, borderRadius: 10, background: `color-mix(in srgb, ${color} 7%, transparent)`, border: `1px solid color-mix(in srgb, ${color} 15%, transparent)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <span style={{ fontSize: 16, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums' }}>{count}</span>
       </div>
       <span style={{ fontSize: 11, color: 'var(--text-subtle)', fontWeight: 600 }}>{rank} Position</span>

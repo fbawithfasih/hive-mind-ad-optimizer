@@ -88,7 +88,7 @@ export default function BrandHealthScore({ summary }) {
           <Ring score={score} />
           <span style={{
             fontSize: 18, fontWeight: 800, padding: '3px 14px', borderRadius: 999,
-            background: `${accent}12`, color: accent, border: `1px solid ${accent}25`,
+            background: `color-mix(in srgb, ${accent} 7%, transparent)`, color: accent, border: `1px solid color-mix(in srgb, ${accent} 15%, transparent)`,
           }}>
             Grade {grade}
           </span>

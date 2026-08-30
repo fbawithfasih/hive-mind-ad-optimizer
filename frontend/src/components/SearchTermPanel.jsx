@@ -153,7 +153,7 @@ function VibrantStatCard({ label, value, sub, gradient, glow, icon, ringPct, spa
       border: `1px solid color-mix(in srgb, ${accentColor} 15%, transparent)`,
       backdropFilter: 'blur(16px)',
       position: 'relative', overflow: 'hidden',
-      boxShadow: `0 4px 32px ${glow}20`,
+      boxShadow: `0 4px 32px color-mix(in srgb, ${glow} 13%, transparent)`,
       display: 'flex', flexDirection: 'column', gap: 12,
       flex: 1,
     }}>
@@ -205,8 +205,8 @@ function TopTermsBar({ terms }) {
             <div style={{
               position: 'absolute', left: 0, top: 0, bottom: 0,
               width: `${((t.impressions ?? 0) / max) * 100}%`,
-              background: `linear-gradient(90deg, ${colors[i]}, ${colors[i]}99)`,
-              borderRadius: 99, boxShadow: `0 0 8px ${colors[i]}60`, transition: 'width 1s ease',
+              background: `linear-gradient(90deg, ${colors[i]}, color-mix(in srgb, ${colors[i]} 60%, transparent))`,
+              borderRadius: 99, boxShadow: `0 0 8px color-mix(in srgb, ${colors[i]} 38%, transparent)`, transition: 'width 1s ease',
             }} />
           </div>
           <span style={{ fontSize: 11, fontWeight: 700, color: colors[i], flexShrink: 0, minWidth: 48, textAlign: 'right' }}>

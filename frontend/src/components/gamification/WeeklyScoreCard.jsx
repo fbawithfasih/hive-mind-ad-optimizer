@@ -22,8 +22,8 @@ function DeltaBadge({ delta, betterWhenHigher }) {
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 3,
         fontSize: 10, fontWeight: 700, color,
-        background: `${color}14`,
-        border: `1px solid ${color}28`,
+        background: `color-mix(in srgb, ${color} 8%, transparent)`,
+        border: `1px solid color-mix(in srgb, ${color} 16%, transparent)`,
         borderRadius: 5, padding: '1px 5px',
         lineHeight: 1.4,
       }}

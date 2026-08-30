@@ -159,8 +159,8 @@ function AlertCard({ alert, onToggle, onDelete, onEdit }) {
   }
 
   return (
-    <div style={{ ...glass, padding: 0, borderColor: alert.isActive ? `${color}20` : 'var(--overlay-3)' }}>
-      <GradientBar top={alert.isActive ? `linear-gradient(90deg,${color},${color}88)` : 'var(--overlay-3)'} />
+    <div style={{ ...glass, padding: 0, borderColor: alert.isActive ? `color-mix(in srgb, ${color} 13%, transparent)` : 'var(--overlay-3)' }}>
+      <GradientBar top={alert.isActive ? `linear-gradient(90deg,${color},color-mix(in srgb, ${color} 53%, transparent))` : 'var(--overlay-3)'} />
       <div style={{ padding: '14px 16px', position: 'relative' }}>
         {isEditing ? (
           <AlertForm
@@ -175,7 +175,7 @@ function AlertCard({ alert, onToggle, onDelete, onEdit }) {
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: alert.isActive ? 'var(--text-primary)' : 'var(--text-faint)' }}>{alert.name}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: `${color}18`, color, border: `1px solid ${color}35` }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: `color-mix(in srgb, ${color} 9%, transparent)`, color, border: `1px solid color-mix(in srgb, ${color} 21%, transparent)` }}>
                     {metricLabel(alert.metric)}
                   </span>
                   <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: alert.isActive ? 'rgba(16,185,129,0.1)' : 'var(--overlay-3)', color: alert.isActive ? 'var(--success)' : 'var(--text-faint)', border: `1px solid ${alert.isActive ? 'rgba(16,185,129,0.25)' : 'var(--overlay-5)'}` }}>
@@ -246,7 +246,7 @@ function FireHistory({ fires, onMarkAllRead, isMarking }) {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: fire.isRead ? 'var(--text-faint)' : 'var(--text-primary)' }}>{fire.alert?.name ?? '—'}</span>
-                <span style={{ fontSize: 10, padding: '1px 7px', borderRadius: 99, background: `${color}14`, color, border: `1px solid ${color}30` }}>{metricLabel(fire.alert?.metric)}</span>
+                <span style={{ fontSize: 10, padding: '1px 7px', borderRadius: 99, background: `color-mix(in srgb, ${color} 8%, transparent)`, color, border: `1px solid color-mix(in srgb, ${color} 19%, transparent)` }}>{metricLabel(fire.alert?.metric)}</span>
               </div>
               <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-faint)' }}>
                 <strong style={{ color: 'var(--text-subtle)' }}>{fire.campaignName}</strong>

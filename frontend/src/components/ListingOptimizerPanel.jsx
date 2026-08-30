@@ -68,7 +68,7 @@ function SparkBars({ values = [], color }) {
 
 function StatCard({ label, value, sub, gradient, glow, accentColor, icon, spark }) {
   return (
-    <div style={{ ...glass, padding: '18px 20px', borderColor: `color-mix(in srgb, ${accentColor} 13%, transparent)`, boxShadow: `0 4px 32px ${glow}15`, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+    <div style={{ ...glass, padding: '18px 20px', borderColor: `color-mix(in srgb, ${accentColor} 13%, transparent)`, boxShadow: `0 4px 32px color-mix(in srgb, ${glow} 8%, transparent)`, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
       <GradientBar top={gradient} />
       <GlowBlob color={glow} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
@@ -134,7 +134,7 @@ function Pill({ text, color }) {
   return (
     <span style={{
       fontSize: 11, padding: '3px 10px', borderRadius: 999, fontWeight: 500,
-      background: `${color}14`, color, border: `1px solid ${color}35`,
+      background: `color-mix(in srgb, ${color} 8%, transparent)`, color, border: `1px solid color-mix(in srgb, ${color} 21%, transparent)`,
     }}>
       {text}
     </span>

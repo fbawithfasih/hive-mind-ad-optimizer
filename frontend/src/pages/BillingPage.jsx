@@ -31,7 +31,7 @@ const PLAN_DETAILS = [
 
 function Badge({ label, color }) {
   return (
-    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: color + '20', color, border: `1px solid ${color}40` }}>
+    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: `color-mix(in srgb, ${color} 13%, transparent)`, color, border: `1px solid color-mix(in srgb, ${color} 25%, transparent)` }}>
       {label}
     </span>
   );
