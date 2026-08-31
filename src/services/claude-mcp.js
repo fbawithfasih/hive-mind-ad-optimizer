@@ -350,14 +350,38 @@ function trimToBytes(text, maxBytes) {
   if (typeof text !== 'string') return '';
   const enc = new TextEncoder();
   if (enc.encode(text).length <= maxBytes) return text;
+
   const tokens = text.split(/\s+/).filter(Boolean);
   while (tokens.length && enc.encode(tokens.join(' ')).length > maxBytes) {
     tokens.pop();
   }
+  // A single token longer than the cap empties the list, which threw the whole
+  // field away rather than shortening it. Fall back to cutting by code point —
+  // still never mid-character, since we measure whole code points.
+  if (tokens.length === 0) return truncateToBytes(text, maxBytes);
   return tokens.join(' ');
 }
 
-function enforceListingLimits(parsed) {
+/** Longest prefix of whole code points that fits in maxBytes. */
+function truncateToBytes(text, maxBytes) {
+  const enc = new TextEncoder();
+  let out = '';
+  let bytes = 0;
+  for (const ch of text) {           // iterates code points, not UTF-16 units
+    const size = enc.encode(ch).length;
+    if (bytes + size > maxBytes) break;
+    out += ch;
+    bytes += size;
+  }
+  return out;
+}
+
+/**
+ * Trim AI output to Amazon's hard caps. Exported as a test seam — overruns
+ * reject the whole listing at publish time, so this is the last thing standing
+ * between a verbose model and a failed publish.
+ */
+export function enforceListingLimits(parsed) {
   const title       = trimToLimit(parsed.title ?? '', TITLE_MAX);
   const description = trimToLimit(parsed.description ?? '', DESCRIPTION_MAX);
   const bullets = (parsed.bullets ?? []).map(b => trimToLimit(b ?? '', BULLET_MAX));

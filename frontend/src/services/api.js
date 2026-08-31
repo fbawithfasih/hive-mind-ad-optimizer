@@ -350,22 +350,6 @@ export async function getCampaigns(profileId) {
 }
 
 /**
- * Fetch a single campaign by ID
- * @param {string|number} id - The campaign ID
- * @returns {Promise<Campaign>} Single campaign object
- * @throws {Error} If campaign not found or API call fails
- */
-export async function getCampaign(id) {
-  try {
-    const response = await api.get(`/campaigns/${id}`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching campaign ${id}:`, error);
-    throw error;
-  }
-}
-
-/**
  * Start a metrics report generation job
  * Creates a report and begins async metrics polling
  * @param {string|number} [profileId] - Optional profile ID

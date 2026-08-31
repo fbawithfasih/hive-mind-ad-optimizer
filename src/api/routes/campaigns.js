@@ -1,6 +1,5 @@
 import express from 'express';
 import { prisma } from '../../db/prisma.js';
-import mockCampaigns from '../../data/mock-campaigns.js';
 import { isProfileAccessDenied, pruneInaccessibleProfile } from '../utils/pruneProfile.js';
 import { requireRole } from '../middleware/requireRole.js';
 
@@ -63,8 +62,14 @@ router.get('/', async (req, res) => {
       return res.json(formatted);
     }
 
-    console.log('No profile configured for org — returning mock campaign data');
-    res.json(mockCampaigns);
+    // No Amazon profile: return nothing, not fiction.
+    //
+    // This used to serve a fixture of invented campaigns — real-looking names,
+    // spend, ACOS and ROAS — with no flag distinguishing it from live data. A
+    // paying customer whose account was not connected saw a dashboard of
+    // numbers that were simply made up, and had no way to tell.
+    console.log('No Amazon profile configured for org — returning no campaigns');
+    res.json([]);
   } catch (error) {
     console.error('Campaigns route error:', error);
     res.status(500).json({ error: 'Failed to fetch campaigns', message: error.message });
@@ -110,13 +115,6 @@ router.put('/bulk', requireRole('MEMBER'), async (req, res) => {
     console.error('Bulk campaign update error:', err);
     res.status(500).json({ error: 'Bulk update failed', message: err.message });
   }
-});
-
-// GET /api/campaigns/:id
-router.get('/:id', (req, res) => {
-  const campaign = mockCampaigns.find((c) => c.id === req.params.id);
-  if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
-  res.json(campaign);
 });
 
 export default router;

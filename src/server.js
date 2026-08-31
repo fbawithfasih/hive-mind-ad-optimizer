@@ -12,6 +12,7 @@ import { correlationIdMiddleware, createLogger, runWithCorrelationId, getCorrela
 import { prisma } from './db/prisma.js';
 import { livenessHandler, readinessHandler } from './api/readiness.js';
 import { runAsSystem } from './db/tenant-context.js';
+import { closeEphemeralStore } from './services/ephemeral-store.js';
 import { createReportingWorker, createBulkListingWorker, createTokenCleanupWorker, createAutomationWorker, createBrandAnalyticsFetchWorker, createAlertEvaluationWorker, createBillingReconcileWorker, tokenCleanupQueue, automationQueue, brandAnalyticsFetchQueue, alertEvaluationQueue, billingReconcileQueue, closeQueue } from './services/queue.js';
 import { reportingProcessor }    from './workers/reporting.worker.js';
 import { bulkListingProcessor }  from './workers/bulk-listing.worker.js';
@@ -227,6 +228,7 @@ async function shutdown(signal) {
     await alertEvalWorker.close();
     await billingReconcileWorker.close();
     await closeQueue();
+    await closeEphemeralStore();
     await prisma.$disconnect();
     logger.info('Shutdown complete');
     process.exit(0);

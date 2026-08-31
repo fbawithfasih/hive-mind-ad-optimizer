@@ -3,6 +3,7 @@
  * Eliminates duplicate code between amazon-ads.js and amazon-sp-api.js
  */
 
+import { createHash } from 'crypto';
 import { http, TIMEOUT_MS } from './http.js';
 
 /**
@@ -79,36 +80,95 @@ export function createTokenManager(clientId, clientSecret, refreshToken, logPref
  * Allows per-org token managers to be reused across requests without
  * creating a new HTTP round-trip on every call.
  *
- * Key format: "<apiType>:<clientId>:<refreshTokenSuffix>"
+ * Entries are { manager, fingerprint }. The fingerprint is what makes a stale
+ * credential impossible to serve: a manager closes over the refresh token it
+ * was built with, so a cache hit on a key whose credentials have since changed
+ * would keep using the old token until the process restarted.
+ *
+ * That was not hypothetical. saveOrgCredential invalidates `sp:<orgId>`, while
+ * withAmazonCredentials creates `sp:<orgId>:<marketplaceId>` — different keys,
+ * so the manager serving every API request was never cleared. A seller who
+ * re-authorised kept hitting Amazon with their previous refresh token.
+ * Comparing credentials on lookup fixes that regardless of which key anyone
+ * invalidates.
  */
 const tokenManagerRegistry = new Map();
+
+// Bounded so a long-lived process cannot accumulate one entry per org per
+// marketplace forever. Eviction costs at most one extra token refresh.
+const MAX_TOKEN_MANAGERS = 500;
+
+/** Identify a credential set without keeping a second plaintext copy of it. */
+function credentialFingerprint(clientId, clientSecret, refreshToken) {
+  return createHash('sha256')
+    .update(`${clientId ?? ''}\u0000${clientSecret ?? ''}\u0000${refreshToken ?? ''}`)
+    .digest('hex');
+}
 
 /**
  * Get or create a cached token manager for the given credentials.
  *
- * @param {string} cacheKey   - Unique, stable key (e.g. "ads:orgId:abc123")
+ * A cached entry is reused only when it was built from the same credentials.
+ * Anything else is discarded and rebuilt — a rotated token takes effect on the
+ * next call, with no invalidation required.
+ *
+ * @param {string} cacheKey   - Unique, stable key (e.g. "ads:orgId")
  * @param {string} clientId
  * @param {string} clientSecret
  * @param {string} refreshToken
  * @param {string} [logPrefix]
  */
 export function getOrCreateTokenManager(cacheKey, clientId, clientSecret, refreshToken, logPrefix = 'API') {
-  if (!tokenManagerRegistry.has(cacheKey)) {
-    tokenManagerRegistry.set(
-      cacheKey,
-      createTokenManager(clientId, clientSecret, refreshToken, logPrefix)
-    );
+  const fingerprint = credentialFingerprint(clientId, clientSecret, refreshToken);
+  const existing = tokenManagerRegistry.get(cacheKey);
+
+  if (existing) {
+    if (existing.fingerprint === fingerprint) {
+      // Re-insert to move it to the end: Map iterates in insertion order, so
+      // this makes eviction least-recently-used rather than oldest-created.
+      tokenManagerRegistry.delete(cacheKey);
+      tokenManagerRegistry.set(cacheKey, existing);
+      return existing.manager;
+    }
+    existing.manager.invalidate();
+    tokenManagerRegistry.delete(cacheKey);
   }
-  return tokenManagerRegistry.get(cacheKey);
+
+  const manager = createTokenManager(clientId, clientSecret, refreshToken, logPrefix);
+  tokenManagerRegistry.set(cacheKey, { manager, fingerprint });
+
+  while (tokenManagerRegistry.size > MAX_TOKEN_MANAGERS) {
+    const oldest = tokenManagerRegistry.keys().next().value;
+    tokenManagerRegistry.get(oldest)?.manager.invalidate();
+    tokenManagerRegistry.delete(oldest);
+  }
+
+  return manager;
 }
 
 /**
  * Invalidate a cached token manager (e.g. after credential rotation).
+ *
+ * Also clears keys namespaced beneath it — invalidating `sp:<orgId>` drops
+ * `sp:<orgId>:<marketplaceId>` too. The separator makes this unambiguous:
+ * `sp:org1:` cannot match `sp:org12`.
  */
 export function invalidateTokenManager(cacheKey) {
-  const manager = tokenManagerRegistry.get(cacheKey);
-  if (manager) {
-    manager.invalidate();
-    tokenManagerRegistry.delete(cacheKey);
+  const prefix = `${cacheKey}:`;
+  for (const [key, entry] of tokenManagerRegistry) {
+    if (key === cacheKey || key.startsWith(prefix)) {
+      entry.manager.invalidate();
+      tokenManagerRegistry.delete(key);
+    }
   }
+}
+
+/** Test seam. */
+export function resetTokenManagerRegistry() {
+  tokenManagerRegistry.clear();
+}
+
+/** Test seam / diagnostics. */
+export function tokenManagerCount() {
+  return tokenManagerRegistry.size;
 }

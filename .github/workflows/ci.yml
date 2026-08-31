@@ -56,8 +56,12 @@ jobs:
       - name: Run migrations (test DB)
         run: npx prisma migrate deploy
 
+      # --coverage, not --no-coverage. jest.config.js carries per-file ratchets on
+      # encryption, the tenant guard, the auth middleware and the money paths,
+      # and with coverage disabled none of them were ever checked — one had
+      # already drifted below its own threshold unnoticed.
       - name: Run tests
-        run: npm test -- --no-coverage --testPathIgnorePatterns="/.claude/worktrees/"
+        run: npm test -- --coverage --testPathIgnorePatterns="/.claude/worktrees/"
 
   # ──────────────────────────────────────────────────────────────────────────
   # Frontend build check — catches Vite/TS compile errors before deploy

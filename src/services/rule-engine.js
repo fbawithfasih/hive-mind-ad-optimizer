@@ -28,6 +28,25 @@ const METRIC_FIELD = {
 const MIN_BUDGET = 1.00; // Amazon minimum daily budget (USD)
 const MAX_BUDGET_CHANGE_PCT = 50; // Cap single-execution change at ±50%
 
+/**
+ * Clamp a rule's adjustment to a usable percentage, or return null.
+ *
+ * Clamping both ends, not just the top. `Math.min(adjustment, 50)` bounded the
+ * maximum and left the minimum open, so a negative adjustment inverted the
+ * action: decrease_budget with adjustment -900 computed 20 x (1 - -9) = 200 and
+ * multiplied a live campaign's budget tenfold. PATCH /rules/:id applies no
+ * validation, so any MEMBER could store that value, and rules already in the
+ * database may hold one — which is why the guard belongs here and not only at
+ * the edge.
+ *
+ * A non-numeric adjustment used to reach Amazon as `"dailyBudget": null`.
+ */
+function budgetPct(adjustment) {
+  const pct = Number(adjustment);
+  if (!Number.isFinite(pct) || pct <= 0) return null;
+  return Math.min(pct, MAX_BUDGET_CHANGE_PCT);
+}
+
 function getMetricValue(record, metric) {
   const field = METRIC_FIELD[metric];
   if (!field) return null;
@@ -52,14 +71,14 @@ function buildChange(record, rule) {
   const currentBudget = Number(record.campaignBudgetAmount ?? 0);
 
   switch (rule.action) {
-    case 'increase_budget': {
-      const pct = Math.min(rule.adjustment, MAX_BUDGET_CHANGE_PCT);
-      const newBudget = Math.max(+(currentBudget * (1 + pct / 100)).toFixed(2), MIN_BUDGET);
-      return { campaignId, campaignName, field: 'dailyBudget', oldValue: currentBudget, newValue: newBudget };
-    }
+    case 'increase_budget':
     case 'decrease_budget': {
-      const pct = Math.min(rule.adjustment, MAX_BUDGET_CHANGE_PCT);
-      const newBudget = Math.max(+(currentBudget * (1 - pct / 100)).toFixed(2), MIN_BUDGET);
+      const pct = budgetPct(rule.adjustment);
+      // Skip rather than send a nonsense budget. A rule that cannot produce a
+      // sane number should touch nothing at all.
+      if (pct === null || !Number.isFinite(currentBudget)) return null;
+      const factor = rule.action === 'increase_budget' ? 1 + pct / 100 : 1 - pct / 100;
+      const newBudget = Math.max(+(currentBudget * factor).toFixed(2), MIN_BUDGET);
       return { campaignId, campaignName, field: 'dailyBudget', oldValue: currentBudget, newValue: newBudget };
     }
     case 'pause':

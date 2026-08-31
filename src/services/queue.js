@@ -299,6 +299,23 @@ export const billingReconcileQueue = new Queue(BILLING_RECONCILE_QUEUE_NAME, {
 });
 
 /**
+ * Queue name → Queue, for code that has a name and needs the instance.
+ *
+ * Dead-letter records store the queue as a string (that is all a failed job
+ * leaves behind), so replaying one needs this lookup. Kept next to the queue
+ * definitions so a new queue is obvious when it is missing here.
+ */
+export const QUEUES_BY_NAME = {
+  [QUEUE_NAME]:                    reportingQueue,
+  [BULK_QUEUE_NAME]:               bulkListingQueue,
+  [CLEANUP_QUEUE_NAME]:            tokenCleanupQueue,
+  [AUTOMATION_QUEUE_NAME]:         automationQueue,
+  [ALERT_EVAL_QUEUE_NAME]:         alertEvaluationQueue,
+  [BA_FETCH_QUEUE_NAME]:           brandAnalyticsFetchQueue,
+  [BILLING_RECONCILE_QUEUE_NAME]:  billingReconcileQueue,
+};
+
+/**
  * @param {Function} processor  - async (job) => void
  * @returns {Worker}
  */
