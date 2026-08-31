@@ -68,8 +68,16 @@ export default function AmazonConnectPanel({ onConnected }) {
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="rounded-lg p-2.5" style={{ background: '#FF9900' + '22' }}>
-          // theme-lint-ok — Amazon brand orange on their logo mark; must not flip
+        {/* Amazon brand orange, deliberately literal on both the tint and the
+            mark: it is their colour, not ours, so it must not flip with the
+            theme. Kept as a JSX comment — a bare `//` here is not a comment at
+            all, it is text, and React rendered it into the panel. */}
+        <div
+          className="rounded-lg p-2.5"
+          // theme-lint-ok — Amazon brand orange; must not flip
+          style={{ background: '#FF990022' }}   /* the same colour at 13% */
+        >
+          {/* theme-lint-ok — Amazon brand orange on their logo mark; must not flip */}
           <svg style={{ width: 20, height: 20, color: '#FF9900' }} viewBox="0 0 24 24" fill="currentColor">
             <path d="M13.23 10.56V10c-1.94.02-3.98.21-3.98 1.53 0 .75.54 1.21 1.38 1.21.63 0 1.17-.21 1.59-.59.5-.42.01-.99 1.01-1.59zm1.43 3.49c-.18.14-.44.15-.64.04-1.68-1.36-1.97-2.06-2.9-3.38-1.75 1.77-2.99 2.3-5.26 2.3-2.69 0-4.79-1.66-4.79-4.97 0-2.59 1.4-4.35 3.41-5.21 1.74-.76 4.16-.89 6.01-1.1V1.5c0-.74.06-1.61-.37-2.24C9.7-.32 8.72-.5 7.86-.5c-1.63 0-3.05.86-3.41 2.63-.07.38-.34.74-.73.76L1.55 2.7C1.13 2.61.65 2.3.77 1.73 1.52-2.09 4.92-3.25 8.0-3.25c1.55 0 3.57.41 4.79 1.58 1.55 1.45 1.4 3.38 1.4 5.49v4.97c0 1.49.62 2.15 1.2 2.96.21.29.25.63-.01.84l-1.72 1.46h-.0z"/>
           </svg>

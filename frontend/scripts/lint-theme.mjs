@@ -120,6 +120,14 @@ function analyze(file, text) {
   for (const m of text.matchAll(/'(?:var\(--[\w-]+\)|rgba?\([^)]*\))[0-9A-Fa-f]{2}'/g))
     add(file, lineOf(text, m.index), 'alpha-concat',
         `${m[0]} — literal hex alpha on a non-hex colour computes to transparent`);
+  // Two string literals spliced together: '#FF9900' + '22'. The rule above only
+  // matches an IDENTIFIER on the left, so this form went unseen — it was live in
+  // AmazonConnectPanel until 2026-08-31. Harmless where the result is valid
+  // 8-digit hex, but it is the same splice-an-alpha-on habit the other patterns
+  // exist to stop, and it hides the real value from a reader and from grep.
+  for (const m of text.matchAll(/'(#[0-9A-Fa-f]{3,6})'\s\+\s'([0-9A-Fa-f]{2})'/g))
+    add(file, lineOf(text, m.index), 'alpha-concat',
+        `'${m[1]}' + '${m[2]}' — write the 8-digit hex, or color-mix(in srgb, … N%, transparent)`);
 
   // ── 3. Hex passed as a JSX prop. Never appears in a `color:` scan.
   for (const m of text.matchAll(/\b(\w*[Cc]olor|accent)=\{?"(#[0-9A-Fa-f]{3,8})"/g)) {
@@ -169,6 +177,7 @@ const FIXTURES = [
   ['alpha-concat',    'const a = { background: `${color}20` };'],
   ['alpha-concat',    "const b = { background: color + '22' };"],
   ['alpha-concat',    "const c = { bg: 'var(--text-muted)18' };"],
+  ['alpha-concat',    "const d = { background: '#FF9900' + '22' };"],
   ['hex-prop',        `<MetricPill color="#06B6D4" />`],
   ['white-on-flipping-fill', `<span style={{ background: 'var(--rose)', color: '#fff' }}>3</span>`],
   ['white-on-flipping-fill', `const S = { btn: (color = 'var(--info-strong)') => ({ background: color, color: '#fff' }) };`],
