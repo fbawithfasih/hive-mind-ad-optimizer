@@ -106,6 +106,13 @@ router.patch('/rules/:id', requireRole('MEMBER'), async (req, res) => {
     }
   }
 
+  // Validate the rule as it would be AFTER the patch. POST validates and PATCH
+  // did not, so every constraint POST enforces — metric, condition, action, and
+  // the 1–100 bound on adjustment — could be bypassed by creating a valid rule
+  // and then patching it. A negative adjustment inverts a budget action.
+  const invalid = validateRule({ ...rule, ...updates });
+  if (invalid) return res.status(400).json({ error: invalid });
+
   const updated = await prisma.campaignRule.update({
     where: { id: rule.id },
     data:  updates,
