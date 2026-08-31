@@ -90,3 +90,40 @@ describe('the healthcheck', () => {
     expect(railway).toMatch(/healthcheckPath\s*=\s*"\/ready"/);
   });
 });
+
+describe('build-time frontend variables', () => {
+  const frontendStage = dockerfile.slice(
+    dockerfile.indexOf('AS frontend-builder'),
+    dockerfile.indexOf('AS backend-deps'),
+  );
+
+  /** VITE_* names the frontend source actually reads. */
+  function viteVarsUsed() {
+    const files = fs.readdirSync('frontend/src', { recursive: true })
+      .filter(f => typeof f === 'string' && /\.(js|jsx)$/.test(f));
+    const names = new Set();
+    for (const f of files) {
+      const src = fs.readFileSync(`frontend/src/${f}`, 'utf8');
+      for (const m of src.matchAll(/import\.meta\.env\??\.(VITE_\w+)/g)) names.add(m[1]);
+    }
+    return [...names];
+  }
+
+  it('reads at least one VITE_ variable, so this check has something to check', () => {
+    expect(viteVarsUsed().length).toBeGreaterThan(0);
+  });
+
+  it.each(viteVarsUsed())('%s is declared as a build ARG', (name) => {
+    // Vite inlines these at build time. Railway does not inject service
+    // variables into a Dockerfile build — it passes build args, and a stage
+    // only receives one it declares. Without the ARG the variable can be set
+    // in Railway and still be absent from the bundle, which looks configured
+    // and is not.
+    expect(frontendStage).toMatch(new RegExp(`ARG\\s+${name}\\b`));
+  });
+
+  it.each(viteVarsUsed())('%s is exported into the build environment', (name) => {
+    // ARG alone is not visible to the build command; it has to reach the env.
+    expect(frontendStage).toMatch(new RegExp(`ENV\\s+${name}=`));
+  });
+});
