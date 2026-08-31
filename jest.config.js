@@ -57,6 +57,9 @@ export default {
     // ── Money ───────────────────────────────────────────────────────────────
     'src/services/razorpay.js':  { statements: 60, branches: 60, functions: 55 },
     'src/workers/billing-reconcile.worker.js': { statements: 100, branches: 100, functions: 100 },
+    // ── Writes to live advertiser accounts ──────────────────────────────────
+    // This worker changes real campaign budgets on a schedule, unattended.
+    'src/workers/automation.worker.js': { statements: 100, branches: 85, functions: 80 },
   },
   transform: {
     '^.+\\.(js|ts)$': ['babel-jest', {
