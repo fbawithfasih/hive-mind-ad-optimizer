@@ -48,7 +48,7 @@ export default {
     'src/db/password.js':        { statements: 95, branches: 90, functions: 100 },
     'src/db/tenant-guard.js':    { statements: 85, branches: 80, functions: 85 },
     'src/db/tenant-context.js':  { statements: 80, branches: 50, functions: 100 },
-    'src/services/credentials.js': { statements: 75, branches: 75, functions: 60 },
+    'src/services/credentials.js': { statements: 95, branches: 85, functions: 80 },
     // ── Auth gates ──────────────────────────────────────────────────────────
     'src/api/middleware/requireAuth.js':   { statements: 85, branches: 80, functions: 100 },
     'src/api/middleware/requireRole.js':   { statements: 100, branches: 100, functions: 100 },
@@ -57,6 +57,14 @@ export default {
     // ── Money ───────────────────────────────────────────────────────────────
     'src/services/razorpay.js':  { statements: 60, branches: 60, functions: 55 },
     'src/workers/billing-reconcile.worker.js': { statements: 100, branches: 100, functions: 100 },
+    'src/api/routes/billing.js':  { statements: 70, branches: 60, functions: 50 },
+    // ── Writes to live advertiser accounts ──────────────────────────────────
+    // These change real campaign budgets and real listings, unattended.
+    'src/workers/automation.worker.js': { statements: 100, branches: 85, functions: 80 },
+    'src/services/rule-engine.js':      { statements: 100, branches: 90, functions: 100 },
+    'src/api/routes/automation.js':     { statements: 72,  branches: 80, functions: 75 },
+    // ── Customer-visible batch progress ─────────────────────────────────────
+    'src/workers/bulk-listing.worker.js': { statements: 100, branches: 75, functions: 100 },
   },
   transform: {
     '^.+\\.(js|ts)$': ['babel-jest', {

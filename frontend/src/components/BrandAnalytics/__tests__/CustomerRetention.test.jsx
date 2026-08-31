@@ -72,7 +72,7 @@ describe('CustomerRetention — data state', () => {
     // would also match, so the default getByText finds multiple).
     expect(
       screen.getAllByText((_, n) =>
-        n?.tagName === 'P' && /276 of 1,500 customers came back/i.test(n.textContent ?? '')
+        n?.tagName === 'P' && /276 of 1,500 customers returned/i.test(n.textContent ?? '')
       ).length
     ).toBeGreaterThan(0);
 

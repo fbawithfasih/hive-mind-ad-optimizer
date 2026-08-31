@@ -21,6 +21,7 @@ import { requireVerifiedEmail } from '../middleware/requireVerifiedEmail.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { createLogger } from '../utils/logger.js';
 import { timingSafeEqualSecret } from '../utils/secrets.js';
+import { captureSwallowed } from '../utils/capture.js';
 import {
   razorpay,
   PLAN_IDS,
@@ -283,6 +284,15 @@ router.post('/verify', requireAuth, requireVerifiedEmail, razorpayRequired, requ
     // The org row carries the tier the rest of the system reads; promoting the
     // subscription without it leaves a paying customer on their old plan.
     await syncOrgEntitlement(sub.orgId);
+  } else {
+    // A verified payment for a subscription we have no row for. The customer
+    // has been charged and nothing here activated them, so this must not pass
+    // silently — the webhook is the other path that could still save it, but
+    // if that is also missing nobody would ever find out.
+    captureSwallowed(new Error('Verified payment has no matching subscription row'), {
+      where:   'billing:verify:missingSubscription',
+      context: { subscriptionId: razorpay_subscription_id, paymentId: razorpay_payment_id },
+    });
   }
 
   logger.info(`Payment verified: payment ${razorpay_payment_id}, sub ${razorpay_subscription_id}`);

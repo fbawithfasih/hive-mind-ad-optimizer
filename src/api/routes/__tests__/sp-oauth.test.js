@@ -1,10 +1,38 @@
 import express from 'express';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
+import { __store } from '../../../services/ephemeral-store.js';
 import spOauthRouter from '../sp-oauth.js';
 
 // Mock axios (token exchange) and saveOrgCredential
 jest.mock('axios');
+// In-memory stand-in for the Redis-backed CSRF nonce store. Keeps the
+// start → callback round trip these tests rely on, and lets a failure be
+// simulated without a live Redis.
+jest.mock('../../../services/ephemeral-store.js', () => {
+  const entries = new Map();
+  const store = {
+    entries,
+    failPut: false,
+    failTake: false,
+    async put(key, value) {
+      if (store.failPut) throw new Error('redis unreachable');
+      entries.set(key, value);
+    },
+    async take(key) {
+      if (store.failTake) return null;   // the real store fails closed
+      const value = entries.get(key);
+      entries.delete(key);
+      return value ?? null;
+    },
+  };
+  return {
+    createEphemeralStore: () => store,
+    closeEphemeralStore:  async () => {},
+    __store: store,
+  };
+});
+
 jest.mock('../../../services/credentials.js', () => ({
   saveOrgCredential: jest.fn(),
 }));
@@ -87,6 +115,60 @@ describe('GET /info', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /start
 // ─────────────────────────────────────────────────────────────────────────────
+/** Run /start and return the CSRF nonce it issued. */
+async function getStartState(app) {
+  const res = await request(app).get('/start');
+  return new URL(res.headers.location).searchParams.get('state');
+}
+
+describe('the CSRF nonce store', () => {
+  it('refuses to start the flow when the nonce cannot be stored', async () => {
+    // Sending the seller to Amazon with a nonce we cannot verify guarantees a
+    // failure on their return, by which point the message is Amazon's, not ours.
+    __store.failPut = true;
+    try {
+      const res = await request(makeApp()).get('/start');
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toMatch(/state_store_unavailable/);
+      expect(res.headers.location).not.toMatch(/sellercentral/);
+    } finally {
+      __store.failPut = false;
+    }
+  });
+
+  it('fails closed when the store cannot be read', async () => {
+    const app = makeApp();
+    const state = await getStartState(app);
+    __store.failTake = true;
+    try {
+      const res = await request(app).get(`/callback?spapi_oauth_code=c&state=${state}`);
+      expect(res.headers.location).toMatch(/invalid_state/);
+    } finally {
+      __store.failTake = false;
+    }
+  });
+
+  it('consumes a nonce exactly once', async () => {
+    const app = makeApp();
+    const state = await getStartState(app);
+
+    await request(app).get(`/callback?spapi_oauth_code=c&state=${state}`);
+    const replay = await request(app).get(`/callback?spapi_oauth_code=c&state=${state}`);
+
+    expect(replay.headers.location).toMatch(/invalid_state/);
+  });
+
+  it('survives a restart mid-flow, because the nonce is not in this process', async () => {
+    // The whole point of moving it out of a Map: the state issued by one app
+    // instance is accepted by another.
+    const state = await getStartState(makeApp());
+
+    const res = await request(makeApp()).get(`/callback?spapi_oauth_code=c&state=${state}`);
+
+    expect(res.headers.location).not.toMatch(/invalid_state/);
+  });
+});
+
 describe('GET /start', () => {
   it('redirects to Amazon Seller Central consent URL', async () => {
     const res = await request(makeApp()).get('/start');
