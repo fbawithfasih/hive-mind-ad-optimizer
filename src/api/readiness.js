@@ -17,6 +17,7 @@
 import { prisma } from '../db/prisma.js';
 import { reportingQueue } from '../services/queue.js';
 import { tenantGuardStats } from '../db/tenant-guard.js';
+import { planLimitMode, planLimitStats } from '../services/plan-limits.js';
 
 /** A dependency check must never be the reason the endpoint hangs. */
 const PROBE_TIMEOUT_MS = 3_000;
@@ -89,11 +90,19 @@ export async function readinessHandler(_req, res) {
     : { mode: guard.mode, unscoped: guard.total, distinct: guard.distinct,
         truncated: guard.truncated, sites: guard.sites };
 
+  // Same shape and same purpose as tenantGuard: while plan limits are in warn
+  // mode this says whether flipping to strict would start refusing anyone.
+  const limits = planLimitStats();
+  const planLimits = limits.total === 0
+    ? { mode: planLimitMode(), wouldBlock: 0 }
+    : { mode: planLimitMode(), wouldBlock: limits.total, byField: limits.byField };
+
   res.status(result.ok ? 200 : 503).json({
     status:  result.ok ? 'ready' : 'not_ready',
     version: process.env.BUILD_VERSION ?? null,
     commit:  process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
     ...result,
     tenantGuard,
+    planLimits,
   });
 }

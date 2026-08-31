@@ -6,6 +6,7 @@ import { trackUsage } from '../../services/razorpay.js';
 import { createLogger } from '../utils/logger.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { swallow } from '../utils/capture.js';
+import { enforcePlanLimit } from '../../services/plan-limits.js';
 
 const router = express.Router();
 const logger = createLogger('REPORTING_AGENT');
@@ -38,7 +39,7 @@ const TYPE_MAP = {
 // POST /api/reporting-agent/start
 // Enqueues a reporting job; returns jobId immediately.
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/start', requireRole('MEMBER'), async (req, res) => {
+router.post('/start', requireRole('MEMBER'), enforcePlanLimit('reportsGenerated'), async (req, res) => {
   const { reportType, profileId: bodyProfileId, startDate, endDate, model = 'claude', brand } = req.body;
 
   if (!reportType) return res.status(400).json({ error: 'reportType is required' });
