@@ -3,6 +3,15 @@
 # ============================================================================
 FROM node:22-alpine AS frontend-builder
 
+# Vite inlines import.meta.env.VITE_* at BUILD time, so this has to be present
+# here — a runtime service variable is far too late and the bundle simply ships
+# without a DSN. Railway does not inject service variables into Dockerfile
+# builds (Docker isolates the build from the host by design); it passes them as
+# build args, and a stage only receives one it declares. Without this ARG,
+# setting VITE_SENTRY_DSN in Railway looks configured and does nothing.
+ARG VITE_SENTRY_DSN=""
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
+
 WORKDIR /app/frontend
 
 COPY frontend/package*.json ./
