@@ -1,69 +1,73 @@
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 /**
- * useState backed by localStorage.
+ * useState backed by localStorage, stale-while-revalidate.
  *
- * Stale-while-revalidate pattern: returns cached value immediately on mount so
- * the UI renders something useful while a fresh fetch runs in the background.
+ * The point is that a refresh shows the data you already had while a fresh
+ * fetch runs behind it. That did not work: `hasHydrated` was kept in a ref, so
+ * it read `false` during the first render no matter what was cached — the ref
+ * was only set later, in an effect. Consumers read it at render time to decide
+ * whether to show a loading skeleton, so every refresh replaced the table with
+ * a spinner and the cached rows were never seen. The data was in localStorage,
+ * was read correctly into state, and was then hidden.
  *
- * - `key`: localStorage key. Pass a falsy value to disable persistence
- *   (returns a plain useState).
- * - `initialValue`: used only when nothing is cached for this key.
- * - `maxAgeMs`: optional. If the cached entry is older than this, it's
- *   ignored on read. Default: no expiry.
+ * So hydration is now derived in the same synchronous read that produces the
+ * value, and held in state rather than a ref: if `value` came from the cache,
+ * `hasHydrated` is true on the very first render.
  *
- * Returns [value, setValue, meta] where meta = { hasHydrated, cachedAt }.
+ * - `key`: localStorage key. A falsy value disables persistence.
+ * - `initialValue`: used only when nothing usable is cached.
+ * - `maxAgeMs`: optional. A cached entry older than this is ignored.
+ *
+ * Returns [value, setValue, { hasHydrated, cachedAt }].
  */
+
+/** One synchronous read. Value and hydration always agree because they come from here together. */
+function readCache(key, initialValue, maxAgeMs) {
+  const miss = { value: initialValue, hydrated: false, cachedAt: null, dirty: false };
+  if (!key || typeof window === 'undefined') return miss;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return miss;
+    const { v, t } = JSON.parse(raw);
+    if (maxAgeMs && Date.now() - t > maxAgeMs) return miss;
+    return { value: v, hydrated: true, cachedAt: t, dirty: false };
+  } catch {
+    return miss;
+  }
+}
+
 export function usePersistedState(key, initialValue, maxAgeMs = null) {
-  const [value, setValue] = useState(() => {
-    if (!key || typeof window === 'undefined') return initialValue;
-    try {
-      const raw = window.localStorage.getItem(key);
-      if (!raw) return initialValue;
-      const { v, t } = JSON.parse(raw);
-      if (maxAgeMs && Date.now() - t > maxAgeMs) return initialValue;
-      return v;
-    } catch {
-      return initialValue;
-    }
-  });
+  const [snapshot, setSnapshot] = useState(() => readCache(key, initialValue, maxAgeMs));
+  const [loadedKey, setLoadedKey] = useState(key);
 
-  const cachedAtRef = useRef(null);
-  const hasHydratedRef = useRef(false);
+  // Key changed — a profile switch. Re-read during render, not in an effect, so
+  // the first render after the switch already carries both the right value and
+  // the right hasHydrated. In an effect there is one render in between with the
+  // wrong answer, and that is the render consumers latch onto.
+  if (key !== loadedKey) {
+    setLoadedKey(key);
+    setSnapshot(readCache(key, initialValue, maxAgeMs));
+  }
 
-  // Hydrate when the key changes (e.g. user switches profile).
+  const setValue = useCallback((next) => {
+    setSnapshot((prev) => {
+      const value = typeof next === 'function' ? next(prev.value) : next;
+      // dirty marks a real write, so the persist effect can tell an actual
+      // change from the value it just hydrated.
+      return { ...prev, value, dirty: true };
+    });
+  }, []);
+
+  // Persist writes only. Re-writing what was just read would refresh the
+  // timestamp on every mount, so a maxAge would never elapse for anyone who
+  // keeps opening the page.
   useEffect(() => {
-    if (!key || typeof window === 'undefined') {
-      hasHydratedRef.current = false;
-      cachedAtRef.current = null;
-      return;
-    }
+    if (!key || typeof window === 'undefined' || !snapshot.dirty) return;
     try {
-      const raw = window.localStorage.getItem(key);
-      if (raw) {
-        const { v, t } = JSON.parse(raw);
-        if (!maxAgeMs || Date.now() - t <= maxAgeMs) {
-          setValue(v);
-          cachedAtRef.current = t;
-          hasHydratedRef.current = true;
-          return;
-        }
-      }
-    } catch { /* fall through */ }
-    setValue(initialValue);
-    hasHydratedRef.current = false;
-    cachedAtRef.current = null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+      window.localStorage.setItem(key, JSON.stringify({ v: snapshot.value, t: Date.now() }));
+    } catch { /* quota / private mode — the cache is an optimisation, not state */ }
+  }, [key, snapshot]);
 
-  // Persist on write.
-  useEffect(() => {
-    if (!key || typeof window === 'undefined') return;
-    try {
-      window.localStorage.setItem(key, JSON.stringify({ v: value, t: Date.now() }));
-      cachedAtRef.current = Date.now();
-    } catch { /* quota / privacy mode — silently skip */ }
-  }, [key, value]);
-
-  return [value, setValue, { hasHydrated: hasHydratedRef.current, cachedAt: cachedAtRef.current }];
+  return [snapshot.value, setValue, { hasHydrated: snapshot.hydrated, cachedAt: snapshot.cachedAt }];
 }
