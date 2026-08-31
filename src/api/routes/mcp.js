@@ -1,6 +1,5 @@
 import express from 'express';
 import { executeMCPCommand } from '../../services/claude-mcp.js';
-import campaigns from '../../data/mock-campaigns.js';
 import { rateLimitMiddleware } from '../utils/rateLimit.js';
 import { getBrandAnalyticsContext } from '../../services/brand-analytics/loader.js';
 import { requireRole } from '../middleware/requireRole.js';
