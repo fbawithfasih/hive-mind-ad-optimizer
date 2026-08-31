@@ -9,6 +9,7 @@
 import { useState } from 'react';
 import { startSalesReport, pollSalesReport } from '../services/api.js';
 import { usePersistedState } from './usePersistedState.js';
+import { useLatestRun, sleep } from './useLatestRun.js';
 
 const SALES_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
@@ -32,7 +33,13 @@ export function useSalesPolling(profileId) {
   const [salesStatus,   setSalesStatus]   = useState('');
   const [salesError,    setSalesError]    = useState(null);
 
+  // A 27-minute loop that outlives a profile switch would write the previous
+  // profile's revenue into the current one's "Total Revenue" card — and into
+  // its persisted cache, so it survives a refresh.
+  const beginRun = useLatestRun([profileId]);
+
   async function loadSales(startDate, endDate) {
+    const isCurrent = beginRun();
     setLoadingSales(true);
     setSalesStatus('Requesting SP-API sales report…');
     setSalesError(null);
@@ -41,15 +48,18 @@ export function useSalesPolling(profileId) {
 
     try {
       const { reportId } = await startSalesReport(startDate, endDate);
+      if (!isCurrent()) return;
       let elapsed = 0;
       for (const delay of SCHEDULE) {
-        await new Promise(r => setTimeout(r, delay));
+        await sleep(delay);
+        if (!isCurrent()) return;
         elapsed += delay;
         const mins = Math.floor(elapsed / 60000);
         const secs = Math.round((elapsed % 60000) / 1000);
         setSalesStatus(`SP-API sales report processing… (${mins > 0 ? `${mins}m ${secs}s` : `${secs}s`})`);
 
         const result = await pollSalesReport(reportId);
+        if (!isCurrent()) return;
         if (result.status === 'COMPLETED') {
           setTotalSales(result.totalSales ?? 0);
           setSalesCurrency(result.currency ?? null);
@@ -63,6 +73,9 @@ export function useSalesPolling(profileId) {
       }
       throw new Error('SP-API sales report timed out — try again later.');
     } catch (err) {
+      // An abandoned run must not surface its error, nor clear the loading
+      // state belonging to the run that replaced it.
+      if (!isCurrent()) return;
       const msg = err.response?.data?.error || err.message;
       // SP not connected is silent — Total Revenue card just stays blank
       if (err.response?.status !== 412) setSalesError(msg);
