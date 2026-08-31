@@ -1,3 +1,21 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Config as Code is deprecated and stops being read on 2026-12-01.
+#
+# Do NOT migrate this file to .railway/railway.ts yet. The IaC DSL has no
+# equivalent for preDeployCommand — `railway config migrate` emits it as a
+# comment:
+#
+#     // preDeployCommand from CaC: ["npx prisma migrate deploy"]
+#
+# Migrating today would therefore stop running database migrations on deploy,
+# silently: the deploy would still succeed, and the first PR carrying a
+# migration would ship code expecting a column that was never created.
+# restartPolicyType has no equivalent either.
+#
+# Recheck nearer the deadline. `npm test` fails if the pre-deploy migration
+# step ever goes missing (src/__tests__/deploy-image-contents.test.js).
+# ─────────────────────────────────────────────────────────────────────────────
+
 [build]
 buildCommand = "npm install && cd frontend && npm install && npm run build && cd .."
 
