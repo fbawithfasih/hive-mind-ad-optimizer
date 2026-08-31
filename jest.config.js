@@ -57,6 +57,8 @@ export default {
     // ── Money ───────────────────────────────────────────────────────────────
     'src/services/razorpay.js':  { statements: 60, branches: 60, functions: 55 },
     'src/workers/billing-reconcile.worker.js': { statements: 100, branches: 100, functions: 100 },
+    // ── Customer-visible batch progress ─────────────────────────────────────
+    'src/workers/bulk-listing.worker.js': { statements: 100, branches: 75, functions: 100 },
   },
   transform: {
     '^.+\\.(js|ts)$': ['babel-jest', {

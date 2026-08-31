@@ -205,6 +205,13 @@ model ListingOptimization {
   status                  OptimizationStatus @default(PENDING)
   errorMessage            String?
   publishedAt             DateTime?
+  // Stable identity of one item within its batch (the BullMQ job id,
+  // "<batchRef>:<index>"). The bulk worker upserts on it so a redelivered job
+  // replaces its row instead of adding a second one — batch progress is counted
+  // from these rows, so a duplicate would count one item twice. NULL for
+  // single-listing optimizations, which have no batch; Postgres treats NULLs as
+  // distinct, so they never collide.
+  itemKey                 String?
   createdAt               DateTime           @default(now())
   updatedAt               DateTime           @updatedAt
 
@@ -212,6 +219,7 @@ model ListingOptimization {
   org   Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
   batch BulkListingBatch? @relation(fields: [batchId], references: [id])
 
+  @@unique([batchId, itemKey])
   @@index([orgId])
   @@index([batchId])
   @@index([asin])
