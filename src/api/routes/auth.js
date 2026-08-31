@@ -15,6 +15,7 @@ import {
 } from '../middleware/rateLimiter.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../services/email.js';
 import { createLogger } from '../utils/logger.js';
+import { isEntitled } from '../../services/entitlement.js';
 import { captureSwallowed } from '../utils/capture.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
 import { consumeClaimToken } from './billing.js';
@@ -309,7 +310,11 @@ router.get('/me', requireAuth, async (req, res) => {
           include: {
             org: {
               include: {
-                subscriptions: { where: { status: 'ACTIVE' }, take: 1 },
+                // Every status, not just ACTIVE. A CANCELLED subscription still
+                // inside its paid period is entitled (see services/entitlement.js),
+                // and filtering to ACTIVE hid that here while the paywall honoured
+                // it — the two then disagreed about the same org.
+                subscriptions: { take: 1 },
               },
             },
           },
@@ -349,10 +354,20 @@ router.get('/me', requireAuth, async (req, res) => {
         // An active paid subscription overrides the expired-trial state — the
         // /billing trap-redirect should only fire when there's neither a live
         // trial nor an active subscription.
-        const activeSub = org.subscriptions?.[0];
-        const hasActiveSubscription = !!activeSub;
-        const isOnTrial    = !!trialEndsAt && trialEndsAt.getTime() > now;
-        const trialExpired = !hasActiveSubscription && !!trialEndsAt && trialEndsAt.getTime() <= now;
+        const sub = org.subscriptions?.[0] ?? null;
+        const entitled  = isEntitled(sub, now);
+        const isOnTrial = !!trialEndsAt && trialEndsAt.getTime() > now;
+        const trialExpired = !entitled && !!trialEndsAt && trialEndsAt.getTime() <= now;
+
+        // Mirrors requireActiveSubscription exactly: it admits an active trial,
+        // then an entitled subscription, and 402s otherwise. The frontend gates
+        // on this, so the redirect and the paywall cannot disagree.
+        //
+        // trialExpired alone was the gate before, which only ever caught expired
+        // TRIALS. An org whose paid subscription lapsed has trialEndsAt = null,
+        // so it stayed false: the customer kept browsing and hit a raw 402 on
+        // each gated feature instead of being sent somewhere they could pay.
+        const accessBlocked = !entitled && !isOnTrial;
         const trialDaysLeft = isOnTrial
           ? Math.ceil((trialEndsAt.getTime() - now) / 86400000)
           : 0;
@@ -364,8 +379,11 @@ router.get('/me', requireAuth, async (req, res) => {
           trialEndsAt:   trialEndsAt?.toISOString() ?? null,
           isOnTrial,
           trialExpired,
+          accessBlocked,
           trialDaysLeft,
-          subscriptionStatus: activeSub?.status ?? null,
+          // The real status now, not null-unless-ACTIVE, so /billing can say
+          // what actually happened.
+          subscriptionStatus: sub?.status ?? null,
         };
       })() : null,
     });
