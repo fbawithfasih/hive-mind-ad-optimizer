@@ -157,3 +157,51 @@ describe('operator scripts are in the image', () => {
     expect(isInImage(file)).toBe(true);
   });
 });
+
+describe('database migrations run before a deploy goes live', () => {
+  /**
+   * Until railway.toml added preDeployCommand, `prisma migrate deploy` ran only
+   * in CI against the throwaway test database, and production schema drifted.
+   *
+   * The specific way this could silently regress is the Config-as-Code
+   * deprecation (hard cutoff 2026-12-01). `railway config migrate` cannot
+   * express preDeployCommand in the IaC DSL — it emits it as a COMMENT:
+   *
+   *     // preDeployCommand from CaC: ["npx prisma migrate deploy"]
+   *
+   * Migrating would leave a deploy that still succeeds while no longer running
+   * migrations, so the first PR carrying one would ship code expecting a column
+   * that was never created. This fails the build instead.
+   */
+  const iacExists = fs.existsSync('.railway/railway.ts')
+    || fs.existsSync('.railway/railway.py')
+    || fs.existsSync('.railway/railway.go');
+
+  // An actual assignment, not the word. The comment above this setting in
+  // railway.toml mentions preDeployCommand by name, so a bare /preDeployCommand/
+  // match passes on prose alone — which it did, the first time I wrote this.
+  const PRE_DEPLOY_SETTING = /^\s*preDeployCommand\s*=/m;
+
+  it('has a pre-deploy migration step configured somewhere', () => {
+    const configured = PRE_DEPLOY_SETTING.test(railway)
+      || (iacExists && /migrate deploy/.test(
+           ['ts', 'py', 'go']
+             .map(ext => `.railway/railway.${ext}`)
+             .filter(f => fs.existsSync(f))
+             .map(f => fs.readFileSync(f, 'utf8'))
+             .join('\n')
+         ));
+
+    expect(configured).toBe(true);
+  });
+
+  it('runs prisma migrate deploy, not something else', () => {
+    expect(railway).toMatch(/preDeployCommand\s*=\s*\[\s*"npx prisma migrate deploy"\s*\]/);
+  });
+
+  it('has not been half-migrated to IaC', () => {
+    // Both files present means two sources of truth; Railway refuses to plan in
+    // that state, and which one wins at deploy time is not obvious.
+    expect(iacExists && PRE_DEPLOY_SETTING.test(railway)).toBe(false);
+  });
+});
