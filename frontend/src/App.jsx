@@ -28,13 +28,20 @@ function RequireAuth({ user, children }) {
   return children;
 }
 
-// Redirect to /billing when the trial has expired and no subscription exists.
-// Billing page itself is always reachable so the user can subscribe.
+// Redirect to /billing when the org has no access — an expired trial OR a
+// lapsed subscription. Billing itself stays reachable so they can pay.
+//
+// This used to gate on `trialExpired`, which only ever caught expired TRIALS.
+// An org whose paid subscription ended has trialEndsAt = null, so the flag
+// stayed false and the customer was never redirected: they kept browsing and
+// hit a raw "An active subscription is required" error on each gated feature
+// instead. `accessBlocked` is computed server-side from the same predicate the
+// paywall uses, so the two cannot disagree.
 function RequireAccess({ user, children }) {
   const location = useLocation();
   if (!user) return <Navigate to="/login" replace />;
-  const trialExpired = user?.currentOrg?.trialExpired;
-  if (trialExpired && location.pathname !== '/billing') {
+  const blocked = user?.currentOrg?.accessBlocked ?? user?.currentOrg?.trialExpired;
+  if (blocked && location.pathname !== '/billing') {
     return <Navigate to="/billing" replace />;
   }
   return children;

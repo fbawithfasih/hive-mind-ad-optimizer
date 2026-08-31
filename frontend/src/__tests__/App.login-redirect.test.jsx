@@ -38,7 +38,7 @@ import { loginApi, getMeApi, getOnboardingStatus } from '../services/api.js';
 const MEMBER_OF_ONE_ORG = {
   user: { id: 'u1', email: 'a@b.com' },
   organizations: [{ id: 'org-1', name: 'Acme', role: 'ADMIN' }],
-  currentOrg: { id: 'org-1', name: 'Acme', trialExpired: false },
+  currentOrg: { id: 'org-1', name: 'Acme', accessBlocked: false, trialExpired: false },
 };
 
 /**
