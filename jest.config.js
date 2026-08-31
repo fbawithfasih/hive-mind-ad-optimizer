@@ -60,6 +60,8 @@ export default {
     // ── Writes to live advertiser accounts ──────────────────────────────────
     // This worker changes real campaign budgets on a schedule, unattended.
     'src/workers/automation.worker.js': { statements: 100, branches: 85, functions: 80 },
+    // ── Customer-visible batch progress ─────────────────────────────────────
+    'src/workers/bulk-listing.worker.js': { statements: 100, branches: 75, functions: 100 },
   },
   transform: {
     '^.+\\.(js|ts)$': ['babel-jest', {
