@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import SearchTermTable, { termKey } from './SearchTermTable.jsx';
 import { startSearchTermReport, pollSearchTermStatus, bulkApplySearchTermActions } from '../services/api.js';
 import { getTodayISO, getDaysAgoISO } from '../utils/date-helpers.js';
+import { useLatestRun, sleep } from '../hooks/useLatestRun.js';
 import { csvBrandingLines, addPdfBranding } from '../utils/reportBranding.js';
 
 // ── Export helpers ────────────────────────────────────────────────────────────
@@ -288,6 +289,10 @@ function reclassify(terms, th) {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, onSearchTermsLoaded }) {
+  // The poll loop below runs for up to ~8 minutes. A profile switch or unmount
+  // inside that window supersedes it, so it cannot drop one profile's search
+  // terms into another's table.
+  const beginRun = useLatestRun([profileId]);
   const [searchTerms, setSearchTerms]       = useState([]);
   const [isLoading, setIsLoading]           = useState(false);
   const [loadStatus, setLoadStatus]         = useState('');
@@ -377,6 +382,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
     ? Math.round((stats.addNegative / searchTerms.length) * 100) : 0;
 
   async function handleLoad() {
+    const isCurrent = beginRun();
     setIsLoading(true);
     setLoadStatus('Creating report…');
     setError(null);
@@ -384,6 +390,7 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
       const ids = selectedCampaignIds.size > 0 ? [...selectedCampaignIds] : [];
       const { reportIds, reportId, profileId: pid, startDate, endDate } =
         await startSearchTermReport(profileId || undefined, dateFrom, dateTo, ids);
+      if (!isCurrent()) return;
       const pollIds = Array.isArray(reportIds) && reportIds.length ? reportIds : [reportId];
 
       const schedule = [
@@ -394,13 +401,18 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
 
       let elapsed = 0;
       for (const delay of schedule) {
-        await new Promise(r => setTimeout(r, delay));
+        await sleep(delay);
+        // Superseded by a profile switch or unmount — write nothing and stop
+        // polling, rather than dropping another profile's search terms into
+        // the table the user is now looking at.
+        if (!isCurrent()) return;
         elapsed += delay;
         const mins = Math.floor(elapsed / 60000);
         const secs = Math.round((elapsed % 60000) / 1000);
         setLoadStatus(`Waiting for Amazon… (${mins > 0 ? `${mins}m ` : ''}${secs}s)`);
 
         const result = await pollSearchTermStatus(pid, pollIds, ids);
+        if (!isCurrent()) return;
         if (result.status === 'COMPLETED') {
           const terms = Array.isArray(result.searchTerms) ? result.searchTerms : [];
           setSearchTerms(terms);
@@ -414,10 +426,13 @@ export default function SearchTermPanel({ profileId, campaigns = [], onAskAI, on
       }
       throw new Error('Amazon report took too long. Try a shorter date range or try again later.');
     } catch (err) {
+      if (!isCurrent()) return;
       setError('Failed to load search terms: ' + (err.response?.data?.error || err.message || 'Unknown error'));
     } finally {
-      setIsLoading(false);
-      setLoadStatus('');
+      if (isCurrent()) {
+        setIsLoading(false);
+        setLoadStatus('');
+      }
     }
   }
 

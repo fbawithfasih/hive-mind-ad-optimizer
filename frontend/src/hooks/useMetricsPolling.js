@@ -14,6 +14,7 @@
  */
 import { useState } from 'react';
 import { startReports, pollReportStatus } from '../services/api.js';
+import { useLatestRun, sleep } from './useLatestRun.js';
 
 const SCHEDULE = [
   ...Array(12).fill(5000),   // 0–60s:    every 5s
@@ -56,6 +57,10 @@ function mergeCampaignMetrics(prev, result, startDate, endDate, setMetricsDateRa
 }
 
 export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampaigns) {
+  // A run is superseded by a profile switch, by unmounting, or by starting
+  // another. Without this a 20-minute loop kept going and merged the profile it
+  // started with into whatever the user was looking at when it finished.
+  const beginRun = useLatestRun([selectedProfileId]);
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
   const [metricsStatus,    setMetricsStatus]    = useState('');
   const [metricsProgress,  setMetricsProgress]  = useState(0);
@@ -64,10 +69,17 @@ export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampai
   // Preserved after a timeout so the user can resume without a new report
   const [pendingReport,    setPendingReport]    = useState(null); // { reportId, profileId, startDate, endDate }
 
-  async function pollLoop(profileId, reportIds, startDate, endDate) {
+  /**
+   * @returns {'done'|'exhausted'|'superseded'} — 'superseded' means the caller
+   *          must write nothing at all, including clearing the loading flag.
+   */
+  async function pollLoop(isCurrent, profileId, reportIds, startDate, endDate) {
     let elapsed = 0;
     for (const delay of SCHEDULE) {
-      await new Promise(r => setTimeout(r, delay));
+      await sleep(delay);
+      // Checked before any state write and before the next network call, so a
+      // superseded loop neither reports progress nor keeps polling Amazon.
+      if (!isCurrent()) return 'superseded';
       elapsed += delay;
 
       const mins = Math.floor(elapsed / 60000);
@@ -76,23 +88,25 @@ export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampai
       setMetricsProgress(Math.min(95, 5 + Math.round((elapsed / POLL_CEILING_MS) * 90)));
 
       const result = await pollReportStatus(profileId, reportIds);
+      if (!isCurrent()) return 'superseded';
 
       if (result.status === 'COMPLETED') {
         setMetricsProgress(100);
         setMetricsStatus('Merging data…');
         setCampaigns(prev => mergeCampaignMetrics(prev, result, startDate, endDate, setMetricsDateRange, setMetricsStatus));
         setPendingReport(null);
-        return true; // done
+        return 'done';
       }
 
       if (result.status === 'FAILED') {
         throw new Error(result.error ?? 'Amazon report generation failed.');
       }
     }
-    return false; // exhausted
+    return 'exhausted';
   }
 
   async function handleLoadMetrics(overrideFrom, overrideTo) {
+    const isCurrent = beginRun();
     setIsLoadingMetrics(true);
     setMetricsProgress(2);
     setMetricsStatus('Creating report…');
@@ -106,6 +120,7 @@ export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampai
 
       const { reportIds, reportId, campaigns: rawCampaigns, startDate, endDate, notConnected, message } =
         await startReports(profileId, from, to);
+      if (!isCurrent()) return;
       const ids = (reportIds ?? (reportId ? [reportId] : [])).filter(Boolean);
       setCampaigns(Array.isArray(rawCampaigns) ? rawCampaigns : []);
       setMetricsProgress(5);
@@ -117,23 +132,30 @@ export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampai
         return;
       }
 
-      const done = await pollLoop(profileId, ids, startDate, endDate);
-      if (!done) {
+      const outcome = await pollLoop(isCurrent, profileId, ids, startDate, endDate);
+      if (outcome === 'superseded') return;
+      if (outcome === 'exhausted') {
         setPendingReport({ reportIds: ids, profileId, startDate, endDate });
         setError('Report is still processing on Amazon — click "Check Again" to resume without starting over.');
       }
     } catch (err) {
+      if (!isCurrent()) return;
       setError('Metrics failed: ' + (err.response?.data?.error || err.message || 'Unknown error'));
     } finally {
-      setIsLoadingMetrics(false);
-      setMetricsStatus('');
-      setTimeout(() => setMetricsProgress(0), 600);
+      // Guarded: an abandoned run must not clear the loading flag or progress
+      // belonging to the run that replaced it.
+      if (isCurrent()) {
+        setIsLoadingMetrics(false);
+        setMetricsStatus('');
+        setTimeout(() => { if (isCurrent()) setMetricsProgress(0); }, 600);
+      }
     }
   }
 
   // Resume polling an existing report without creating a new one
   async function handleCheckAgain() {
     if (!pendingReport) return;
+    const isCurrent = beginRun();
     setIsLoadingMetrics(true);
     setMetricsProgress(5);
     setMetricsStatus('Resuming…');
@@ -142,19 +164,23 @@ export function useMetricsPolling(selectedProfileId, dateFrom, dateTo, setCampai
     const { reportIds, reportId, profileId, startDate, endDate } = pendingReport;
     const ids = reportIds ?? (reportId ? [reportId] : []);
     try {
-      const done = await pollLoop(profileId, ids, startDate, endDate);
-      if (!done) {
+      const outcome = await pollLoop(isCurrent, profileId, ids, startDate, endDate);
+      if (outcome === 'superseded') return;
+      if (outcome === 'exhausted') {
         setError('Report is still processing — try again in a few minutes.');
       } else {
         setPendingReport(null);
       }
     } catch (err) {
+      if (!isCurrent()) return;
       setError('Metrics failed: ' + (err.response?.data?.error || err.message || 'Unknown error'));
       setPendingReport(null);
     } finally {
-      setIsLoadingMetrics(false);
-      setMetricsStatus('');
-      setTimeout(() => setMetricsProgress(0), 600);
+      if (isCurrent()) {
+        setIsLoadingMetrics(false);
+        setMetricsStatus('');
+        setTimeout(() => { if (isCurrent()) setMetricsProgress(0); }, 600);
+      }
     }
   }
 
