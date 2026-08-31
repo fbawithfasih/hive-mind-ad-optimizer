@@ -48,7 +48,14 @@ const RULES = [
 ];
 
 // 2026-08-31T08:00:00Z — a Monday, so the morning slot includes 'weekly'.
-const MORNING = { data: { slot: 'morning' }, timestamp: Date.parse('2026-08-31T08:00:00Z') };
+// `id` carries the scheduled occurrence the way BullMQ formats a repeatable
+// job; `timestamp` is a day earlier, which is what BullMQ actually does and
+// what the original implementation wrongly keyed on.
+const MORNING = {
+  id: `repeat:abc123:${Date.parse('2026-08-31T08:00:00Z')}`,
+  timestamp: Date.parse('2026-08-30T08:00:00Z'),
+  data: { slot: 'morning' },
+};
 
 /**
  * Stand in for the unique index on (ruleId, slotKey): remembers what has been
@@ -89,16 +96,47 @@ beforeEach(() => {
 afterEach(() => { jest.useRealTimers(); });
 
 describe('slotKeyFor', () => {
-  it('anchors the key to when the occurrence was enqueued, not to the clock', () => {
-    // A retry that runs after midnight UTC must still resolve to the day the
-    // sweep was scheduled for, or the duplicate goes unrecognised.
+  it('names the day the sweep is scheduled for, not the day its job was created', () => {
+    // BullMQ creates a daily repeatable's delayed job ~24h before it runs, so
+    // job.timestamp is a day early. Production proved it: the sweep that ran at
+    // 2026-08-31T20:00Z logged `evening:2026-08-30`.
     expect(slotKeyFor(MORNING)).toBe('morning:2026-08-31');
   });
 
+  it('matches the real production job that exposed this', () => {
+    const observed = {
+      id: 'repeat:d00d7b34843086aa84592de29a03f6c1:1788206400000',
+      timestamp: Date.parse('2026-08-30T20:00:00Z'),
+      data: { slot: 'evening' },
+    };
+    // 1788206400000 is 2026-08-31T20:00:00Z.
+    expect(slotKeyFor(observed)).toBe('evening:2026-08-31');
+  });
+
   it('separates the two daily slots', () => {
-    const evening = { data: { slot: 'evening' }, timestamp: MORNING.timestamp + 12 * 3600_000 };
+    const evening = { ...MORNING, data: { slot: 'evening' } };
     expect(slotKeyFor(evening)).toBe('evening:2026-08-31');
     expect(slotKeyFor(evening)).not.toBe(slotKeyFor(MORNING));
+  });
+
+  it('gives consecutive occurrences distinct keys', () => {
+    const today    = { id: `repeat:h:${Date.parse('2026-08-31T20:00:00Z')}`, data: { slot: 'evening' } };
+    const tomorrow = { id: `repeat:h:${Date.parse('2026-09-01T20:00:00Z')}`, data: { slot: 'evening' } };
+    expect(slotKeyFor(today)).not.toBe(slotKeyFor(tomorrow));
+  });
+
+  it('is stable across a restart that rewrites job.timestamp', () => {
+    // The edge case the old implementation lost: recreating the delayed job on
+    // a different calendar date moved the occurrence's key mid-flight.
+    const id = `repeat:h:${Date.parse('2026-08-31T20:00:00Z')}`;
+    const before = { id, timestamp: Date.parse('2026-08-30T20:00:00Z'), data: { slot: 'evening' } };
+    const after  = { id, timestamp: Date.parse('2026-08-31T19:55:00Z'), data: { slot: 'evening' } };
+    expect(slotKeyFor(before)).toBe(slotKeyFor(after));
+  });
+
+  it('falls back to job.timestamp for a non-repeatable job', () => {
+    const manual = { id: 'manual-1', timestamp: Date.parse('2026-08-31T09:00:00Z'), data: { slot: 'morning' } };
+    expect(slotKeyFor(manual)).toBe('morning:2026-08-31');
   });
 });
 
@@ -116,8 +154,7 @@ describe('a retried sweep', () => {
 
   it('re-runs the rules on the next slot', async () => {
     await automationProcessor(MORNING);
-    const evening = { data: { slot: 'evening' }, timestamp: MORNING.timestamp + 12 * 3600_000 };
-    await automationProcessor(evening);
+    await automationProcessor({ ...MORNING, data: { slot: 'evening' } });
 
     expect(executeRule).toHaveBeenCalledTimes(4);
   });
@@ -252,7 +289,7 @@ describe('the sweep as a whole', () => {
   });
 
   it('runs the evening slot against twice_daily rules only', async () => {
-    const evening = { data: { slot: 'evening' }, timestamp: MORNING.timestamp + 12 * 3600_000 };
+    const evening = { ...MORNING, data: { slot: 'evening' } };
     await automationProcessor(evening);
 
     expect(campaignRule.findMany.mock.calls[0][0].where.schedule.in).toEqual(['twice_daily']);
