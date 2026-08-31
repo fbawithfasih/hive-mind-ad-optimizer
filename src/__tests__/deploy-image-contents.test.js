@@ -127,3 +127,33 @@ describe('build-time frontend variables', () => {
     expect(frontendStage).toMatch(new RegExp(`ENV\\s+${name}=`));
   });
 });
+
+describe('operator scripts are in the image', () => {
+  /**
+   * Scripts that import from src/ need the application's runtime and its
+   * database and Redis connections. Those point at Railway's private network,
+   * so such a script can only run inside the container — which means it has to
+   * be in the image to exist at all.
+   *
+   * This was missed twice: scripts/dead-letters.js shipped in #44 as "operator
+   * tooling, so it runs where operators already are", and
+   * scripts/plan-limit-audit.js shipped in #53 as the prerequisite for turning
+   * plan limits on. Neither was in the image, so neither could run anywhere it
+   * had credentials.
+   */
+  function scriptsNeedingRuntime() {
+    if (!fs.existsSync('scripts')) return [];
+    return fs.readdirSync('scripts')
+      .filter(f => f.endsWith('.js'))
+      .filter(f => /from\s+'\.\.\/src\//.test(fs.readFileSync(`scripts/${f}`, 'utf8')))
+      .map(f => `scripts/${f}`);
+  }
+
+  it('finds scripts that depend on the app runtime', () => {
+    expect(scriptsNeedingRuntime().length).toBeGreaterThan(0);
+  });
+
+  it.each(scriptsNeedingRuntime())('%s is copied into the image', (file) => {
+    expect(isInImage(file)).toBe(true);
+  });
+});

@@ -55,6 +55,12 @@ COPY --from=backend-deps /app/prisma ./prisma
 COPY src/ ./src/
 COPY data/ ./data/
 COPY package.json ./
+# Operator tooling (scripts/dead-letters.js, scripts/plan-limit-audit.js, ...).
+# DATABASE_URL and REDIS_URL point at Railway's private network, so these can
+# only run inside the container — `railway ssh` then `node scripts/<name>.js`.
+# Shipped without them, a script is repo-only and unusable exactly where it was
+# written to be used.
+COPY scripts/ ./scripts/
 # Loaded by `node --import ./instrument.mjs` (railway.toml startCommand,
 # package.json start). Without it in the image the process exits immediately
 # with ERR_MODULE_NOT_FOUND and every deploy fails at the healthcheck.
