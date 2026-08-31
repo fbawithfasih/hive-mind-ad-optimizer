@@ -162,8 +162,34 @@ describe('provider-backed subscriptions are never period-gated', () => {
     expect((await request(makeApp(orgNoTrial)).get('/gated')).status).toBe(200);
   });
 
-  it('still blocks a CANCELLED provider subscription inside its period', async () => {
+  it('admits a CANCELLED subscription until its period ends', async () => {
+    // POLICY: /cancel asks Razorpay to cancel at cycle end, so the customer has
+    // been billed through the current period. Revoking on the click takes away
+    // time they already paid for. This assertion previously required 402 —
+    // it recorded the behaviour, not a decision; there was no rationale beside
+    // it and the surrounding block is about not locking out paying customers.
     prisma.subscription.findUnique.mockResolvedValue(providerSub('CANCELLED', 10));
+
+    expect((await request(makeApp(orgNoTrial)).get('/gated')).status).toBe(200);
+  });
+
+  it('blocks a CANCELLED subscription once its period has ended', async () => {
+    prisma.subscription.findUnique.mockResolvedValue(providerSub('CANCELLED', -1));
+
+    expect((await request(makeApp(orgNoTrial)).get('/gated')).status).toBe(402);
+  });
+
+  it('blocks a CANCELLED subscription with no period recorded', async () => {
+    // Nothing says how long they paid for, so there is no window to honour.
+    prisma.subscription.findUnique.mockResolvedValue({
+      status: 'CANCELLED', subscriptionId: 'sub_1', currentPeriodEnd: null,
+    });
+
+    expect((await request(makeApp(orgNoTrial)).get('/gated')).status).toBe(402);
+  });
+
+  it('blocks an EXPIRED subscription regardless of its period', async () => {
+    prisma.subscription.findUnique.mockResolvedValue(providerSub('EXPIRED', 10));
 
     expect((await request(makeApp(orgNoTrial)).get('/gated')).status).toBe(402);
   });

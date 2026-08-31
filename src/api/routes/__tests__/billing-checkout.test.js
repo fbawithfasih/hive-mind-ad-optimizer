@@ -112,15 +112,25 @@ describe('POST /checkout — pre-payment entitlement', () => {
   });
 });
 
-describe('requireActiveSubscription treats PENDING as unpaid', () => {
-  it('admits only ACTIVE and PAST_DUE', async () => {
-    // Guard against someone later adding PENDING to the accepted set: that would
-    // silently restore the original bug.
-    const src = await import('node:fs').then(fs =>
-      fs.readFileSync('src/api/middleware/requireActiveSubscription.js', 'utf8'));
-    const gate = src.match(/sub\.status === '(\w+)'\s*\|\|\s*sub\.status === '(\w+)'/);
-    expect(gate).not.toBeNull();
-    expect([gate[1], gate[2]].sort()).toEqual(['ACTIVE', 'PAST_DUE']);
-    expect(src).not.toMatch(/sub\.status === 'PENDING'/);
+describe('a PENDING subscription is not entitlement', () => {
+  // Previously this read the middleware's source and matched a literal
+  // `sub.status === 'ACTIVE' || sub.status === 'PAST_DUE'`, which broke the
+  // moment that expression moved. The guarantee is behavioural, so assert it
+  // against the function that now decides.
+  const future = new Date(Date.now() + 86_400_000);
+
+  it.each([
+    ['PENDING',   false],
+    ['ACTIVE',    true],
+    ['PAST_DUE',  true],
+    ['EXPIRED',   false],
+  ])('%s → entitled: %s', async (status, expected) => {
+    const { isEntitled } = await import('../../../services/entitlement.js');
+    expect(isEntitled({ status, subscriptionId: 'sub_1', currentPeriodEnd: future })).toBe(expected);
+  });
+
+  it('never treats a subscription that has only reached checkout as paid', async () => {
+    const { isEntitled } = await import('../../../services/entitlement.js');
+    expect(isEntitled({ status: 'PENDING', subscriptionId: 'sub_1', currentPeriodEnd: null })).toBe(false);
   });
 });

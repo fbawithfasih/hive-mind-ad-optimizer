@@ -31,6 +31,7 @@ import {
   syncPaymentFromRazorpay,
 } from '../../services/razorpay.js';
 import { PLAN_PRICING, PLAN_TIER_MAP } from '../../config/pricing.js';
+import { syncOrgEntitlement } from '../../services/entitlement.js';
 
 // Short-lived Redis client for claim tokens (separate from BullMQ connections)
 const claimRedis = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
@@ -159,6 +160,7 @@ router.get('/status', requireAuth, async (req, res) => {
       apiCalls:          0,
       reportsGenerated:  0,
       bulkOperations:    0,
+      imagesOptimized:   0,
     },
     trial: {
       trialEndsAt:  trialEndsAt?.toISOString() ?? null,
@@ -278,6 +280,9 @@ router.post('/verify', requireAuth, requireVerifiedEmail, razorpayRequired, requ
       where: { id: sub.id },
       data:  { status: 'ACTIVE' },
     });
+    // The org row carries the tier the rest of the system reads; promoting the
+    // subscription without it leaves a paying customer on their old plan.
+    await syncOrgEntitlement(sub.orgId);
   }
 
   logger.info(`Payment verified: payment ${razorpay_payment_id}, sub ${razorpay_subscription_id}`);
@@ -313,9 +318,15 @@ router.post('/cancel', requireAuth, requireVerifiedEmail, razorpayRequired, requ
       cancelledAt: new Date(),
     },
   });
+  await syncOrgEntitlement(orgId);
 
   logger.info(`Subscription ${subscription.subscriptionId} cancelled for org ${orgId}`);
-  res.json({ cancelled: true });
+  res.json({
+    cancelled: true,
+    // Cancellation takes effect at cycle end. Say so, rather than letting the
+    // UI imply access has already stopped.
+    accessUntil: subscription.currentPeriodEnd ?? null,
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

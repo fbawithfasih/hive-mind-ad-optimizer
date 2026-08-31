@@ -1,4 +1,5 @@
 import { prisma } from '../../db/prisma.js';
+import { isEntitled, isLapsedProviderlessSubscription } from '../../services/entitlement.js';
 
 /**
  * Allows the request through if the org has:
@@ -21,6 +22,15 @@ import { prisma } from '../../db/prisma.js';
  * webhook / daily reconcile. Enforcing the date here would lock out a paying
  * customer whenever that update is merely late — a live risk, since reconcile is
  * currently failing for every subscription. Status remains the gate for them.
+ *
+ * ── On CANCELLED ─────────────────────────────────────────────────────────────
+ * A cancelled subscription still admits until its period ends. /cancel asks
+ * Razorpay to cancel at cycle end, so the customer has been billed through the
+ * current period; revoking on the click takes away time they already paid for.
+ *
+ * The rule itself lives in services/entitlement.js, which is also what decides
+ * org.billingStatus. Sharing it means the paywall and the background schedulers
+ * cannot disagree about whether an org is paid up.
  */
 export async function requireActiveSubscription(req, res, next) {
   const { orgId, org } = req.tenant;
@@ -37,11 +47,11 @@ export async function requireActiveSubscription(req, res, next) {
     select: { status: true, subscriptionId: true, currentPeriodEnd: true },
   });
 
-  // PAST_DUE gets a grace period — Razorpay will retry
-  if (sub && (sub.status === 'ACTIVE' || sub.status === 'PAST_DUE')) {
-    if (!isLapsedProviderlessSubscription(sub)) {
-      return next();
-    }
+  if (isEntitled(sub)) return next();
+
+  // A providerless subscription whose paid period has elapsed gets a message
+  // about the plan ending rather than one about never having subscribed.
+  if (sub && isLapsedProviderlessSubscription(sub)) {
     return res.status(402).json({
       error: 'Your plan has ended. Subscribe to continue.',
       code:  'SUBSCRIPTION_EXPIRED',
@@ -56,22 +66,6 @@ export async function requireActiveSubscription(req, res, next) {
       : 'An active subscription is required. Visit /billing to subscribe.',
     code: isTrialExpired ? 'TRIAL_EXPIRED' : 'SUBSCRIPTION_REQUIRED',
   });
-}
-
-/**
- * True when a subscription has no payment provider behind it AND its paid period
- * has already elapsed — nothing will ever renew it, so the date is authoritative.
- *
- * Exported for reuse by the reconcile worker, which flips these rows to EXPIRED
- * so the billing UI matches what the paywall enforces.
- *
- * @param {{ subscriptionId: string|null, currentPeriodEnd: Date|null }} sub
- * @param {number} [now]
- */
-export function isLapsedProviderlessSubscription(sub, now = Date.now()) {
-  if (sub?.subscriptionId) return false;          // provider-backed — status rules
-  if (!sub?.currentPeriodEnd) return false;       // no period recorded — don't guess
-  return new Date(sub.currentPeriodEnd).getTime() <= now;
 }
 
 export default requireActiveSubscription;
