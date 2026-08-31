@@ -40,18 +40,33 @@ const logger = createLogger('AUTOMATION_WORKER');
 /**
  * Identify the sweep occurrence a job belongs to.
  *
- * Anchored to `job.timestamp` (when the occurrence was enqueued) rather than
- * the clock, so a retry that runs after midnight UTC still resolves to the day
- * the sweep was scheduled for and is still recognised as a duplicate.
+ * Read from the scheduled time embedded in a repeatable job's id, which BullMQ
+ * formats as `repeat:<hash>:<millisAtWhichThisOccurrenceIsDue>`.
  *
- * Keying on slot + date rather than on `job.id` is the stronger choice: it also
- * absorbs a genuinely duplicated occurrence, where two jobs for the same slot
- * carry different ids. The trade-off is that deliberately re-running a slot on
- * the same day is refused; that is what the manual endpoints are for, and they
- * are left un-keyed.
+ * NOT `job.timestamp`, which this first used. For a repeatable job that is when
+ * BullMQ CREATED the delayed job — roughly 24h before a daily sweep actually
+ * runs — so the key came out a day early. Production showed it plainly: the
+ * sweep that executed at 2026-08-31T20:00Z logged `evening:2026-08-30`, while
+ * its own job id carried 1788206400000, i.e. 2026-08-31T20:00Z.
+ *
+ * Idempotency survived that (one job keeps one timestamp, so retries still
+ * collided, and consecutive occurrences are a day apart), but two claims made
+ * for it did not: the key did not name the day the sweep ran, and a restart
+ * that recreated the delayed job on a different calendar date would move that
+ * occurrence's key mid-flight and lose the guarantee for that run. The
+ * scheduled time has neither problem — it is a property of the occurrence, not
+ * of when the row happened to be written.
+ *
+ * Keying on slot + date rather than on the raw job id is still deliberate: it
+ * also absorbs a genuinely duplicated occurrence, where two jobs for the same
+ * slot carry different ids. Deliberately re-running a slot on the same day is
+ * therefore refused; that is what the manual endpoints are for, and they are
+ * left un-keyed.
  */
 export function occurrenceDate(job) {
-  const at = new Date(job?.timestamp ?? Date.now());
+  // `repeat:<hash>:<millis>` — the trailing group is when this occurrence is due.
+  const scheduled = /^repeat:.*:(\d{10,})$/.exec(String(job?.id ?? ''))?.[1];
+  const at = new Date(Number(scheduled) || job?.timestamp || Date.now());
   return Number.isNaN(at.getTime()) ? new Date() : at;
 }
 
