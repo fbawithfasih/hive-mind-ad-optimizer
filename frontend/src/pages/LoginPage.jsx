@@ -33,8 +33,10 @@ export default function LoginPage({ onLogin }) {
     e.preventDefault();
     setLoading(true); setError(null);
     try {
-      const user = await loginApi(email, password);
-      onLogin(user);
+      await loginApi(email, password);
+      // onLogin resolves once /auth/me has loaded, so the button stays in its
+      // loading state for the whole handoff instead of going idle mid-redirect.
+      await onLogin();
     } catch (err) {
       setError(err.response?.data?.error ?? 'Invalid email or password');
     } finally {
