@@ -59,8 +59,12 @@ export default {
     'src/workers/billing-reconcile.worker.js': { statements: 100, branches: 100, functions: 100 },
     'src/api/routes/billing.js':  { statements: 70, branches: 60, functions: 50 },
     // ── Writes to live advertiser accounts ──────────────────────────────────
-    'src/services/rule-engine.js':   { statements: 100, branches: 90, functions: 100 },
-    'src/api/routes/automation.js':  { statements: 72, branches: 80, functions: 75 },
+    // These change real campaign budgets and real listings, unattended.
+    'src/workers/automation.worker.js': { statements: 100, branches: 85, functions: 80 },
+    'src/services/rule-engine.js':      { statements: 100, branches: 90, functions: 100 },
+    'src/api/routes/automation.js':     { statements: 72,  branches: 80, functions: 75 },
+    // ── Customer-visible batch progress ─────────────────────────────────────
+    'src/workers/bulk-listing.worker.js': { statements: 100, branches: 75, functions: 100 },
   },
   transform: {
     '^.+\\.(js|ts)$': ['babel-jest', {
