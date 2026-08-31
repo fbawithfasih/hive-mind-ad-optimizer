@@ -15,6 +15,7 @@ import Razorpay from 'razorpay';
 import crypto   from 'crypto';
 import { prisma } from '../db/prisma.js';
 import { createLogger } from '../api/utils/logger.js';
+import { syncOrgEntitlement } from './entitlement.js';
 
 const logger = createLogger('RAZORPAY');
 
@@ -141,8 +142,19 @@ export function verifyPaymentSignature(paymentId, subscriptionId, signature) {
 // Usage tracking
 // ─────────────────────────────────────────────────────────────────────────────
 
+const USAGE_FIELDS = new Set([
+  'listingsOptimized', 'apiCalls', 'reportsGenerated', 'bulkOperations', 'imagesOptimized',
+]);
+
 export async function trackUsage(orgId, field, by = 1) {
   if (!orgId || !field) return;
+  // A field that is not a column fails at the database and is then swallowed,
+  // which is how 'imagesOptimized' went unnoticed from the day it shipped.
+  // Naming it here turns a silent miscount into a loud one.
+  if (!USAGE_FIELDS.has(field)) {
+    logger.error(`trackUsage called with unknown field '${field}' — not a UsageMetric column`);
+    return;
+  }
   const month = new Date();
   month.setUTCDate(1);
   month.setUTCHours(0, 0, 0, 0);
@@ -215,6 +227,11 @@ export async function syncSubscriptionFromRazorpay(rzpSub) {
       cancelledAt:        rzpSub.status === 'cancelled' ? new Date() : null,
     },
   }).catch((err) => logger.error(`Failed to sync subscription ${rzpSub.id}: ${err.message}`));
+
+  // Push the result onto the Organization. Nothing did this before, so an
+  // upgrade never reached org.tier — and Brand Analytics reads its cadence from
+  // there, which meant every upgraded customer kept the BASIC schedule.
+  await syncOrgEntitlement(existing.orgId);
 }
 
 /**
@@ -317,6 +334,15 @@ export async function reconcileSubscriptions({ limit = 500 } = {}) {
  * @returns {Promise<{ expired: number }>}
  */
 export async function expireLapsedClaimSubscriptions({ now = new Date() } = {}) {
+  const lapsing = await prisma.subscription.findMany({
+    where: {
+      subscriptionId:   null,
+      status:           'ACTIVE',
+      currentPeriodEnd: { lt: now },
+    },
+    select: { orgId: true },
+  });
+
   const { count } = await prisma.subscription.updateMany({
     where: {
       subscriptionId:   null,
@@ -325,6 +351,13 @@ export async function expireLapsedClaimSubscriptions({ now = new Date() } = {}) 
     },
     data: { status: 'EXPIRED' },
   });
+
+  // This path writes the status directly rather than going through
+  // syncSubscriptionFromRazorpay, so the org row has to be caught up here too —
+  // otherwise an expired org keeps its tier and keeps receiving scheduled work.
+  for (const { orgId } of lapsing) {
+    await syncOrgEntitlement(orgId);
+  }
 
   if (count > 0) {
     logger.info(`expireLapsedClaimSubscriptions: expired ${count} lapsed claim subscription(s)`);

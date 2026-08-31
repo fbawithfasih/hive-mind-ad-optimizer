@@ -12,6 +12,7 @@
 jest.mock('../../db/prisma.js', () => ({
   prisma: {
     subscription: { updateMany: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), update: jest.fn() },
+    organization: { findUnique: jest.fn(), update: jest.fn() },
     invoice:      { upsert: jest.fn() },
     usageMetric:  { upsert: jest.fn() },
   },
@@ -20,7 +21,13 @@ jest.mock('../../db/prisma.js', () => ({
 import { prisma } from '../../db/prisma.js';
 import { expireLapsedClaimSubscriptions } from '../razorpay.js';
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  // The orgs whose rows are about to lapse; empty unless a test says otherwise.
+  prisma.subscription.findMany.mockResolvedValue([]);
+  prisma.organization.findUnique.mockResolvedValue({ tier: 'BASIC', billingStatus: 'ACTIVE' });
+  prisma.organization.update.mockResolvedValue({});
+});
 
 describe('expireLapsedClaimSubscriptions', () => {
   it('expires only provider-less ACTIVE rows whose period has passed', async () => {
@@ -77,5 +84,37 @@ describe('expireLapsedClaimSubscriptions', () => {
     const cutoff = prisma.subscription.updateMany.mock.calls[0][0].where.currentPeriodEnd.lt;
     expect(cutoff.getTime()).toBeGreaterThanOrEqual(before);
     expect(cutoff.getTime()).toBeLessThanOrEqual(Date.now());
+  });
+});
+
+describe('the org row follows', () => {
+  it('catches up every org whose subscription just lapsed', async () => {
+    // This path writes status directly rather than going through
+    // syncSubscriptionFromRazorpay, so without this an expired org keeps its
+    // tier and keeps being handed scheduled work.
+    prisma.subscription.findMany.mockResolvedValue([{ orgId: 'org-1' }, { orgId: 'org-2' }]);
+    prisma.subscription.updateMany.mockResolvedValue({ count: 2 });
+    prisma.subscription.findUnique = jest.fn().mockResolvedValue({
+      orgId: 'org-1', tier: 'PRO', status: 'EXPIRED', subscriptionId: null,
+      currentPeriodEnd: new Date(Date.now() - 86_400_000),
+    });
+    prisma.organization.findUnique.mockResolvedValue({ tier: 'PRO', billingStatus: 'ACTIVE' });
+
+    await expireLapsedClaimSubscriptions();
+
+    expect(prisma.organization.update).toHaveBeenCalledTimes(2);
+    expect(prisma.organization.update.mock.calls[0][0].data)
+      .toEqual({ tier: 'BASIC', billingStatus: 'CANCELLED' });
+  });
+
+  it('reads the orgs before the update, not after', async () => {
+    // Afterwards the rows no longer match the where clause and the list is empty.
+    prisma.subscription.updateMany.mockResolvedValue({ count: 1 });
+
+    await expireLapsedClaimSubscriptions();
+
+    const findOrder = prisma.subscription.findMany.mock.invocationCallOrder[0];
+    const updateOrder = prisma.subscription.updateMany.mock.invocationCallOrder[0];
+    expect(findOrder).toBeLessThan(updateOrder);
   });
 });

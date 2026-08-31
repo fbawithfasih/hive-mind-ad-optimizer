@@ -348,6 +348,11 @@ model UsageMetric {
   apiCalls          Int      @default(0)
   reportsGenerated  Int      @default(0)
   bulkOperations    Int      @default(0)
+  // image-optimizer.js has called trackUsage(orgId, 'imagesOptimized') since it
+  // shipped, against a column that did not exist. Prisma rejected every call
+  // and trackUsage swallowed the error, so the counter read zero forever and
+  // nothing said why.
+  imagesOptimized   Int      @default(0)
 
   // Relations
   org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
