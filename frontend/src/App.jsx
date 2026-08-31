@@ -91,8 +91,15 @@ export default function App() {
     <CommandPaletteProvider>
     <Routes>
       {/* ── Public auth routes ─────────────────────────────────────── */}
+      {/* onLogin deliberately does NOT setUser() with the login response.
+          POST /auth/login returns only { ok, user } — no `organizations` — so
+          seating it in state renders the redirect chain with an org-less user:
+          /login → "/" → ProtectedHub sees hasOrg false → /onboarding. loadUser()
+          resolves with the full shape a moment later, but the URL has already
+          been replaced and nothing sends it back. Waiting for /auth/me means the
+          first render after login is made with the real membership list. */}
       <Route path="/login"
-        element={loggedIn ? <Navigate to="/" replace /> : <LoginPage onLogin={u => { setUser(u); setOnboarded(null); loadUser(); }} />}
+        element={loggedIn ? <Navigate to="/" replace /> : <LoginPage onLogin={() => { setOnboarded(null); return loadUser(); }} />}
       />
       <Route path="/signup"
         element={loggedIn ? <Navigate to="/" replace /> : <SignupPage onSignup={u => { setUser(u); setOnboarded(false); }} />}

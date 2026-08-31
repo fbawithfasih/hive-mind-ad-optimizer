@@ -391,14 +391,22 @@ model RuleExecution {
   id            String   @id @default(cuid())
   ruleId        String
   orgId         String
-  status        String // success | partial | failed | skipped
+  status        String // running | success | partial | failed | skipped
   affectedCount Int      @default(0)
   changes       Json? // [{ campaignId, name, field, oldValue, newValue }]
   error         String?
   executedAt    DateTime @default(now())
+  // Identifies the scheduled sweep occurrence this execution belongs to, e.g.
+  // "morning:2026-08-31". The unique index below is what makes the automation
+  // worker idempotent: a retried sweep re-claims the same key and is refused,
+  // so a rule that increases a budget by 20% cannot apply twice. NULL for
+  // manual runs, which are meant to be repeatable — Postgres treats NULLs as
+  // distinct, so those rows never collide.
+  slotKey       String?
 
   rule CampaignRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
 
+  @@unique([ruleId, slotKey])
   @@index([ruleId])
   @@index([orgId])
   @@index([executedAt])
