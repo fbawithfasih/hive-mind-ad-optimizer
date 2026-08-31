@@ -46,6 +46,10 @@ COPY --from=backend-deps /app/prisma ./prisma
 COPY src/ ./src/
 COPY data/ ./data/
 COPY package.json ./
+# Loaded by `node --import ./instrument.mjs` (railway.toml startCommand,
+# package.json start). Without it in the image the process exits immediately
+# with ERR_MODULE_NOT_FOUND and every deploy fails at the healthcheck.
+COPY instrument.mjs ./
 
 # Copy built frontend
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
