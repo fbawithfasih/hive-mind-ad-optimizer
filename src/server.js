@@ -11,6 +11,7 @@ import * as Sentry from '@sentry/node';
 import { correlationIdMiddleware, createLogger, runWithCorrelationId, getCorrelationId } from './api/utils/logger.js';
 import { prisma } from './db/prisma.js';
 import { livenessHandler, readinessHandler } from './api/readiness.js';
+import { sentryVerifyHandler } from './api/sentry-verify.js';
 import { runAsSystem } from './db/tenant-context.js';
 import { closeEphemeralStore } from './services/ephemeral-store.js';
 import { createReportingWorker, createBulkListingWorker, createTokenCleanupWorker, createAutomationWorker, createBrandAnalyticsFetchWorker, createAlertEvaluationWorker, createBillingReconcileWorker, tokenCleanupQueue, automationQueue, brandAnalyticsFetchQueue, alertEvaluationQueue, billingReconcileQueue, closeQueue } from './services/queue.js';
@@ -104,6 +105,12 @@ app.use((req, _res, next) => {
   Sentry.setTag('correlation_id', getCorrelationId());
   next();
 });
+
+// Deliberate-error endpoint for verifying the Sentry pipeline end to end.
+// Mounted above the API router so it needs no session, and below the
+// correlation-id tag so the captured event carries one. Inert — and
+// indistinguishable from an unknown path — unless SENTRY_VERIFY_TOKEN is set.
+app.get('/api/_sentry-verify', sentryVerifyHandler);
 
 app.use('/api', routes);
 
