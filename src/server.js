@@ -8,21 +8,14 @@ import { existsSync } from 'fs';
 import routes from './api/routes/index.js';
 import { razorpayWebhookHandler } from './api/routes/billing.js';
 import * as Sentry from '@sentry/node';
-import { correlationIdMiddleware, createLogger, runWithCorrelationId, getCorrelationId } from './api/utils/logger.js';
+import { correlationIdMiddleware, createLogger, getCorrelationId } from './api/utils/logger.js';
 import { prisma } from './db/prisma.js';
 import { livenessHandler, readinessHandler } from './api/readiness.js';
 import { sentryVerifyHandler } from './api/sentry-verify.js';
 import { runAsSystem } from './db/tenant-context.js';
 import { closeEphemeralStore } from './services/ephemeral-store.js';
-import { createReportingWorker, createBulkListingWorker, createTokenCleanupWorker, createAutomationWorker, createBrandAnalyticsFetchWorker, createAlertEvaluationWorker, createBillingReconcileWorker, tokenCleanupQueue, automationQueue, brandAnalyticsFetchQueue, alertEvaluationQueue, billingReconcileQueue, closeQueue } from './services/queue.js';
-import { reportingProcessor }    from './workers/reporting.worker.js';
-import { bulkListingProcessor }  from './workers/bulk-listing.worker.js';
-import { tokenCleanupProcessor } from './workers/token-cleanup.worker.js';
-import { automationProcessor }   from './workers/automation.worker.js';
-import { brandAnalyticsFetchProcessor } from './workers/brand-analytics-fetch.worker.js';
-import { alertEvaluationProcessor }     from './workers/alert-evaluation.worker.js';
-import { billingReconcileProcessor }    from './workers/billing-reconcile.worker.js';
-import { enqueueDailySweep as enqueueBaDailySweep } from './services/brand-analytics-scheduler.js';
+import { closeQueue } from './services/queue.js';
+import { startWorkers, shouldRunWorkers } from './workers/start.js';
 
 dotenv.config({ override: true });
 
@@ -159,81 +152,17 @@ const server = app.listen(PORT, () => {
   logger.info('Server started', { port: PORT, nodeEnv: process.env.NODE_ENV });
 });
 
-// Start BullMQ workers. Each job runs as trusted system code: workers span
-// organizations and pass explicit orgId in their queries, so the tenant guard
-// must not impose a single-org filter on them.
-// Each job also gets its own correlation id. Background work previously logged
-// 'NO-ID' for every line, so a failed job's log lines could not be told apart
-// from any other job running at the same time. The id names the queue and job
-// so it is greppable straight from a dead-letter record.
-const asSystem = (processor) => (job) =>
-  runWithCorrelationId(`job:${job.queueName ?? 'unknown'}:${job.id ?? '?'}`,
-    () => runAsSystem(() => processor(job)));
-const reportingWorker    = createReportingWorker(asSystem(reportingProcessor));
-const bulkListingWorker  = createBulkListingWorker(asSystem(bulkListingProcessor));
-const tokenCleanupWorker = createTokenCleanupWorker(asSystem(tokenCleanupProcessor));
-const automationWorker   = createAutomationWorker(asSystem(automationProcessor));
-const baFetchWorker      = createBrandAnalyticsFetchWorker(asSystem(brandAnalyticsFetchProcessor));
-const alertEvalWorker    = createAlertEvaluationWorker(asSystem(alertEvaluationProcessor));
-const billingReconcileWorker = createBillingReconcileWorker(asSystem(billingReconcileProcessor));
-
-// Brand Analytics daily sweep — fan out fetch jobs to active orgs per tier cadence.
-// We use a tiny scheduler job (jobId-deduplicated) that calls enqueueDailySweep().
-const BA_SWEEP_QUEUE_JOB_NAME = 'ba-daily-sweep';
-brandAnalyticsFetchQueue.add(
-  BA_SWEEP_QUEUE_JOB_NAME,
-  { __sweep: true },
-  { repeat: { pattern: '15 3 * * *' }, jobId: 'ba-daily-sweep' },
-).catch((err) => logger.warn(`Could not schedule BA daily sweep: ${err.message}`));
-
-// Alert evaluation daily sweep — runs an hour after the BA sweep so any newly
-// fetched campaign performance reports are considered. 04:30 UTC.
-alertEvaluationQueue.add(
-  'alert-daily-sweep',
-  { __sweep: true },
-  { repeat: { pattern: '30 4 * * *' }, jobId: 'alert-daily-sweep' },
-).catch((err) => logger.warn(`Could not schedule alert eval sweep: ${err.message}`));
-
-// Schedule automation rule sweeps (idempotent — BullMQ deduplicates by jobId)
-automationQueue.add('auto-morning', { slot: 'morning' }, {
-  repeat:  { pattern: '0 8 * * *' },
-  jobId:   'auto:morning',
-}).catch(err => logger.warn(`Could not schedule automation morning sweep: ${err.message}`));
-
-automationQueue.add('auto-evening', { slot: 'evening' }, {
-  repeat:  { pattern: '0 20 * * *' },
-  jobId:   'auto:evening',
-}).catch(err => logger.warn(`Could not schedule automation evening sweep: ${err.message}`));
-
-// Schedule nightly token cleanup at 02:00 UTC (repeatable, deduplicated by jobId)
-tokenCleanupQueue.add(
-  'nightly-cleanup',
-  {},
-  {
-    repeat:   { pattern: '0 2 * * *' },
-    jobId:    'nightly-token-cleanup',
-  },
-).catch((err) => logger.warn(`Could not schedule token cleanup (Redis unavailable?): ${err.message}`));
-
-// Schedule daily billing reconciliation at 05:00 UTC — re-syncs live subscriptions
-// from Razorpay so a missed/failed webhook can't leave the DB out of sync.
-billingReconcileQueue.add(
-  'daily-reconcile',
-  {},
-  { repeat: { pattern: '0 5 * * *' }, jobId: 'billing-daily-reconcile' },
-).catch((err) => logger.warn(`Could not schedule billing reconcile: ${err.message}`));
+// Background workers. Whether they run here depends on PROCESS_ROLE: 'all'
+// (the default, and what has always run) keeps them in this process; 'api'
+// leaves them to a separate worker service. See src/workers/start.js.
+const workers = shouldRunWorkers() ? startWorkers() : null;
+if (!workers) logger.info('PROCESS_ROLE=api — background workers not started here');
 
 // Graceful shutdown — finish in-progress jobs before exiting
 async function shutdown(signal) {
   logger.info(`${signal} received — shutting down gracefully`);
   server.close(async () => {
-    await reportingWorker.close();
-    await bulkListingWorker.close();
-    await tokenCleanupWorker.close();
-    await automationWorker.close();
-    await baFetchWorker.close();
-    await alertEvalWorker.close();
-    await billingReconcileWorker.close();
+    await workers?.close();
     await closeQueue();
     await closeEphemeralStore();
     await prisma.$disconnect();
