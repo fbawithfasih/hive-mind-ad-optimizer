@@ -19,6 +19,7 @@ import { randomBytes } from 'crypto';
 import dotenv from 'dotenv';
 import { saveOrgCredential, updateOrgAdsToken } from '../../services/credentials.js';
 import { createLogger } from '../utils/logger.js';
+import { createEphemeralStore } from '../../services/ephemeral-store.js';
 import { withTenant } from '../middleware/withTenant.js';
 import { prisma } from '../../db/prisma.js';
 import { sessionExpiredAbsolute, claimsAreValid } from '../../config/session.js';
@@ -97,24 +98,27 @@ function requireVerifiedEmailNav(req, res, next) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CSRF nonce store: maps state → orgId (TTL 10 minutes)
+// CSRF nonce store: state → orgId, TTL 10 minutes
+//
+// In Redis rather than a Map. The consent round-trip leaves our process
+// entirely and comes back minutes later, so any state held in memory is lost to
+// a deploy — and to a second replica answering the callback. The seller reaches
+// the end of connecting their Amazon account and is told the security check
+// failed, at the point in onboarding they are least likely to retry.
+//
+// take() is atomic and fails closed: an unreachable Redis returns null, which
+// reads as an invalid nonce rather than as permission to proceed.
 // ─────────────────────────────────────────────────────────────────────────────
-const pendingStates = new Map(); // state → { orgId, expiresAt }
+const stateStore = createEphemeralStore('spoauth:state', { ttlSeconds: 10 * 60 });
 
-function storeState(state, orgId) {
-  pendingStates.set(state, { orgId, expiresAt: Date.now() + 10 * 60 * 1000 });
-  // Prune expired entries
-  for (const [k, v] of pendingStates) {
-    if (Date.now() > v.expiresAt) pendingStates.delete(k);
-  }
+async function storeState(state, orgId) {
+  await stateStore.put(state, { orgId });
 }
 
-function consumeState(state) {
-  const entry = pendingStates.get(state);
-  if (!entry) return null;
-  pendingStates.delete(state);
-  if (Date.now() > entry.expiresAt) return null;
-  return entry.orgId;
+async function consumeState(state) {
+  if (!state) return null;
+  const entry = await stateStore.take(state);
+  return entry?.orgId ?? null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -156,7 +160,7 @@ router.get('/info', requireAuthNav, withTenant, (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/sp-oauth/start — redirect to Amazon Seller Central SPN consent
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/start', requireAuthNav, requireVerifiedEmailNav, withTenant, (req, res) => {
+router.get('/start', requireAuthNav, requireVerifiedEmailNav, withTenant, async (req, res) => {
   const { clientId, clientSecret, solutionId } = cfg();
   if (!clientId)     return res.status(500).send('SP_API_CLIENT_ID not set in .env');
   if (!clientSecret) return res.status(500).send('SP_API_CLIENT_SECRET not set in .env');
@@ -165,7 +169,14 @@ router.get('/start', requireAuthNav, requireVerifiedEmailNav, withTenant, (req, 
   if (!orgId) return res.status(400).json({ error: 'No organization context. Create or join an org first.' });
 
   const state = randomBytes(16).toString('hex');
-  storeState(state, orgId);
+  try {
+    await storeState(state, orgId);
+  } catch (err) {
+    // Sending the seller to Amazon with a nonce we cannot verify guarantees a
+    // failure on their return; refuse here, where the message is still ours.
+    logger.error(`SP-API OAuth: could not store CSRF state: ${err.message}`);
+    return redirectToError(res, 'state_store_unavailable');
+  }
 
   const url = new URL('https://sellercentral.amazon.com/apps/authorize/consent');
   url.searchParams.set('application_id', solutionId);
@@ -194,7 +205,7 @@ router.get('/callback', async (req, res) => {
   }
 
   // Validate CSRF state — never fall back to req.tenant; state must always be present
-  const orgId = consumeState(state);
+  const orgId = await consumeState(state);
   if (!orgId) {
     console.error('[SP_OAUTH] callback: invalid or expired state', { state });
     return redirectToError(res, 'invalid_state');
@@ -241,7 +252,7 @@ router.get('/callback', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/sp-oauth/ads-start — redirect to Amazon LWA for Ads API consent
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/ads-start', requireAuthNav, requireVerifiedEmailNav, withTenant, (req, res) => {
+router.get('/ads-start', requireAuthNav, requireVerifiedEmailNav, withTenant, async (req, res) => {
   const clientId = process.env.AMAZON_ADS_CLIENT_ID;
   if (!clientId) return res.status(500).send('AMAZON_ADS_CLIENT_ID not set in .env');
 
@@ -249,7 +260,12 @@ router.get('/ads-start', requireAuthNav, requireVerifiedEmailNav, withTenant, (r
   if (!orgId) return res.status(400).json({ error: 'No organization context.' });
 
   const state = randomBytes(16).toString('hex');
-  storeState(state, orgId);
+  try {
+    await storeState(state, orgId);
+  } catch (err) {
+    logger.error(`Ads OAuth: could not store CSRF state: ${err.message}`);
+    return redirectToError(res, 'state_store_unavailable');
+  }
 
   const url = new URL('https://www.amazon.com/ap/oa');
   url.searchParams.set('client_id',     clientId);
@@ -273,7 +289,7 @@ router.get('/ads-callback', async (req, res) => {
     return redirectToError(res, error || 'ads_no_authorization_code');
   }
 
-  const orgId = consumeState(state);
+  const orgId = await consumeState(state);
   if (!orgId) {
     console.error('[SP_OAUTH] ads-callback: invalid or expired state', { state });
     return redirectToError(res, 'invalid_state');

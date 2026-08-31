@@ -31,6 +31,12 @@ const REASONS = {
       'Your connection session could not be verified or has expired. This is a ' +
       'security check to protect your account — please start the connection again.',
   },
+  state_store_unavailable: {
+    title: "Couldn't start the connection",
+    message:
+      'We could not begin the secure handshake with Amazon. Nothing was changed ' +
+      'on your account — please try again in a moment.',
+  },
   token_exchange_failed: {
     title: "Couldn't finish connecting",
     message:
