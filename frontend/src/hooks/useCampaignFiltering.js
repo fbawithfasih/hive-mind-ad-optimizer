@@ -55,7 +55,11 @@ export function useCampaignFiltering(selectedProfileId) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
-  // Refetch when profile ID changes — show cached immediately, replace on success.
+  // Refetch when profile ID changes — show cached immediately, replace on
+  // success. `hasHydrated` is correct on the first render now (see
+  // usePersistedState); while it lived in a ref it read false here on every
+  // mount, so this always took the isLoading branch and CampaignTable replaced
+  // the cached rows with a skeleton until the fetch returned.
   useEffect(() => {
     const hadCache = hasHydrated;
     if (hadCache) {
@@ -75,12 +79,15 @@ export function useCampaignFiltering(selectedProfileId) {
       .catch(err => {
         // The route already sends a `message` explaining the failure; err.message
         // is only ever "Request failed with status code 500".
+        // Campaigns are deliberately left alone: a failed refresh should leave
+        // yesterday's numbers on screen with an error beside them, not blank
+        // the table.
         setError(err.response?.data?.message || err.response?.data?.error || err.message);
         setIsLoading(false);
         setIsRefreshing(false);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProfileId]);
+  }, [selectedProfileId, hasHydrated]);
 
   // Calculate campaign statistics (memoized)
   const stats = useMemo(() => {
