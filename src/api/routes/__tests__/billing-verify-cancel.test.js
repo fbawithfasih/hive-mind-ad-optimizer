@@ -13,6 +13,8 @@ import request from 'supertest';
 jest.mock('../../../db/prisma.js', () => ({
   prisma: {
     subscription: { findUnique: jest.fn(), findFirst: jest.fn(), update: jest.fn(), upsert: jest.fn() },
+    organization: { findUnique: jest.fn() },
+    usageMetric:  { findFirst: jest.fn() },
   },
 }));
 
@@ -206,5 +208,52 @@ describe('POST /cancel', () => {
   it('looks the subscription up by the caller\'s own org', async () => {
     await request(makeApp()).post('/cancel').send({});
     expect(prisma.subscription.findUnique).toHaveBeenCalledWith({ where: { orgId: ORG_ID } });
+  });
+});
+
+describe('GET /status — what the plan includes', () => {
+  // The billing page shows usage; without the limits beside it, a refused
+  // request is the first time a customer learns a limit exists.
+  beforeEach(() => {
+    prisma.subscription.findUnique.mockResolvedValue(null);
+    prisma.usageMetric.findFirst.mockResolvedValue(null);
+  });
+
+  it('returns the caller\'s own plan limits', async () => {
+    prisma.organization.findUnique.mockResolvedValue({ trialEndsAt: null, tier: 'PRO' });
+
+    const res = await request(makeApp()).get('/status');
+
+    expect(res.status).toBe(200);
+    expect(res.body.planLimits).toMatchObject({ bulkOperations: 50, profiles: 5 });
+  });
+
+  it('reports unlimited as null rather than omitting it', async () => {
+    prisma.organization.findUnique.mockResolvedValue({ trialEndsAt: null, tier: 'ENTERPRISE' });
+
+    const res = await request(makeApp()).get('/status');
+
+    expect(res.body.planLimits.bulkOperations).toBeNull();
+    expect(res.body.planLimits).toHaveProperty('listingsOptimized', null);
+  });
+
+  it('falls back to the most restrictive plan for an unrecognised tier', async () => {
+    prisma.organization.findUnique.mockResolvedValue({ trialEndsAt: null, tier: 'MYSTERY' });
+
+    expect((await request(makeApp()).get('/status')).body.planLimits.bulkOperations).toBe(5);
+  });
+
+  it('falls back when there is no org row at all', async () => {
+    prisma.organization.findUnique.mockResolvedValue(null);
+
+    expect((await request(makeApp()).get('/status')).body.planLimits.bulkOperations).toBe(5);
+  });
+
+  it('reports zeroed usage when nothing has been used this month', async () => {
+    prisma.organization.findUnique.mockResolvedValue({ trialEndsAt: null, tier: 'BASIC' });
+
+    const res = await request(makeApp()).get('/status');
+
+    expect(res.body.currentMonthUsage).toMatchObject({ bulkOperations: 0, imagesOptimized: 0 });
   });
 });

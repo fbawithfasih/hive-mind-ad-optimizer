@@ -32,6 +32,7 @@ import {
   syncPaymentFromRazorpay,
 } from '../../services/razorpay.js';
 import { PLAN_PRICING, PLAN_TIER_MAP } from '../../config/pricing.js';
+import { PLAN_LIMITS } from '../../config/plan-limits.js';
 import { syncOrgEntitlement } from '../../services/entitlement.js';
 
 // Short-lived Redis client for claim tokens (separate from BullMQ connections)
@@ -144,7 +145,7 @@ router.get('/status', requireAuth, async (req, res) => {
 
   const org = await prisma.organization.findUnique({
     where:  { id: orgId },
-    select: { trialEndsAt: true },
+    select: { trialEndsAt: true, tier: true },
   });
   const trialEndsAt   = org?.trialEndsAt ? new Date(org.trialEndsAt) : null;
   const now           = Date.now();
@@ -169,6 +170,10 @@ router.get('/status', requireAuth, async (req, res) => {
       trialExpired,
       trialDaysLeft,
     },
+    // What this org's plan actually includes, so the UI can show "3 of 5 used"
+    // rather than leaving the first sign of a limit to be a refused request.
+    // null means unlimited.
+    planLimits: PLAN_LIMITS[org?.tier ?? 'BASIC'] ?? PLAN_LIMITS.BASIC,
     availablePlans: Object.entries(PLAN_PRICING)
       .map(([tier, p]) => ({ tier, planId: PLAN_IDS[tier], name: p.name, price: p.priceDisplay }))
       .filter(p => p.planId),

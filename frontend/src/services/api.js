@@ -25,6 +25,12 @@ api.interceptors.response.use(
     if (err?.response?.status === 412 && err.response.data?.code === 'ADS_NOT_CONNECTED') {
       window.dispatchEvent(new CustomEvent('ads-not-connected', { detail: err.response.data }));
     }
+    // Plan allowance used up. Same shape as above so any page can prompt an
+    // upgrade; the rejection still carries the message, which the panels
+    // already render, so a page that does not listen degrades to showing it.
+    if (err?.response?.status === 402 && err.response.data?.code === 'PLAN_LIMIT_REACHED') {
+      window.dispatchEvent(new CustomEvent('plan-limit-reached', { detail: err.response.data }));
+    }
     return Promise.reject(err);
   }
 );

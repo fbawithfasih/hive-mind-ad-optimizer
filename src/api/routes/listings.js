@@ -7,6 +7,7 @@ import { trackUsage } from '../../services/razorpay.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { flattenListingKeywords } from '../utils/listingKeywords.js';
 import { swallow } from '../utils/capture.js';
+import { enforcePlanLimit } from '../../services/plan-limits.js';
 
 const router = express.Router();
 
@@ -84,7 +85,7 @@ router.get('/history', async (req, res) => {
  * Body: { asin, sku, title, bullets[], description, searchTerms[], model? }
  * Persists the optimization record to the DB.
  */
-router.post('/optimize', requireRole('MEMBER'), async (req, res) => {
+router.post('/optimize', requireRole('MEMBER'), enforcePlanLimit('listingsOptimized'), async (req, res) => {
   const { asin, sku, title, bullets, description, genericKeyword, searchTerms, uploadedKeywords, model } = req.body;
 
   if (!title && !bullets?.length && !description) {
@@ -227,7 +228,7 @@ router.put('/update', requireRole('MEMBER'), async (req, res) => {
  * Body: { items: [{ asin, sku, title, bullets, description, searchTerms, uploadedKeywords }], model? }
  * Enqueues one BullMQ job per item; returns { batchId, total } immediately.
  */
-router.post('/bulk-optimize', requireRole('MEMBER'), async (req, res) => {
+router.post('/bulk-optimize', requireRole('MEMBER'), enforcePlanLimit('bulkOperations'), async (req, res) => {
   const { items, model = 'gemini' } = req.body;
 
   if (!Array.isArray(items) || items.length === 0) {

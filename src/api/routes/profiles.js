@@ -2,6 +2,7 @@ import express from 'express';
 import { prisma } from '../../db/prisma.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { createLogger } from '../utils/logger.js';
+import { applyProfileCap } from '../../services/plan-limits.js';
 
 const router = express.Router();
 const logger = createLogger('PROFILES');
@@ -45,8 +46,19 @@ router.post('/sync', requireRole('ADMIN'), async (req, res) => {
       where: { orgId: req.tenant.orgId, isDefault: true },
     });
 
+    // Apply the plan's profile cap to profiles being added, never to ones
+    // already connected. An org that is over its cap keeps everything it has
+    // working — a sync must never disconnect a profile the seller is using.
+    const existing = await prisma.sellerProfile.findMany({
+      where:  { orgId: req.tenant.orgId },
+      select: { profileId: true },
+    });
+    const known = new Set(existing.map(e => e.profileId));
+    const { limited, skipped } = await applyProfileCap(req.tenant.orgId, raw, known);
+    const importable = limited;
+
     const upserted = await Promise.all(
-      raw.map(async (p, i) => {
+      importable.map(async (p, i) => {
         const profileId = String(p.profileId ?? p.id);
         const isDefault = !hasDefault && i === 0;
 
@@ -78,6 +90,8 @@ router.post('/sync', requireRole('ADMIN'), async (req, res) => {
     // Remove profiles that Amazon's API no longer returns for this org's credentials.
     // This cleans up stale entries from a previous agency-level sync that stored
     // multiple clients' profiles under this org.
+    // Anything the cap held back must stay in the keep-list, or the cleanup
+    // below would delete profiles the seller still owns.
     const returnedIds = raw.map(p => String(p.profileId ?? p.id));
     const { count: removed } = await prisma.sellerProfile.deleteMany({
       where: {
@@ -91,7 +105,14 @@ router.post('/sync', requireRole('ADMIN'), async (req, res) => {
     }
 
     logger.info(`Synced ${upserted.length} profiles for org ${req.tenant.orgId}`);
-    res.json({ synced: upserted.length, removed, profiles: upserted });
+    res.json({
+      synced: upserted.length,
+      removed,
+      profiles: upserted,
+      // Named so the UI can explain the gap rather than leaving the seller to
+      // wonder where their other Amazon accounts went.
+      ...(skipped.length ? { skippedForPlanLimit: skipped } : {}),
+    });
   } catch (err) {
     const detail = err.response?.data ?? err.message;
     logger.error(`Sync profiles error: ${err.message}`, { detail, status: err.response?.status });
