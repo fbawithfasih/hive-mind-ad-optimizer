@@ -91,7 +91,7 @@ describe('on a phone, drawer closed', () => {
   it('is translated off screen', () => {
     const { aside } = renderSidebar({ open: false });
 
-    expect(aside().style.transform).toBe('translateX(-100%)');
+    expect(aside().style.transform).toBe('translateX(-264px)');
   });
 
   it('is hidden from assistive tech and from the tab order', () => {
@@ -129,23 +129,6 @@ describe('on a phone, drawer open', () => {
 
     expect(setActiveTab).toHaveBeenCalledWith('campaigns');
     expect(onClose).toHaveBeenCalled();
-  });
-
-  it('closes on Escape', () => {
-    const { onClose } = renderSidebar({ open: true });
-
-    fireEvent.keyDown(window, { key: 'Escape' });
-
-    expect(onClose).toHaveBeenCalled();
-  });
-
-  it('leaves Escape alone while it is closed', () => {
-    // The command palette and every modal also listen for Escape.
-    const { onClose } = renderSidebar({ open: false });
-
-    fireEvent.keyDown(window, { key: 'Escape' });
-
-    expect(onClose).not.toHaveBeenCalled();
   });
 
   it('never shows the icon-only rail, however it was left on desktop', () => {

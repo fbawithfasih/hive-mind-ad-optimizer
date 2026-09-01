@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import TerminalSidebar from './TerminalSidebar.jsx';
 import TopBar from './TopBar.jsx';
 
-import { useIsMobile } from '../../hooks/useIsMobile.js';
+import { useMobileDrawer, DrawerScrim } from './mobileDrawer.jsx';
 
 export default function AppShell({
   activeTab,
@@ -23,21 +23,18 @@ export default function AppShell({
   earnedBadgeCount,
   children,
 }) {
-  const isMobile = useIsMobile();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+  const { isMobile, open: drawerOpen, openDrawer, closeDrawer } = useMobileDrawer();
+  const contentRef = useRef(null);
 
-  // Growing back to a desktop viewport with the drawer still open would leave a
-  // scrim over a layout that no longer has one.
-  useEffect(() => { if (!isMobile) setDrawerOpen(false); }, [isMobile]);
-
-  // The drawer scrolls itself; letting the page behind scroll too is the
-  // "scroll chaining" that makes a drawer feel broken.
+  // Lock the element that actually scrolls. `document.body` does not: the shell
+  // is viewport-height and the overflow lives on the content column below, so
+  // locking the body was a no-op dressed up as a scroll lock.
   useEffect(() => {
-    if (!isMobile || !drawerOpen) return undefined;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = previous; };
+    const el = contentRef.current;
+    if (!el || !isMobile || !drawerOpen) return undefined;
+    const previous = el.style.overflowY;
+    el.style.overflowY = 'hidden';
+    return () => { el.style.overflowY = previous; };
   }, [isMobile, drawerOpen]);
 
   return (
@@ -52,24 +49,14 @@ export default function AppShell({
         onClose={closeDrawer}
       />
 
-      {/* Scrim. Only rendered on a phone with the drawer open, so it can never
+      {/* Only rendered on a phone with the drawer open, so it can never
           intercept a click on the desktop layout. */}
-      {isMobile && drawerOpen && (
-        <div
-          data-testid="sidebar-scrim"
-          onClick={closeDrawer}
-          aria-hidden="true"
-          style={{
-            position: 'fixed', inset: 0, zIndex: 55,
-            background: 'var(--scrim)', backdropFilter: 'blur(2px)',
-          }}
-        />
-      )}
+      {isMobile && drawerOpen && <DrawerScrim onClose={closeDrawer} />}
 
       {/* Main column: topbar + scrollable content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
         <TopBar
-          onMenuClick={isMobile ? () => setDrawerOpen(true) : undefined}
+          onMenuClick={isMobile ? openDrawer : undefined}
           activeTab={activeTab}
           moduleLabel={moduleLabel}
           user={user}
@@ -87,7 +74,7 @@ export default function AppShell({
         />
 
         {/* Banners + panel content */}
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+        <div ref={contentRef} data-testid="shell-content" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
           {children}
         </div>
       </div>

@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useIsMobile } from '../../hooks/useIsMobile.js';
+import { drawerAsideStyle, drawerHiddenProps } from './mobileDrawer.jsx';
 
 const SECTIONS = [
   {
@@ -62,16 +63,6 @@ export default function TerminalSidebar({
   // open at full width or not on screen at all.
   const isCollapsed = collapsed && !isMobile;
 
-  // Escape closes the drawer. Registered only while it is open, so this does
-  // not swallow Escape from the command palette or any modal the rest of the
-  // time.
-  useEffect(() => {
-    if (!isMobile || !open) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isMobile, open, onClose]);
-
   function handleNav(tab) {
     if (tab === 'alerts' && onAlertsClick) {
       onAlertsClick();
@@ -86,34 +77,22 @@ export default function TerminalSidebar({
   return (
     <aside
       aria-label="Main navigation"
-      aria-hidden={isMobile && !open ? 'true' : undefined}
-      inert={isMobile && !open}
+      {...drawerHiddenProps({ isMobile, open })}
       style={{
-        width: isMobile ? 264 : (isCollapsed ? 52 : 220),
-        minWidth: isMobile ? 264 : (isCollapsed ? 52 : 220),
-        // 100dvh tracks the viewport as mobile browser chrome hides and shows;
-        // 100vh alone leaves the last rows under the address bar. The static
-        // fallback is listed first for anything without dvh support.
         height: '100vh',
-        maxHeight: '100dvh',
-        // Off-canvas on a phone: taken out of the flex row entirely, so the
-        // content column gets the full viewport width instead of 44% of it.
-        position: isMobile ? 'fixed' : 'sticky',
         top: 0,
-        left: 0,
-        transform: isMobile && !open ? 'translateX(-100%)' : 'translateX(0)',
         display: 'flex',
         flexDirection: 'column',
         background: 'var(--surface-chrome)',
         borderRight: '1px solid var(--overlay-4)',
         backdropFilter: 'blur(24px)',
-        transition: isMobile
-          ? 'transform 0.22s ease'
-          : 'width 0.2s ease, min-width 0.2s ease',
+        transition: 'width 0.2s ease, min-width 0.2s ease',
         overflowY: 'auto',
         overflowX: 'hidden',
-        zIndex: 60,
+        zIndex: 40,
         flexShrink: 0,
+        // Last, so the drawer geometry wins over the desktop geometry above.
+        ...drawerAsideStyle({ isMobile, open, desktopWidth: isCollapsed ? 52 : 220 }),
       }}>
 
       {/* Logo + collapse toggle */}

@@ -38,6 +38,9 @@ const renderShell = () => render(
 );
 
 const scrim = () => screen.queryByTestId('sidebar-scrim');
+/** The element that actually scrolls. `document.body` never does — the shell is
+ *  viewport-height and the overflow lives here. */
+const content = () => screen.getByTestId('shell-content');
 
 beforeEach(() => { delete window.matchMedia; });
 afterEach(() => {
@@ -63,10 +66,10 @@ describe('on a desktop viewport', () => {
     expect(scrim()).toBeNull();
   });
 
-  it('leaves the page scrollable', () => {
+  it('leaves the content column scrollable', () => {
     renderShell();
 
-    expect(document.body.style.overflow).toBe('');
+    expect(content().style.overflowY).toBe('auto');
   });
 });
 
@@ -96,35 +99,44 @@ describe('on a phone', () => {
     expect(scrim()).toBeNull();
   });
 
-  it('stops the page behind from scrolling while open', () => {
+  it('locks the element that actually scrolls, not the body', () => {
+    // The first version of this locked document.body, which never scrolls here
+    // — a no-op dressed up as a scroll lock, with a test that passed anyway.
     renderShell();
 
     fireEvent.click(screen.getByLabelText('Open navigation menu'));
 
-    expect(document.body.style.overflow).toBe('hidden');
+    expect(content().style.overflowY).toBe('hidden');
   });
 
   it('gives scrolling back when the drawer closes', () => {
-    // Leaving overflow:hidden behind would freeze the whole app.
     renderShell();
     fireEvent.click(screen.getByLabelText('Open navigation menu'));
 
     fireEvent.click(scrim());
 
-    expect(document.body.style.overflow).not.toBe('hidden');
+    expect(content().style.overflowY).toBe('auto');
   });
 
-  it('gives scrolling back on unmount, even with the drawer still open', () => {
-    // Navigating away mid-drawer would otherwise leave the body pinned at
-    // overflow:hidden with nothing left mounted to undo it — the whole app
-    // frozen, and no obvious cause.
-    const { unmount } = renderShell();
+  it('closes on Escape', () => {
+    renderShell();
     fireEvent.click(screen.getByLabelText('Open navigation menu'));
-    expect(document.body.style.overflow).toBe('hidden');
 
-    unmount();
+    fireEvent.keyDown(window, { key: 'Escape' });
 
-    expect(document.body.style.overflow).not.toBe('hidden');
+    expect(scrim()).toBeNull();
+  });
+
+  it('ignores Escape while the drawer is closed', () => {
+    // The command palette and every modal also listen for Escape; the handler
+    // is registered only while the drawer is open.
+    const spy = vi.spyOn(window, 'removeEventListener');
+    renderShell();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(scrim()).toBeNull();
+    spy.mockRestore();
   });
 
   it('still renders the page content', () => {

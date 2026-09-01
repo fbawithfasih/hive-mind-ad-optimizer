@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+
+import { useMobileDrawer, DrawerScrim, MenuButton, drawerAsideStyle, drawerHiddenProps } from '../components/shell/mobileDrawer.jsx';
 import { logoutApi, switchOrgApi, syncProfilesApi } from '../services/api.js';
 import { useTheme } from '../hooks/useTheme.jsx';
 import SupportContact from '../components/SupportContact.jsx';
@@ -405,6 +407,11 @@ export default function HubPage({ user, onLogout }) {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
 
+  // This page has its own sidebar rather than using AppShell, so it needs the
+  // drawer wired up separately — which is exactly how it stayed broken after
+  // the Dashboard shell was fixed.
+  const { isMobile, open: drawerOpen, openDrawer, closeDrawer } = useMobileDrawer();
+
   return (
     <div style={{
       minHeight: '100vh', display: 'flex',
@@ -428,15 +435,21 @@ export default function HubPage({ user, onLogout }) {
       )}
 
       {/* ══════════════════ SIDEBAR ══════════════════ */}
-      <aside style={{
-        width: 265, flexShrink: 0,
-        background: 'var(--bg-app)',
-        borderRight: '1px solid var(--overlay-5)',
-        display: 'flex', flexDirection: 'column',
-        height: '100vh', position: 'sticky', top: 0,
-        backdropFilter: 'blur(32px)',
-        zIndex: 20,
-      }}>
+      <aside
+        aria-label="Hub navigation"
+        {...drawerHiddenProps({ isMobile, open: drawerOpen })}
+        style={{
+          flexShrink: 0,
+          background: 'var(--bg-app)',
+          borderRight: '1px solid var(--overlay-5)',
+          display: 'flex', flexDirection: 'column',
+          height: '100vh', top: 0,
+          backdropFilter: 'blur(32px)',
+          zIndex: 20,
+          overflowY: 'auto',
+          // Last, so the drawer geometry wins over the desktop geometry above.
+          ...drawerAsideStyle({ isMobile, open: drawerOpen, desktopWidth: 265 }),
+        }}>
         {/* Sidebar top glow */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(167,139,250,0.5), transparent)', pointerEvents: 'none' }} />
 
@@ -505,7 +518,10 @@ export default function HubPage({ user, onLogout }) {
         </div>
 
         {/* Nav */}
-        <nav style={{ flex: 1, padding: '16px 10px', overflowY: 'auto' }}>
+        <nav
+          onClick={isMobile ? closeDrawer : undefined}
+          style={{ flex: 1, padding: '16px 10px', overflowY: 'auto' }}
+        >
           <p style={{ fontSize: 9, fontWeight: 800, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.14em', padding: '0 10px', marginBottom: 8 }}>
             Main
           </p>
@@ -530,8 +546,15 @@ export default function HubPage({ user, onLogout }) {
         </div>
       </aside>
 
+      {isMobile && drawerOpen && <DrawerScrim onClose={closeDrawer} />}
+
       {/* ══════════════════ MAIN ══════════════════ */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', zIndex: 1 }}>
+      {/* minWidth: 0 — a flex item will not shrink below its content's
+          min-content width without it, so a single wide child pushes the whole
+          column past the viewport and the root's overflow:hidden clips it.
+          AppShell already sets this; this column did not, which is why the Hub
+          clipped its right edge even once the sidebar stopped taking the room. */}
+      <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', zIndex: 1 }}>
 
         {/* Top bar */}
         <header style={{
@@ -539,12 +562,17 @@ export default function HubPage({ user, onLogout }) {
           background: 'var(--bg-overlay-hi)',
           backdropFilter: 'blur(24px)',
           borderBottom: '1px solid var(--overlay-5)',
-          padding: '14px 40px',
+          padding: isMobile ? '10px 14px' : '14px 40px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexWrap: isMobile ? 'wrap' : 'nowrap',
+          rowGap: 8,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-            <span style={{ color: 'var(--text-muted)' }}>Hive Mind Nestor</span>
-            <span style={{ color: 'var(--text-faint)' }}>/</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, minWidth: 0 }}>
+            {isMobile && <MenuButton onClick={openDrawer} />}
+            {/* The org name is the widest thing here and the drawer already
+                names it — the page identity is what the crumb is for. */}
+            {!isMobile && <span style={{ color: 'var(--text-muted)' }}>Hive Mind Nestor</span>}
+            {!isMobile && <span style={{ color: 'var(--text-faint)' }}>/</span>}
             <span style={{
               fontSize: 13, fontWeight: 700,
               backgroundImage: 'var(--grad-accent)',
@@ -553,16 +581,18 @@ export default function HubPage({ user, onLogout }) {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              padding: '5px 14px', borderRadius: 100,
-              background: 'rgba(16,185,129,0.10)',
-              border: '1px solid rgba(16,185,129,0.28)',
-              boxShadow: '0 0 16px rgba(16,185,129,0.12)',
-            }}>
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--success)', boxShadow: '0 0 8px var(--success)' }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success-2)' }}>All systems live</span>
-            </div>
+            {!isMobile && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '5px 14px', borderRadius: 100,
+                background: 'rgba(16,185,129,0.10)',
+                border: '1px solid rgba(16,185,129,0.28)',
+                boxShadow: '0 0 16px rgba(16,185,129,0.12)',
+              }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--success)', boxShadow: '0 0 8px var(--success)' }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success-2)' }}>All systems live</span>
+              </div>
+            )}
             <ThemeToggle />
             <Link to="/billing" style={{
               fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', padding: '6px 16px',
