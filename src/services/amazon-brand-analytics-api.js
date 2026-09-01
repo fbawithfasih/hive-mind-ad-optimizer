@@ -92,6 +92,51 @@ const PERIOD_TO_SP_OPTION = {
   QUARTERLY: 'QUARTER',
 };
 
+/**
+ * Errors Amazon will answer identically however many times we resend.
+ *
+ * A missing report type, a dashboard-only report, a malformed ASIN list and a
+ * report Amazon marked FATAL are all settled questions — retrying re-asks a
+ * question already answered, and for BA that costs five attempts of up to
+ * thirty minutes' polling each. Callers translate the flag into whatever their
+ * runtime uses to stop retrying (the fetch worker raises BullMQ's
+ * UnrecoverableError); the flag itself keeps this module free of that
+ * dependency.
+ */
+export function terminalError(message) {
+  const err = new Error(message);
+  err.terminal = true;
+  return err;
+}
+
+/**
+ * Reduce a fatal report document to one line worth logging.
+ *
+ * Amazon is not consistent about the shape: some report types return
+ * { errorDetails: [...] }, others `errors` or `messages`, and a few return
+ * plain text. Anything unrecognised falls back to the raw prefix rather than
+ * being dropped — an unparsed reason still beats no reason.
+ *
+ * Exported for tests: it is the part worth asserting on and it needs no HTTP.
+ */
+export function summariseFatalDocument(text) {
+  const trimmed = String(text ?? '').trim();
+  if (!trimmed) return null;
+
+  let payload;
+  try { payload = JSON.parse(trimmed); } catch { return trimmed.slice(0, 300); }
+
+  const found = payload?.errorDetails ?? payload?.errors ?? payload?.messages;
+  const messages = (Array.isArray(found) ? found : [found])
+    .filter(Boolean)
+    .map(e => (typeof e === 'string'
+      ? e
+      : e.message ?? e.detail ?? e.errorMessage ?? JSON.stringify(e)))
+    .filter(Boolean);
+
+  return (messages.length ? messages.join('; ') : trimmed).slice(0, 300);
+}
+
 export function listSupportedReportTypes() {
   return Object.keys(REPORT_TYPE_MAP);
 }
@@ -145,21 +190,21 @@ export function createBrandAnalyticsClient({
    */
   async function createReport({ logicalType, reportingPeriod, periodStart, periodEnd, asins = [] }) {
     const map = REPORT_TYPE_MAP[logicalType];
-    if (!map) throw new Error(`Unsupported Brand Analytics report type: ${logicalType}`);
+    if (!map) throw terminalError(`Unsupported Brand Analytics report type: ${logicalType}`);
     if (!map.apiAvailable) {
-      throw new Error(`${logicalType} is dashboard-only — Amazon does not expose it via the SP-API Reports API.`);
+      throw terminalError(`${logicalType} is dashboard-only — Amazon does not expose it via the SP-API Reports API.`);
     }
     const reportPeriod = PERIOD_TO_SP_OPTION[reportingPeriod];
-    if (!reportPeriod) throw new Error(`Unsupported reportingPeriod: ${reportingPeriod}`);
+    if (!reportPeriod) throw terminalError(`Unsupported reportingPeriod: ${reportingPeriod}`);
     if (map.requiresAsin && (!Array.isArray(asins) || asins.length === 0)) {
-      throw new Error(`${logicalType} requires an asin list — pass { asins: ["B0...", ...] } in the job/refresh payload.`);
+      throw terminalError(`${logicalType} requires an asin list — pass { asins: ["B0...", ...] } in the job/refresh payload.`);
     }
 
     const reportOptions = { reportPeriod };
     if (asins.length) {
       // SP-API expects space-separated ASIN string with ≤200-char limit.
       const joined = asins.join(' ');
-      if (joined.length > 200) throw new Error('ASIN list exceeds the 200-char SP-API limit; chunk into multiple jobs.');
+      if (joined.length > 200) throw terminalError('ASIN list exceeds the 200-char SP-API limit; chunk into multiple jobs.');
       reportOptions.asin = joined;
     }
 
@@ -179,6 +224,35 @@ export function createBrandAnalyticsClient({
   }
 
   /**
+   * Read Amazon's explanation for a report it refused to produce.
+   *
+   * A FATAL or CANCELLED report still carries a reportDocumentId, and that
+   * document holds the reason. We were discarding it and recording the bare
+   * string "Report FATAL", which cannot distinguish "this seller is not brand
+   * registered" from "that date range is not a closed BA period" — so a daily
+   * sweep failing across every org said nothing about why.
+   *
+   * Best-effort by design: if the detail cannot be read, the caller falls back
+   * to the bare status. Replacing Amazon's reason with our own download error
+   * would be strictly worse than having no detail at all.
+   */
+  async function fatalReason(reportDocumentId) {
+    if (!reportDocumentId) return null;
+    try {
+      const token = await getToken();
+      const d = await http.get(`${SP_BASE}/reports/2021-06-30/documents/${reportDocumentId}`, {
+        headers: headers(token),
+      });
+      const dl  = await http.get(d.data.url, { responseType: 'arraybuffer', timeout: TIMEOUT_MS.download });
+      const buf = Buffer.from(dl.data);
+      const text = (d.data.compressionAlgorithm === 'GZIP' ? gunzipSync(buf) : buf).toString();
+      return summariseFatalDocument(text);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Poll the report status. Returns one of:
    *   { state: 'PENDING' }
    *   { state: 'FAILED', error }
@@ -191,7 +265,14 @@ export function createBrandAnalyticsClient({
     });
     const ps = r.data.processingStatus;
     if (ps === 'IN_QUEUE' || ps === 'IN_PROGRESS') return { state: 'PENDING' };
-    if (ps === 'CANCELLED' || ps === 'FATAL')      return { state: 'FAILED', error: `Report ${ps}` };
+    if (ps === 'CANCELLED' || ps === 'FATAL') {
+      const reason = await fatalReason(r.data.reportDocumentId);
+      return {
+        state:    'FAILED',
+        terminal: true,
+        error:    reason ? `Report ${ps}: ${reason}` : `Report ${ps} (Amazon supplied no detail)`,
+      };
+    }
     if (ps !== 'DONE')                              return { state: 'PENDING' };
     return { state: 'DONE', reportDocumentId: r.data.reportDocumentId };
   }

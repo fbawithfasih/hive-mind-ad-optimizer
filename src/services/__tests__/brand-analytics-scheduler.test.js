@@ -7,7 +7,10 @@
 import { jest } from '@jest/globals';
 
 jest.mock('../../db/prisma.js', () => ({
-  prisma: { brandAnalyticsReport: { findFirst: jest.fn(), findUnique: jest.fn() } },
+  prisma: {
+    brandAnalyticsReport: { findFirst: jest.fn(), findUnique: jest.fn() },
+    organization:         { findMany: jest.fn(), count: jest.fn() },
+  },
 }));
 
 // The scheduler imports ./queue.js, which constructs seven BullMQ Queues at
@@ -19,8 +22,11 @@ jest.mock('../queue.js', () => ({
   brandAnalyticsFetchQueue: { add: jest.fn().mockResolvedValue(undefined) },
 }));
 
-import { cadenceForTier, previousClosedPeriod, getBrandAsinsForOrg } from '../brand-analytics-scheduler.js';
+import {
+  cadenceForTier, previousClosedPeriod, getBrandAsinsForOrg, enqueueDailySweep,
+} from '../brand-analytics-scheduler.js';
 import { prisma } from '../../db/prisma.js';
+import { brandAnalyticsFetchQueue } from '../queue.js';
 
 describe('cadenceForTier', () => {
   it('BASIC fetches the 3 core reports monthly', () => {
@@ -161,5 +167,67 @@ describe('getBrandAsinsForOrg', () => {
   it('returns [] when the org has no completed catalog report', async () => {
     prisma.brandAnalyticsReport.findFirst.mockResolvedValue(null);
     expect(await getBrandAsinsForOrg('org-1')).toEqual([]);
+  });
+});
+
+
+describe('enqueueDailySweep — who is worth asking Amazon about', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.brandAnalyticsReport.findUnique.mockResolvedValue(null);
+    prisma.brandAnalyticsReport.findFirst.mockResolvedValue(null);
+    prisma.organization.count.mockResolvedValue(0);
+  });
+
+  it('asks the database for connected orgs only, instead of filtering after the fact', async () => {
+    // The filter has to be in the query. Enqueueing a job for an unconnected org
+    // and letting the worker discover the missing credential is exactly the
+    // behaviour that produced two dead letters per unconnected org per day.
+    prisma.organization.findMany.mockResolvedValue([]);
+
+    await enqueueDailySweep();
+
+    expect(prisma.organization.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        billingStatus:     'ACTIVE',
+        amazonCredentials: { some: { status: 'ACTIVE' } },
+      }),
+    }));
+  });
+
+  it('enqueues nothing at all when no org has connected Amazon', async () => {
+    prisma.organization.findMany.mockResolvedValue([]);
+    prisma.organization.count.mockResolvedValue(7);
+
+    const result = await enqueueDailySweep();
+
+    expect(brandAnalyticsFetchQueue.add).not.toHaveBeenCalled();
+    expect(result).toEqual({ orgs: 0, enqueued: 0, skipped: 7 });
+  });
+
+  it('reports how many orgs it skipped, so the quiet is explained', async () => {
+    prisma.organization.findMany.mockResolvedValue([]);
+    prisma.organization.count.mockResolvedValue(7);
+
+    expect((await enqueueDailySweep()).skipped).toBe(7);
+  });
+
+  it('still fans out the core reports for a connected BASIC org', async () => {
+    prisma.organization.findMany.mockResolvedValue([{ id: 'org-A', tier: 'BASIC', name: 'Acme' }]);
+
+    const result = await enqueueDailySweep();
+
+    const types = brandAnalyticsFetchQueue.add.mock.calls.map(([, data]) => data.reportType);
+    expect(types).toEqual(expect.arrayContaining(['TOP_SEARCH_TERMS', 'BRAND_CATALOG_PERFORMANCE']));
+    expect(result.orgs).toBe(1);
+  });
+
+  it('skips a report already fetched successfully for the period', async () => {
+    prisma.organization.findMany.mockResolvedValue([{ id: 'org-A', tier: 'BASIC', name: 'Acme' }]);
+    prisma.brandAnalyticsReport.findUnique.mockResolvedValue({ status: 'COMPLETED' });
+
+    await enqueueDailySweep();
+
+    expect(brandAnalyticsFetchQueue.add).not.toHaveBeenCalled();
   });
 });
