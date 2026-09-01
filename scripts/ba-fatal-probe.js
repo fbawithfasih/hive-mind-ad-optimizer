@@ -16,6 +16,7 @@
  * Defaults to TOP_SEARCH_TERMS for the previous calendar month — the request
  * the BASIC monthly cadence actually makes.
  */
+import { runAsSystem } from '../src/db/tenant-context.js';
 import { loadOrgCredential } from '../src/services/credentials.js';
 import {
   createBrandAnalyticsClient,
@@ -46,6 +47,14 @@ function monthBounds(spec) {
 }
 
 const { periodStart, periodEnd } = monthBounds(month);
+
+// The tenant guard is strict in production and this reads AmazonCredential for
+// an org this process was not invoked "as". A probe is trusted operator code
+// spanning one named org, which is exactly what runAsSystem is for — the orgId
+// is passed explicitly on every query below.
+await runAsSystem(main);
+
+async function main() {
 
 const cred = await loadOrgCredential(orgId);
 if (!cred) {
@@ -94,3 +103,5 @@ for (let i = 1; i <= POLL_MAX; i++) {
 }
 
 console.log(`Still pending after ${(POLL_MAX * POLL_MS) / 1000}s — not a fast failure.`);
+
+}
