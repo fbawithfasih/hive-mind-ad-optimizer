@@ -179,3 +179,139 @@ describe('no context behaviour', () => {
     expect(query).toHaveBeenCalledWith({ where: { id: 'r1' } });
   });
 });
+
+
+describe('findUnique with a narrowed select', () => {
+  /**
+   * The post-filter compares row.orgId, so orgId has to survive the caller's
+   * projection. It did not: a `select` that omitted orgId left the field
+   * undefined, which compares unequal to every real orgId, so the guard nulled
+   * rows the tenant owned.
+   *
+   * In production that was requireActiveSubscription, which selects exactly
+   * { status, subscriptionId, currentPeriodEnd }. The paywall therefore saw no
+   * subscription for ANY org and refused every gated feature — including to
+   * fully paid customers.
+   *
+   * The harness above returns a fixed row whatever it is asked for, which is
+   * precisely why it could not see this. These tests use a query mock that
+   * honours `select` the way Prisma does.
+   */
+  const FULL = { id: 'r1', orgId: ORG, status: 'ACTIVE', subscriptionId: null };
+
+  /** A query mock that projects like Prisma: only selected fields come back. */
+  function projectingQuery(row = FULL) {
+    return jest.fn(async (args) => {
+      if (!row) return null;
+      if (args?.select) {
+        const out = {};
+        for (const [k, want] of Object.entries(args.select)) if (want) out[k] = row[k];
+        return out;
+      }
+      if (args?.omit) {
+        const out = { ...row };
+        for (const [k, drop] of Object.entries(args.omit)) if (drop) delete out[k];
+        return out;
+      }
+      return { ...row };
+    });
+  }
+
+  async function run({ operation = 'findUnique', args, row = FULL }) {
+    const { client } = makeBase(null);
+    const ext = tenantGuardExtension(client);
+    const op = ext.query.$allModels.$allOperations;
+    const query = projectingQuery(row);
+    const result = await runWithTenant(ORG, () =>
+      op({ model: 'Subscription', operation, args, query }));
+    return { result, query };
+  }
+
+  it('returns the row even though the caller never asked for orgId', async () => {
+    // The exact shape requireActiveSubscription uses.
+    const { result } = await run({
+      args: { where: { orgId: ORG }, select: { status: true, subscriptionId: true } },
+    });
+
+    expect(result).not.toBeNull();
+    expect(result.status).toBe('ACTIVE');
+  });
+
+  it('asks the database for orgId so the check has something to compare', async () => {
+    const { query } = await run({
+      args: { where: { orgId: ORG }, select: { status: true } },
+    });
+
+    expect(query).toHaveBeenCalledWith(
+      expect.objectContaining({ select: { status: true, orgId: true } })
+    );
+  });
+
+  it('strips the injected orgId, so the caller gets the shape it asked for', async () => {
+    // Handing back a field nobody selected would leak the guard's mechanics
+    // into every caller's result object.
+    const { result } = await run({
+      args: { where: { orgId: ORG }, select: { status: true } },
+    });
+
+    expect(result).toEqual({ status: 'ACTIVE' });
+    expect('orgId' in result).toBe(false);
+  });
+
+  it('still refuses another org\'s row when the select omits orgId', async () => {
+    // The isolation guarantee must survive the fix — this is the whole point of
+    // the post-filter.
+    const { result } = await run({
+      args: { where: { id: 'r1' }, select: { status: true } },
+      row: { id: 'r1', orgId: OTHER, status: 'ACTIVE' },
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it('still throws for findUniqueOrThrow on a foreign row with a narrowed select', async () => {
+    await expect(run({
+      operation: 'findUniqueOrThrow',
+      args: { where: { id: 'r1' }, select: { status: true } },
+      row: { id: 'r1', orgId: OTHER, status: 'ACTIVE' },
+    })).rejects.toThrow(/tenant scope/);
+  });
+
+  it('leaves a select that already asks for orgId untouched', async () => {
+    const { result, query } = await run({
+      args: { where: { orgId: ORG }, select: { status: true, orgId: true } },
+    });
+
+    expect(query).toHaveBeenCalledWith(
+      expect.objectContaining({ select: { status: true, orgId: true } })
+    );
+    // Explicitly requested, so it must survive into the result.
+    expect(result).toEqual({ status: 'ACTIVE', orgId: ORG });
+  });
+
+  it('leaves a call with no select alone', async () => {
+    const { result, query } = await run({ args: { where: { orgId: ORG } } });
+
+    expect(query).toHaveBeenCalledWith({ where: { orgId: ORG } });
+    expect(result.orgId).toBe(ORG);
+  });
+
+  it('handles omit: { orgId: true } the same way', async () => {
+    const { result } = await run({
+      args: { where: { orgId: ORG }, omit: { orgId: true } },
+    });
+
+    expect(result).not.toBeNull();
+    expect(result.status).toBe('ACTIVE');
+    expect('orgId' in result).toBe(false);
+  });
+
+  it('returns null for a genuinely missing row', async () => {
+    const { result } = await run({
+      args: { where: { orgId: ORG }, select: { status: true } },
+      row: null,
+    });
+
+    expect(result).toBeNull();
+  });
+});
