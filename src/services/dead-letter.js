@@ -19,12 +19,21 @@ import * as Sentry from '@sentry/node';
 const logger = createLogger('DEAD_LETTER');
 
 /**
- * A job has permanently failed once it has exhausted its configured attempts.
+ * A job has permanently failed once it has exhausted its configured attempts —
+ * or once the processor said outright that retrying is pointless.
+ *
+ * BullMQ's UnrecoverableError stops a job at attempt 1 however many attempts
+ * were configured, so the attempts arithmetic alone would call it transient and
+ * the job would disappear with no dead-letter record at all. Matched by name so
+ * this module stays free of the BullMQ import, as documented above.
+ *
  * @param {{ attemptsMade?: number, opts?: { attempts?: number } } | null | undefined} job
+ * @param {{ name?: string } | null | undefined} [err]  the failure, when available
  * @returns {boolean}
  */
-export function isPermanentFailure(job) {
+export function isPermanentFailure(job, err) {
   if (!job) return false;
+  if (err?.name === 'UnrecoverableError') return true;
   const maxAttempts = job.opts?.attempts ?? 1;
   return (job.attemptsMade ?? 0) >= maxAttempts;
 }
@@ -91,7 +100,7 @@ export async function recordDeadLetter(queueName, job, err) {
  */
 export function attachDeadLetter(worker, queueName) {
   worker.on('failed', (job, err) => {
-    if (isPermanentFailure(job)) {
+    if (isPermanentFailure(job, err)) {
       // Deliberately unreported: recordDeadLetter already reports internally,
       // and throwing from a worker's failed-listener would take the worker down.
       recordDeadLetter(queueName, job, err).catch(() => {});

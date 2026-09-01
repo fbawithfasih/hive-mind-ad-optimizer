@@ -122,10 +122,21 @@ export function previousClosedPeriod(reportingPeriod, now = new Date()) {
  * Idempotent — BullMQ jobs are deduplicated by jobId so missed/double runs are safe.
  */
 export async function enqueueDailySweep() {
-  const orgs = await prisma.organization.findMany({
-    where: { billingStatus: 'ACTIVE' },
-    select: { id: true, tier: true, name: true },
-  });
+  // An org that has never connected Amazon cannot produce a Brand Analytics
+  // report, and no amount of retrying will change that. Before this filter the
+  // sweep enqueued two jobs a day for every unconnected org, each burning five
+  // attempts to rediscover the same missing credential — which is most of what
+  // the dead-letter table and the Sentry error budget were being spent on.
+  const connected = { some: { status: 'ACTIVE' } };
+  const [orgs, unconnected] = await Promise.all([
+    prisma.organization.findMany({
+      where:  { billingStatus: 'ACTIVE', amazonCredentials: connected },
+      select: { id: true, tier: true, name: true },
+    }),
+    prisma.organization.count({
+      where: { billingStatus: 'ACTIVE', NOT: { amazonCredentials: connected } },
+    }),
+  ]);
 
   // Defensive intersection: even if cadenceForTier listed something the API
   // can't fetch, we drop it here. Same for ASIN-required reports — those go
@@ -199,6 +210,6 @@ export async function enqueueDailySweep() {
     }
   }
 
-  logger.info(`Daily BA sweep — ${orgs.length} orgs scanned, ${enqueued} jobs enqueued`);
-  return { orgs: orgs.length, enqueued };
+  logger.info(`Daily BA sweep — ${orgs.length} connected orgs scanned, ${enqueued} jobs enqueued, ${unconnected} orgs skipped (no Amazon connection)`);
+  return { orgs: orgs.length, enqueued, skipped: unconnected };
 }

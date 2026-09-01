@@ -18,8 +18,10 @@
  *   - Manual POST /api/brand-analytics/reports/refresh from the UI.
  */
 
+import { UnrecoverableError } from 'bullmq';
+
 import { loadOrgCredential } from '../services/credentials.js';
-import { createBrandAnalyticsClient } from '../services/amazon-brand-analytics-api.js';
+import { createBrandAnalyticsClient, terminalError } from '../services/amazon-brand-analytics-api.js';
 import { createSpApiClient } from '../services/amazon-sp-api.js';
 import { prisma } from '../db/prisma.js';
 import { clearCache } from '../services/brand-analytics/loader.js';
@@ -65,7 +67,7 @@ export async function brandAnalyticsFetchProcessor(job) {
 
   try {
     const cred = await loadOrgCredential(orgId);
-    if (!cred) throw new Error(`No active SP-API credential for org ${orgId}`);
+    if (!cred) throw terminalError(`No active SP-API credential for org ${orgId}`);
 
     const client = createBrandAnalyticsClient({
       clientId:      cred.spClientId,
@@ -89,7 +91,7 @@ export async function brandAnalyticsFetchProcessor(job) {
       await sleep(POLL_INTERVAL_MS);
       const status = await client.getReportStatus(reportId);
       if (status.state === 'DONE')   { documentId = status.reportDocumentId; break; }
-      if (status.state === 'FAILED') { throw new Error(status.error); }
+      if (status.state === 'FAILED') { throw status.terminal ? terminalError(status.error) : new Error(status.error); }
     }
     if (!documentId) throw new Error(`Report ${reportId} did not complete within ${POLL_MAX_ATTEMPTS * POLL_INTERVAL_MS / 1000}s`);
 
@@ -150,6 +152,15 @@ export async function brandAnalyticsFetchProcessor(job) {
       data: { status: 'FAILED', error: err.message?.slice(0, 1000) ?? 'unknown error' },
     });
     logger.error(`BA fetch failed — ${tag}: ${err.message}`);
-    throw err; // let BullMQ retry per backoff policy
+
+    // Some failures are settled questions: Amazon rejected this exact request,
+    // or the org has never connected Amazon at all. Asking again cannot change
+    // the answer, and on this queue each retry costs up to thirty minutes of
+    // polling — five attempts per job, two jobs per org, every single day.
+    // UnrecoverableError stops BullMQ after the first attempt; the job is still
+    // dead-lettered exactly once, so nothing becomes less visible.
+    if (err?.terminal) throw new UnrecoverableError(err.message);
+
+    throw err; // transient — let BullMQ retry per backoff policy
   }
 }

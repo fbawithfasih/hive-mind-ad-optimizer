@@ -34,6 +34,47 @@ describe('isPermanentFailure', () => {
     expect(isPermanentFailure({ attemptsMade: 1 })).toBe(true);
     expect(isPermanentFailure({ attemptsMade: 0 })).toBe(false);
   });
+
+  it('is true when the processor said retrying is pointless, however many attempts remain', () => {
+    // UnrecoverableError ends the job at attempt 1. On the attempts arithmetic
+    // alone that reads as transient, so the job would be dropped with no
+    // dead-letter record — the failure would be quieter than before, not louder.
+    const err = Object.assign(new Error('not brand registered'), { name: 'UnrecoverableError' });
+
+    expect(isPermanentFailure({ attemptsMade: 1, opts: { attempts: 5 } }, err)).toBe(true);
+  });
+
+  it('still needs a job — an unrecoverable error on nothing is nothing', () => {
+    const err = Object.assign(new Error('x'), { name: 'UnrecoverableError' });
+
+    expect(isPermanentFailure(null, err)).toBe(false);
+  });
+
+  it('is unchanged by an ordinary error while retries remain', () => {
+    expect(isPermanentFailure({ attemptsMade: 1, opts: { attempts: 5 } }, new Error('socket hang up')))
+      .toBe(false);
+  });
+});
+
+describe('attachDeadLetter', () => {
+  it('records an unrecoverable failure on its first and only attempt', async () => {
+    const listeners = [];
+    const worker = { on: (event, fn) => { if (event === 'failed') listeners.push(fn); } };
+    const err = Object.assign(new Error('Report FATAL: not brand registered'), {
+      name: 'UnrecoverableError',
+    });
+
+    attachDeadLetter(worker, 'brand-analytics-fetch');
+    listeners.forEach(fn => fn({ id: 'ba-1', attemptsMade: 1, opts: { attempts: 5 } }, err));
+    await Promise.resolve();
+
+    expect(prisma.deadLetterJob.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        queue:        'brand-analytics-fetch',
+        failedReason: 'Report FATAL: not brand registered',
+      }),
+    }));
+  });
 });
 
 describe('recordDeadLetter', () => {
