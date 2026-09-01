@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { useIsMobile } from '../../hooks/useIsMobile.js';
+import { drawerAsideStyle, drawerHiddenProps } from './mobileDrawer.jsx';
+
 const SECTIONS = [
   {
     label: 'CORE',
@@ -48,8 +51,17 @@ function SvgIcon({ d, size = 16 }) {
   );
 }
 
-export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, onAlertsClick, earnedBadgeCount = 0 }) {
+export default function TerminalSidebar({
+  activeTab, setActiveTab, alertUnread, onAlertsClick, earnedBadgeCount = 0,
+  open = false, onClose,
+}) {
   const [collapsed, setCollapsed] = useState(false);
+  const isMobile = useIsMobile();
+
+  // The 52px rail is a desktop affordance — it trades labels for horizontal
+  // room, which is not the constraint on a phone. There, the drawer is either
+  // open at full width or not on screen at all.
+  const isCollapsed = collapsed && !isMobile;
 
   function handleNav(tab) {
     if (tab === 'alerts' && onAlertsClick) {
@@ -57,38 +69,43 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
     } else {
       setActiveTab(tab);
     }
+    // Navigating is the whole reason the drawer was opened; leaving it covering
+    // the page the user just asked for would make every tap a two-step.
+    if (isMobile) onClose?.();
   }
 
   return (
-    <aside style={{
-      width: collapsed ? 52 : 220,
-      minWidth: collapsed ? 52 : 220,
-      height: '100vh',
-      position: 'sticky',
-      top: 0,
-      display: 'flex',
-      flexDirection: 'column',
-      background: 'var(--surface-chrome)',
-      borderRight: '1px solid var(--overlay-4)',
-      backdropFilter: 'blur(24px)',
-      transition: 'width 0.2s ease, min-width 0.2s ease',
-      overflowY: 'auto',
-      overflowX: 'hidden',
-      zIndex: 40,
-      flexShrink: 0,
-    }}>
+    <aside
+      aria-label="Main navigation"
+      {...drawerHiddenProps({ isMobile, open })}
+      style={{
+        height: '100vh',
+        top: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--surface-chrome)',
+        borderRight: '1px solid var(--overlay-4)',
+        backdropFilter: 'blur(24px)',
+        transition: 'width 0.2s ease, min-width 0.2s ease',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        zIndex: 40,
+        flexShrink: 0,
+        // Last, so the drawer geometry wins over the desktop geometry above.
+        ...drawerAsideStyle({ isMobile, open, desktopWidth: isCollapsed ? 52 : 220 }),
+      }}>
 
       {/* Logo + collapse toggle */}
       <div style={{
-        padding: collapsed ? '14px 0' : '14px 16px',
+        padding: isCollapsed ? '14px 0' : '14px 16px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: collapsed ? 'center' : 'space-between',
+        justifyContent: isCollapsed ? 'center' : 'space-between',
         borderBottom: '1px solid var(--overlay-4)',
         gap: 8,
         flexShrink: 0,
       }}>
-        {!collapsed && (
+        {!isCollapsed && (
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', flex: 1, minWidth: 0 }}>
             <img src="/HMN-APP-ICON.png" alt="HMN" style={{ width: 28, height: 28, borderRadius: 7, objectFit: 'contain', flexShrink: 0 }} />
             <div style={{ minWidth: 0 }}>
@@ -98,13 +115,13 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
           </Link>
         )}
         <button
-          onClick={() => setCollapsed(c => !c)}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          onClick={() => (isMobile ? onClose?.() : setCollapsed(c => !c))}
+          title={isMobile ? 'Close menu' : (isCollapsed ? 'Expand sidebar' : 'Collapse sidebar')}
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center', flexShrink: 0 }}
         >
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d={collapsed ? 'M9 5l7 7-7 7' : 'M15 19l-7-7 7-7'} />
+              d={isCollapsed ? 'M9 5l7 7-7 7' : 'M15 19l-7-7 7-7'} />
           </svg>
         </button>
       </div>
@@ -113,7 +130,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
       <nav style={{ flex: 1, padding: '8px 0', display: 'flex', flexDirection: 'column', gap: 0 }}>
         {SECTIONS.map(section => (
           <div key={section.label} style={{ marginBottom: 4 }}>
-            {!collapsed && (
+            {!isCollapsed && (
               <p style={{
                 fontSize: 9, fontWeight: 800, color: 'var(--text-faint)',
                 letterSpacing: '0.14em', textTransform: 'uppercase',
@@ -130,14 +147,14 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
                 <button
                   key={item.tab}
                   onClick={() => handleNav(item.tab)}
-                  title={collapsed ? item.label : undefined}
+                  title={isCollapsed ? item.label : undefined}
                   style={{
                     width: '100%',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: collapsed ? 0 : 10,
-                    justifyContent: collapsed ? 'center' : 'flex-start',
-                    padding: collapsed ? '9px 0' : '8px 16px',
+                    gap: isCollapsed ? 0 : 10,
+                    justifyContent: isCollapsed ? 'center' : 'flex-start',
+                    padding: isCollapsed ? '9px 0' : '8px 16px',
                     background: isActive ? `color-mix(in srgb, ${item.color} 8%, transparent)` : 'transparent',
                     border: 'none',
                     borderLeft: isActive ? `2px solid ${item.color}` : '2px solid transparent',
@@ -157,13 +174,13 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
                   <span style={{ color: isActive ? item.color : 'inherit', display: 'flex', flexShrink: 0 }}>
                     <SvgIcon d={item.icon} size={15} />
                   </span>
-                  {!collapsed && <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>}
-                  {badgeCount > 0 && !collapsed && (
+                  {!isCollapsed && <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>}
+                  {badgeCount > 0 && !isCollapsed && (
                     <span style={{ background: 'var(--fill-danger)', color: '#fff', fontSize: 9, fontWeight: 800, borderRadius: 99, padding: '1px 5px', minWidth: 14, textAlign: 'center', flexShrink: 0 }}>
                       {badgeCount}
                     </span>
                   )}
-                  {badgeCount > 0 && collapsed && (
+                  {badgeCount > 0 && isCollapsed && (
                     <span style={{ position: 'absolute', top: 6, right: 6, width: 7, height: 7, borderRadius: '50%', background: 'var(--rose)' }} />
                   )}
                 </button>
@@ -174,23 +191,23 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
       </nav>
 
       {/* Footer: badges + Hub link */}
-      <div style={{ borderTop: '1px solid var(--overlay-4)', padding: collapsed ? '10px 0' : '10px 12px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ borderTop: '1px solid var(--overlay-4)', padding: isCollapsed ? '10px 0' : '10px 12px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
         {/* Trophy row */}
         <div
-          title={collapsed ? `${earnedBadgeCount} badge${earnedBadgeCount !== 1 ? 's' : ''} earned` : undefined}
+          title={isCollapsed ? `${earnedBadgeCount} badge${earnedBadgeCount !== 1 ? 's' : ''} earned` : undefined}
           style={{
             display: 'flex', alignItems: 'center',
-            justifyContent: collapsed ? 'center' : 'flex-start',
-            gap: 6, padding: collapsed ? '5px 0' : '5px 8px',
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
+            gap: 6, padding: isCollapsed ? '5px 0' : '5px 8px',
           }}
         >
           <span style={{ fontSize: 14, lineHeight: 1 }}>🏆</span>
-          {!collapsed && (
+          {!isCollapsed && (
             <span style={{ fontSize: 11, fontWeight: 700, color: earnedBadgeCount > 0 ? 'var(--warning)' : 'var(--text-faint)' }}>
               {earnedBadgeCount} / 4 badges
             </span>
           )}
-          {collapsed && earnedBadgeCount > 0 && (
+          {isCollapsed && earnedBadgeCount > 0 && (
             <span style={{
               position: 'absolute', marginLeft: 10, marginTop: -12,
               fontSize: 9, fontWeight: 900,
@@ -204,10 +221,10 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
 
         <Link
           to="/"
-          title={collapsed ? 'Back to Hub' : undefined}
+          title={isCollapsed ? 'Back to Hub' : undefined}
           style={{
-            display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start',
-            gap: 8, padding: collapsed ? '7px 0' : '7px 8px',
+            display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start',
+            gap: 8, padding: isCollapsed ? '7px 0' : '7px 8px',
             borderRadius: 8, textDecoration: 'none',
             color: 'var(--text-faint)', fontSize: 11, fontWeight: 600,
             transition: 'color 0.12s',
@@ -218,7 +235,7 @@ export default function TerminalSidebar({ activeTab, setActiveTab, alertUnread, 
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          {!collapsed && 'Back to Hub'}
+          {!isCollapsed && 'Back to Hub'}
         </Link>
       </div>
     </aside>
