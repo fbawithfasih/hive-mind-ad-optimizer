@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import TerminalSidebar from './TerminalSidebar.jsx';
 import TopBar from './TopBar.jsx';
+
+import { useIsMobile } from '../../hooks/useIsMobile.js';
 
 export default function AppShell({
   activeTab,
@@ -21,6 +23,23 @@ export default function AppShell({
   earnedBadgeCount,
   children,
 }) {
+  const isMobile = useIsMobile();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+
+  // Growing back to a desktop viewport with the drawer still open would leave a
+  // scrim over a layout that no longer has one.
+  useEffect(() => { if (!isMobile) setDrawerOpen(false); }, [isMobile]);
+
+  // The drawer scrolls itself; letting the page behind scroll too is the
+  // "scroll chaining" that makes a drawer feel broken.
+  useEffect(() => {
+    if (!isMobile || !drawerOpen) return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
+  }, [isMobile, drawerOpen]);
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-app)', color: 'var(--text-primary)' }}>
       <TerminalSidebar
@@ -29,11 +48,28 @@ export default function AppShell({
         alertUnread={alertUnread}
         onAlertsClick={onAlertsClick}
         earnedBadgeCount={earnedBadgeCount}
+        open={drawerOpen}
+        onClose={closeDrawer}
       />
+
+      {/* Scrim. Only rendered on a phone with the drawer open, so it can never
+          intercept a click on the desktop layout. */}
+      {isMobile && drawerOpen && (
+        <div
+          data-testid="sidebar-scrim"
+          onClick={closeDrawer}
+          aria-hidden="true"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 55,
+            background: 'var(--scrim)', backdropFilter: 'blur(2px)',
+          }}
+        />
+      )}
 
       {/* Main column: topbar + scrollable content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
         <TopBar
+          onMenuClick={isMobile ? () => setDrawerOpen(true) : undefined}
           activeTab={activeTab}
           moduleLabel={moduleLabel}
           user={user}

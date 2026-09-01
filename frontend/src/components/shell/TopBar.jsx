@@ -2,9 +2,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCommandPalette } from '../command/CommandPaletteProvider.jsx';
 
+import { useIsMobile } from '../../hooks/useIsMobile.js';
+
 const FLAG = cc => ({ US:'🇺🇸',CA:'🇨🇦',MX:'🇲🇽',GB:'🇬🇧',DE:'🇩🇪',FR:'🇫🇷',IT:'🇮🇹',ES:'🇪🇸',JP:'🇯🇵',AU:'🇦🇺',IN:'🇮🇳',BR:'🇧🇷',NL:'🇳🇱',SE:'🇸🇪',PL:'🇵🇱',TR:'🇹🇷',SA:'🇸🇦',AE:'🇦🇪',SG:'🇸🇬',EG:'🇪🇬' }[cc] ?? '🌐');
 
 export default function TopBar({
+  onMenuClick,
   activeTab,
   moduleLabel,
   user,
@@ -21,14 +24,21 @@ export default function TopBar({
   onLogout,
 }) {
   const palette = useCommandPalette();
+  const isMobile = useIsMobile();
 
   return (
     <header style={{
-      height: 44,
+      // Nine controls do not fit across a phone. Rather than pick which ones a
+      // user is allowed to reach, the row wraps and only the decoration is
+      // dropped — every action below stays on screen.
+      height: isMobile ? 'auto' : 44,
+      minHeight: 44,
       display: 'flex',
+      flexWrap: isMobile ? 'wrap' : 'nowrap',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0 20px',
+      rowGap: 6,
+      padding: isMobile ? '6px 12px' : '0 12px',
       background: 'var(--surface-chrome)',
       borderBottom: '1px solid var(--overlay-4)',
       backdropFilter: 'blur(24px)',
@@ -39,14 +49,35 @@ export default function TopBar({
       gap: 12,
     }}>
 
-      {/* Left: breadcrumb */}
+      {/* Left: menu button (phones only) + breadcrumb */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-faint)', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-          Dashboard
-        </span>
-        <svg width="10" height="10" fill="none" stroke="var(--bg-panel)" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-        </svg>
+        {onMenuClick && (
+          <button
+            onClick={onMenuClick}
+            aria-label="Open navigation menu"
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--text-subtle)', display: 'flex', alignItems: 'center',
+              // 40px of touch target around a 16px glyph — below ~36px this is
+              // genuinely hard to hit one-handed.
+              padding: 8, margin: -8, borderRadius: 8, flexShrink: 0,
+            }}
+          >
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        )}
+        {!isMobile && (
+          <>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-faint)', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              Dashboard
+            </span>
+            <svg width="10" height="10" fill="none" stroke="var(--bg-panel)" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            </svg>
+          </>
+        )}
         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {moduleLabel}
         </span>
@@ -63,7 +94,12 @@ export default function TopBar({
       </div>
 
       {/* Right: controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        flexShrink: 0,
+        flexWrap: isMobile ? 'wrap' : 'nowrap',
+        rowGap: 6,
+      }}>
 
         {/* Org switcher */}
         {organizations?.length > 1 && (
@@ -96,7 +132,9 @@ export default function TopBar({
           </select>
         )}
 
-        {/* ⌘K pill */}
+        {/* ⌘K pill — desktop only: it advertises a shortcut phones do not have,
+            and the same search lives in the command palette. */}
+        {!isMobile && (
         <button
           onClick={() => palette?.openPalette()}
           style={{
@@ -116,12 +154,15 @@ export default function TopBar({
           <span>Search</span>
           <kbd style={{ fontSize: 10, color: 'var(--text-muted)', background: 'var(--overlay-7)', border: '1px solid var(--overlay-8)', borderRadius: 4, padding: '1px 4px', lineHeight: 1.4 }}>⌘K</kbd>
         </button>
+        )}
 
-        {/* Live indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 99, background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.25)', flexShrink: 0 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', boxShadow: '0 0 6px var(--success)' }} />
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--success-2)' }}>LIVE</span>
-        </div>
+        {/* Live indicator — decorative status, first thing to go on a phone. */}
+        {!isMobile && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 99, background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.25)', flexShrink: 0 }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', boxShadow: '0 0 6px var(--success)' }} />
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--success-2)' }}>LIVE</span>
+          </div>
+        )}
 
         {/* Alerts bell */}
         <button
@@ -154,7 +195,7 @@ export default function TopBar({
         </Link>
 
         {/* User email + sign out */}
-        {user?.email && (
+        {user?.email && !isMobile && (
           <span style={{ fontSize: 10, color: 'var(--text-faint)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {user.email}
           </span>
