@@ -155,8 +155,42 @@ export function previousClosedPeriod(reportingPeriod, now = new Date()) {
 }
 
 /**
+ * Clear a finished job so the same jobId can run again.
+ *
+ * BullMQ deduplicates by jobId across EVERY state, failed included: adding an
+ * id that already exists returns that job and runs nothing. Verified against
+ * production — re-adding a failed id left it failed with attemptsMade
+ * untouched, and moved nothing to waiting.
+ *
+ * That quietly turned "the sweep tries again tomorrow" into "the sweep never
+ * tries again". A fetch that failed because Amazon had not published the period
+ * yet got exactly one chance, and its next chance arrived only when the job
+ * aged out of the 50-entry failed window — which is unrelated to whether the
+ * data had since arrived. It is why reports show up with lags of 17 and 30 days
+ * when the data was available in 4.
+ *
+ * Jobs that are still waiting, active or delayed are deliberately left alone:
+ * those are in flight, and clearing them would duplicate live work against the
+ * SP-API rate limit.
+ *
+ * @returns {Promise<boolean>} whether a finished job was cleared
+ */
+async function clearFinishedJob(jobId) {
+  const existing = await brandAnalyticsFetchQueue.getJob(jobId).catch(() => null);
+  if (!existing) return false;
+
+  const state = await existing.getState().catch(() => null);
+  if (state !== 'failed' && state !== 'completed') return false;
+
+  await existing.remove().catch(() => {});
+  return true;
+}
+
+/**
  * Daily fan-out: enqueue fetch jobs for every active org per tier policy.
- * Idempotent — BullMQ jobs are deduplicated by jobId so missed/double runs are safe.
+ *
+ * Safe to run more than once a day: a report already COMPLETED for the period
+ * is skipped outright, and work still in flight is left where it is.
  */
 export async function enqueueDailySweep() {
   // An org that has never connected Amazon cannot produce a Brand Analytics
@@ -181,6 +215,7 @@ export async function enqueueDailySweep() {
   const apiAvailable = new Set(listApiAvailableReportTypes());
 
   let enqueued = 0;
+  let retried  = 0;
   for (const org of orgs) {
     const cad = cadenceForTier(org.tier);
     const { periodStart, periodEnd } = previousClosedPeriod(cad.reportingPeriod);
@@ -198,6 +233,7 @@ export async function enqueueDailySweep() {
       if (existing && existing.status === 'COMPLETED') continue;
 
       const jobId = `ba-${org.id}-${reportType}-${periodStart.toISOString().slice(0,10)}-${periodEnd.toISOString().slice(0,10)}`;
+      if (await clearFinishedJob(jobId)) retried++;
       await brandAnalyticsFetchQueue.add(
         'fetch',
         {
@@ -227,6 +263,7 @@ export async function enqueueDailySweep() {
         const asins = await getBrandAsinsForOrg(org.id);
         if (asins.length) {
           const jobId = `ba-${org.id}-SQP_BRAND-${periodStart.toISOString().slice(0,10)}-${periodEnd.toISOString().slice(0,10)}`;
+          if (await clearFinishedJob(jobId)) retried++;
           await brandAnalyticsFetchQueue.add(
             'fetch',
             {
@@ -247,6 +284,6 @@ export async function enqueueDailySweep() {
     }
   }
 
-  logger.info(`Daily BA sweep — ${orgs.length} connected orgs scanned, ${enqueued} jobs enqueued, ${unconnected} orgs skipped (no Amazon connection)`);
-  return { orgs: orgs.length, enqueued, skipped: unconnected };
+  logger.info(`Daily BA sweep — ${orgs.length} connected orgs scanned, ${enqueued} jobs enqueued (${retried} retries of a finished job), ${unconnected} orgs skipped (no Amazon connection)`);
+  return { orgs: orgs.length, enqueued, retried, skipped: unconnected };
 }
