@@ -85,15 +85,52 @@ export function cadenceForTier(tier) {
 }
 
 /**
- * Compute [periodStart, periodEnd] for the most recent fully closed period
- * preceding `now`. Brand Analytics reports only cover closed weeks/months/quarters.
+ * How long after a period closes Amazon actually publishes its data.
+ *
+ * A closed period is not a fetchable one. Asking early does not return partial
+ * data or a helpful error — the Reports API returns FATAL with the generic
+ * "A client error occurred. Please double check that your parameters are
+ * valid", which reads exactly like a malformed request and sent us looking at
+ * the date bounds for it.
+ *
+ * Measured from fetchedAt on reports that did eventually complete, over periods
+ * the daily sweep was actively retrying (so first-success is a real
+ * availability signal rather than whenever we happened to ask):
+ *
+ *   monthly  2026-04-01→04-30   first completed 2026-05-04   4.1 days
+ *   weekly   2026-08-23→08-29   first completed 2026-08-31   2.8 days
+ *   weekly   2026-08-16→08-22   first completed 2026-08-23   1.1 days
+ *
+ * Weekly availability is genuinely variable, so the wait below is the shorter
+ * one that has been observed to work rather than the longest — the sweep runs
+ * daily and simply asks again tomorrow, which now costs a single attempt.
+ * These are floors, not promises: when Amazon is slower than this the sweep
+ * still catches up on a later day.
+ */
+const PUBLICATION_LAG_DAYS = {
+  WEEKLY:    1,   // first attempt lands the Monday after the Sun→Sat week
+  MONTHLY:   3,   // first attempt lands on the 4th of the following month
+  QUARTERLY: 3,
+};
+
+/**
+ * Compute [periodStart, periodEnd] for the most recent period that is both
+ * closed and published. Brand Analytics reports only cover closed
+ * weeks/months/quarters, and only some days after they close — see
+ * PUBLICATION_LAG_DAYS.
+ *
+ * The lag is applied by moving the clock back before doing the boundary maths,
+ * so during the wait this returns the period *before* — which the sweep has
+ * already fetched and therefore skips. The effect is that the first days of a
+ * month enqueue nothing at all, instead of enqueueing work that cannot succeed.
  *
  * NOTE: Amazon's Brand Analytics weeks run **Sunday → Saturday** (not the ISO
  * Monday → Sunday). Submitting Mon→Sun bounds causes the Reports API to return
  * a FATAL processing status. Surfaced via the smoke test on prod.
  */
 export function previousClosedPeriod(reportingPeriod, now = new Date()) {
-  const d = new Date(now);
+  const lagDays = PUBLICATION_LAG_DAYS[reportingPeriod] ?? 0;
+  const d = new Date(new Date(now).getTime() - lagDays * 86_400_000);
   if (reportingPeriod === 'WEEKLY') {
     // Sunday=0, Monday=1, …, Saturday=6
     const dow = d.getUTCDay();

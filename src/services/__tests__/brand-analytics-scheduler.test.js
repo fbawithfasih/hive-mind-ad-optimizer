@@ -68,11 +68,15 @@ describe('previousClosedPeriod — WEEKLY (Sun→Sat boundary)', () => {
     expect(periodStart.toISOString().slice(0, 10)).toBe('2026-04-26'); // Sun
   });
 
-  it('Sunday: still the previous Sun→Sat (current week not yet closed)', () => {
+  it('Sunday: the week that closed yesterday is not offered yet', () => {
+    // Changed deliberately. A week closing on Saturday is not published on
+    // Sunday — Amazon answers FATAL with a message that reads like a malformed
+    // request. Asking on Monday instead is the whole point of the lag, so this
+    // returns the week before and the sweep skips it as already fetched.
     const sunday = new Date('2026-05-03T12:00:00Z'); // Sunday
     const { periodStart, periodEnd } = previousClosedPeriod('WEEKLY', sunday);
-    expect(periodEnd.toISOString().slice(0, 10)).toBe('2026-05-02');
-    expect(periodStart.toISOString().slice(0, 10)).toBe('2026-04-26');
+    expect(periodEnd.toISOString().slice(0, 10)).toBe('2026-04-25');
+    expect(periodStart.toISOString().slice(0, 10)).toBe('2026-04-19');
   });
 
   it('Saturday: prior week (today is the last day of this week, not yet closed)', () => {
@@ -229,5 +233,85 @@ describe('enqueueDailySweep — who is worth asking Amazon about', () => {
     await enqueueDailySweep();
 
     expect(brandAnalyticsFetchQueue.add).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('previousClosedPeriod — waiting for Amazon to publish', () => {
+  /**
+   * A period being closed is not the same as its data existing. Every case
+   * below is a day the old code would have submitted a request Amazon could
+   * only answer with FATAL.
+   */
+
+  it('does not ask for last month on the 1st', () => {
+    // The exact failure: the 2026-09-01 sweep requested 2026-08-01→08-31 for
+    // every org and every one came back FATAL. Probed directly afterwards, the
+    // identical request for July returned DONE — the shape was never wrong.
+    const { periodStart } = previousClosedPeriod('MONTHLY', new Date('2026-09-01T03:15:00Z'));
+
+    expect(periodStart.toISOString().slice(0, 7)).toBe('2026-07');
+  });
+
+  it.each([['2026-09-02'], ['2026-09-03']])('still holds off on %s', (day) => {
+    const { periodStart } = previousClosedPeriod('MONTHLY', new Date(`${day}T03:15:00Z`));
+
+    expect(periodStart.toISOString().slice(0, 7)).toBe('2026-07');
+  });
+
+  it('asks for August on the 4th, matching when April\'s data first appeared', () => {
+    const { periodStart, periodEnd } = previousClosedPeriod('MONTHLY', new Date('2026-09-04T03:15:00Z'));
+
+    expect(periodStart.toISOString().slice(0, 10)).toBe('2026-08-01');
+    expect(periodEnd.toISOString().slice(0, 10)).toBe('2026-08-31');
+  });
+
+  it('keeps asking for August for the rest of September', () => {
+    const { periodStart } = previousClosedPeriod('MONTHLY', new Date('2026-09-28T03:15:00Z'));
+
+    expect(periodStart.toISOString().slice(0, 7)).toBe('2026-08');
+  });
+
+  it('crosses the year boundary while waiting', () => {
+    // 3 January, lagged back to 31 December, must still mean November — asking
+    // for December on the 3rd is the same mistake in a place that is easy to
+    // get wrong by an off-by-one.
+    const { periodStart } = previousClosedPeriod('MONTHLY', new Date('2027-01-03T03:15:00Z'));
+
+    expect(periodStart.toISOString().slice(0, 7)).toBe('2026-11');
+  });
+
+  it('offers a Sun→Sat week from the Monday after it closes', () => {
+    const { periodStart, periodEnd } = previousClosedPeriod('WEEKLY', new Date('2026-05-04T03:15:00Z'));
+
+    expect(periodStart.toISOString().slice(0, 10)).toBe('2026-04-26'); // Sun
+    expect(periodEnd.toISOString().slice(0, 10)).toBe('2026-05-02');   // Sat
+  });
+
+  it('still returns whole Sun→Sat weeks once the lag is applied', () => {
+    // The lag shifts the clock, so the boundary maths runs on a different day
+    // of the week than the caller's. Getting that wrong would produce partial
+    // weeks, which Amazon also rejects.
+    for (let i = 0; i < 14; i++) {
+      const now = new Date(Date.UTC(2026, 4, 1 + i));
+      const { periodStart, periodEnd } = previousClosedPeriod('WEEKLY', now);
+
+      expect(periodStart.getUTCDay()).toBe(0); // Sunday
+      expect(periodEnd.getUTCDay()).toBe(6);   // Saturday
+      expect((periodEnd - periodStart) / 86400000).toBe(6);
+      expect(periodEnd.getTime()).toBeLessThan(now.getTime());
+    }
+  });
+
+  it('never offers a period that has not closed', () => {
+    for (const reportingPeriod of ['WEEKLY', 'MONTHLY', 'QUARTERLY']) {
+      for (let i = 0; i < 40; i++) {
+        const now = new Date(Date.UTC(2026, 7, 20 + i));
+        const { periodStart, periodEnd } = previousClosedPeriod(reportingPeriod, now);
+
+        expect(periodEnd.getTime()).toBeLessThan(now.getTime());
+        expect(periodStart.getTime()).toBeLessThan(periodEnd.getTime());
+      }
+    }
   });
 });
