@@ -19,7 +19,10 @@ jest.mock('../../db/prisma.js', () => ({
 // exits the worker and masks it, but under --runInBand (and in CI) the run
 // hangs indefinitely. None of these tests enqueue anything.
 jest.mock('../queue.js', () => ({
-  brandAnalyticsFetchQueue: { add: jest.fn().mockResolvedValue(undefined) },
+  brandAnalyticsFetchQueue: {
+    add:    jest.fn().mockResolvedValue(undefined),
+    getJob: jest.fn().mockResolvedValue(null),
+  },
 }));
 
 import {
@@ -181,6 +184,7 @@ describe('enqueueDailySweep — who is worth asking Amazon about', () => {
     prisma.brandAnalyticsReport.findUnique.mockResolvedValue(null);
     prisma.brandAnalyticsReport.findFirst.mockResolvedValue(null);
     prisma.organization.count.mockResolvedValue(0);
+    brandAnalyticsFetchQueue.getJob.mockResolvedValue(null);
   });
 
   it('asks the database for connected orgs only, instead of filtering after the fact', async () => {
@@ -206,7 +210,7 @@ describe('enqueueDailySweep — who is worth asking Amazon about', () => {
     const result = await enqueueDailySweep();
 
     expect(brandAnalyticsFetchQueue.add).not.toHaveBeenCalled();
-    expect(result).toEqual({ orgs: 0, enqueued: 0, skipped: 7 });
+    expect(result).toEqual({ orgs: 0, enqueued: 0, retried: 0, skipped: 7 });
   });
 
   it('reports how many orgs it skipped, so the quiet is explained', async () => {
@@ -313,5 +317,87 @@ describe('previousClosedPeriod — waiting for Amazon to publish', () => {
         expect(periodStart.getTime()).toBeLessThan(periodEnd.getTime());
       }
     }
+  });
+});
+
+
+describe('enqueueDailySweep — a failed fetch getting another chance', () => {
+  /**
+   * BullMQ deduplicates by jobId across every state, failed included. Verified
+   * on production: re-adding a failed id returned that same job, still failed,
+   * attemptsMade untouched, and moved nothing to waiting.
+   *
+   * So "the sweep will try again tomorrow" was not true of anything that had
+   * already failed — which is every report Amazon had not published yet.
+   */
+  const finishedJob = (state) => ({
+    getState: jest.fn().mockResolvedValue(state),
+    remove:   jest.fn().mockResolvedValue(undefined),
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.brandAnalyticsReport.findUnique.mockResolvedValue(null);
+    prisma.brandAnalyticsReport.findFirst.mockResolvedValue(null);
+    prisma.organization.count.mockResolvedValue(0);
+    prisma.organization.findMany.mockResolvedValue([{ id: 'org-A', tier: 'BASIC', name: 'Acme' }]);
+    brandAnalyticsFetchQueue.getJob.mockResolvedValue(null);
+  });
+
+  it('clears yesterday\'s failed job so today\'s add is not swallowed', async () => {
+    const job = finishedJob('failed');
+    brandAnalyticsFetchQueue.getJob.mockResolvedValue(job);
+
+    const result = await enqueueDailySweep();
+
+    expect(job.remove).toHaveBeenCalled();
+    expect(brandAnalyticsFetchQueue.add).toHaveBeenCalled();
+    expect(result.retried).toBeGreaterThan(0);
+  });
+
+  it('clears a completed job too, since the report row is what decides', async () => {
+    // We only reach the add at all when the report is not COMPLETED. A leftover
+    // completed job for that id would otherwise block the refetch forever.
+    const job = finishedJob('completed');
+    brandAnalyticsFetchQueue.getJob.mockResolvedValue(job);
+
+    await enqueueDailySweep();
+
+    expect(job.remove).toHaveBeenCalled();
+  });
+
+  it.each([['waiting'], ['active'], ['delayed']])('leaves an in-flight %s job alone', async (state) => {
+    // Removing live work would duplicate it against the SP-API rate limit.
+    const job = finishedJob(state);
+    brandAnalyticsFetchQueue.getJob.mockResolvedValue(job);
+
+    const result = await enqueueDailySweep();
+
+    expect(job.remove).not.toHaveBeenCalled();
+    expect(result.retried).toBe(0);
+  });
+
+  it('adds normally when there is no prior job', async () => {
+    const result = await enqueueDailySweep();
+
+    expect(brandAnalyticsFetchQueue.add).toHaveBeenCalled();
+    expect(result.retried).toBe(0);
+  });
+
+  it('keeps sweeping when the queue cannot be inspected', async () => {
+    // Redis hiccuping during the lookup must not abort the whole sweep.
+    brandAnalyticsFetchQueue.getJob.mockRejectedValue(new Error('redis unavailable'));
+
+    await expect(enqueueDailySweep()).resolves.toMatchObject({ orgs: 1 });
+    expect(brandAnalyticsFetchQueue.add).toHaveBeenCalled();
+  });
+
+  it('never touches the queue for a report already completed', async () => {
+    prisma.brandAnalyticsReport.findUnique.mockResolvedValue({ status: 'COMPLETED' });
+
+    await enqueueDailySweep();
+
+    expect(brandAnalyticsFetchQueue.getJob).not.toHaveBeenCalled();
+    expect(brandAnalyticsFetchQueue.add).not.toHaveBeenCalled();
   });
 });
