@@ -184,13 +184,40 @@ export function tenantGuardExtension(baseClient) {
           }
 
           if (UNIQUE_READ.has(operation)) {
-            const row = await query(args);
+            // The post-filter below reads row.orgId, so orgId has to actually
+            // come back. A caller's `select` that leaves it out — or an `omit`
+            // that removes it — made it `undefined`, which compares unequal to
+            // every real orgId, so the guard silently nulled rows the tenant
+            // legitimately owned.
+            //
+            // That is not a hypothetical: requireActiveSubscription selects
+            // exactly { status, subscriptionId, currentPeriodEnd }, so the
+            // paywall saw no subscription for ANY org and refused every gated
+            // feature to paying customers.
+            //
+            // Fetch it when it is missing and strip it again afterwards, so the
+            // caller still gets precisely the shape it asked for.
+            const selectsOrgId = args?.select ? Boolean(args.select.orgId) : true;
+            const omitsOrgId   = Boolean(args?.omit?.orgId);
+            const injected     = !selectsOrgId || omitsOrgId;
+
+            let effective = args;
+            if (injected) {
+              effective = { ...args };
+              // `select` and `omit` are mutually exclusive in Prisma, so at
+              // most one of these applies.
+              if (args?.select) effective.select = { ...args.select, orgId: true };
+              if (args?.omit)   effective.omit   = { ...args.omit, orgId: false };
+            }
+
+            const row = await query(effective);
             if (row && row.orgId !== orgId) {
               if (operation === 'findUniqueOrThrow') {
                 throw new Error('[tenant-guard] No record found in tenant scope');
               }
               return null;
             }
+            if (row && injected) delete row.orgId;
             return row;
           }
 
