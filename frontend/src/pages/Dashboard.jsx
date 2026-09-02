@@ -20,6 +20,7 @@ import AmazonConnectPanel from '../components/AmazonConnectPanel.jsx';
 import ProfilesPanel from '../components/ProfilesPanel.jsx';
 import TeamPanel from '../components/TeamPanel.jsx';
 import AutomationPanel from '../components/AutomationPanel.jsx';
+import AgentPanel from '../components/AgentPanel.jsx';
 import AlertsPanel from '../components/AlertsPanel.jsx';
 import ListingHistoryPanel from '../components/ListingHistoryPanel.jsx';
 import ImageOptimizerPanel from '../components/ImageOptimizerPanel.jsx';
@@ -49,6 +50,7 @@ const MODULE_LABELS = {
   keywords:         '🎯 Keyword Intelligence',
   reports:          '📈 Reporting Agent',
   'brand-analytics':'📡 Brand Analytics',
+  agent:            '🧠 Account Agent',
   automation:       '🤖 Automation Rules',
   alerts:           '🔔 Campaign Alerts',
   amazon:           '🔗 Amazon Account',
@@ -1002,6 +1004,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
         {activeTab === 'keywords' && <KeywordRecommendationsPanel profileId={selectedProfileId} />}
         {activeTab === 'reports' && <ReportingAgentPanel profileId={selectedProfileId} aiModel={aiModel} />}
         {activeTab === 'automation' && <AutomationPanel profileId={selectedProfileId} />}
+        {activeTab === 'agent' && <AgentPanel />}
         {activeTab === 'alerts' && <AlertsPanel />}
         {activeTab === 'brand-analytics' && <BrandAnalyticsPanel />}
         {activeTab === 'amazon' && <AmazonConnectPanel />}

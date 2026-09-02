@@ -18,6 +18,7 @@ import automationRouter from './automation.js';
 import alertsRouter from './alerts.js';
 import brandAnalyticsRouter from './brand-analytics.js';
 import imageOptimizerRouter from './image-optimizer.js';
+import agentRouter from './agent.js';
 import publicStatsRouter from './public-stats.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { withTenant } from '../middleware/withTenant.js';
@@ -109,6 +110,12 @@ router.use('/alerts', alertsRouter);
 router.use('/brand-analytics', brandAnalyticsRouter);
 router.use('/image-optimizer', requireActiveSubscription, imageOptimizerRouter);
 
-console.log('✅ Routes loaded: /auth, /orgs, /credentials, /profiles, /mcp, /campaigns, /reports, /search-terms, /listings, /keywords, /billing, /onboarding, /sp-oauth, /reporting-agent, /automation, /alerts, /brand-analytics, /image-optimizer');
+// Not behind requireActiveSubscription. The agent's own gate is stricter and
+// lives in the worker: shadow runs for anyone, applying requires entitlement.
+// Paywalling the review surface would stop a lapsed org from reading decisions
+// that were already recorded for it, which helps nobody.
+router.use('/agent', agentRouter);
+
+console.log('✅ Routes loaded: /auth, /orgs, /credentials, /profiles, /mcp, /campaigns, /reports, /search-terms, /listings, /keywords, /billing, /onboarding, /sp-oauth, /reporting-agent, /automation, /alerts, /brand-analytics, /image-optimizer, /agent');
 
 export default router;
