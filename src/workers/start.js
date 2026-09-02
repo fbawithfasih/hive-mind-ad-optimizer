@@ -27,9 +27,9 @@ import { runAsSystem } from '../db/tenant-context.js';
 import {
   createReportingWorker, createBulkListingWorker, createTokenCleanupWorker,
   createAutomationWorker, createBrandAnalyticsFetchWorker,
-  createAlertEvaluationWorker, createBillingReconcileWorker,
+  createAlertEvaluationWorker, createBillingReconcileWorker, createAgentWorker,
   tokenCleanupQueue, automationQueue, brandAnalyticsFetchQueue,
-  alertEvaluationQueue, billingReconcileQueue,
+  alertEvaluationQueue, billingReconcileQueue, agentQueue,
 } from '../services/queue.js';
 import { reportingProcessor }            from './reporting.worker.js';
 import { bulkListingProcessor }          from './bulk-listing.worker.js';
@@ -38,6 +38,7 @@ import { automationProcessor }           from './automation.worker.js';
 import { brandAnalyticsFetchProcessor }  from './brand-analytics-fetch.worker.js';
 import { alertEvaluationProcessor }      from './alert-evaluation.worker.js';
 import { billingReconcileProcessor }     from './billing-reconcile.worker.js';
+import { agentProcessor }               from './agent.worker.js';
 
 const logger = createLogger('WORKERS');
 
@@ -95,6 +96,12 @@ function scheduleRecurringJobs() {
   schedule(automationQueue, 'auto-evening', { slot: 'evening' },
     { repeat: { pattern: '0 20 * * *' }, jobId: 'auto:evening' }, 'automation evening sweep');
 
+  // The agent sweep. 04:30 UTC: after the BA sweep (03:15) and its fan-out have
+  // settled, and well before the 08:00 automation slot, so a long search-term
+  // report fetch does not contend with rules acting on live campaigns.
+  schedule(agentQueue, 'agent-daily-sweep', { __sweep: true },
+    { repeat: { pattern: '30 4 * * *' }, jobId: 'agent-daily-sweep' }, 'agent daily sweep');
+
   schedule(tokenCleanupQueue, 'nightly-cleanup', {},
     { repeat: { pattern: '0 2 * * *' }, jobId: 'nightly-token-cleanup' }, 'token cleanup');
 
@@ -118,6 +125,7 @@ export function startWorkers() {
     createBrandAnalyticsFetchWorker(asSystem(brandAnalyticsFetchProcessor)),
     createAlertEvaluationWorker(asSystem(alertEvaluationProcessor)),
     createBillingReconcileWorker(asSystem(billingReconcileProcessor)),
+    createAgentWorker(asSystem(agentProcessor)),
   ];
 
   scheduleRecurringJobs();

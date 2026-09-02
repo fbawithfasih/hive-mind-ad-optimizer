@@ -298,6 +298,50 @@ export const billingReconcileQueue = new Queue(BILLING_RECONCILE_QUEUE_NAME, {
   },
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Agent queue — the autonomous account-manager runs, one job per profile per day
+// ─────────────────────────────────────────────────────────────────────────────
+
+const AGENT_QUEUE_NAME = 'agent';
+
+export const agentQueue = new Queue(AGENT_QUEUE_NAME, {
+  connection: makeRedisConnection(),
+  defaultJobOptions: {
+    // Deliberately low. A run claims its slot before doing anything, so a retry
+    // finds the slot taken and exits — extra attempts buy a retry of the claim
+    // itself (a transient database blip), not of the work.
+    attempts:         2,
+    backoff:          { type: 'exponential', delay: 60_000 },
+    removeOnComplete: { count: 50 },
+    removeOnFail:     { count: 50 },
+  },
+});
+
+/**
+ * @param {Function} processor  - async (job) => void
+ * @returns {Worker}
+ */
+export function createAgentWorker(processor) {
+  const worker = new Worker(AGENT_QUEUE_NAME, processor, {
+    connection: makeRedisConnection(),
+    // One at a time. A run fetches a search-term report, which Amazon takes
+    // minutes to produce, and these workers share a process with the API.
+    concurrency: 1,
+  });
+
+  worker.on('completed', (job) => {
+    logger.info(`Agent job ${job.id} completed`);
+  });
+
+  worker.on('failed', (job, err) => {
+    logger.error(`Agent job ${job?.id} failed (attempt ${job?.attemptsMade}): ${err.message}`);
+  });
+
+  attachDeadLetter(worker, AGENT_QUEUE_NAME);
+  logger.info('Agent worker started (concurrency=1)');
+  return worker;
+}
+
 /**
  * Queue name → Queue, for code that has a name and needs the instance.
  *
@@ -313,6 +357,7 @@ export const QUEUES_BY_NAME = {
   [ALERT_EVAL_QUEUE_NAME]:         alertEvaluationQueue,
   [BA_FETCH_QUEUE_NAME]:           brandAnalyticsFetchQueue,
   [BILLING_RECONCILE_QUEUE_NAME]:  billingReconcileQueue,
+  [AGENT_QUEUE_NAME]:              agentQueue,
 };
 
 /**
@@ -349,6 +394,7 @@ export async function closeQueue() {
     tokenCleanupQueue.close(),
     automationQueue.close(),
     brandAnalyticsFetchQueue.close(),
+    agentQueue.close(),
     alertEvaluationQueue.close(),
     billingReconcileQueue.close(),
   ]);
