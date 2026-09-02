@@ -19,6 +19,7 @@ jest.mock('../../db/prisma.js', () => ({
     agentRun:         { create: jest.fn(), update: jest.fn() },
     agentDecision:    { createMany: jest.fn() },
     sellerProfile:    { findMany: jest.fn() },
+    subscription:     { findFirst: jest.fn() },
   },
 }));
 
@@ -40,7 +41,7 @@ jest.mock('../../services/agent/llm-review.js', () => ({
 }));
 
 import {
-  agentProcessor, reportWindow, slotKeyFor, occurrenceDate, isLive,
+  agentProcessor, reportWindow, slotKeyFor, occurrenceDate, isLive, permittedMode,
   adGroupTermCounts, inverseFor, outcomeFrom, objectiveFor,
   LOOKBACK_DAYS, ATTRIBUTION_BUFFER_DAYS,
 } from '../agent.worker.js';
@@ -75,7 +76,11 @@ const OBJECTIVE = {
 
 let adsClient;
 
-function setup({ objective = OBJECTIVE, rows = [wasteRow()], negativeResults } = {}) {
+/** An entitled org, so existing tests exercise the apply path they mean to. */
+const ENTITLED = { status: 'ACTIVE', subscriptionId: 'sub_live', currentPeriodEnd: new Date('2099-12-31') };
+
+function setup({ objective = OBJECTIVE, rows = [wasteRow()], negativeResults, subscription = ENTITLED } = {}) {
+  prisma.subscription.findFirst.mockResolvedValue(subscription);
   prisma.profileObjective.findFirst.mockResolvedValue(objective);
   prisma.agentRun.create.mockResolvedValue({ id: 'run-1' });
   prisma.agentRun.update.mockResolvedValue({});
@@ -388,5 +393,102 @@ describe('helpers', () => {
 
   it('derives the occurrence from a repeatable job id', () => {
     expect(occurrenceDate({ id: 'repeat:h:1788323400000' }).toISOString()).toBe('2026-09-02T04:30:00.000Z');
+  });
+});
+
+
+describe('an org that has stopped paying', () => {
+  /**
+   * Shadow runs anywhere — it writes nothing to Amazon, costs the org nothing,
+   * and is how a profile earns its way to autonomy. Applying is different: an
+   * agent managing a lapsed client's live ads is the same category of mistake
+   * as leaving any paid feature on after the subscription ended, except this
+   * one spends their money.
+   */
+  const LAPSED = { status: 'CANCELLED', subscriptionId: null, currentPeriodEnd: new Date('2026-05-27') };
+
+  it('still records decisions, so the evidence base keeps building', async () => {
+    setup({ objective: { ...OBJECTIVE, negativeMode: 'LIVE' }, subscription: LAPSED });
+
+    await agentProcessor(job());
+
+    expect(writtenDecisions().length).toBeGreaterThan(0);
+  });
+
+  it('applies nothing, however the objective is configured', async () => {
+    setup({ objective: { ...OBJECTIVE, negativeMode: 'LIVE', promotionMode: 'LIVE' }, subscription: LAPSED });
+
+    await agentProcessor(job());
+
+    expect(adsClient.addNegativeKeywords).not.toHaveBeenCalled();
+    expect(adsClient.addKeywords).not.toHaveBeenCalled();
+  });
+
+  it('records the run as SHADOW, not as the LIVE it asked for', async () => {
+    setup({ objective: { ...OBJECTIVE, negativeMode: 'LIVE' }, subscription: LAPSED });
+
+    await agentProcessor(job());
+
+    expect(prisma.agentRun.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ mode: 'SHADOW' }) })
+    );
+  });
+
+  it('demotes the whole run, so a second action type cannot slip through', async () => {
+    // Demoting per action type would leave promotions live on a lapsed org
+    // whenever only negatives had graduated.
+    setup({ objective: { ...OBJECTIVE, negativeMode: 'SHADOW', promotionMode: 'LIVE' }, subscription: LAPSED });
+
+    await agentProcessor(job());
+
+    expect(adsClient.addKeywords).not.toHaveBeenCalled();
+  });
+
+  it('applies normally once the org is entitled again', async () => {
+    setup({ objective: { ...OBJECTIVE, negativeMode: 'LIVE' } });
+
+    await agentProcessor(job());
+
+    expect(adsClient.addNegativeKeywords).toHaveBeenCalled();
+  });
+
+  it('does not demote a run that only wanted shadow anyway', async () => {
+    setup({ subscription: LAPSED });
+
+    await agentProcessor(job());
+
+    expect(runUpdate()).toMatchObject({ status: 'COMPLETED' });
+  });
+});
+
+describe('permittedMode', () => {
+  it('leaves shadow alone whatever the billing state', () => {
+    expect(permittedMode('SHADOW', null)).toEqual({ mode: 'SHADOW', demoted: false });
+  });
+
+  it('allows live for a paying org', () => {
+    expect(permittedMode('LIVE', { status: 'ACTIVE', subscriptionId: 'sub_1' }))
+      .toEqual({ mode: 'LIVE', demoted: false });
+  });
+
+  it('allows live for a comped org whose period has not ended', () => {
+    // The two agency orgs are provider-less ACTIVE subscriptions running to 2099.
+    expect(permittedMode('LIVE', { status: 'ACTIVE', subscriptionId: null, currentPeriodEnd: new Date('2099-12-31') }).mode)
+      .toBe('LIVE');
+  });
+
+  it('demotes live for an org with no subscription at all', () => {
+    expect(permittedMode('LIVE', null)).toEqual({ mode: 'SHADOW', demoted: true });
+  });
+
+  it('demotes live for a cancelled subscription past its period end', () => {
+    expect(permittedMode('LIVE', { status: 'CANCELLED', currentPeriodEnd: new Date('2026-05-27') }).demoted)
+      .toBe(true);
+  });
+
+  it('still allows live for a cancelled subscription inside its paid period', () => {
+    // Cancelling at cycle end means the customer has already paid through it.
+    expect(permittedMode('LIVE', { status: 'CANCELLED', currentPeriodEnd: new Date('2099-01-01') }).mode)
+      .toBe('LIVE');
   });
 });

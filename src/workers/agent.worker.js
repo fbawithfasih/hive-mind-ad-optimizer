@@ -42,6 +42,7 @@ import { UnrecoverableError } from 'bullmq';
 import { prisma } from '../db/prisma.js';
 import { createLogger } from '../api/utils/logger.js';
 import { loadOrgCredential } from '../services/credentials.js';
+import { isEntitled } from '../services/entitlement.js';
 import { createAdsClient, default as defaultAdsClient } from '../services/amazon-ads.js';
 import { decideHarvest } from '../services/agent/harvest-policy.js';
 import { reviewCandidates } from '../services/agent/llm-review.js';
@@ -108,6 +109,26 @@ export function isLive(objective, actionType) {
   return actionType === 'ADD_NEGATIVE'
     ? objective?.negativeMode === 'LIVE'
     : objective?.promotionMode === 'LIVE';
+}
+
+/**
+ * Whether the org is paid up enough for the agent to touch its account.
+ *
+ * Shadow runs anywhere — they write nothing to Amazon, cost the org nothing,
+ * and are how a profile earns its way to autonomy in the first place. Applying
+ * is different: an agent managing a lapsed client's live ads is the same
+ * category of mistake as leaving any other paid feature switched on after the
+ * subscription ended, except this one spends their money.
+ *
+ * Deliberately a demotion rather than a refusal. An org that lapses mid-trial
+ * of the agent keeps getting decisions to review; it just stops getting them
+ * applied. Failing the whole run would throw away the evidence base too.
+ */
+export function permittedMode(requestedMode, subscription, now = Date.now()) {
+  if (requestedMode !== 'LIVE') return { mode: requestedMode, demoted: false };
+  return isEntitled(subscription, now)
+    ? { mode: 'LIVE', demoted: false }
+    : { mode: 'SHADOW', demoted: true };
 }
 
 /** How many terms each ad group has, so the ad-group cap has something to measure. */
@@ -213,8 +234,24 @@ export async function agentProcessor(job) {
   }
 
   // Both action types shadow means the run as a whole writes nothing.
-  const runMode = (objectiveRecord.negativeMode === 'LIVE' || objectiveRecord.promotionMode === 'LIVE')
+  const requestedMode = (objectiveRecord.negativeMode === 'LIVE' || objectiveRecord.promotionMode === 'LIVE')
     ? 'LIVE' : 'SHADOW';
+
+  const subscription = await prisma.subscription.findFirst({
+    where:  { orgId },
+    select: { status: true, subscriptionId: true, currentPeriodEnd: true, orgId: true },
+  });
+  const { mode: runMode, demoted } = permittedMode(requestedMode, subscription);
+
+  // Demotion applies to the whole run, so a profile marked LIVE on one action
+  // type does not slip through on the other.
+  const effectiveObjective = runMode === 'LIVE'
+    ? objectiveRecord
+    : { ...objectiveRecord, negativeMode: 'SHADOW', promotionMode: 'SHADOW' };
+
+  if (demoted) {
+    logger.warn(`Agent demoted to shadow — org ${orgId} is not entitled; decisions recorded, nothing applied`);
+  }
 
   const run = await claimRun({ orgId, profileId, slotKey, mode: runMode });
   if (!run) {
@@ -285,7 +322,8 @@ export async function agentProcessor(job) {
     }
 
     const applied = await applyOrRecord({
-      actions: guarded.allowed, objectiveRecord, adsClient, profileId, runId: run.id, orgId, decisions,
+      actions: guarded.allowed, objectiveRecord: effectiveObjective,
+      adsClient, profileId, runId: run.id, orgId, decisions,
     });
 
     await prisma.agentDecision.createMany({ data: decisions });
