@@ -57,6 +57,21 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export const LOOKBACK_DAYS = 30;
 
 /**
+ * How long to wait for Amazon to produce the search-term report.
+ *
+ * getSearchTermReport defaults to 36 x 5s — three minutes — which is tuned for
+ * the keywords route, where a person is waiting on an HTTP response and 70s is
+ * already a long time to stare at a spinner. A background worker has no such
+ * constraint, and three minutes is not enough: Queenza's first real run timed
+ * out at exactly 180s on a 30-day window.
+ *
+ * Twenty minutes, in the same spirit as the Brand Analytics worker's thirty.
+ * The cost of waiting is a worker slot; the cost of not waiting is losing the
+ * whole day's decisions, because the slot claim then refuses the retry.
+ */
+export const REPORT_POLL = { pollIntervalMs: 15_000, maxAttempts: 80 };
+
+/**
  * Days between the end of the window and the run.
  *
  * Two, because attribution is still landing on the most recent days. See the
@@ -199,10 +214,20 @@ export function decisionRow(runId, orgId, action, { status, appliedAt = null, ou
 }
 
 /**
- * Claim the slot. Returns the run, or null when this slot already ran.
+ * Claim the slot. Returns the run, or null when this slot is spoken for.
  *
  * A unique-constraint violation is the expected outcome of a retry, not a
  * failure — the run it collides with either already did the work or is doing it.
+ *
+ * With one exception. A run that FAILED having applied nothing may be taken
+ * over, because the claim exists to stop the same actions being applied twice
+ * and no action was applied. Without this a single transient failure — an
+ * Amazon report that took a minute too long — costs the entire day, since every
+ * retry finds the slot occupied by the corpse of the run that failed.
+ *
+ * The takeover is an updateMany with the guard in the WHERE clause, so the
+ * database decides the race exactly as the insert does. Two workers cannot both
+ * conclude they are the one reviving it.
  */
 async function claimRun({ orgId, profileId, slotKey, mode }) {
   try {
@@ -210,9 +235,16 @@ async function claimRun({ orgId, profileId, slotKey, mode }) {
       data: { orgId, profileId, slotKey, mode, status: 'RUNNING' },
     });
   } catch (err) {
-    if (err?.code === 'P2002') return null;
-    throw err;
+    if (err?.code !== 'P2002') throw err;
   }
+
+  const { count } = await prisma.agentRun.updateMany({
+    where: { orgId, profileId, slotKey, status: 'FAILED', applied: 0 },
+    data:  { status: 'RUNNING', mode, error: null, completedAt: null },
+  });
+  if (count === 0) return null;
+
+  return prisma.agentRun.findFirst({ where: { orgId, profileId, slotKey } });
 }
 
 export async function agentProcessor(job) {
@@ -285,7 +317,8 @@ export async function agentProcessor(job) {
     const window = reportWindow(occurredAt, LOOKBACK_DAYS);
     logger.info(`Agent run starting — ${tag} window ${window.startDate}→${window.endDate} mode=${runMode}`);
 
-    const rows = await adsClient.getSearchTermReport(profileId, window.startDate, window.endDate);
+    const rows = await adsClient.getSearchTermReport(
+      profileId, window.startDate, window.endDate, REPORT_POLL);
 
     const objective = objectiveFor(objectiveRecord);
     const { candidates, stats } = decideHarvest(rows, objective);
