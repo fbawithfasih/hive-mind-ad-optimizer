@@ -17,11 +17,13 @@ jest.mock('../../services/queue.js', () => {
     createBrandAnalyticsFetchWorker:  jest.fn(worker),
     createAlertEvaluationWorker:      jest.fn(worker),
     createBillingReconcileWorker:     jest.fn(worker),
+    createAgentWorker:                jest.fn(worker),
     tokenCleanupQueue:       queue(),
     automationQueue:         queue(),
     brandAnalyticsFetchQueue: queue(),
     alertEvaluationQueue:    queue(),
     billingReconcileQueue:   queue(),
+    agentQueue:              queue(),
     closeQueue: jest.fn(),
   };
 });
@@ -33,11 +35,12 @@ jest.mock('../automation.worker.js',           () => ({ automationProcessor: jes
 jest.mock('../brand-analytics-fetch.worker.js',() => ({ brandAnalyticsFetchProcessor: jest.fn() }));
 jest.mock('../alert-evaluation.worker.js',     () => ({ alertEvaluationProcessor: jest.fn() }));
 jest.mock('../billing-reconcile.worker.js',    () => ({ billingReconcileProcessor: jest.fn() }));
+jest.mock('../agent.worker.js',                () => ({ agentProcessor: jest.fn() }));
 
 import { startWorkers, processRole, shouldRunWorkers, shouldServeHttp } from '../start.js';
 import {
   createReportingWorker, createAutomationWorker, automationQueue,
-  billingReconcileQueue, tokenCleanupQueue,
+  billingReconcileQueue, tokenCleanupQueue, agentQueue, createAgentWorker,
 } from '../../services/queue.js';
 
 beforeEach(() => {
@@ -75,11 +78,12 @@ describe('the role', () => {
 });
 
 describe('startWorkers', () => {
-  it('starts all seven', () => {
+  it('starts every worker', () => {
     startWorkers();
 
     expect(createReportingWorker).toHaveBeenCalledTimes(1);
     expect(createAutomationWorker).toHaveBeenCalledTimes(1);
+    expect(createAgentWorker).toHaveBeenCalledTimes(1);
   });
 
   it('registers the recurring schedules', () => {
@@ -89,10 +93,12 @@ describe('startWorkers', () => {
       ...automationQueue.add.mock.calls,
       ...billingReconcileQueue.add.mock.calls,
       ...tokenCleanupQueue.add.mock.calls,
+      ...agentQueue.add.mock.calls,
     ].map(([, , opts]) => opts.jobId);
 
     expect(jobIds).toEqual(expect.arrayContaining([
       'auto:morning', 'auto:evening', 'billing-daily-reconcile', 'nightly-token-cleanup',
+      'agent-daily-sweep',
     ]));
   });
 
@@ -100,7 +106,7 @@ describe('startWorkers', () => {
     // Without one, every restart would add another repeatable job.
     startWorkers();
 
-    for (const q of [automationQueue, billingReconcileQueue, tokenCleanupQueue]) {
+    for (const q of [automationQueue, billingReconcileQueue, tokenCleanupQueue, agentQueue]) {
       for (const [, , opts] of q.add.mock.calls) {
         expect(opts.jobId).toBeTruthy();
         expect(opts.repeat?.pattern).toBeTruthy();
@@ -144,5 +150,27 @@ describe('startWorkers', () => {
 
     await expect(handle.close()).resolves.toBeUndefined();
     expect(auto.close).toHaveBeenCalled();
+  });
+});
+
+describe('the agent sweep schedule', () => {
+  it('runs at 04:30 UTC, clear of the BA sweep and the 08:00 automation slot', () => {
+    // A run fetches a search-term report, which Amazon can take half an hour to
+    // produce, on a worker that shares a process with the API. Overlapping it
+    // with rules acting on live campaigns is avoidable contention.
+    startWorkers();
+
+    const [, , opts] = agentQueue.add.mock.calls
+      .find(([, , o]) => o.jobId === 'agent-daily-sweep');
+
+    expect(opts.repeat.pattern).toBe('30 4 * * *');
+  });
+
+  it('sends the sweep marker, not a per-profile job', () => {
+    startWorkers();
+
+    const [, data] = agentQueue.add.mock.calls.find(([, , o]) => o.jobId === 'agent-daily-sweep');
+
+    expect(data).toEqual({ __sweep: true });
   });
 });
