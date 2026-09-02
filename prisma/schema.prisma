@@ -772,7 +772,12 @@ model ProfileObjective {
 
   // Per profile because the right value depends on how the account converts.
   // Defaults mirror DEFAULT_OBJECTIVE in services/agent/harvest-policy.js.
-  minClicks             Int      @default(12)
+  // Null means calibrate from the account's own conversion rate, which is what
+  // a profile should normally do — see minClicksFor in agent/harvest-policy.js.
+  // It was Int @default(12), which made calibration unreachable through the
+  // database and handed every new profile a threshold that negates a healthy
+  // term 48% of the time at a 6% conversion rate.
+  minClicks             Int?
   minPurchasesToPromote Int      @default(2)
   wasteMultiplier       Float    @default(2)
   brandTerms            String[] @default([])
