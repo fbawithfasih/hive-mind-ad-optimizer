@@ -721,3 +721,50 @@ export const runAllRulesApi      = ()         => api.post('/automation/run-all')
 export const getRuleHistoryApi   = (id)       => api.get(`/automation/rules/${id}/history`).then(r => r.data);
 
 export default api;
+
+// ────────────────────────────────────────────────────────────────────────────
+// Autonomous account-manager agent
+//
+// The review surface. Shadow decisions are only useful if they can be read and
+// judged — these calls are what turn AgentDecision rows into the agreement-rate
+// evidence that graduates an action type out of shadow mode.
+// ────────────────────────────────────────────────────────────────────────────
+
+export async function getAgentRunsApi(params = {}) {
+  const res = await api.get('/agent/runs', { params });
+  return res.data;
+}
+
+export async function getAgentRunApi(runId) {
+  const res = await api.get(`/agent/runs/${runId}`);
+  return res.data;
+}
+
+/**
+ * @param {{ verdict?: 'unreviewed'|'AGREE'|'DISAGREE', actionType?: string,
+ *           status?: string, runId?: string, limit?: number }} params
+ */
+export async function getAgentDecisionsApi(params = {}) {
+  const res = await api.get('/agent/decisions', { params });
+  return res.data;
+}
+
+export async function recordAgentVerdictApi(decisionId, verdict, note) {
+  const res = await api.post(`/agent/decisions/${decisionId}/verdict`, { verdict, note });
+  return res.data;
+}
+
+export async function getAgentGraduationApi() {
+  const res = await api.get('/agent/graduation');
+  return res.data;
+}
+
+export async function getAgentObjectivesApi() {
+  const res = await api.get('/agent/objectives');
+  return res.data;
+}
+
+export async function saveAgentObjectiveApi(profileId, patch) {
+  const res = await api.put(`/agent/objectives/${profileId}`, patch);
+  return res.data;
+}
