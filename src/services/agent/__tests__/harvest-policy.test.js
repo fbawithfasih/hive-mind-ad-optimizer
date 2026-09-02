@@ -10,6 +10,7 @@
 
 import {
   decideHarvest, aggregateRows, adGroupAov, promotionBid, isBrandTerm, DEFAULT_OBJECTIVE,
+  minClicksFor, observedCvr,
 } from '../harvest-policy.js';
 
 /** One report row, with sensible defaults so tests state only what they mean. */
@@ -47,7 +48,7 @@ describe('aggregating rows before deciding', () => {
       row({ clicks: 7, cost: 3.50, matchType: 'PHRASE' }),
     ];
 
-    expect(only(decideHarvest(rows), 'ADD_NEGATIVE')).toHaveLength(1);
+    expect(only(decideHarvest(rows, { minClicks: 12 }), 'ADD_NEGATIVE')).toHaveLength(1);
   });
 
   it('keeps the same term in different ad groups separate', () => {
@@ -59,7 +60,7 @@ describe('aggregating rows before deciding', () => {
     ];
 
     expect(aggregateRows(rows)).toHaveLength(2);
-    expect(only(decideHarvest(rows), 'ADD_NEGATIVE')).toHaveLength(2);
+    expect(only(decideHarvest(rows, { minClicks: 12 }), 'ADD_NEGATIVE')).toHaveLength(2);
   });
 
   it('treats casing and padding as the same term', () => {
@@ -85,7 +86,7 @@ describe('aggregating rows before deciding', () => {
 
 describe('negating a term that does not convert', () => {
   it('negates once clicks reach the threshold with no sales', () => {
-    const result = decideHarvest([row({ clicks: 12, cost: 6 })]);
+    const result = decideHarvest([row({ clicks: 12, cost: 6 })], { minClicks: 12 });
 
     const [c] = only(result, 'ADD_NEGATIVE');
     expect(c.reason).toBe('NO_CONVERSION');
@@ -97,7 +98,7 @@ describe('negating a term that does not convert', () => {
     // The boundary is the point of the rule. Negating on thin data is the
     // classic harvesting mistake, and purchases14d is a 14-day attribution
     // window, so a term that looks dead today may be credited tomorrow.
-    const result = decideHarvest([row({ clicks: 11, cost: 5.5 })]);
+    const result = decideHarvest([row({ clicks: 11, cost: 5.5 })], { minClicks: 12 });
 
     expect(only(result, 'ADD_NEGATIVE')).toHaveLength(0);
     expect(reasons(result)).toContain('INSUFFICIENT_CLICKS');
@@ -110,7 +111,7 @@ describe('negating a term that does not convert', () => {
   });
 
   it('never negates a term that has converted', () => {
-    const result = decideHarvest([row({ clicks: 50, cost: 40, purchases14d: 1, sales14d: 30 })]);
+    const result = decideHarvest([row({ clicks: 50, cost: 40, purchases14d: 1, sales14d: 30 })], { minClicks: 12 });
 
     expect(only(result, 'ADD_NEGATIVE')).toHaveLength(0);
   });
@@ -163,7 +164,7 @@ describe('negating a term on wasted spend', () => {
 describe('brand terms', () => {
   it('never negates a branded term, however badly it performs', () => {
     const result = decideHarvest([row({ searchTerm: 'hive mind widget', clicks: 200, cost: 400 })],
-      { brandTerms: ['hive mind'] });
+      { brandTerms: ['hive mind'], minClicks: 12 });
 
     expect(only(result, 'ADD_NEGATIVE')).toHaveLength(0);
     expect(reasons(result)).toContain('BRAND_TERM');
@@ -235,7 +236,7 @@ describe('promoting a term that converts', () => {
   it('never negates a term that is already an exact keyword either', () => {
     const already = row({ matchType: 'EXACT', targeting: 'blue widget', clicks: 40, cost: 30 });
 
-    expect(decideHarvest([already]).candidates).toHaveLength(0);
+    expect(decideHarvest([already], { minClicks: 12 }).candidates).toHaveLength(0);
   });
 
   it('recognises the exact keyword even when a broad row appears first', () => {
@@ -314,7 +315,7 @@ describe('what the policy reports back', () => {
       row({ searchTerm: 'dud',    clicks: 30, cost: 20 }),
       row({ searchTerm: 'winner', clicks: 20, cost: 20, purchases14d: 4, sales14d: 100 }),
       row({ searchTerm: 'quiet',  clicks: 1,  cost: 1 }),
-    ], { targetAcos: 30 });
+    ], { targetAcos: 30, minClicks: 12 });
 
     expect(result.stats).toMatchObject({ rowsIn: 3, termsAfterAggregation: 3, negatives: 1, promotions: 1, skipped: 1 });
   });
@@ -349,8 +350,11 @@ describe('what the policy reports back', () => {
 });
 
 describe('the default objective', () => {
-  it('is conservative about negation out of the box', () => {
-    expect(DEFAULT_OBJECTIVE.minClicks).toBeGreaterThanOrEqual(10);
+  it('is genuinely conservative about negation out of the box', () => {
+    // 12 was the original value, chosen by feel. At a 6% conversion rate — what
+    // Queenza's US account actually does — a healthy term shows zero sales
+    // after 12 clicks 48% of the time.
+    expect(DEFAULT_OBJECTIVE.minClicks).toBeGreaterThanOrEqual(30);
     expect(DEFAULT_OBJECTIVE.minPurchasesToPromote).toBeGreaterThanOrEqual(2);
   });
 
@@ -358,5 +362,118 @@ describe('the default objective', () => {
     const rows = Array.from({ length: 50 }, (_, i) => row({ searchTerm: `t${i}`, clicks: 3, cost: 1.2 }));
 
     expect(decideHarvest(rows).candidates).toHaveLength(0);
+  });
+});
+
+
+describe('calibrating the click threshold to the account', () => {
+  /**
+   * The threshold is not a matter of taste. A term converting at the account's
+   * baseline still shows zero sales with probability (1 - cvr)^clicks, so the
+   * only defensible threshold falls out of the account's own conversion rate
+   * and how often you are willing to negate something healthy.
+   *
+   * The original default of 12 was chosen by feel. Queenza's US account
+   * converts at 5.97% — 356 purchases on 5,960 brand clicks in Q2 2026 — and at
+   * that rate 12 clicks means a 48% chance of being wrong.
+   */
+  it('needs ~38 clicks at a 6% conversion rate to be wrong only 10% of the time', () => {
+    expect(minClicksFor(0.06, 0.10)).toBe(38);
+  });
+
+  it('needs far fewer clicks when an account converts well', () => {
+    expect(minClicksFor(0.20, 0.10)).toBeLessThan(minClicksFor(0.06, 0.10));
+  });
+
+  it('demands more evidence for a stricter tolerance', () => {
+    expect(minClicksFor(0.06, 0.05)).toBeGreaterThan(minClicksFor(0.06, 0.10));
+  });
+
+  it('would have called the old default of 12 wrong for this account', () => {
+    // The check that names the mistake: at Queenza's rate, 12 clicks carries
+    // close to a coin-flip chance of negating a good term.
+    const chanceOfNegatingHealthyTerm = (1 - 0.0597) ** 12;
+
+    expect(chanceOfNegatingHealthyTerm).toBeGreaterThan(0.45);
+    expect(minClicksFor(0.0597)).toBeGreaterThan(12);
+  });
+
+  it('bounds a freakishly high converter, so it cannot negate on noise', () => {
+    expect(minClicksFor(0.60, 0.10)).toBeGreaterThanOrEqual(15);
+  });
+
+  it('bounds a very low converter, rather than demanding hundreds of clicks', () => {
+    expect(minClicksFor(0.005, 0.10)).toBeLessThanOrEqual(80);
+  });
+
+  it.each([[0], [1], [-0.1], [NaN], [null], ['0.06']])('returns null for an unusable rate (%p)', (bad) => {
+    expect(minClicksFor(bad)).toBeNull();
+  });
+
+  it('measures the account rate across the whole report, not per term', () => {
+    // A single term never has enough data to estimate its own rate, which is
+    // the entire reason a threshold is needed.
+    const terms = aggregateRows([
+      row({ searchTerm: 'a', clicks: 100, purchases14d: 6, sales14d: 300 }),
+      row({ searchTerm: 'b', clicks: 100, purchases14d: 6, sales14d: 300 }),
+    ]);
+
+    expect(observedCvr(terms)).toBeCloseTo(0.06, 4);
+  });
+
+  it('returns no rate when nothing converted', () => {
+    expect(observedCvr(aggregateRows([row({ clicks: 50 })]))).toBeNull();
+  });
+
+  it('derives the threshold when the objective does not pin one', () => {
+    // The rate is measured across the WHOLE report, so the fixture totals
+    // 200 clicks and 12 purchases → 6% → 38. The 30-click term is spared;
+    // under the old default of 12 it would have been negated.
+    const rows = [
+      row({ searchTerm: 'converter', clicks: 170, cost: 100, purchases14d: 12, sales14d: 600 }),
+      row({ searchTerm: 'marginal',  clicks: 30,  cost: 15 }),
+    ];
+
+    const result = decideHarvest(rows, { minClicks: null, targetAcos: 50 });
+
+    expect(result.stats.minClicksUsed).toBe(38);
+    expect(only(result, 'ADD_NEGATIVE')).toHaveLength(0);
+  });
+
+  it('still negates a term that clears the derived threshold', () => {
+    const rows = [
+      row({ searchTerm: 'converter', clicks: 155, cost: 100, purchases14d: 12, sales14d: 600 }),
+      row({ searchTerm: 'real dud',  clicks: 45,  cost: 20 }),
+    ];
+
+    const result = decideHarvest(rows, { minClicks: null, targetAcos: 50 });
+
+    expect(only(result, 'ADD_NEGATIVE').map(c => c.searchTerm)).toEqual(['real dud']);
+  });
+
+  it('lets an operator override the calibration', () => {
+    const rows = [
+      row({ searchTerm: 'converter', clicks: 170, cost: 100, purchases14d: 12, sales14d: 600 }),
+      row({ searchTerm: 'marginal',  clicks: 30,  cost: 15 }),
+    ];
+
+    const result = decideHarvest(rows, { minClicks: 25, targetAcos: 50 });
+
+    expect(result.stats.minClicksUsed).toBe(25);
+    expect(only(result, 'ADD_NEGATIVE')).toHaveLength(1);
+  });
+
+  it('falls back to the default when a report has no conversions to calibrate from', () => {
+    const rows = Array.from({ length: 5 }, (_, i) => row({ searchTerm: `t${i}`, clicks: 50, cost: 25 }));
+
+    const result = decideHarvest(rows, { minClicks: null });
+
+    expect(result.stats.minClicksUsed).toBe(DEFAULT_OBJECTIVE.minClicks);
+  });
+
+  it('reports the rate it calibrated against, so a reviewer can check it', () => {
+    const rows = [row({ clicks: 200, cost: 100, purchases14d: 12, sales14d: 600 })];
+
+    expect(decideHarvest(rows, { minClicks: null }).stats.observedCvr).toBe(6);
   });
 });
