@@ -80,6 +80,9 @@ model Organization {
   campaignAlerts        CampaignAlert[]
   brandAnalyticsReports BrandAnalyticsReport[]
   invitations           OrgInvitation[]
+  agentRuns             AgentRun[]
+  agentDecisions        AgentDecision[]
+  profileObjectives     ProfileObjective[]
 
   @@index([slug])
   @@index([billingStatus])
@@ -462,20 +465,24 @@ model AlertFire {
 // ============================================================================
 
 model AuditLog {
-  id         String   @id @default(cuid())
+  id         String     @id @default(cuid())
   orgId      String
-  userId     String
+  // Optional because the agent acts on nobody's behalf. Every row still has an
+  // `actor`, so "who did this" stays answerable — it is just not always a
+  // person. Existing rows are backfilled to USER.
+  userId     String?
+  actor      AuditActor @default(USER)
   action     String // e.g., "listing_optimized", "credentials_updated"
   resource   String // e.g., "listing", "amazon_credential"
   resourceId String?
   changes    Json? // Before/after values
   ipAddress  String?
   userAgent  String?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime   @default(now())
 
   // Relations
   org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
   @@index([userId])
@@ -652,4 +659,171 @@ enum BrandAnalyticsReportType {
   ITEM_COMPARISON_ALT_PURCHASE
   DEMOGRAPHICS
   BRAND_CATALOG_PERFORMANCE
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Autonomous account-manager agent
+//
+// AgentDecision is the spine of the design. It is the shadow-mode output, the
+// evidence behind graduating an action type to autonomous, and later the fixture
+// set for regression tests. Every decision is recorded whether or not it was
+// applied, always with the inputs that produced it — a reviewer has to be able
+// to check the agent's arithmetic without going back to the report.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AgentRun {
+  id        String         @id @default(cuid())
+  orgId     String
+  profileId String
+  mode      AgentMode      @default(SHADOW)
+  status    AgentRunStatus @default(RUNNING)
+
+  // Same idempotency shape as RuleExecution.slotKey: one run per profile per
+  // slot, so a retried or stall-redelivered job cannot act twice on one day.
+  slotKey String
+
+  rowsIn     Int @default(0)
+  candidates Int @default(0)
+  applied    Int @default(0)
+  blocked    Int @default(0)
+
+  // Set when guardrails refuse the whole run (stale report, spend ceiling).
+  abortReason String?
+  abortDetail String?
+  error       String?
+
+  // An agent that quietly triples its token spend should be visible without
+  // reading logs.
+  llmModel     String?
+  llmTokensIn  Int?
+  llmTokensOut Int?
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  org       Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  decisions AgentDecision[]
+
+  // orgId is part of the key deliberately. The same Amazon profile can be
+  // connected to more than one organization in an agency setup, and a unique
+  // index spanning tenants would let one org's run block another's — a
+  // cross-tenant collision the guard cannot protect against, because a
+  // constraint is enforced below it.
+  @@unique([orgId, profileId, slotKey])
+  @@index([orgId])
+  @@index([orgId, startedAt])
+}
+
+model AgentDecision {
+  id    String @id @default(cuid())
+  runId String
+  orgId String
+
+  actionType AgentActionType
+  campaignId String
+  adGroupId  String
+  searchTerm String
+  matchType  String?
+  bid        Float?
+
+  // Why the policy decided this, and the numbers it decided from.
+  reason String
+  detail String?
+  inputs Json
+
+  // The reviewer may veto or reorder, never invent. Null when it was skipped or
+  // failed — a run still records its candidates in that case.
+  llmVerdict   String?
+  llmRationale String?
+  rank         Int?
+
+  status    AgentDecisionStatus @default(PROPOSED)
+  appliedAt DateTime?
+  outcome   String?
+
+  // Enough to undo this exact action, so a run can be reverted wholesale.
+  inverse Json?
+
+  // The graduation evidence, set by a human reviewing shadow output.
+  humanVerdict HumanVerdict?
+  humanNote    String?
+  reviewedAt   DateTime?
+  reviewedById String?
+
+  createdAt DateTime @default(now())
+
+  run AgentRun     @relation(fields: [runId], references: [id], onDelete: Cascade)
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([orgId])
+  // The agreement-rate query: last N decisions of one type for one org.
+  @@index([orgId, actionType, createdAt])
+  @@index([orgId, humanVerdict])
+}
+
+model ProfileObjective {
+  id        String @id @default(cuid())
+  orgId     String
+  profileId String
+
+  // What the agent optimises for. Everything else is a guardrail around it.
+  targetAcos Float @default(30)
+
+  // Per profile because the right value depends on how the account converts.
+  // Defaults mirror DEFAULT_OBJECTIVE in services/agent/harvest-policy.js.
+  minClicks             Int      @default(12)
+  minPurchasesToPromote Int      @default(2)
+  wasteMultiplier       Float    @default(2)
+  brandTerms            String[] @default([])
+
+  // Autonomy is earned per action type, not granted wholesale.
+  negativeMode  AgentMode @default(SHADOW)
+  promotionMode AgentMode @default(SHADOW)
+
+  enabled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, profileId])
+  @@index([orgId])
+}
+
+enum AgentMode {
+  SHADOW
+  LIVE
+}
+
+enum AgentRunStatus {
+  RUNNING
+  COMPLETED
+  ABORTED
+  FAILED
+}
+
+enum AgentActionType {
+  ADD_NEGATIVE
+  ADD_EXACT
+}
+
+enum AgentDecisionStatus {
+  PROPOSED
+  BLOCKED
+  VETOED
+  APPLIED
+  FAILED
+  REVERTED
+}
+
+enum HumanVerdict {
+  AGREE
+  DISAGREE
+}
+
+enum AuditActor {
+  USER
+  AGENT
+  SYSTEM
 }

@@ -6,6 +6,7 @@
  */
 
 import { jest } from '@jest/globals';
+import { readFileSync } from 'node:fs';
 import { tenantGuardExtension, TENANT_MODELS } from '../tenant-guard.js';
 import { runWithTenant, runAsSystem } from '../tenant-context.js';
 
@@ -313,5 +314,65 @@ describe('findUnique with a narrowed select', () => {
     });
 
     expect(result).toBeNull();
+  });
+});
+
+
+describe('every org-scoped model is actually guarded', () => {
+  /**
+   * Read the schema rather than trusting a hand-kept list.
+   *
+   * TENANT_MODELS is the entire isolation boundary: a model carrying orgId that
+   * is missing from it is not merely unscoped, it is invisible to the guard —
+   * no filter, no warning, in either mode. Adding three tables and forgetting
+   * to register them is a one-line omission with no symptom until someone reads
+   * another tenant's rows, which is exactly what happened while writing the
+   * agent models.
+   *
+   * This derives the expected set from prisma/schema.prisma, so the next model
+   * with an orgId column fails here instead of shipping unguarded.
+   */
+  // Jest runs these through babel as CJS, so import.meta is unavailable.
+  // Repo-root-relative, matching deploy-image-contents.test.js.
+  const schema = readFileSync('prisma/schema.prisma', 'utf8');
+
+  /** Models declaring a direct `orgId` scalar field. */
+  function modelsWithOrgId(src) {
+    const found = [];
+    const re = /^model\s+(\w+)\s*\{([\s\S]*?)^\}/gm;
+    let m;
+    while ((m = re.exec(src)) !== null) {
+      const [, name, body] = m;
+      if (/^\s*orgId\s+String/m.test(body)) found.push(name);
+    }
+    return found;
+  }
+
+  it('finds the models in the schema at all', () => {
+    // Guard against the regex silently matching nothing, which would make every
+    // assertion below vacuously pass.
+    const models = modelsWithOrgId(schema);
+
+    expect(models.length).toBeGreaterThan(10);
+    expect(models).toContain('Subscription');
+  });
+
+  it('registers every model that carries an orgId', () => {
+    const missing = modelsWithOrgId(schema).filter(name => !TENANT_MODELS.has(name));
+
+    expect(missing).toEqual([]);
+  });
+
+  it('does not register a model the schema no longer has', () => {
+    const declared = new Set(modelsWithOrgId(schema));
+    const stale = [...TENANT_MODELS].filter(name => !declared.has(name));
+
+    expect(stale).toEqual([]);
+  });
+
+  it('includes the agent models', () => {
+    for (const model of ['AgentRun', 'AgentDecision', 'ProfileObjective']) {
+      expect(TENANT_MODELS.has(model)).toBe(true);
+    }
   });
 });

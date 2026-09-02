@@ -27,6 +27,8 @@ const logger = createLogger('TENANT_GUARD');
 
 /** Models that carry a direct `orgId` column and must be org-scoped. */
 export const TENANT_MODELS = new Set([
+  'AgentDecision',
+  'AgentRun',
   'AlertFire',
   'AmazonCredential',
   'AuditLog',
@@ -37,6 +39,7 @@ export const TENANT_MODELS = new Set([
   'ListingOptimization',
   'OrgInvitation',
   'OrgMember',
+  'ProfileObjective',
   'ReportJob',
   'RuleExecution',
   'SellerProfile',
