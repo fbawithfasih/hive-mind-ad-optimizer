@@ -16,7 +16,7 @@
 jest.mock('../../db/prisma.js', () => ({
   prisma: {
     profileObjective: { findFirst: jest.fn() },
-    agentRun:         { create: jest.fn(), update: jest.fn() },
+    agentRun:         { create: jest.fn(), update: jest.fn(), updateMany: jest.fn(), findFirst: jest.fn() },
     agentDecision:    { createMany: jest.fn() },
     sellerProfile:    { findMany: jest.fn() },
     subscription:     { findFirst: jest.fn() },
@@ -43,7 +43,7 @@ jest.mock('../../services/agent/llm-review.js', () => ({
 import {
   agentProcessor, reportWindow, slotKeyFor, occurrenceDate, isLive, permittedMode,
   adGroupTermCounts, inverseFor, outcomeFrom, objectiveFor,
-  LOOKBACK_DAYS, ATTRIBUTION_BUFFER_DAYS,
+  LOOKBACK_DAYS, ATTRIBUTION_BUFFER_DAYS, REPORT_POLL,
 } from '../agent.worker.js';
 import { prisma } from '../../db/prisma.js';
 import { loadOrgCredential } from '../../services/credentials.js';
@@ -83,6 +83,8 @@ function setup({ objective = OBJECTIVE, rows = [wasteRow()], negativeResults, su
   prisma.subscription.findFirst.mockResolvedValue(subscription);
   prisma.profileObjective.findFirst.mockResolvedValue(objective);
   prisma.agentRun.create.mockResolvedValue({ id: 'run-1' });
+  prisma.agentRun.updateMany.mockResolvedValue({ count: 0 });
+  prisma.agentRun.findFirst.mockResolvedValue({ id: 'run-1' });
   prisma.agentRun.update.mockResolvedValue({});
   prisma.agentDecision.createMany.mockResolvedValue({ count: 0 });
   prisma.sellerProfile.findMany.mockResolvedValue([]);
@@ -300,7 +302,8 @@ describe('the report window', () => {
 
     await agentProcessor(job());
 
-    expect(adsClient.getSearchTermReport).toHaveBeenCalledWith('p1', '2026-08-02', '2026-08-31');
+    expect(adsClient.getSearchTermReport).toHaveBeenCalledWith(
+      'p1', '2026-08-02', '2026-08-31', expect.any(Object));
   });
 });
 
@@ -490,5 +493,75 @@ describe('permittedMode', () => {
     // Cancelling at cycle end means the customer has already paid through it.
     expect(permittedMode('LIVE', { status: 'CANCELLED', currentPeriodEnd: new Date('2099-01-01') }).mode)
       .toBe('LIVE');
+  });
+});
+
+
+describe('waiting long enough for Amazon', () => {
+  it('allows far more than the three-minute default', () => {
+    // The first real run against Queenza timed out at exactly 180s — the
+    // default 36 x 5s, tuned for an HTTP request with someone waiting on it,
+    // not for a background worker.
+    expect(REPORT_POLL.pollIntervalMs * REPORT_POLL.maxAttempts).toBeGreaterThanOrEqual(15 * 60 * 1000);
+  });
+
+  it('passes that budget rather than taking the default', async () => {
+    setup();
+
+    await agentProcessor(job());
+
+    expect(adsClient.getSearchTermReport).toHaveBeenCalledWith(
+      'p1', expect.any(String), expect.any(String),
+      expect.objectContaining({ maxAttempts: REPORT_POLL.maxAttempts }));
+  });
+});
+
+describe('retrying a run that failed without applying anything', () => {
+  /**
+   * The claim exists to stop the same actions being applied twice. A run that
+   * failed having applied nothing has not done that, so a retry may take the
+   * slot — otherwise one slow Amazon report costs the entire day, because every
+   * retry finds the slot held by the corpse of the run that failed.
+   */
+  const collision = () => Object.assign(new Error('unique'), { code: 'P2002' });
+
+  it('takes over a failed run that applied nothing', async () => {
+    setup();
+    prisma.agentRun.create.mockRejectedValue(collision());
+    prisma.agentRun.updateMany.mockResolvedValue({ count: 1 });
+
+    await agentProcessor(job());
+
+    expect(adsClient.getSearchTermReport).toHaveBeenCalled();
+  });
+
+  it('guards the takeover in the WHERE clause, so the database decides the race', async () => {
+    // Two workers must not both conclude they are the one reviving it.
+    setup();
+    prisma.agentRun.create.mockRejectedValue(collision());
+    prisma.agentRun.updateMany.mockResolvedValue({ count: 1 });
+
+    await agentProcessor(job());
+
+    expect(prisma.agentRun.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ status: 'FAILED', applied: 0 }),
+    }));
+  });
+
+  it('will not take over a run that applied something', async () => {
+    setup();
+    prisma.agentRun.create.mockRejectedValue(collision());
+    prisma.agentRun.updateMany.mockResolvedValue({ count: 0 });
+
+    expect(await agentProcessor(job())).toEqual({ skipped: 'ALREADY_RAN' });
+    expect(adsClient.getSearchTermReport).not.toHaveBeenCalled();
+  });
+
+  it('still lets a real database error surface', async () => {
+    setup();
+    prisma.agentRun.create.mockRejectedValue(new Error('connection refused'));
+
+    await expect(agentProcessor(job())).rejects.toThrow('connection refused');
+    expect(prisma.agentRun.updateMany).not.toHaveBeenCalled();
   });
 });
