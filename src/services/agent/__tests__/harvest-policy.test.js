@@ -10,7 +10,7 @@
 
 import {
   decideHarvest, aggregateRows, adGroupAov, promotionBid, isBrandTerm, DEFAULT_OBJECTIVE,
-  minClicksFor, observedCvr,
+  minClicksFor, observedCvr, decisionKey,
 } from '../harvest-policy.js';
 
 /** One report row, with sensible defaults so tests state only what they mean. */
@@ -477,3 +477,120 @@ describe('calibrating the click threshold to the account', () => {
     expect(decideHarvest(rows, { minClicks: null }).stats.observedCvr).toBe(6);
   });
 });
+
+describe('terms this profile has already been judged on', () => {
+  // Why this exists: in shadow nothing is applied, so nothing about the account
+  // changes between runs. The same term is proposed every day, and because
+  // graduationStatus counts rows rather than distinct terms, the gate would open
+  // on a denominator of repeats.
+
+  const negated = row({ clicks: 40, cost: 30 });
+  const converting = row({ searchTerm: 'green widget', clicks: 50, cost: 20, purchases14d: 4, sales14d: 200 });
+
+  it('proposes a negative the first time and not the second', () => {
+    const first = decideHarvest([negated], { minClicks: 12 });
+    expect(only(first, 'ADD_NEGATIVE')).toHaveLength(1);
+
+    const decided = new Set(first.candidates.map(c => decisionKey(c.actionType, c)));
+    const second = decideHarvest([negated], { minClicks: 12 }, decided);
+
+    expect(second.candidates).toHaveLength(0);
+    expect(reasons(second)).toContain('ALREADY_DECIDED');
+  });
+
+  it('suppresses a promotion the same way', () => {
+    const first = decideHarvest([converting], { minClicks: 12, targetAcos: 30 });
+    expect(only(first, 'ADD_EXACT')).toHaveLength(1);
+
+    const decided = new Set(first.candidates.map(c => decisionKey(c.actionType, c)));
+
+    expect(decideHarvest([converting], { minClicks: 12, targetAcos: 30 }, decided).candidates).toHaveLength(0);
+  });
+
+  it('keys on the action, so negating a term does not silence promoting it', () => {
+    // The two are different judgements. Having ruled on one says nothing about
+    // the other, and collapsing them would hide a real candidate.
+    const decided = new Set([decisionKey('ADD_NEGATIVE', {
+      campaignId: 'c1', adGroupId: 'g1', searchTerm: 'green widget',
+    })]);
+
+    expect(only(decideHarvest([converting], { minClicks: 12 }, decided), 'ADD_EXACT')).toHaveLength(1);
+  });
+
+  it('keys on the ad group, so the same term in another ad group is still new', () => {
+    const elsewhere = row({ adGroupId: 'g2', clicks: 40, cost: 30 });
+    const decided = new Set([decisionKey('ADD_NEGATIVE', {
+      campaignId: 'c1', adGroupId: 'g1', searchTerm: 'blue widget',
+    })]);
+
+    expect(only(decideHarvest([elsewhere], { minClicks: 12 }, decided), 'ADD_NEGATIVE')).toHaveLength(1);
+  });
+
+  it('counts what it suppressed, so a quiet run is distinguishable from a broken one', () => {
+    const decided = new Set([decisionKey('ADD_NEGATIVE', {
+      campaignId: 'c1', adGroupId: 'g1', searchTerm: 'blue widget',
+    })]);
+
+    const result = decideHarvest([negated], { minClicks: 12 }, decided);
+
+    expect(result.stats.alreadyDecided).toBe(1);
+    expect(result.stats.negatives).toBe(0);
+  });
+
+  it('changes nothing when no decisions have been recorded yet', () => {
+    expect(decideHarvest([negated], { minClicks: 12 }).stats.alreadyDecided).toBe(0);
+    expect(only(decideHarvest([negated], { minClicks: 12 }), 'ADD_NEGATIVE')).toHaveLength(1);
+  });
+
+  it('matches the term however it was cased or spaced when recorded', () => {
+    // decisionKey normalises through termKey; a report that returns "Blue  Widget"
+    // one day and "blue widget" the next must not read as two different terms.
+    const decided = new Set([decisionKey('ADD_NEGATIVE', {
+      campaignId: 'c1', adGroupId: 'g1', searchTerm: '  Blue   Widget ',
+    })]);
+
+    expect(decideHarvest([negated], { minClicks: 12 }, decided).candidates).toHaveLength(0);
+  });
+});
+
+describe('composite keys stay unambiguous and stay text', () => {
+  const k = (over = {}) => decisionKey('ADD_NEGATIVE', {
+    campaignId: 'c1', adGroupId: 'g1', searchTerm: 'blue widget', ...over,
+  });
+
+  it('cannot be made to collide by moving a boundary between fields', () => {
+    // Two genuinely different decisions whose fields differ only in where one
+    // boundary falls. Joined on any character that can appear in a field — a
+    // space, say — both render as "ADD_NEGATIVE 1 2 3 blue widget" and the
+    // second silently suppresses the first. This is the property a separator
+    // has to earn and JSON gets for free.
+    expect(k({ campaignId: '1 2', adGroupId: '3' }))
+      .not.toBe(k({ campaignId: '1', adGroupId: '2 3' }));
+
+    expect(k({ campaignId: '1', adGroupId: '23' })).not.toBe(k({ campaignId: '12', adGroupId: '3' }));
+  });
+
+  it('survives a search term containing quotes, commas and brackets', () => {
+    // Search terms are whatever a shopper typed, so the key format has to hold
+    // for punctuation that would break a hand-rolled encoding.
+    const nasty = '5", ["widget"] \\ backslash';
+
+    expect(k({ searchTerm: nasty })).not.toBe(k({ searchTerm: 'something else' }));
+    expect(JSON.parse(k({ searchTerm: nasty }))).toEqual(
+      ['ADD_NEGATIVE', 'c1', 'g1', normaliseLike(nasty)],
+    );
+  });
+
+  it('contains no control characters, so git and grep treat the source as text', () => {
+    // A NUL separator was unambiguous and made this file binary to both git and
+    // grep: grep printed nothing at all for it, and a 2kB policy change rendered
+    // as "Bin 13840 -> 15945 bytes" in review. See .gitattributes.
+    // eslint-disable-next-line no-control-regex
+    expect(k()).not.toMatch(/[\u0000-\u001f]/);
+  });
+});
+
+/** The normalisation decisionKey applies, mirrored so the test states its expectation. */
+function normaliseLike(text) {
+  return String(text ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}

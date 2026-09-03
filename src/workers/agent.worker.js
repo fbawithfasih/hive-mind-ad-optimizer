@@ -44,7 +44,7 @@ import { createLogger } from '../api/utils/logger.js';
 import { loadOrgCredential } from '../services/credentials.js';
 import { isEntitled } from '../services/entitlement.js';
 import { createAdsClient, default as defaultAdsClient } from '../services/amazon-ads.js';
-import { decideHarvest } from '../services/agent/harvest-policy.js';
+import { decideHarvest, decisionKey } from '../services/agent/harvest-policy.js';
 import { reviewCandidates } from '../services/agent/llm-review.js';
 import { applyGuardrails } from '../services/agent/guardrails.js';
 import { enqueueAgentSweep } from '../services/agent/agent-scheduler.js';
@@ -55,6 +55,58 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Days of history each run asks Amazon for. */
 export const LOOKBACK_DAYS = 30;
+
+/**
+ * How far back to look for a judgement this profile has already been given.
+ *
+ * Only a query bound, not a policy: within shadow there is no point re-asking
+ * about a term at all, because nothing has changed since the last answer. It is
+ * bounded so the lookup stays cheap and so a term the account genuinely revives
+ * months later can be raised again.
+ */
+export const DECISION_DEDUPE_DAYS = 90;
+
+/**
+ * The decisions this profile has already been given, for action types that are
+ * still in shadow.
+ *
+ * Scoped to shadow deliberately. A live action type needs no suppression — the
+ * action is applied, the account changes, and the next report stops offering
+ * the term on its own. Suppressing there would be actively wrong: when an
+ * action type graduates, the terms judged during shadow have never been applied
+ * to Amazon, and they must be proposable again so the backlog can actually be
+ * acted on.
+ */
+export async function decidedKeys({ orgId, profileId, objective, now = new Date() }) {
+  const shadowTypes = [
+    objective?.negativeMode  === 'LIVE' ? null : 'ADD_NEGATIVE',
+    objective?.promotionMode === 'LIVE' ? null : 'ADD_EXACT',
+  ].filter(Boolean);
+
+  if (shadowTypes.length === 0) return new Set();
+
+  const since = new Date(now.getTime() - DECISION_DEDUPE_DAYS * DAY_MS);
+
+  // AgentDecision carries orgId but not profileId, so the profile's runs are
+  // resolved first — both queries hit an index, where a relation filter would
+  // not.
+  const runs = await prisma.agentRun.findMany({
+    where:  { orgId, profileId, startedAt: { gte: since } },
+    select: { id: true },
+  });
+  if (runs.length === 0) return new Set();
+
+  const decisions = await prisma.agentDecision.findMany({
+    where: {
+      orgId,
+      runId:      { in: runs.map(r => r.id) },
+      actionType: { in: shadowTypes },
+    },
+    select: { actionType: true, campaignId: true, adGroupId: true, searchTerm: true },
+  });
+
+  return new Set(decisions.map(d => decisionKey(d.actionType, d)));
+}
 
 /**
  * How long to wait for Amazon to produce the search-term report.
@@ -108,11 +160,26 @@ export function reportWindow(occurredAt, lookbackDays = LOOKBACK_DAYS) {
   };
 }
 
-/** The objective a profile runs under, with the schema defaults as the fallback. */
+/**
+ * The objective a profile runs under, with the schema defaults as the fallback.
+ *
+ * `minClicks` passes null through rather than substituting a number, and that is
+ * the whole point of it. Null is not a missing value here — it is the instruction
+ * "derive this from the account's own conversion rate", and decideHarvest only
+ * calibrates when it actually sees null. Coalescing it (this read `?? 12`) meant
+ * calibration never ran for any real profile, whatever the database said, and
+ * handed every account the one threshold the policy documents as wrong: at
+ * Queenza's 5.97% conversion rate, 12 clicks with no sales describes a perfectly
+ * healthy term 48% of the time, against 9.6% for the 38 it would have derived.
+ *
+ * `?? null` rather than dropping the operator entirely, because `record` itself
+ * may be null and undefined would mean the same thing to decideHarvest but reads
+ * as an oversight.
+ */
 export function objectiveFor(record) {
   return {
     targetAcos:            record?.targetAcos ?? 30,
-    minClicks:             record?.minClicks ?? 12,
+    minClicks:             record?.minClicks ?? null,
     minPurchasesToPromote: record?.minPurchasesToPromote ?? 2,
     wasteMultiplier:       record?.wasteMultiplier ?? 2,
     brandTerms:            record?.brandTerms ?? [],
@@ -321,7 +388,10 @@ export async function agentProcessor(job) {
       profileId, window.startDate, window.endDate, REPORT_POLL);
 
     const objective = objectiveFor(objectiveRecord);
-    const { candidates, stats } = decideHarvest(rows, objective);
+    const decided = await decidedKeys({
+      orgId, profileId, objective: effectiveObjective, now: occurredAt,
+    });
+    const { candidates, stats } = decideHarvest(rows, objective, decided);
 
     const { kept, vetoed, reviewError } = await reviewCandidates(candidates, {
       ...objective, profileId,
@@ -364,6 +434,10 @@ export async function agentProcessor(job) {
     logger.info(
       `Agent run complete — ${tag}: ${stats.negatives} negatives, ${stats.promotions} promotions, ` +
       `${vetoed.length} vetoed, ${guarded.blocked.length} blocked, ${applied} applied` +
+      // Without this an operator cannot tell a quiet account from a broken one:
+      // "0 negatives" reads identically whether the policy found nothing or
+      // found only terms it had already asked about.
+      (stats.alreadyDecided ? `, ${stats.alreadyDecided} already decided` : '') +
       (reviewError ? ` (reviewer unavailable: ${reviewError})` : '')
     );
 
