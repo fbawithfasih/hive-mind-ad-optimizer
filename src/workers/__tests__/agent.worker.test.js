@@ -376,8 +376,19 @@ describe('helpers', () => {
 
   it('falls back to the documented defaults for a sparse objective', () => {
     expect(objectiveFor(null)).toEqual({
-      targetAcos: 30, minClicks: 12, minPurchasesToPromote: 2, wasteMultiplier: 2, brandTerms: [],
+      targetAcos: 30, minClicks: null, minPurchasesToPromote: 2, wasteMultiplier: 2, brandTerms: [],
     });
+  });
+
+  it('passes a null minClicks through, so the policy calibrates', () => {
+    // The regression this pins: `?? 12` turned the one value that means "derive
+    // this from the account" into a literal threshold, so calibration never ran
+    // for any real profile however the database was configured.
+    expect(objectiveFor({ minClicks: null }).minClicks).toBeNull();
+  });
+
+  it('still honours a threshold an operator pinned deliberately', () => {
+    expect(objectiveFor({ minClicks: 25 }).minClicks).toBe(25);
   });
 
   it('maps Amazon result codes to a decision outcome', () => {
