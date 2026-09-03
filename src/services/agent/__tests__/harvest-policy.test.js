@@ -552,3 +552,45 @@ describe('terms this profile has already been judged on', () => {
     expect(decideHarvest([negated], { minClicks: 12 }, decided).candidates).toHaveLength(0);
   });
 });
+
+describe('composite keys stay unambiguous and stay text', () => {
+  const k = (over = {}) => decisionKey('ADD_NEGATIVE', {
+    campaignId: 'c1', adGroupId: 'g1', searchTerm: 'blue widget', ...over,
+  });
+
+  it('cannot be made to collide by moving a boundary between fields', () => {
+    // Two genuinely different decisions whose fields differ only in where one
+    // boundary falls. Joined on any character that can appear in a field — a
+    // space, say — both render as "ADD_NEGATIVE 1 2 3 blue widget" and the
+    // second silently suppresses the first. This is the property a separator
+    // has to earn and JSON gets for free.
+    expect(k({ campaignId: '1 2', adGroupId: '3' }))
+      .not.toBe(k({ campaignId: '1', adGroupId: '2 3' }));
+
+    expect(k({ campaignId: '1', adGroupId: '23' })).not.toBe(k({ campaignId: '12', adGroupId: '3' }));
+  });
+
+  it('survives a search term containing quotes, commas and brackets', () => {
+    // Search terms are whatever a shopper typed, so the key format has to hold
+    // for punctuation that would break a hand-rolled encoding.
+    const nasty = '5", ["widget"] \\ backslash';
+
+    expect(k({ searchTerm: nasty })).not.toBe(k({ searchTerm: 'something else' }));
+    expect(JSON.parse(k({ searchTerm: nasty }))).toEqual(
+      ['ADD_NEGATIVE', 'c1', 'g1', normaliseLike(nasty)],
+    );
+  });
+
+  it('contains no control characters, so git and grep treat the source as text', () => {
+    // A NUL separator was unambiguous and made this file binary to both git and
+    // grep: grep printed nothing at all for it, and a 2kB policy change rendered
+    // as "Bin 13840 -> 15945 bytes" in review. See .gitattributes.
+    // eslint-disable-next-line no-control-regex
+    expect(k()).not.toMatch(/[\u0000-\u001f]/);
+  });
+});
+
+/** The normalisation decisionKey applies, mirrored so the test states its expectation. */
+function normaliseLike(text) {
+  return String(text ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}

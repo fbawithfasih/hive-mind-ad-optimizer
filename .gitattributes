@@ -1,0 +1,6 @@
+# JavaScript is always text. Without this, a stray control byte in a source
+# file makes git classify it as binary and render "Bin N -> M bytes" instead of
+# a diff — which hid a policy change from review in #83. See harvest-policy.js.
+*.js diff
+*.jsx diff
+*.mjs diff
