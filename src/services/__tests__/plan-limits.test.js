@@ -13,6 +13,7 @@
  */
 import express from 'express';
 import request from 'supertest';
+import { sharedServer } from '../../test/http-server.js';
 
 jest.mock('../../db/prisma.js', () => ({
   prisma: {
@@ -28,12 +29,15 @@ import {
 } from '../plan-limits.js';
 import { prisma } from '../../db/prisma.js';
 
+/** One server for this file — see src/test/http-server.js. */
+const serve = sharedServer();
+
 function app(middleware) {
   const a = express();
   a.use(express.json());
   a.use((req, _res, next) => { req.tenant = { orgId: 'org-1' }; next(); });
   a.post('/thing', middleware, (_req, res) => res.json({ ok: true }));
-  return a;
+  return serve(a);
 }
 
 const onTier = (tier) => prisma.organization.findUnique.mockResolvedValue({ tier });

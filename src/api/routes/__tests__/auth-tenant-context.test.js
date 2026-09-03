@@ -14,6 +14,7 @@
 
 import express from 'express';
 import request from 'supertest';
+import { sharedServer } from '../../../test/http-server.js';
 import { getTenantContext } from '../../../db/tenant-context.js';
 
 /** Contexts captured at query time, in call order. */
@@ -69,11 +70,14 @@ globalThis.__authSeen = seen;
 import { prisma } from '../../../db/prisma.js';
 import authRouter from '../auth.js';
 
+/** One server for this file — see src/test/http-server.js. */
+const serve = sharedServer();
+
 function makeApp() {
   const app = express();
   app.use(express.json());
   app.use('/', authRouter);
-  return app;
+  return serve(app);
 }
 
 /** Every context recorded for a guarded model. */

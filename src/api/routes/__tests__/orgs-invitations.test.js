@@ -7,6 +7,7 @@
  */
 import express from 'express';
 import request from 'supertest';
+import { sharedServer } from '../../../test/http-server.js';
 
 jest.mock('../../../services/email.js', () => ({
   sendOrgInvitationEmail: jest.fn().mockResolvedValue({ id: 'mail-1' }),
@@ -30,12 +31,15 @@ const ORG_ID = 'org-1';
 const HOUR = 60 * 60 * 1000;
 
 /** Mount the router with a stand-in for requireAuth. */
+/** One server for this file — see src/test/http-server.js. */
+const serve = sharedServer();
+
 function makeApp(user) {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => { req.user = user; next(); });
   app.use('/', orgsRouter);
-  return app;
+  return serve(app);
 }
 
 // Inviting requires a verified address (requireVerifiedEmail); accepting does

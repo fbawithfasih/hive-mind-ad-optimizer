@@ -13,6 +13,7 @@
 
 import express from 'express';
 import request from 'supertest';
+import { sharedServer } from '../../../test/http-server.js';
 
 const CLAIM_SECRET = 'test-marketing-claim-secret';
 process.env.MARKETING_CLAIM_SECRET = CLAIM_SECRET;
@@ -61,11 +62,14 @@ globalThis.__redisSets = redisSets;
 // MARKETING_CLAIM_SECRET at call time rather than module load.
 import routes from '../index.js';
 
+/** One server for this file — see src/test/http-server.js. */
+const serve = sharedServer();
+
 function makeApp() {
   const app = express();
   app.use(express.json());
   app.use('/api', routes);
-  return app;
+  return serve(app);
 }
 
 const body = (over = {}) => ({

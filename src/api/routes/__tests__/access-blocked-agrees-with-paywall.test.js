@@ -19,6 +19,7 @@
  */
 import express from 'express';
 import request from 'supertest';
+import { sharedServer } from '../../../test/http-server.js';
 
 jest.mock('../../../db/prisma.js', () => ({
   prisma: { subscription: { findUnique: jest.fn() } },
@@ -27,6 +28,10 @@ jest.mock('../../../db/prisma.js', () => ({
 import { requireActiveSubscription } from '../../middleware/requireActiveSubscription.js';
 import { isEntitled } from '../../../services/entitlement.js';
 import { prisma } from '../../../db/prisma.js';
+
+/** One server for this file — see src/test/http-server.js. */
+const serve = sharedServer();
+
 
 const DAY = 86_400_000;
 const at = (days) => new Date(Date.now() + days * DAY);
@@ -46,7 +51,7 @@ async function paywallBlocks({ trialEndsAt, sub }) {
     next();
   });
   app.get('/gated', requireActiveSubscription, (_req, res) => res.json({ ok: true }));
-  const res = await request(app).get('/gated');
+  const res = await request(serve(app)).get('/gated');
   return res.status === 402;
 }
 

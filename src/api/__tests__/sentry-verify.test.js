@@ -8,10 +8,14 @@
  */
 import express from 'express';
 import request from 'supertest';
+import { sharedServer } from '../../test/http-server.js';
 
 import { sentryVerifyHandler } from '../sentry-verify.js';
 
 const TOKEN = 'test-verify-token-abc123';
+
+/** One server for this file — see src/test/http-server.js. */
+const serve = sharedServer();
 
 /** Mounts the handler with a catch-all 404 and an error middleware behind it. */
 function app() {
@@ -31,7 +35,7 @@ afterEach(() => { delete process.env.SENTRY_VERIFY_TOKEN; });
 
 describe('when no token is configured', () => {
   it('is indistinguishable from an unknown path', async () => {
-    const res = await request(app()).get('/api/_sentry-verify');
+    const res = await request(serve(app())).get('/api/_sentry-verify');
 
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Not found' });
@@ -40,7 +44,7 @@ describe('when no token is configured', () => {
   it('does not throw even when a token is supplied', async () => {
     // Otherwise a caller could confirm the endpoint exists by the difference
     // between its response and a real 404.
-    const res = await request(app())
+    const res = await request(serve(app()))
       .get('/api/_sentry-verify')
       .set('x-verify-token', 'anything');
 
@@ -54,7 +58,7 @@ describe('when a token is configured', () => {
   it('throws for a caller presenting the right token', async () => {
     const a = app();
 
-    const res = await request(a).get('/api/_sentry-verify').set('x-verify-token', TOKEN);
+    const res = await request(serve(a)).get('/api/_sentry-verify').set('x-verify-token', TOKEN);
 
     expect(res.status).toBe(500);
     expect(a.locals.captured).toBeInstanceOf(Error);
@@ -62,7 +66,7 @@ describe('when a token is configured', () => {
   });
 
   it('accepts the token as a query parameter too', async () => {
-    const res = await request(app()).get(`/api/_sentry-verify?token=${TOKEN}`);
+    const res = await request(serve(app())).get(`/api/_sentry-verify?token=${TOKEN}`);
     expect(res.status).toBe(500);
   });
 
@@ -71,7 +75,7 @@ describe('when a token is configured', () => {
     // An error carrying a 4xx would be silently skipped and the check would
     // pass while proving nothing.
     const a = app();
-    await request(a).get('/api/_sentry-verify').set('x-verify-token', TOKEN);
+    await request(serve(a)).get('/api/_sentry-verify').set('x-verify-token', TOKEN);
 
     expect(a.locals.captured.status).toBeUndefined();
   });
@@ -82,17 +86,17 @@ describe('when a token is configured', () => {
     ['a prefix of it',  TOKEN.slice(0, 10)],
     ['a longer string', `${TOKEN}x`],
   ])('404s for %s', async (_label, token) => {
-    const res = await request(app()).get('/api/_sentry-verify').set('x-verify-token', token);
+    const res = await request(serve(app())).get('/api/_sentry-verify').set('x-verify-token', token);
     expect(res.status).toBe(404);
   });
 
   it('404s when no token is presented at all', async () => {
-    expect((await request(app()).get('/api/_sentry-verify')).status).toBe(404);
+    expect((await request(serve(app())).get('/api/_sentry-verify')).status).toBe(404);
   });
 
   it('names itself in the error, so nobody mistakes it for a real fault', async () => {
     const a = app();
-    await request(a).get('/api/_sentry-verify').set('x-verify-token', TOKEN);
+    await request(serve(a)).get('/api/_sentry-verify').set('x-verify-token', TOKEN);
 
     expect(a.locals.captured.message).toMatch(/deliberate test error/i);
     expect(a.locals.captured.message).toMatch(/_sentry-verify/);

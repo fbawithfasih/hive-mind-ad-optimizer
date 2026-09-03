@@ -24,6 +24,7 @@ export default {
     '!src/**/*.test.js',
     '!src/server.js',
     '!src/data/**',
+    '!src/test/**',
   ],
   testMatch: [
     '**/src/**/__tests__/**/*.test.js',

@@ -1,5 +1,6 @@
 import express from 'express';
 import request from 'supertest';
+import { sharedServer } from '../../../test/http-server.js';
 import jwt from 'jsonwebtoken';
 import { __store } from '../../../services/ephemeral-store.js';
 import spOauthRouter from '../sp-oauth.js';
@@ -58,6 +59,9 @@ const DEFAULT_TENANT = { orgId: 'org-1', org: { id: 'org-1', name: 'Acme' }, rol
 
 // Build a minimal app: inject a valid session cookie (so requireAuthNav passes)
 // and a pre-set req.tenant (so withTenant's pass-through leaves it in place).
+/** One server for this file — see src/test/http-server.js. */
+const serve = sharedServer();
+
 function makeApp({ tenant = DEFAULT_TENANT, claims = {} } = {}) {
   const token = jwt.sign(
     { userId: 'user-1', activeOrgId: 'org-1', ...claims },
@@ -71,7 +75,7 @@ function makeApp({ tenant = DEFAULT_TENANT, claims = {} } = {}) {
     next();
   });
   app.use('/', spOauthRouter);
-  return app;
+  return serve(app);
 }
 
 beforeEach(() => {

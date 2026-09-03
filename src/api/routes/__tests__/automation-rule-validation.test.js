@@ -13,6 +13,7 @@
  */
 import express from 'express';
 import request from 'supertest';
+import { sharedServer } from '../../../test/http-server.js';
 
 jest.mock('../../../db/prisma.js', () => ({
   prisma: { campaignRule: { findFirst: jest.fn(), create: jest.fn(), update: jest.fn() } },
@@ -30,12 +31,15 @@ const EXISTING = {
   action: 'decrease_budget', adjustment: 10, lookbackDays: 14, schedule: 'daily',
 };
 
+/** One server for this file — see src/test/http-server.js. */
+const serve = sharedServer();
+
 function app() {
   const a = express();
   a.use(express.json());
   a.use((req, _res, next) => { req.tenant = { orgId: 'org-1', role: 'ADMIN' }; next(); });
   a.use('/', automationRouter);
-  return a;
+  return serve(a);
 }
 
 beforeEach(() => {
