@@ -160,11 +160,26 @@ export function reportWindow(occurredAt, lookbackDays = LOOKBACK_DAYS) {
   };
 }
 
-/** The objective a profile runs under, with the schema defaults as the fallback. */
+/**
+ * The objective a profile runs under, with the schema defaults as the fallback.
+ *
+ * `minClicks` passes null through rather than substituting a number, and that is
+ * the whole point of it. Null is not a missing value here — it is the instruction
+ * "derive this from the account's own conversion rate", and decideHarvest only
+ * calibrates when it actually sees null. Coalescing it (this read `?? 12`) meant
+ * calibration never ran for any real profile, whatever the database said, and
+ * handed every account the one threshold the policy documents as wrong: at
+ * Queenza's 5.97% conversion rate, 12 clicks with no sales describes a perfectly
+ * healthy term 48% of the time, against 9.6% for the 38 it would have derived.
+ *
+ * `?? null` rather than dropping the operator entirely, because `record` itself
+ * may be null and undefined would mean the same thing to decideHarvest but reads
+ * as an oversight.
+ */
 export function objectiveFor(record) {
   return {
     targetAcos:            record?.targetAcos ?? 30,
-    minClicks:             record?.minClicks ?? 12,
+    minClicks:             record?.minClicks ?? null,
     minPurchasesToPromote: record?.minPurchasesToPromote ?? 2,
     wasteMultiplier:       record?.wasteMultiplier ?? 2,
     brandTerms:            record?.brandTerms ?? [],
