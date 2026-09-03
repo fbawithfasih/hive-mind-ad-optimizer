@@ -8,6 +8,7 @@
 
 import express from 'express';
 import request from 'supertest';
+import { sharedServer } from '../../../test/http-server.js';
 
 jest.mock('../../../db/prisma.js', () => ({
   prisma: { subscription: { findUnique: jest.fn() } },
@@ -18,11 +19,14 @@ import { requireActiveSubscription } from '../requireActiveSubscription.js';
 
 const DAY = 86400000;
 
+/** One server for this file — see src/test/http-server.js. */
+const serve = sharedServer();
+
 function makeApp(tenant) {
   const app = express();
   app.use((req, _res, next) => { req.tenant = tenant; next(); });
   app.get('/gated', requireActiveSubscription, (_req, res) => res.json({ ok: true }));
-  return app;
+  return serve(app);
 }
 
 /** org with a trial ending `days` from now (negative = already expired) */

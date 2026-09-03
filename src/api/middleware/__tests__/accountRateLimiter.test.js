@@ -5,6 +5,7 @@
  */
 import express from 'express';
 import request from 'supertest';
+import { sharedServer } from '../../../test/http-server.js';
 import { loginAccountLimiter, passwordResetAccountLimiter } from '../rateLimiter.js';
 
 const ORIGINAL_ENV = process.env.NODE_ENV;
@@ -12,6 +13,9 @@ beforeAll(() => { process.env.NODE_ENV = 'development'; });
 afterAll(()  => { process.env.NODE_ENV = ORIGINAL_ENV; });
 
 /** App whose handler status is controlled per-request via `x-outcome`. */
+/** One server for this file — see src/test/http-server.js. */
+const serve = sharedServer();
+
 function makeApp(limiter) {
   const app = express();
   app.use(express.json());
@@ -19,7 +23,7 @@ function makeApp(limiter) {
     if (req.get('x-outcome') === 'success') return res.json({ ok: true });
     res.status(401).json({ error: 'Invalid email or password' });
   });
-  return app;
+  return serve(app);
 }
 
 const fail = (app, email) =>

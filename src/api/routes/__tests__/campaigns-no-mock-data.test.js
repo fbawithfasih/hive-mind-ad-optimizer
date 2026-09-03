@@ -11,6 +11,7 @@
  */
 import express from 'express';
 import request from 'supertest';
+import { sharedServer } from '../../../test/http-server.js';
 
 jest.mock('../../../db/prisma.js', () => ({
   prisma: { sellerProfile: { findFirst: jest.fn() } },
@@ -18,6 +19,9 @@ jest.mock('../../../db/prisma.js', () => ({
 
 import campaignsRouter from '../campaigns.js';
 import { prisma } from '../../../db/prisma.js';
+
+/** One server for this file — see src/test/http-server.js. */
+const serve = sharedServer();
 
 function app({ adsClient = null, hasOwnAdsCreds = true } = {}) {
   const a = express();
@@ -29,7 +33,7 @@ function app({ adsClient = null, hasOwnAdsCreds = true } = {}) {
     next();
   });
   a.use('/', campaignsRouter);
-  return a;
+  return serve(a);
 }
 
 beforeEach(() => {

@@ -1,5 +1,6 @@
 import express from 'express';
 import request from 'supertest';
+import { sharedServer } from '../../../test/http-server.js';
 import onboardingRouter from '../onboarding.js';
 
 jest.mock('../../../db/prisma.js', () => ({
@@ -14,6 +15,9 @@ jest.mock('../../../db/prisma.js', () => ({
 
 import { prisma } from '../../../db/prisma.js';
 
+/** One server for this file — see src/test/http-server.js. */
+const serve = sharedServer();
+
 function makeApp(tenant = { orgId: 'org-1' }, user = { userId: 'user-1' }) {
   const app = express();
   app.use(express.json());
@@ -23,7 +27,7 @@ function makeApp(tenant = { orgId: 'org-1' }, user = { userId: 'user-1' }) {
     next();
   });
   app.use('/', onboardingRouter);
-  return app;
+  return serve(app);
 }
 
 function mockCounts({ emailVerified = true, creds = 0, profiles = 0, optimizations = 0, reports = 0 } = {}) {

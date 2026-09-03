@@ -15,6 +15,7 @@
  */
 import express from 'express';
 import request from 'supertest';
+import { sharedServer } from '../../../test/http-server.js';
 
 jest.mock('../../../db/prisma.js', () => ({ prisma: {} }));
 jest.mock('../../../services/queue.js', () => ({ reportingQueue: { add: jest.fn() } }));
@@ -39,6 +40,9 @@ import mcpRouter         from '../mcp.js';
 import billingRouter     from '../billing.js';
 
 /** Mount a router with a caller of the given org role. */
+/** One server for this file — see src/test/http-server.js. */
+const serve = sharedServer();
+
 function app(router, role) {
   const a = express();
   a.use(express.json());
@@ -48,7 +52,7 @@ function app(router, role) {
     next();
   });
   a.use('/', router);
-  return a;
+  return serve(a);
 }
 
 // [name, router, method, path, minimum role]

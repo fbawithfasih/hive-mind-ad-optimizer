@@ -12,6 +12,7 @@
  */
 import express from 'express';
 import request from 'supertest';
+import { sharedServer } from '../../../test/http-server.js';
 
 jest.mock('../../../db/prisma.js', () => ({
   prisma: {
@@ -42,6 +43,9 @@ import billingRouter from '../billing.js';
 
 const ORG_ID = 'org-1';
 
+/** One server for this file — see src/test/http-server.js. */
+const serve = sharedServer();
+
 function makeApp() {
   const app = express();
   app.use(express.json());
@@ -51,7 +55,7 @@ function makeApp() {
     next();
   });
   app.use('/', billingRouter);
-  return app;
+  return serve(app);
 }
 
 beforeEach(() => {

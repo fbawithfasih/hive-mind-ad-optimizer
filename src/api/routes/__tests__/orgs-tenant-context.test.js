@@ -12,6 +12,7 @@
 
 import express from 'express';
 import request from 'supertest';
+import { sharedServer } from '../../../test/http-server.js';
 import { getTenantContext } from '../../../db/tenant-context.js';
 
 /** Contexts captured at query time, in call order: { model, ctx }. */
@@ -53,12 +54,15 @@ import orgsRouter from '../orgs.js';
 
 const USER = { userId: 'user-1' };
 
+/** One server for this file — see src/test/http-server.js. */
+const serve = sharedServer();
+
 function makeApp() {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => { req.user = USER; next(); });
   app.use('/', orgsRouter);
-  return app;
+  return serve(app);
 }
 
 /** The context active for the Nth recorded call of `model`. */
