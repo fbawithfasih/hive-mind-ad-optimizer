@@ -16,8 +16,8 @@
 jest.mock('../../db/prisma.js', () => ({
   prisma: {
     profileObjective: { findFirst: jest.fn() },
-    agentRun:         { create: jest.fn(), update: jest.fn(), updateMany: jest.fn(), findFirst: jest.fn() },
-    agentDecision:    { createMany: jest.fn() },
+    agentRun:         { create: jest.fn(), update: jest.fn(), updateMany: jest.fn(), findFirst: jest.fn(), findMany: jest.fn() },
+    agentDecision:    { createMany: jest.fn(), findMany: jest.fn() },
     sellerProfile:    { findMany: jest.fn() },
     subscription:     { findFirst: jest.fn() },
   },
@@ -42,7 +42,7 @@ jest.mock('../../services/agent/llm-review.js', () => ({
 
 import {
   agentProcessor, reportWindow, slotKeyFor, occurrenceDate, isLive, permittedMode,
-  adGroupTermCounts, inverseFor, outcomeFrom, objectiveFor,
+  adGroupTermCounts, inverseFor, outcomeFrom, objectiveFor, decidedKeys, DECISION_DEDUPE_DAYS,
   LOOKBACK_DAYS, ATTRIBUTION_BUFFER_DAYS, REPORT_POLL,
 } from '../agent.worker.js';
 import { prisma } from '../../db/prisma.js';
@@ -87,6 +87,9 @@ function setup({ objective = OBJECTIVE, rows = [wasteRow()], negativeResults, su
   prisma.agentRun.findFirst.mockResolvedValue({ id: 'run-1' });
   prisma.agentRun.update.mockResolvedValue({});
   prisma.agentDecision.createMany.mockResolvedValue({ count: 0 });
+  // No prior runs by default, so nothing is suppressed as already decided.
+  prisma.agentRun.findMany.mockResolvedValue([]);
+  prisma.agentDecision.findMany.mockResolvedValue([]);
   prisma.sellerProfile.findMany.mockResolvedValue([]);
   loadOrgCredential.mockResolvedValue({ adsClientId: 'x', adsClientSecret: 'y', adsRefreshToken: 'z' });
 
@@ -563,5 +566,68 @@ describe('retrying a run that failed without applying anything', () => {
 
     await expect(agentProcessor(job())).rejects.toThrow('connection refused');
     expect(prisma.agentRun.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('not asking twice about a term already judged', () => {
+  const base = { orgId: 'org-1', profileId: 'p-1', now: new Date('2026-09-03T00:00:00Z') };
+
+  beforeEach(() => {
+    prisma.agentRun.findMany.mockResolvedValue([{ id: 'run-a' }]);
+    prisma.agentDecision.findMany.mockResolvedValue([
+      { actionType: 'ADD_NEGATIVE', campaignId: 'c1', adGroupId: 'g1', searchTerm: 'blue widget' },
+    ]);
+  });
+
+  it('returns a key per decision already recorded', async () => {
+    const keys = await decidedKeys({
+      ...base, objective: { negativeMode: 'SHADOW', promotionMode: 'SHADOW' },
+    });
+
+    expect(keys.size).toBe(1);
+    expect([...keys][0]).toContain('ADD_NEGATIVE');
+  });
+
+  it('asks only about the action types still in shadow', async () => {
+    await decidedKeys({ ...base, objective: { negativeMode: 'LIVE', promotionMode: 'SHADOW' } });
+
+    expect(prisma.agentDecision.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ actionType: { in: ['ADD_EXACT'] } }),
+      }),
+    );
+  });
+
+  it('suppresses nothing once both action types are live', async () => {
+    // A live action type is applied, so the account itself stops offering the
+    // term. Suppressing there would strand the shadow backlog: those decisions
+    // never reached Amazon, and they have to be proposable again to be acted on.
+    const keys = await decidedKeys({
+      ...base, objective: { negativeMode: 'LIVE', promotionMode: 'LIVE' },
+    });
+
+    expect(keys.size).toBe(0);
+    expect(prisma.agentDecision.findMany).not.toHaveBeenCalled();
+  });
+
+  it('looks back only as far as the dedupe window', async () => {
+    await decidedKeys({ ...base, objective: { negativeMode: 'SHADOW', promotionMode: 'SHADOW' } });
+
+    const { where } = prisma.agentRun.findMany.mock.calls.at(-1)[0];
+    const expected = new Date(base.now.getTime() - DECISION_DEDUPE_DAYS * 24 * 60 * 60 * 1000);
+
+    expect(where.startedAt.gte).toEqual(expected);
+    expect(where).toMatchObject({ orgId: 'org-1', profileId: 'p-1' });
+  });
+
+  it('does not query decisions when the profile has never run', async () => {
+    prisma.agentRun.findMany.mockResolvedValue([]);
+
+    const keys = await decidedKeys({
+      ...base, objective: { negativeMode: 'SHADOW', promotionMode: 'SHADOW' },
+    });
+
+    expect(keys.size).toBe(0);
+    expect(prisma.agentDecision.findMany).not.toHaveBeenCalled();
   });
 });
