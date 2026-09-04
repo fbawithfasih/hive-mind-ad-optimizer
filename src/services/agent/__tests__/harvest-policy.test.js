@@ -10,7 +10,7 @@
 
 import {
   decideHarvest, aggregateRows, adGroupAov, promotionBid, isBrandTerm, DEFAULT_OBJECTIVE,
-  minClicksFor, observedCvr, decisionKey,
+  minClicksFor, observedCvr, decisionKey, isAsinTerm,
 } from '../harvest-policy.js';
 
 /** One report row, with sensible defaults so tests state only what they mean. */
@@ -346,6 +346,62 @@ describe('what the policy reports back', () => {
       expect(seen.has(key)).toBe(false);
       seen.set(key, c.actionType);
     }
+  });
+});
+
+describe('ASIN search terms, which no keyword can express', () => {
+  // Every one of these reached a review queue in production on 2026-09-04.
+  const REAL = ['b0926qf71k', 'b003pbhghg', 'b0gfgx7529'];
+
+  it.each(REAL)('recognises %s as an ASIN', (asin) => {
+    expect(isAsinTerm(asin)).toBe(true);
+  });
+
+  it('is not fooled by a query that merely starts with b0', () => {
+    expect(isAsinTerm('b0 something')).toBe(false);
+    expect(isAsinTerm('b0926qf71')).toBe(false);   // nine characters
+    expect(isAsinTerm('b0926qf71kk')).toBe(false); // eleven
+  });
+
+  it('leaves a ten-digit ISBN alone, because a bare number is a plausible query', () => {
+    // Skipping a real query is the worse failure of the two: it silently
+    // removes a term the account could have harvested, and nothing reports it.
+    expect(isAsinTerm('0306406152')).toBe(false);
+  });
+
+  it('does not promote a converting ASIN as an exact keyword', () => {
+    // b0926qf71k: 284 clicks, 6 sales, 27.3% ACoS — the strongest-looking row
+    // in the queue, and an exact keyword for it would match almost nobody.
+    const result = decideHarvest([row({
+      searchTerm: 'b0926qf71k', impressions: 38791, clicks: 284, cost: 34.40,
+      purchases14d: 6, sales14d: 125.94,
+    })], { targetAcos: 30 });
+
+    expect(only(result, 'ADD_EXACT')).toHaveLength(0);
+    expect(reasons(result)).toContain('ASIN_TARGET');
+  });
+
+  it('does not negate a wasteful ASIN either', () => {
+    // The costlier half of the bug: a negative keyword does not block a product
+    // placement, so the spend survives the decision — and decisionKey then
+    // suppresses the term for 90 days.
+    const result = decideHarvest([row({
+      searchTerm: 'b003pbhghg', clicks: 60, cost: 45,
+    })], { minClicks: 12 });
+
+    expect(only(result, 'ADD_NEGATIVE')).toHaveLength(0);
+    expect(reasons(result)).toContain('ASIN_TARGET');
+  });
+
+  it('still judges the ordinary queries in the same report', () => {
+    const result = decideHarvest([
+      row({ searchTerm: 'b0926qf71k', clicks: 284, cost: 34.40, purchases14d: 6, sales14d: 125.94 }),
+      row({ searchTerm: 'salt cellar', clicks: 44, cost: 29.55, purchases14d: 6, sales14d: 102.74 }),
+    ], { targetAcos: 30 });
+
+    const promoted = only(result, 'ADD_EXACT');
+    expect(promoted).toHaveLength(1);
+    expect(promoted[0].searchTerm).toBe('salt cellar');
   });
 });
 

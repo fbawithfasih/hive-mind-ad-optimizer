@@ -149,6 +149,36 @@ function normalise(text) {
 }
 
 /**
+ * Whether a search term is an ASIN rather than something a shopper typed.
+ *
+ * A search-term report mixes two different things in one column. Most rows are
+ * queries; rows served by product targeting or an auto campaign's
+ * product placements carry the *target ASIN* instead. Both look like text, and
+ * neither the report nor this policy previously told them apart.
+ *
+ * That matters because the action the rules reach for cannot express an ASIN.
+ * Promoting one adds an exact *keyword* `b0926qf71k`, which matches only a
+ * shopper who literally types that string into search — essentially nobody,
+ * while the 38,791 impressions it was harvested from came from a product page.
+ * Negating one is worse than useless: a negative keyword does not block a
+ * product placement, so the spend continues, the decision is recorded, and
+ * decisionKey then suppresses the term for 90 days — the account keeps paying
+ * for traffic the agent has convinced itself it already handled.
+ *
+ * So both branches skip these. The right capture is a product target, which is
+ * a capability this agent does not have yet; proposing the wrong action is not
+ * a substitute for lacking the right one.
+ *
+ * Matches the B-prefixed form Amazon has issued since 2000. Books can carry a
+ * ten-digit ISBN as their ASIN, which is deliberately NOT matched: a bare
+ * ten-digit number is a plausible query (a model number, a phone number), and
+ * skipping a real query is a worse failure here than proposing on a rare one.
+ */
+export function isAsinTerm(searchTerm) {
+  return /^b0[a-z0-9]{8}$/.test(normalise(searchTerm));
+}
+
+/**
  * Whether a search term contains a brand term as a whole word.
  *
  * Substring matching would treat "case" as branded for a brand called "ase",
@@ -310,6 +340,10 @@ export function decideHarvest(rows = [], objective = {}, decided = new Set()) {
     };
 
     if (term.alreadyExact) { skip(term, 'ALREADY_EXACT'); continue; }
+
+    // Before either rule: an ASIN cannot be expressed as a keyword in
+    // promotion or negation, so neither branch may act on one.
+    if (isAsinTerm(term.searchTerm)) { skip(term, 'ASIN_TARGET'); continue; }
 
     if (term.purchases === 0) {
       if (isBrandTerm(term.searchTerm, obj.brandTerms)) { skip(term, 'BRAND_TERM'); continue; }
