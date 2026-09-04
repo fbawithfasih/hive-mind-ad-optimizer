@@ -40,6 +40,7 @@ const STORED_OBJECTIVE = {
   profileId:             '98225526978265',
   targetAcos:            30,
   minClicks:             null,
+  minClicksToPromote:    null,
   minPurchasesToPromote: 2,
   wasteMultiplier:       2,
   brandTerms:            ['queenza'],
@@ -87,9 +88,35 @@ describe('AgentPanel edit form', () => {
     expect(screen.getByRole('checkbox')).toBeChecked();
   });
 
+  // Addressed by placeholder rather than label: "min clicks" and "min clicks to
+  // promote" both match a loose label regex, and the two nulls mean different
+  // things — calibrate from the account, versus use the policy floor.
   it('renders a null minClicks as an empty box, not zero', async () => {
     await openEditForm();
-    expect(screen.getByLabelText(/MIN CLICKS/i).value).toBe('');
+    expect(screen.getByPlaceholderText('auto').value).toBe('');
+  });
+
+  it('renders a null promotion floor as empty, so the policy default applies', async () => {
+    await openEditForm();
+    expect(screen.getByPlaceholderText('5').value).toBe('');
+  });
+
+  it('submits null for a blank promotion floor rather than 0', async () => {
+    const user = await openEditForm();
+    saveAgentObjectiveApi.mockResolvedValue({ objective: STORED_OBJECTIVE });
+
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(saveAgentObjectiveApi).toHaveBeenCalledTimes(1));
+    expect(saveAgentObjectiveApi.mock.calls[0][1].minClicksToPromote).toBeNull();
+  });
+
+  it('carries a pinned promotion floor into the form', async () => {
+    getAgentObjectivesApi.mockResolvedValue({
+      objectives: [{ ...STORED_OBJECTIVE, minClicksToPromote: 12 }],
+    });
+    await openEditForm();
+    expect(screen.getByPlaceholderText('5')).toHaveValue(12);
   });
 
   it('submits null — not 0 — when min clicks is left empty', async () => {

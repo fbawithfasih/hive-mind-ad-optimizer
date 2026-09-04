@@ -49,6 +49,7 @@ import { prisma } from '../../db/prisma.js';
 import { loadOrgCredential } from '../../services/credentials.js';
 import { createAdsClient } from '../../services/amazon-ads.js';
 import { enqueueAgentSweep } from '../../services/agent/agent-scheduler.js';
+import { DEFAULT_OBJECTIVE } from '../../services/agent/harvest-policy.js';
 
 /** A report row that the policy will turn into a negative. */
 const wasteRow = (over = {}) => ({
@@ -379,8 +380,28 @@ describe('helpers', () => {
 
   it('falls back to the documented defaults for a sparse objective', () => {
     expect(objectiveFor(null)).toEqual({
-      targetAcos: 30, minClicks: null, minPurchasesToPromote: 2, wasteMultiplier: 2, brandTerms: [],
+      targetAcos: 30, minClicks: null, minClicksToPromote: null,
+      minPurchasesToPromote: 2, wasteMultiplier: 2, brandTerms: [],
     });
+  });
+
+  it('carries every threshold the policy reads, so none is silently dropped', () => {
+    // This map is where #84 happened: a field the policy expects, absent here,
+    // reaches decideHarvest as undefined and takes the code default no matter
+    // what the profile stored. Compared against DEFAULT_OBJECTIVE's own keys so
+    // the next threshold added cannot be forgotten in exactly the same way.
+    const carried = Object.keys(objectiveFor({}));
+    for (const field of Object.keys(DEFAULT_OBJECTIVE)) {
+      expect(carried).toContain(field);
+    }
+  });
+
+  it('passes a null promotion floor through, so the policy default applies', () => {
+    expect(objectiveFor({ minClicksToPromote: null }).minClicksToPromote).toBeNull();
+  });
+
+  it('honours a promotion floor an operator pinned', () => {
+    expect(objectiveFor({ minClicksToPromote: 12 }).minClicksToPromote).toBe(12);
   });
 
   it('passes a null minClicks through, so the policy calibrates', () => {

@@ -222,6 +222,7 @@ function ObjectiveForm({ existing, available, graduation, onSave, onCancel, busy
     profileId:             existing?.profileId ?? available[0]?.profileId ?? '',
     targetAcos:            String(existing?.targetAcos ?? 30),
     minClicks:             existing?.minClicks == null ? '' : String(existing.minClicks),
+    minClicksToPromote:    existing?.minClicksToPromote == null ? '' : String(existing.minClicksToPromote),
     minPurchasesToPromote: String(existing?.minPurchasesToPromote ?? 2),
     wasteMultiplier:       String(existing?.wasteMultiplier ?? 2),
     brandTerms:            (existing?.brandTerms ?? []).join(', '),
@@ -251,6 +252,8 @@ function ObjectiveForm({ existing, available, graduation, onSave, onCancel, busy
          policy to calibrate the click threshold from the account's own
          conversion rate instead of taking a fixed guess. */
       minClicks:             form.minClicks.trim() === '' ? null : Number(form.minClicks),
+      /* Blank means the policy's floor, not zero — same shape as minClicks. */
+      minClicksToPromote:    form.minClicksToPromote.trim() === '' ? null : Number(form.minClicksToPromote),
       minPurchasesToPromote: Number(form.minPurchasesToPromote),
       wasteMultiplier:       Number(form.wasteMultiplier),
       brandTerms:            form.brandTerms.split(',').map((t) => t.trim()).filter(Boolean),
@@ -307,6 +310,11 @@ function ObjectiveForm({ existing, available, graduation, onSave, onCancel, busy
         <Field label="Min clicks" hint="Blank calibrates from the account's conversion rate">
           <input type="number" min="1" max="500" placeholder="auto"
                  value={form.minClicks} onChange={set('minClicks')} style={inputStyle} />
+        </Field>
+
+        <Field label="Min clicks to promote" hint="Blank uses the policy floor of 5">
+          <input type="number" min="1" max="500" placeholder="5"
+                 value={form.minClicksToPromote} onChange={set('minClicksToPromote')} style={inputStyle} />
         </Field>
 
         <Field label="Orders to promote" hint="1–50">
@@ -526,7 +534,7 @@ export default function AgentPanel({ isAdmin = false }) {
                 <Pill tone={o.promotionMode === 'LIVE' ? 'warn' : 'neutral'}>promotions {o.promotionMode}</Pill>
                 <span style={{ color: 'var(--text-muted)' }}>target ACoS {o.targetAcos}%</span>
                 <span style={{ color: 'var(--text-muted)' }}>
-                  min clicks {o.minClicks ?? 'auto'}
+                  min clicks {o.minClicks ?? 'auto'} / promote {o.minClicksToPromote ?? 5}
                 </span>
                 {o.brandTerms?.length > 0 && (
                   <span style={{ color: 'var(--text-faint)' }}>brand: {o.brandTerms.join(', ')}</span>

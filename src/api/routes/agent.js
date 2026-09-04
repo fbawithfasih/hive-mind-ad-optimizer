@@ -177,8 +177,8 @@ router.get('/objectives', async (req, res) => {
 
 /** @returns {string|null} the first problem with an objective payload */
 export function validateObjective(body = {}) {
-  const { targetAcos, minClicks, minPurchasesToPromote, wasteMultiplier, brandTerms,
-          negativeMode, promotionMode, enabled } = body;
+  const { targetAcos, minClicks, minClicksToPromote, minPurchasesToPromote, wasteMultiplier,
+          brandTerms, negativeMode, promotionMode, enabled } = body;
 
   if (targetAcos !== undefined) {
     const n = Number(targetAcos);
@@ -188,6 +188,11 @@ export function validateObjective(body = {}) {
   if (minClicks !== undefined && minClicks !== null) {
     const n = Number(minClicks);
     if (!Number.isInteger(n) || n < 1 || n > 500) return 'minClicks must be 1–500, or null to calibrate';
+  }
+  // null is meaningful here too: use the policy's floor rather than a pinned one.
+  if (minClicksToPromote !== undefined && minClicksToPromote !== null) {
+    const n = Number(minClicksToPromote);
+    if (!Number.isInteger(n) || n < 1 || n > 500) return 'minClicksToPromote must be 1–500, or null for the default floor';
   }
   if (minPurchasesToPromote !== undefined) {
     const n = Number(minPurchasesToPromote);
@@ -225,8 +230,8 @@ router.put('/objectives/:profileId', requireRole('ADMIN'), async (req, res) => {
 
   // Only touch what the caller sent, so a partial update cannot silently reset
   // a threshold somebody tuned.
-  const fields = ['targetAcos', 'minClicks', 'minPurchasesToPromote', 'wasteMultiplier',
-                  'brandTerms', 'negativeMode', 'promotionMode', 'enabled'];
+  const fields = ['targetAcos', 'minClicks', 'minClicksToPromote', 'minPurchasesToPromote',
+                  'wasteMultiplier', 'brandTerms', 'negativeMode', 'promotionMode', 'enabled'];
   const data = {};
   for (const f of fields) if (req.body?.[f] !== undefined) data[f] = req.body[f];
 
