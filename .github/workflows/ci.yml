@@ -83,6 +83,16 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      # The frontend suite had never run in CI. Both guard suites that predate
+      # this step — the login-redirect regression and the JSX-comments-rendered-
+      # as-text check — were documenting their bugs rather than defending
+      # against them, and a component test added later would have been just as
+      # inert. Runs before the build: a failed assertion names the behaviour
+      # that broke, where a build failure only says it did not compile.
+      - name: Frontend tests
+        working-directory: frontend
+        run: npm test
+
       - name: Build frontend (Vite/Node 22 workaround)
         working-directory: frontend
         run: node node_modules/vite/dist/node/cli.js build
