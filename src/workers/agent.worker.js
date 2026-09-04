@@ -180,6 +180,7 @@ export function objectiveFor(record) {
   return {
     targetAcos:            record?.targetAcos ?? 30,
     minClicks:             record?.minClicks ?? null,
+    minClicksToPromote:    record?.minClicksToPromote ?? null,
     minPurchasesToPromote: record?.minPurchasesToPromote ?? 2,
     wasteMultiplier:       record?.wasteMultiplier ?? 2,
     brandTerms:            record?.brandTerms ?? [],

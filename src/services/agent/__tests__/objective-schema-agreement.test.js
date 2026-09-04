@@ -58,6 +58,24 @@ describe('ProfileObjective agrees with the policy', () => {
     }
   });
 
+  it('stores every threshold the policy defaults, so none is unreachable', () => {
+    // Generated from DEFAULT_OBJECTIVE rather than listed, which is the whole
+    // lesson of this file: a threshold added to the policy and forgotten in the
+    // schema cannot be set per profile, and nothing else would say so.
+    for (const field of Object.keys(DEFAULT_OBJECTIVE)) {
+      expect(fieldLine(field)).not.toBeNull();
+    }
+  });
+
+  it('lets minClicksToPromote be null, so the policy floor is reachable', () => {
+    // Same shape as minClicks: null is an instruction, not an absence.
+    expect(fieldLine('minClicksToPromote')).toMatch(/Int\?/);
+  });
+
+  it('does not hardcode the promotion floor in the database', () => {
+    expect(fieldLine('minClicksToPromote')).not.toMatch(/@default/);
+  });
+
   it('still defaults the other thresholds to what the policy expects', () => {
     // These have no calibration path, so a stored default is right — it just
     // has to match the code.

@@ -34,6 +34,20 @@ describe('validating an objective before it can enrol anything', () => {
     expect(validateObjective({ minClicks })).toMatch(/minClicks/);
   });
 
+  it('accepts null minClicksToPromote, which means the policy floor', () => {
+    // Same distinction as minClicks, different question: null here is not
+    // "no floor", it is "use the one the policy documents".
+    expect(validateObjective({ minClicksToPromote: null })).toBeNull();
+  });
+
+  it('accepts a pinned promotion floor', () => {
+    expect(validateObjective({ minClicksToPromote: 12 })).toBeNull();
+  });
+
+  it.each([[0], [-5], [501], [4.5], ['five']])('rejects minClicksToPromote %p', (minClicksToPromote) => {
+    expect(validateObjective({ minClicksToPromote })).toMatch(/minClicksToPromote/);
+  });
+
   it.each([[0], [-1], [301], ['low']])('rejects targetAcos %p', (targetAcos) => {
     expect(validateObjective({ targetAcos })).toMatch(/targetAcos/);
   });

@@ -73,6 +73,31 @@ export const DEFAULT_OBJECTIVE = {
    * looked at. 40 holds that error at 8.5% for the same account.
    */
   minClicks: 40,
+  /**
+   * Clicks a term needs before its conversion rate is worth acting on.
+   *
+   * The promotion rule had no click floor at all — minClicks guards only
+   * negation — so `purchases >= 2 && acos <= target` was the whole test. A term
+   * with one click and two attributed orders passed it, on an implied
+   * conversion rate of 200%.
+   *
+   * Those rows are not fabricated: purchases14d counts orders and sales14d
+   * revenue, so one click really can carry three units bought over the
+   * following fortnight. What they are is unmeasured. One click says nothing
+   * about whether the term converts at 40% or at 4%, and the queue fills with
+   * rows a reviewer can only shrug at — six of Queenza's first sixteen had five
+   * clicks or fewer.
+   *
+   * Five rather than the calibrated minClicks (~38 for that account), because
+   * the two thresholds answer different questions. Negation asks "is this
+   * silence long enough to be evidence of failure", which needs the account's
+   * conversion rate. Promotion asks "did this convert often enough to be worth
+   * a keyword", and the orders themselves are already the evidence — the floor
+   * only has to rule out a rate computed from almost no denominator. Requiring
+   * 38 clicks to promote would reject nearly everything the agent exists to
+   * find.
+   */
+  minClicksToPromote: 5,
   /** Sales a term needs before it is worth its own exact keyword. */
   minPurchasesToPromote: 2,
   /** Negate a converting-nothing term once its spend reaches this × target CPA. */
@@ -311,6 +336,12 @@ export function decideHarvest(rows = [], objective = {}, decided = new Set()) {
     obj.minClicks = minClicksFor(cvr) ?? DEFAULT_OBJECTIVE.minClicks;
   }
 
+  // Null means the policy's floor, not "no floor" — the column stores no
+  // default so that this number lives in exactly one place.
+  if (obj.minClicksToPromote === null || obj.minClicksToPromote === undefined) {
+    obj.minClicksToPromote = DEFAULT_OBJECTIVE.minClicksToPromote;
+  }
+
   const candidates = [];
   const skipped    = [];
 
@@ -372,6 +403,15 @@ export function decideHarvest(rows = [], objective = {}, decided = new Set()) {
     }
 
     if (term.purchases >= obj.minPurchasesToPromote && term.acos !== null && term.acos <= obj.targetAcos) {
+      // Checked inside the branch, after the term has otherwise qualified, so
+      // the skip reason names the thing that actually stopped it. Outside, a
+      // one-click term with no sales would report TOO_FEW_CLICKS_TO_PROMOTE
+      // when what is true of it is that it never converted.
+      if (term.clicks < obj.minClicksToPromote) {
+        skip(term, 'TOO_FEW_CLICKS_TO_PROMOTE');
+        continue;
+      }
+
       const bid = promotionBid(term, obj.targetAcos);
       if (bid === null) { skip(term, 'NO_VIABLE_BID'); continue; }
 
@@ -417,6 +457,7 @@ export function decideHarvest(rows = [], objective = {}, decided = new Set()) {
   const stats = {
     observedCvr:  cvr === null ? null : +(cvr * 100).toFixed(2),
     minClicksUsed: obj.minClicks,
+    minClicksToPromoteUsed: obj.minClicksToPromote,
     rowsIn:       rows.length,
     termsAfterAggregation: terms.length,
     candidates:   kept.length,

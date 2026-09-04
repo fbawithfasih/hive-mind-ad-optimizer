@@ -405,6 +405,75 @@ describe('ASIN search terms, which no keyword can express', () => {
   });
 });
 
+describe('the click floor under a promotion', () => {
+  // Every one of these shapes reached Queenza's review queue. purchases14d
+  // counts orders and sales14d revenue, so one click really can carry three
+  // units bought over the following fortnight — the rows are real, and
+  // unmeasured, which is a different complaint.
+  it('does not promote a term with one click and two attributed orders', () => {
+    const result = decideHarvest([row({
+      searchTerm: 'small salt container with spoon',
+      clicks: 1, cost: 1.97, purchases14d: 2, sales14d: 33.00,
+    })], { targetAcos: 30 });
+
+    expect(only(result, 'ADD_EXACT')).toHaveLength(0);
+    expect(reasons(result)).toContain('TOO_FEW_CLICKS_TO_PROMOTE');
+  });
+
+  it('promotes at the floor exactly', () => {
+    // The boundary is the rule. Five behaves differently from four or it is
+    // not a threshold, it is a mood.
+    const at = decideHarvest([row({ clicks: 5, cost: 2.18, purchases14d: 2, sales14d: 39.98 })],
+      { targetAcos: 30 });
+    expect(only(at, 'ADD_EXACT')).toHaveLength(1);
+
+    const below = decideHarvest([row({ clicks: 4, cost: 1.74, purchases14d: 2, sales14d: 39.98 })],
+      { targetAcos: 30 });
+    expect(only(below, 'ADD_EXACT')).toHaveLength(0);
+  });
+
+  it('lets a profile pin its own floor', () => {
+    const result = decideHarvest([row({ clicks: 8, cost: 4, purchases14d: 2, sales14d: 40 })],
+      { targetAcos: 30, minClicksToPromote: 20 });
+
+    expect(only(result, 'ADD_EXACT')).toHaveLength(0);
+    expect(reasons(result)).toContain('TOO_FEW_CLICKS_TO_PROMOTE');
+  });
+
+  it('treats a null floor as the policy default, not as no floor', () => {
+    // The minClicks lesson: null has to mean something the code decides, or a
+    // profile stored with null quietly loses the guard entirely.
+    const result = decideHarvest([row({ clicks: 1, cost: 0.48, purchases14d: 3, sales14d: 40.23 })],
+      { targetAcos: 30, minClicksToPromote: null });
+
+    expect(only(result, 'ADD_EXACT')).toHaveLength(0);
+    expect(reasons(result)).toContain('TOO_FEW_CLICKS_TO_PROMOTE');
+  });
+
+  it('reports the floor it used, so a reviewer can check it', () => {
+    const result = decideHarvest([row({ clicks: 5, purchases14d: 2, sales14d: 40, cost: 2 })], {});
+    expect(result.stats.minClicksToPromoteUsed).toBe(DEFAULT_OBJECTIVE.minClicksToPromote);
+  });
+
+  it('does not steal the reason from a term that simply never converted', () => {
+    // A one-click term with no sales is thin, but what is true of it is that it
+    // has no sales. Checking the floor before the conversion test would label
+    // it TOO_FEW_CLICKS_TO_PROMOTE and hide that.
+    const result = decideHarvest([row({ clicks: 1, cost: 0.5 })], { minClicks: 40 });
+    expect(reasons(result)).toContain('INSUFFICIENT_CLICKS');
+    expect(reasons(result)).not.toContain('TOO_FEW_CLICKS_TO_PROMOTE');
+  });
+
+  it('leaves negation alone — the floor is a promotion rule', () => {
+    // 44 clicks, no sales: negation is governed by minClicks and must not be
+    // affected by a threshold about promoting.
+    const result = decideHarvest([row({ clicks: 44, cost: 29 })],
+      { minClicks: 40, minClicksToPromote: 500 });
+
+    expect(only(result, 'ADD_NEGATIVE')).toHaveLength(1);
+  });
+});
+
 describe('the default objective', () => {
   it('is genuinely conservative about negation out of the box', () => {
     // 12 was the original value, chosen by feel. At a 6% conversion rate — what
