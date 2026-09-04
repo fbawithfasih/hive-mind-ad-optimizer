@@ -20,7 +20,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 
 import {
   getAgentDecisionsApi, getAgentGraduationApi, getAgentObjectivesApi,
-  getAgentRunsApi, recordAgentVerdictApi,
+  getAgentRunsApi, getStoredProfilesApi, recordAgentVerdictApi, saveAgentObjectiveApi,
 } from '../services/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 
@@ -179,7 +179,204 @@ function DecisionRow({ decision, onVerdict, busy, isMobile }) {
   );
 }
 
-export default function AgentPanel() {
+const inputStyle = {
+  width: '100%', padding: '7px 10px', borderRadius: 8, fontSize: 12,
+  background: 'var(--overlay-3)', color: 'var(--text)',
+  border: '1px solid var(--overlay-7)', boxSizing: 'border-box',
+};
+
+function Field({ label, hint, children }) {
+  return (
+    <label style={{ display: 'block' }}>
+      <span style={{
+        display: 'block', fontSize: 9, letterSpacing: '0.06em', marginBottom: 4,
+        color: 'var(--text-faint)', fontWeight: 700,
+      }}>{label.toUpperCase()}</span>
+      {children}
+      {hint && <span style={{ display: 'block', marginTop: 3, fontSize: 10, color: 'var(--text-faint)' }}>{hint}</span>}
+    </label>
+  );
+}
+
+/** Which graduation entry backs each mode field. */
+const MODE_ACTION = { negativeMode: 'ADD_NEGATIVE', promotionMode: 'ADD_EXACT' };
+
+/**
+ * Enrol a profile, or change the terms of one already enrolled.
+ *
+ * The front door the panel was missing. The daily sweep only picks up profiles
+ * with an enabled ProfileObjective (services/agent/agent-scheduler.js), so with
+ * no way to create one the entire surface sits at zero forever — which is
+ * exactly what it did.
+ *
+ * Modes are edited here, LIVE included, because the graduation gate is advisory
+ * by design: it reports whether an action type has cleared the bar and a person
+ * decides (services/agent/graduation.js). So the form puts that verdict next to
+ * the choice instead of enforcing it, and says what LIVE means before it is
+ * picked rather than after.
+ */
+function ObjectiveForm({ existing, available, graduation, onSave, onCancel, busy, isMobile }) {
+  const isNew = !existing;
+
+  const [form, setForm] = useState(() => ({
+    profileId:             existing?.profileId ?? available[0]?.profileId ?? '',
+    targetAcos:            String(existing?.targetAcos ?? 30),
+    minClicks:             existing?.minClicks == null ? '' : String(existing.minClicks),
+    minPurchasesToPromote: String(existing?.minPurchasesToPromote ?? 2),
+    wasteMultiplier:       String(existing?.wasteMultiplier ?? 2),
+    brandTerms:            (existing?.brandTerms ?? []).join(', '),
+    negativeMode:          existing?.negativeMode ?? 'SHADOW',
+    promotionMode:         existing?.promotionMode ?? 'SHADOW',
+    // Enrolling a profile and leaving it switched off is almost never the
+    // intent, but it stays visible and reversible.
+    enabled:               existing?.enabled ?? true,
+  }));
+
+  const set = (key) => (e) => {
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    setForm((f) => ({ ...f, [key]: value }));
+  };
+
+  /* Modes set to LIVE whose action type has not cleared the gate. */
+  const ungraduated = Object.entries(MODE_ACTION)
+    .filter(([field, action]) => form[field] === 'LIVE' && !graduation?.[action]?.eligible)
+    .map(([, action]) => ACTION_LABEL[action] ?? action);
+
+  function submit(e) {
+    e.preventDefault();
+    if (!form.profileId) return;
+    onSave(form.profileId, {
+      targetAcos:            Number(form.targetAcos),
+      /* Blank is not zero. An empty box means null, which is what tells the
+         policy to calibrate the click threshold from the account's own
+         conversion rate instead of taking a fixed guess. */
+      minClicks:             form.minClicks.trim() === '' ? null : Number(form.minClicks),
+      minPurchasesToPromote: Number(form.minPurchasesToPromote),
+      wasteMultiplier:       Number(form.wasteMultiplier),
+      brandTerms:            form.brandTerms.split(',').map((t) => t.trim()).filter(Boolean),
+      negativeMode:          form.negativeMode,
+      promotionMode:         form.promotionMode,
+      enabled:               form.enabled,
+    });
+  }
+
+  if (isNew && available.length === 0) {
+    return (
+      <div style={{ borderTop: '1px solid var(--overlay-4)', paddingTop: 12, marginTop: 12 }}>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
+          Every synced profile is already enrolled. Sync a profile on the Profiles page to enrol another.
+        </p>
+        <button type="button" onClick={onCancel} style={{
+          marginTop: 10, padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+          cursor: 'pointer', border: '1px solid var(--overlay-7)', background: 'var(--overlay-3)',
+          color: 'var(--text-subtle)',
+        }}>Close</button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} style={{
+      borderTop: '1px solid var(--overlay-4)', paddingTop: 12, marginTop: 12,
+      display: 'flex', flexDirection: 'column', gap: 12,
+    }}>
+      <div style={{
+        display: 'grid', gap: 12,
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+      }}>
+        <Field label="Profile">
+          {isNew ? (
+            <select value={form.profileId} onChange={set('profileId')} style={inputStyle}>
+              {available.map((p) => (
+                <option key={p.profileId} value={p.profileId}>
+                  {[p.profileName || p.accountName, p.countryCode, p.profileId]
+                    .filter(Boolean).join(' — ')}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input value={form.profileId} disabled style={{ ...inputStyle, opacity: 0.6 }} />
+          )}
+        </Field>
+
+        <Field label="Target ACoS" hint="1–300 percent">
+          <input type="number" min="1" max="300" step="0.5"
+                 value={form.targetAcos} onChange={set('targetAcos')} style={inputStyle} />
+        </Field>
+
+        <Field label="Min clicks" hint="Blank calibrates from the account's conversion rate">
+          <input type="number" min="1" max="500" placeholder="auto"
+                 value={form.minClicks} onChange={set('minClicks')} style={inputStyle} />
+        </Field>
+
+        <Field label="Orders to promote" hint="1–50">
+          <input type="number" min="1" max="50"
+                 value={form.minPurchasesToPromote} onChange={set('minPurchasesToPromote')} style={inputStyle} />
+        </Field>
+
+        <Field label="Waste multiplier" hint="Spend past this many times target CPA is waste">
+          <input type="number" min="0.1" max="20" step="0.1"
+                 value={form.wasteMultiplier} onChange={set('wasteMultiplier')} style={inputStyle} />
+        </Field>
+
+        <Field label="Brand terms" hint="Comma separated; never negated">
+          <input value={form.brandTerms} onChange={set('brandTerms')}
+                 placeholder="my brand, mybrand" style={inputStyle} />
+        </Field>
+
+        <Field label="Negatives" hint="LIVE applies them to Amazon">
+          <select value={form.negativeMode} onChange={set('negativeMode')} style={inputStyle}>
+            <option value="SHADOW">SHADOW — propose only</option>
+            <option value="LIVE">LIVE — apply automatically</option>
+          </select>
+        </Field>
+
+        <Field label="Promotions" hint="LIVE starts real spend on new keywords">
+          <select value={form.promotionMode} onChange={set('promotionMode')} style={inputStyle}>
+            <option value="SHADOW">SHADOW — propose only</option>
+            <option value="LIVE">LIVE — apply automatically</option>
+          </select>
+        </Field>
+
+        <Field label="Enrolled">
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, paddingTop: 6 }}>
+            <input type="checkbox" checked={form.enabled} onChange={set('enabled')} />
+            <span style={{ color: 'var(--text-subtle)' }}>
+              {form.enabled ? 'The daily sweep includes this profile' : 'Off — the sweep skips it'}
+            </span>
+          </label>
+        </Field>
+      </div>
+
+      {ungraduated.length > 0 && (
+        <p style={{
+          margin: 0, fontSize: 11, color: 'var(--acc-amber)',
+          background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.28)',
+          borderRadius: 8, padding: '8px 10px',
+        }}>
+          {ungraduated.join(' and ')} {ungraduated.length > 1 ? 'have' : 'has'} not cleared the
+          agreement gate yet. Going live is allowed — the gate is advice, not a lock — but the agent
+          will change a real account without anyone reviewing it first.
+        </p>
+      )}
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button type="submit" disabled={busy || !form.profileId} style={{
+          padding: '7px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+          cursor: busy ? 'wait' : 'pointer',
+          border: '1px solid rgba(167,139,250,0.35)', background: 'rgba(167,139,250,0.14)',
+          color: 'var(--accent-soft)',
+        }}>{busy ? 'Saving…' : isNew ? 'Enrol profile' : 'Save changes'}</button>
+        <button type="button" onClick={onCancel} disabled={busy} style={{
+          padding: '7px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+          border: '1px solid var(--overlay-7)', background: 'var(--overlay-3)', color: 'var(--text-subtle)',
+        }}>Cancel</button>
+      </div>
+    </form>
+  );
+}
+
+export default function AgentPanel({ isAdmin = false }) {
   const isMobile = useIsMobile();
 
   const [graduation, setGraduation] = useState(null);
@@ -190,21 +387,29 @@ export default function AgentPanel() {
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState(null);
   const [busyId, setBusyId]         = useState(null);
+  const [profiles, setProfiles]     = useState([]);
+  /** profileId being edited, '__new__' for the enrol form, or null for neither. */
+  const [editing, setEditing]       = useState(null);
+  const [savingObjective, setSavingObjective] = useState(false);
 
   const load = useCallback(async (verdict) => {
     setLoading(true);
     setError(null);
     try {
-      const [g, d, o, r] = await Promise.all([
+      const [g, d, o, r, p] = await Promise.all([
         getAgentGraduationApi(),
         getAgentDecisionsApi({ verdict, limit: 100 }),
         getAgentObjectivesApi(),
         getAgentRunsApi({ limit: 5 }),
+        // Uncached: a profile synced a minute ago should be enrollable now, and
+        // getProfiles() holds its list for 24 hours.
+        getStoredProfilesApi().catch(() => []),
       ]);
       setGraduation(g.graduation);
       setDecisions(d.decisions ?? []);
       setObjectives(o.objectives ?? []);
       setRuns(r.runs ?? []);
+      setProfiles(Array.isArray(p) ? p : p?.profiles ?? []);
     } catch (err) {
       // Surfaced rather than swallowed: an empty queue and a failed request look
       // identical otherwise, and one of them means the agent is not running.
@@ -231,7 +436,31 @@ export default function AgentPanel() {
     }
   }
 
+  async function handleSaveObjective(profileId, patch) {
+    setSavingObjective(true);
+    setError(null);
+    try {
+      const { objective } = await saveAgentObjectiveApi(profileId, patch);
+      // Upsert in place: the server is the authority on what was stored, and
+      // re-reading the whole panel to move one row is a lot of work for nothing.
+      setObjectives((prev) => {
+        const i = prev.findIndex((o) => o.profileId === profileId);
+        if (i === -1) return [...prev, objective];
+        const next = [...prev];
+        next[i] = objective;
+        return next;
+      });
+      setEditing(null);
+    } catch (err) {
+      setError(err?.response?.data?.error ?? 'Could not save that objective');
+    } finally {
+      setSavingObjective(false);
+    }
+  }
+
   const lastRun = runs[0];
+  const enrolledIds = new Set(objectives.map((o) => o.profileId));
+  const available = profiles.filter((p) => !enrolledIds.has(p.profileId));
 
   return (
     <div style={{ padding: isMobile ? 14 : 24, maxWidth: 1100, margin: '0 auto' }}>
@@ -260,13 +489,29 @@ export default function AgentPanel() {
 
       {/* ── Enrolled profiles ── */}
       <Card style={{ marginBottom: 20 }}>
-        <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: 'var(--text-faint)' }}>
-          ENROLLED PROFILES
-        </p>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 8, marginBottom: 10,
+        }}>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: 'var(--text-faint)' }}>
+            ENROLLED PROFILES
+          </p>
+          {isAdmin && editing === null && (
+            <button
+              onClick={() => setEditing('__new__')}
+              style={{
+                padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                border: '1px solid rgba(167,139,250,0.35)', background: 'rgba(167,139,250,0.14)',
+                color: 'var(--accent-soft)',
+              }}
+            >Enrol a profile</button>
+          )}
+        </div>
         {objectives.length === 0 ? (
           <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
             No profile is enrolled. The agent does nothing until one is — connecting Amazon does not
             enrol a profile by itself.
+            {!isAdmin && ' Enrolling one is an admin action.'}
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -286,10 +531,33 @@ export default function AgentPanel() {
                 {o.brandTerms?.length > 0 && (
                   <span style={{ color: 'var(--text-faint)' }}>brand: {o.brandTerms.join(', ')}</span>
                 )}
+                {isAdmin && editing !== o.profileId && (
+                  <button
+                    onClick={() => setEditing(o.profileId)}
+                    style={{
+                      marginLeft: 'auto', padding: '3px 10px', borderRadius: 8, fontSize: 11,
+                      fontWeight: 700, cursor: 'pointer', border: '1px solid var(--overlay-7)',
+                      background: 'var(--overlay-3)', color: 'var(--text-subtle)',
+                    }}
+                  >Edit</button>
+                )}
               </div>
             ))}
           </div>
         )}
+        {isAdmin && editing !== null && (
+          <ObjectiveForm
+            key={editing}
+            existing={editing === '__new__' ? null : objectives.find((o) => o.profileId === editing)}
+            available={available}
+            graduation={graduation}
+            onSave={handleSaveObjective}
+            onCancel={() => setEditing(null)}
+            busy={savingObjective}
+            isMobile={isMobile}
+          />
+        )}
+
         {lastRun && (
           <p style={{ margin: '10px 0 0', fontSize: 11, color: 'var(--text-faint)' }}>
             Last run {new Date(lastRun.startedAt).toLocaleString()} — {lastRun.status}
