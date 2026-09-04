@@ -1004,7 +1004,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
         {activeTab === 'keywords' && <KeywordRecommendationsPanel profileId={selectedProfileId} />}
         {activeTab === 'reports' && <ReportingAgentPanel profileId={selectedProfileId} aiModel={aiModel} />}
         {activeTab === 'automation' && <AutomationPanel profileId={selectedProfileId} />}
-        {activeTab === 'agent' && <AgentPanel />}
+        {activeTab === 'agent' && <AgentPanel isAdmin={user?.currentOrg?.role === 'ADMIN'} />}
         {activeTab === 'alerts' && <AlertsPanel />}
         {activeTab === 'brand-analytics' && <BrandAnalyticsPanel />}
         {activeTab === 'amazon' && <AmazonConnectPanel />}
