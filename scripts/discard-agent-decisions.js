@@ -14,8 +14,13 @@
  * from ever re-judging that term.
  *
  * Usage:
- *   node scripts/discard-agent-decisions.js --run <runId> [--type <ACTION>]         # dry run
- *   node scripts/discard-agent-decisions.js --run <runId> [--type <ACTION>] --apply
+ *   node scripts/discard-agent-decisions.js --run <runId> [--type <ACTION>] [--term <text> ...]
+ *   node scripts/discard-agent-decisions.js --run <runId> [...] --apply
+ *
+ * --term narrows to named search terms and repeats: `--term b0926qf71k --term
+ * b003pbhghg`. Repeating the flag rather than splitting one comma-separated
+ * value is not fussiness — a search term may itself contain a comma, and
+ * splitting on one would silently address a term nobody named.
  *
  * Run inside the container (`railway ssh`) — the database is on the private
  * network.
@@ -39,11 +44,49 @@ const value = (name) => {
   return i === -1 ? null : argv[i + 1];
 };
 
+/** Every occurrence of a repeatable flag, in the order given. */
+const values = (name) => argv.reduce(
+  (acc, arg, i) => (arg === `--${name}` && argv[i + 1] ? [...acc, argv[i + 1]] : acc),
+  [],
+);
+
+const KNOWN_FLAGS = ['--run', '--type', '--term', '--apply'];
+
+/**
+ * Reject a flag this script does not know.
+ *
+ * The failure being prevented is specific and bad: `--terms b0926qf71k` (plural,
+ * a natural typo) would otherwise parse as no --term at all, leave the filter
+ * empty, and delete every decision in the run — the exact opposite of what the
+ * operator asked for, with --apply already on the command line.
+ */
+const unknownFlags = () => argv.filter(a => a.startsWith('--') && !KNOWN_FLAGS.includes(a));
+
+/** Search terms are stored normalised by the policy; compare on the same footing. */
+export const normaliseTerm = (text) => String(text ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+/**
+ * Which of the requested terms matched nothing in scope.
+ *
+ * Reported rather than ignored, and fatal before --apply. A term that matches
+ * nothing is nearly always a typo or the wrong run, and the operator's mental
+ * model at that moment is "I asked for three and it deleted what it found" —
+ * so a silent partial match is how two of the three quietly survive.
+ */
+export function unmatchedTerms(decisions, terms) {
+  const present = new Set(decisions.map(d => normaliseTerm(d.searchTerm)));
+  return terms.filter(t => !present.has(normaliseTerm(t)));
+}
+
 const money = (n) => (n === null || n === undefined ? '—' : `$${Number(n).toFixed(2)}`);
 
 async function main() {
   const runId = value('run');
   const type  = value('type');
+  const terms = values('term');
+
+  const unknown = unknownFlags();
+  if (unknown.length > 0) return usage(`Unrecognised flag: ${unknown.join(', ')}`);
 
   if (!runId) return usage('--run <runId> is required');
   if (type && !['ADD_NEGATIVE', 'ADD_EXACT'].includes(type)) {
@@ -54,12 +97,34 @@ async function main() {
   if (!run) { console.error(`No agent run with id ${runId}`); process.exitCode = 1; return; }
 
   console.log(`Run ${run.slotKey} — org=${run.orgId} profile=${run.profileId} mode=${run.mode}`);
-  console.log(`Scope: ${type ?? 'every action type'}\n`);
+  console.log(`Scope: ${type ?? 'every action type'}`
+    + (terms.length > 0 ? ` · terms: ${terms.map(t => `"${normaliseTerm(t)}"`).join(', ')}` : '')
+    + '\n');
 
   const decisions = await prisma.agentDecision.findMany({
-    where:   { runId, ...(type ? { actionType: type } : {}) },
+    where: {
+      runId,
+      ...(type ? { actionType: type } : {}),
+      ...(terms.length > 0 ? { searchTerm: { in: terms.map(normaliseTerm) } } : {}),
+    },
     orderBy: { createdAt: 'asc' },
   });
+
+  // Checked against what the run actually holds, not against what came back
+  // filtered, so "no such term in this run" is distinguishable from "that term
+  // is here but already carries a verdict".
+  if (terms.length > 0) {
+    const inRun = await prisma.agentDecision.findMany({
+      where: { runId }, select: { searchTerm: true },
+    });
+    const missing = unmatchedTerms(inRun, terms);
+    if (missing.length > 0) {
+      console.error(`Not in this run: ${missing.map(t => `"${t}"`).join(', ')}`);
+      console.error('Nothing was deleted. Check the term and the run id.');
+      process.exitCode = 1;
+      return;
+    }
+  }
 
   if (decisions.length === 0) { console.log('Nothing matches.'); return; }
 
@@ -101,13 +166,26 @@ async function main() {
 function usage(problem) {
   if (problem) console.error(`${problem}\n`);
   console.error(`Usage:
-  node scripts/discard-agent-decisions.js --run <runId> [--type ADD_NEGATIVE|ADD_EXACT]
-  node scripts/discard-agent-decisions.js --run <runId> [--type ...] --apply`);
+  node scripts/discard-agent-decisions.js --run <runId> [--type ADD_NEGATIVE|ADD_EXACT] [--term <text> ...]
+  node scripts/discard-agent-decisions.js --run <runId> [...] --apply
+
+  --term repeats, and matches a whole search term: --term b0926qf71k --term b003pbhghg`);
   process.exitCode = 1;
 }
 
 // Operator tooling spans organizations, so this runs as system — the same way
 // the agent worker's own fan-out does.
-runAsSystem(main)
-  .catch((err) => { console.error(err); process.exitCode = 1; })
-  .finally(async () => { await prisma.$disconnect().catch(() => {}); });
+//
+// Guarded so importing this file for its helpers does not run the script: the
+// tests exercise the term matching, and a bare import that connected to the
+// database and started deleting would be a memorable way to learn that.
+//
+// Matched on argv rather than import.meta.url, which is the obvious spelling
+// and does not survive babel-jest's CommonJS transform — see the same note in
+// db/__tests__/tenant-guard.test.js. Under jest argv[1] is the jest binary, so
+// this is false exactly when it needs to be.
+if (/discard-agent-decisions\.js$/.test(process.argv[1] ?? '')) {
+  runAsSystem(main)
+    .catch((err) => { console.error(err); process.exitCode = 1; })
+    .finally(async () => { await prisma.$disconnect().catch(() => {}); });
+}
