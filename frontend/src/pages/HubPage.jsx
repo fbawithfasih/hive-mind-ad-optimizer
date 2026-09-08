@@ -157,9 +157,10 @@ const TOOLS = [
 ];
 
 const PLAN_CONFIG = {
-  STARTER: { label: 'Starter', color: 'var(--info)', glow: 'rgba(96,165,250,0.4)',  profiles: '2' },
-  GROWTH:  { label: 'Growth',  color: 'var(--accent)', glow: 'rgba(167,139,250,0.4)', profiles: '6' },
-  SCALE:   { label: 'Scale',   color: 'var(--acc-amber)', glow: 'rgba(251,146,60,0.4)',  profiles: 'Unlimited' },
+  // Profile counts mirror src/config/plan-limits.js — the number the server enforces.
+  STARTER: { label: 'Starter', color: 'var(--info)', glow: 'rgba(96,165,250,0.4)',  profiles: '1' },
+  GROWTH:  { label: 'Growth',  color: 'var(--accent)', glow: 'rgba(167,139,250,0.4)', profiles: '3' },
+  SCALE:   { label: 'Scale',   color: 'var(--acc-amber)', glow: 'rgba(251,146,60,0.4)',  profiles: '10' },
 };
 
 function initials(name, email) {

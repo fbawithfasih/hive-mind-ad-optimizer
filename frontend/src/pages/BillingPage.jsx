@@ -14,26 +14,56 @@ const TIER_TEXT = { BASIC: 'var(--text-muted)', PRO: 'var(--info)', ENTERPRISE: 
 const TIER_FILL = { BASIC: '#475569', PRO: '#1D4ED8', ENTERPRISE: '#6D28D9', CUSTOM: '#B45309' };
 const STATUS_COLOR = { ACTIVE: 'var(--success-deep)', PAST_DUE: 'var(--warning-deep)', CANCELLED: 'var(--rose)', EXPIRED: 'var(--text-subtle)' };
 
-// Prices mirror src/config/pricing.js — keep aligned with the backend source of truth.
+// Prices and limits mirror src/config/pricing.js and src/config/plan-limits.js —
+// keep aligned with the backend source of truth. Only shipped features are
+// listed; a promise the product cannot keep is worse than a shorter list.
 const PLAN_DETAILS = [
   {
     tier: 'BASIC',
     name: 'Starter',
-    price: '$49/mo',
-    features: ['Up to 100 listing optimizations/mo', '5 bulk operations/mo', '10 reports/mo', '1 Amazon profile', 'Email support'],
+    price: '₹2,499/mo',
+    features: [
+      '1 Amazon Ads profile',
+      'Daily AI agent review of your search terms (shadow mode)',
+      '20 listing optimizations/mo',
+      '100 AI questions/mo',
+      '10 image regenerations/mo',
+      '3 automation rules',
+      'Monthly Brand Analytics',
+      'Email support',
+    ],
   },
   {
     tier: 'PRO',
     name: 'Growth',
-    price: '$149/mo',
+    price: '₹6,999/mo',
     popular: true,
-    features: ['Unlimited listing optimizations', '50 bulk operations/mo', 'Unlimited reports', '5 Amazon profiles', 'Priority email support', 'AI keyword recommendations'],
+    features: [
+      '3 Amazon Ads profiles',
+      'Agent LIVE mode once it graduates',
+      '100 listing optimizations/mo',
+      '500 AI questions/mo',
+      '50 image regenerations/mo',
+      '20 automation rules',
+      'Weekly Brand Analytics',
+      'Slack alerts',
+      '3 team seats',
+      'Priority email support',
+    ],
   },
   {
     tier: 'ENTERPRISE',
     name: 'Scale',
-    price: '$499/mo',
-    features: ['Everything in Growth', 'Unlimited profiles', 'Dedicated account manager', 'Custom AI models', 'SLA guarantee', 'SSO / SAML'],
+    price: '₹16,999/mo',
+    features: [
+      '10 Amazon Ads profiles',
+      'Everything in Growth',
+      'Unlimited listing optimizations, AI questions and rules',
+      '200 image regenerations/mo',
+      'All Brand Analytics reports, weekly',
+      '10 team seats',
+      'Priority support',
+    ],
   },
 ];
 

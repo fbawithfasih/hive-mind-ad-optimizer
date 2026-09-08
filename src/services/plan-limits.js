@@ -70,13 +70,15 @@ function record(tier, field, orgId) {
 /**
  * How much of `field` this org has used.
  *
- * Monthly fields read the current month's UsageMetric row; `profiles` counts
- * the SellerProfile rows, which is a standing total rather than a monthly one.
+ * Monthly fields read the current month's UsageMetric row. The standing
+ * fields count rows that exist right now — profiles, members, rules — which
+ * is a total rather than a tally, so a seat freed by removing a member is
+ * available again the same second.
  */
 async function usageFor(orgId, field) {
-  if (field === 'profiles') {
-    return prisma.sellerProfile.count({ where: { orgId } });
-  }
+  if (field === 'profiles')        return prisma.sellerProfile.count({ where: { orgId } });
+  if (field === 'seats')           return prisma.orgMember.count({ where: { orgId } });
+  if (field === 'automationRules') return prisma.campaignRule.count({ where: { orgId } });
   const row = await prisma.usageMetric.findFirst({
     where: { orgId, month: currentMonth() },
     select: { [field]: true },
@@ -92,7 +94,7 @@ async function usageFor(orgId, field) {
  * direction warn mode fails in.
  *
  * @param {string} orgId
- * @param {'listingsOptimized'|'bulkOperations'|'reportsGenerated'|'profiles'} field
+ * @param {keyof typeof PLAN_LIMITS.BASIC} field
  * @param {number} [by] how many are about to be consumed
  * @returns {Promise<{allowed: boolean, limit: number|null, used: number, tier: string, unlimited: boolean}>}
  */
