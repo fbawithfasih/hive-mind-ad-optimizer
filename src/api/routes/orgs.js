@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 import { prisma } from '../../db/prisma.js';
 import { runAsSystem, runWithTenant } from '../../db/tenant-context.js';
 import { createLogger } from '../utils/logger.js';
+import { sendTrialWelcome } from '../../services/trial-lifecycle.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
 import { sendOrgInvitationEmail } from '../../services/email.js';
 import { requireVerifiedEmail } from '../middleware/requireVerifiedEmail.js';
@@ -107,6 +108,14 @@ router.post('/', async (req, res) => {
     }));
 
     logger.info(`Org created: ${org.id} (${org.name}) by user ${req.user.userId}`);
+
+    // The welcome, now rather than at tomorrow's sweep. Fire-and-forget: a
+    // failed email must not fail the signup, and the sweep backfills it.
+    // Deliberately not wired into the claim-token path in auth.js — that org
+    // has just paid, and the sweep excludes paid orgs for the same reason.
+    sendTrialWelcome(org.id).catch((err) =>
+      logger.warn(`Welcome email left to the sweep for org ${org.id}: ${err.message}`));
+
     res.status(201).json({ org });
   } catch (err) {
     logger.error(`Create org error: ${err.message}`);

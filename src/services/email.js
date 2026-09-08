@@ -265,3 +265,94 @@ export async function sendOrgInvitationEmail(to, { orgName, inviterName, role, t
     `, { preheader: `${inviterName} invited you to join ${orgName} on ${APP_NAME}.` }),
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Trial lifecycle
+//
+// Three emails, sent once each by services/trial-lifecycle.js. None of them
+// quotes a price: the pricing page is the source of truth for that and an
+// email cannot be edited after it is sent.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const longDate = (d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+const plural   = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+export async function sendTrialWelcomeEmail(to, { orgName, trialEndsAt, trialDays }) {
+  const url  = `${FRONTEND_URL()}/onboarding`;
+  const org  = escapeHtml(orgName);
+  const ends = longDate(trialEndsAt);
+
+  return send({
+    to,
+    subject: `Welcome to ${APP_NAME} — your ${trialDays}-day trial has started`,
+    text:
+      `Welcome to ${APP_NAME}.\n\n` +
+      `Your ${trialDays}-day trial for ${orgName} runs until ${ends}. No card needed.\n\n` +
+      `What happens next:\n` +
+      ` 1. Connect your Amazon Ads account (two consent screens, about two minutes).\n` +
+      ` 2. Every morning the agent reads your search-term report and proposes what it would negate or promote, and why.\n` +
+      ` 3. You review the proposals. Nothing touches your account until you have seen it be right.\n\n` +
+      `Start here: ${url}` +
+      textFooter(),
+    html: wrap(`
+      <h2 style="margin:0 0 8px;color:#0f172a;font-size:20px;font-weight:800">Welcome to ${APP_NAME}</h2>
+      <p style="color:#475569;margin:0 0 20px;font-size:14px;line-height:1.6">Your ${trialDays}-day trial for <strong>${org}</strong> runs until <strong>${ends}</strong>. No card needed.</p>
+      <p style="color:#0f172a;margin:0 0 8px;font-size:14px;font-weight:700">What happens next</p>
+      <ol style="color:#475569;margin:0 0 24px;padding-left:20px;font-size:14px;line-height:1.7">
+        <li>Connect your Amazon Ads account — two consent screens, about two minutes.</li>
+        <li>Every morning the agent reads your search-term report and proposes what it would negate or promote, and why.</li>
+        <li>You review the proposals. Nothing touches your account until you have seen it be right.</li>
+      </ol>
+      <a href="${url}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Connect Amazon Ads</a>
+      <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">Reply to this email if anything is unclear — a person reads it.</p>
+    `, { preheader: `Your ${trialDays}-day trial runs until ${ends}. Here is what happens next.` }),
+  });
+}
+
+export async function sendTrialEndingEmail(to, { orgName, daysLeft, trialEndsAt }) {
+  const url  = `${FRONTEND_URL()}/billing`;
+  const org  = escapeHtml(orgName);
+  const ends = longDate(trialEndsAt);
+  const left = plural(daysLeft, 'day');
+
+  return send({
+    to,
+    subject: `Your ${APP_NAME} trial ends in ${left}`,
+    text:
+      `Your trial for ${orgName} ends on ${ends} — ${left} from now.\n\n` +
+      `After that the agent keeps proposing, but listing optimization, reports and image tools pause until you choose a plan.\n\n` +
+      `Plans are monthly, cancel any time, with a 7-day money-back guarantee.\n\n` +
+      `Choose a plan: ${url}` +
+      textFooter(),
+    html: wrap(`
+      <h2 style="margin:0 0 8px;color:#0f172a;font-size:20px;font-weight:800">Your trial ends in ${left}</h2>
+      <p style="color:#475569;margin:0 0 16px;font-size:14px;line-height:1.6">The trial for <strong>${org}</strong> ends on <strong>${ends}</strong>.</p>
+      <p style="color:#475569;margin:0 0 24px;font-size:14px;line-height:1.6">After that the agent keeps proposing, but listing optimization, reports and image tools pause until you choose a plan. Plans are monthly, cancel any time, with a 7-day money-back guarantee.</p>
+      <a href="${url}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Choose a plan</a>
+      <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">Not the right fit? No action needed — the trial simply ends.</p>
+    `, { preheader: `${left} left on your trial for ${orgName}.` }),
+  });
+}
+
+export async function sendTrialExpiredEmail(to, { orgName }) {
+  const url = `${FRONTEND_URL()}/billing`;
+  const org = escapeHtml(orgName);
+
+  return send({
+    to,
+    subject: `Your ${APP_NAME} trial has ended`,
+    text:
+      `The trial for ${orgName} has ended.\n\n` +
+      `Your account and its history are kept. The agent keeps proposing in shadow mode; listing optimization, reports and image tools are paused until you choose a plan.\n\n` +
+      `Plans are monthly, cancel any time, with a 7-day money-back guarantee.\n\n` +
+      `Choose a plan: ${url}` +
+      textFooter(),
+    html: wrap(`
+      <h2 style="margin:0 0 8px;color:#0f172a;font-size:20px;font-weight:800">Your trial has ended</h2>
+      <p style="color:#475569;margin:0 0 16px;font-size:14px;line-height:1.6">The trial for <strong>${org}</strong> has ended. Your account and its history are kept.</p>
+      <p style="color:#475569;margin:0 0 24px;font-size:14px;line-height:1.6">The agent keeps proposing in shadow mode; listing optimization, reports and image tools are paused until you choose a plan. Plans are monthly, cancel any time, with a 7-day money-back guarantee.</p>
+      <a href="${url}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Choose a plan</a>
+      <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">This is the last email about your trial.</p>
+    `, { preheader: `The trial for ${orgName} has ended. Your account is kept.` }),
+  });
+}

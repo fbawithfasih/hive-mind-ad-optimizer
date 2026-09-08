@@ -144,3 +144,44 @@ describe('email.js — sendCampaignAlertEmail', () => {
     expect(html).toContain('&lt;img');
   });
 });
+
+describe('trial lifecycle emails', () => {
+  const { sendTrialWelcomeEmail, sendTrialEndingEmail, sendTrialExpiredEmail } = require('../email.js');
+  const ends = new Date('2026-09-23T06:00:00Z');
+
+  it('welcome names the trial length and end date, and links to onboarding', async () => {
+    await sendTrialWelcomeEmail('a@b.com', { orgName: 'Queenza <Crafts>', trialEndsAt: ends, trialDays: 14 });
+
+    const msg = mockSend.mock.calls[0][0];
+    expect(msg.to).toBe('a@b.com');
+    expect(msg.subject).toMatch(/14-day trial/);
+    expect(msg.text).toMatch(/23 September 2026/);
+    expect(msg.html).toContain('/onboarding');
+    expect(msg.html).toContain('Queenza &lt;Crafts&gt;'); // escaped, never raw
+  });
+
+  it('ending says how many days are left and links to billing', async () => {
+    await sendTrialEndingEmail(['a@b.com', 'c@d.com'], { orgName: 'Queenza', daysLeft: 3, trialEndsAt: ends });
+
+    const msg = mockSend.mock.calls[0][0];
+    expect(msg.to).toEqual(['a@b.com', 'c@d.com']);
+    expect(msg.subject).toBe('Your Hive Mind Nestor trial ends in 3 days');
+    expect(msg.html).toContain('/billing');
+  });
+
+  it('ending uses the singular for one day', async () => {
+    await sendTrialEndingEmail('a@b.com', { orgName: 'Queenza', daysLeft: 1, trialEndsAt: ends });
+    expect(mockSend.mock.calls[0][0].subject).toMatch(/ends in 1 day$/);
+  });
+
+  it('expired says the account is kept and quotes no price', async () => {
+    // Prices live on the pricing page; an email cannot be edited once sent.
+    await sendTrialExpiredEmail('a@b.com', { orgName: 'Queenza' });
+
+    const msg = mockSend.mock.calls[0][0];
+    expect(msg.subject).toBe('Your Hive Mind Nestor trial has ended');
+    expect(msg.text).toMatch(/history are kept/);
+    expect(msg.text).not.toMatch(/₹|\$\d/);
+    expect(msg.html).toContain('/billing');
+  });
+});
