@@ -34,6 +34,8 @@ import {
 import { PLAN_PRICING, PLAN_TIER_MAP } from '../../config/pricing.js';
 import { PLAN_LIMITS } from '../../config/plan-limits.js';
 import { syncOrgEntitlement } from '../../services/entitlement.js';
+import { sendPaymentFailedEmail } from '../../services/email.js';
+import { orgAdminEmails } from '../../services/org-recipients.js';
 
 // Short-lived Redis client for claim tokens (separate from BullMQ connections)
 const claimRedis = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
@@ -309,8 +311,28 @@ router.post('/verify', requireAuth, requireVerifiedEmail, razorpayRequired, requ
 // Cancels the active Razorpay subscription at period end.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Why people leave, in a form that can be counted.
+ *
+ * Subscription.cancelReason has existed since the table was created and no
+ * code path wrote it. Cancellations were happening in silence: the churn
+ * number was known, the reasons were not.
+ */
+export const CANCEL_REASONS = [
+  'too_expensive', 'not_enough_value', 'missing_features',
+  'switching_tools', 'pausing_selling', 'other',
+];
+
 router.post('/cancel', requireAuth, requireVerifiedEmail, razorpayRequired, requireRole('ADMIN'), async (req, res) => {
   const { orgId } = req.tenant;
+  const { reason, note } = req.body ?? {};
+
+  if (!CANCEL_REASONS.includes(reason)) {
+    return res.status(400).json({ error: `reason must be one of: ${CANCEL_REASONS.join(', ')}` });
+  }
+  const cancelReason = typeof note === 'string' && note.trim()
+    ? `${reason}: ${note.trim().slice(0, 500)}`
+    : reason;
 
   const subscription = await prisma.subscription.findUnique({ where: { orgId } });
   if (!subscription?.subscriptionId) {
@@ -331,11 +353,12 @@ router.post('/cancel', requireAuth, requireVerifiedEmail, razorpayRequired, requ
     data:  {
       status:      'CANCELLED',
       cancelledAt: new Date(),
+      cancelReason,
     },
   });
   await syncOrgEntitlement(orgId);
 
-  logger.info(`Subscription ${subscription.subscriptionId} cancelled for org ${orgId}`);
+  logger.info(`Subscription ${subscription.subscriptionId} cancelled for org ${orgId} (${reason})`);
   res.json({
     cancelled: true,
     // Cancellation takes effect at cycle end. Say so, rather than letting the
@@ -405,6 +428,44 @@ router.post('/verify-order', requireRole('ADMIN'), requireAuth, requireVerifiedE
  * Dispatch a verified Razorpay event to the right DB sync helper.
  * Each helper is itself idempotent (upsert / no-op on unchanged state).
  */
+/**
+ * Tell the org's admins a charge failed.
+ *
+ * Best-effort and never thrown: the webhook has already been verified and
+ * recorded, and Razorpay would retry the whole delivery on a 5xx — which
+ * would re-sync a subscription that is already in step because an email
+ * bounced. The org is found through the subscription id on either the
+ * payment or the subscription entity, whichever the event carried.
+ */
+async function notifyPaymentFailed(eventPayload, { halted }) {
+  const payment = eventPayload?.payment?.entity;
+  const subId   = payment?.subscription_id ?? eventPayload?.subscription?.entity?.id;
+  if (!subId) return;
+
+  try {
+    const sub = await prisma.subscription.findFirst({
+      where:   { subscriptionId: subId },
+      include: { org: { select: { id: true, name: true } } },
+    });
+    if (!sub?.org) {
+      logger.warn(`payment failed for unknown subscription ${subId} — nobody to notify`);
+      return;
+    }
+    const to = await orgAdminEmails(sub.org.id);
+    if (to.length === 0) return;
+
+    await sendPaymentFailedEmail(to, {
+      orgName:  sub.org.name,
+      amount:   payment?.amount ?? null,
+      currency: payment?.currency ?? null,
+      reason:   payment?.error_description ?? null,
+      halted,
+    });
+  } catch (err) {
+    logger.error(`payment-failed email for subscription ${subId} failed: ${err.message}`);
+  }
+}
+
 async function processWebhookEvent(event, eventPayload) {
   switch (event) {
     case 'subscription.activated':
@@ -413,11 +474,25 @@ async function processWebhookEvent(event, eventPayload) {
     case 'subscription.cancelled':
     case 'subscription.completed':
     case 'subscription.expired':
+    case 'subscription.pending':
       await syncSubscriptionFromRazorpay(eventPayload?.subscription?.entity);
+      break;
+
+    // Razorpay has given up retrying. The status change matters (sync), and
+    // so does telling someone — this is the last email before access pauses.
+    case 'subscription.halted':
+      await syncSubscriptionFromRazorpay(eventPayload?.subscription?.entity);
+      await notifyPaymentFailed(eventPayload, { halted: true });
       break;
 
     case 'payment.captured':
       await syncPaymentFromRazorpay(eventPayload?.payment?.entity);
+      break;
+
+    // One charge attempt failed; Razorpay will retry. Say so now, while the
+    // customer can still fix the card before the retry.
+    case 'payment.failed':
+      await notifyPaymentFailed(eventPayload, { halted: false });
       break;
 
     default:
