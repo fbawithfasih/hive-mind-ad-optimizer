@@ -750,6 +750,11 @@ model AgentDecision {
   reviewedAt   DateTime?
   reviewedById String?
 
+  // Archiving at Amazon is terminal, so the one irreversible thing this system
+  // does to a customer's account names who asked for it.
+  revertedAt   DateTime?
+  revertedById String?
+
   createdAt DateTime @default(now())
 
   run AgentRun     @relation(fields: [runId], references: [id], onDelete: Cascade)
@@ -777,7 +782,7 @@ model ProfileObjective {
   // It was Int @default(12), which made calibration unreachable through the
   // database and handed every new profile a threshold that negates a healthy
   // term 48% of the time at a 6% conversion rate.
-  minClicks             Int?
+  minClicks Int?
 
   // Clicks a term needs before its conversion rate is worth acting on.
   //
