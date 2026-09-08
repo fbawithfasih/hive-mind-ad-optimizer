@@ -147,7 +147,7 @@ router.get('/status', requireAuth, async (req, res) => {
 
   const org = await prisma.organization.findUnique({
     where:  { id: orgId },
-    select: { trialEndsAt: true, tier: true },
+    select: { id: true, name: true, gstin: true, trialEndsAt: true, tier: true },
   });
   const trialEndsAt   = org?.trialEndsAt ? new Date(org.trialEndsAt) : null;
   const now           = Date.now();
@@ -175,6 +175,8 @@ router.get('/status', requireAuth, async (req, res) => {
     // What this org's plan actually includes, so the UI can show "3 of 5 used"
     // rather than leaving the first sign of a limit to be a refused request.
     // null means unlimited.
+    // The org itself, for the fields billing edits in place.
+    org: org ? { id: org.id, name: org.name, gstin: org.gstin ?? null } : null,
     planLimits: PLAN_LIMITS[org?.tier ?? 'BASIC'] ?? PLAN_LIMITS.BASIC,
     availablePlans: Object.entries(PLAN_PRICING)
       .map(([tier, p]) => ({ tier, planId: PLAN_IDS[tier], name: p.name, price: p.priceDisplay }))
@@ -204,6 +206,12 @@ router.post('/checkout', requireAuth, requireVerifiedEmail, razorpayRequired, re
     return res.status(409).json({ error: 'An active subscription already exists. Cancel it before switching plans.' });
   }
 
+  // The GSTIN rides in the subscription notes so it appears on the Razorpay
+  // invoice, where the customer's accountant needs it to claim input credit.
+  const { gstin = null } = await prisma.organization.findUnique({
+    where: { id: orgId }, select: { gstin: true },
+  }) ?? {};
+
   let rzpSubscription;
   try {
     rzpSubscription = await razorpay.subscriptions.create({
@@ -213,6 +221,7 @@ router.post('/checkout', requireAuth, requireVerifiedEmail, razorpayRequired, re
       notes: {
         orgId,
         tier,
+        ...(gstin ? { gstin } : {}),
       },
     });
   } catch (err) {

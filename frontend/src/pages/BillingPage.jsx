@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { getBillingStatus, createCheckoutSession, verifyPaymentApi, cancelSubscriptionApi, logoutApi } from '../services/api.js';
+import { getBillingStatus, createCheckoutSession, verifyPaymentApi, cancelSubscriptionApi, logoutApi, updateOrgApi } from '../services/api.js';
 import { INTENDED_PLAN_KEY } from './SignupPage.jsx';
 
 const TIER_LABEL  = { BASIC: 'Starter', PRO: 'Growth', ENTERPRISE: 'Scale', CUSTOM: 'Custom' };
@@ -106,6 +106,9 @@ export default function BillingPage({ user, onLogout }) {
   /** Why, before the cancel goes through. The server refuses a cancel without one. */
   const [cancelReason, setCancelReason] = useState('');
   const [cancelNote, setCancelNote]     = useState('');
+  /** GSTIN as typed; saved to the org so Razorpay invoices carry it. */
+  const [gstin, setGstin] = useState('');
+  const [savingGstin, setSavingGstin] = useState(false);
 
   const isAdmin = user?.currentOrg?.role === 'ADMIN';
 
@@ -122,6 +125,9 @@ export default function BillingPage({ user, onLogout }) {
     if (data?.subscription?.status !== 'ACTIVE') return;
     try { localStorage.removeItem(INTENDED_PLAN_KEY); } catch { /* nothing to forget */ }
   }, [data?.subscription?.status]);
+  // Seed the GSTIN box from the org once billing status loads; the box is
+  // then the seller's to edit until they save.
+  useEffect(() => { setGstin(data?.org?.gstin ?? ''); }, [data?.org?.gstin]);
 
   useEffect(() => { reload(); }, [reload]);
 
@@ -180,6 +186,22 @@ export default function BillingPage({ user, onLogout }) {
     rzp.open();
   }
 
+  async function handleSaveGstin(e) {
+    e.preventDefault();
+    if (!org?.id) return;
+    setSavingGstin(true);
+    setError(null);
+    try {
+      await updateOrgApi(org.id, { gstin });
+      setBanner({ type: 'info', msg: gstin.trim() ? 'GSTIN saved — it will appear on your invoices.' : 'GSTIN removed.' });
+      reload();
+    } catch (err) {
+      setError(errMsg(err, 'Could not save GSTIN.'));
+    } finally {
+      setSavingGstin(false);
+    }
+  }
+
   async function handleCancel() {
     if (!cancelReason) { setError('Please tell us why you are cancelling.'); return; }
     setWorking(true);
@@ -196,6 +218,7 @@ export default function BillingPage({ user, onLogout }) {
     }
   }
 
+  const org            = data?.org;
   const sub            = data?.subscription;
   const usage          = data?.currentMonthUsage;
   const trial          = data?.trial ?? {};
@@ -366,6 +389,25 @@ export default function BillingPage({ user, onLogout }) {
                 <UsageStat label="Reports generated"   value={usage.reportsGenerated} />
                 <UsageStat label="API calls"           value={usage.apiCalls} />
               </div>
+            )}
+
+            {/* Tax details — the GSTIN goes on Razorpay invoices so input credit can be claimed. */}
+            {isAdmin && org && (
+              <form onSubmit={handleSaveGstin} style={{ background: 'var(--bg-panel)', borderRadius: 14, border: '1px solid var(--border-strong)', padding: '20px 24px' }}>
+                <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Tax details</p>
+                <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-faint)' }}>
+                  Your GSTIN is printed on every invoice so you can claim input tax credit. Optional.
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+                  <input value={gstin} onChange={(e) => setGstin(e.target.value.toUpperCase())} disabled={savingGstin}
+                    placeholder="27AAPFU0939F1ZV" maxLength={15} spellCheck={false} aria-label="GSTIN"
+                    style={{ flex: '1 1 220px', maxWidth: 280, padding: '8px 10px', borderRadius: 7, border: '1px solid var(--border-strong)', background: 'var(--bg-app-2)', color: 'var(--text-primary)', fontSize: 13, fontFamily: 'ui-monospace, monospace', letterSpacing: '0.04em' }} />
+                  <button type="submit" disabled={savingGstin || (gstin ?? '') === (org.gstin ?? '')}
+                    style={{ padding: '8px 16px', borderRadius: 7, border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, cursor: savingGstin ? 'wait' : 'pointer' }}>
+                    {savingGstin ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              </form>
             )}
 
             {/* Plan cards */}

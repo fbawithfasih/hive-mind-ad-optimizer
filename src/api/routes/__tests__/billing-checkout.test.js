@@ -17,6 +17,7 @@ import { sharedServer } from '../../../test/http-server.js';
 jest.mock('../../../db/prisma.js', () => ({
   prisma: {
     subscription: { findUnique: jest.fn(), upsert: jest.fn() },
+    organization: { findUnique: jest.fn() },
   },
 }));
 
@@ -64,6 +65,30 @@ beforeEach(() => {
   process.env.RAZORPAY_KEY_SECRET = 'secret';
   razorpay.subscriptions.create.mockResolvedValue({ id: 'sub_rzp_1' });
   prisma.subscription.upsert.mockResolvedValue({});
+  prisma.organization.findUnique.mockResolvedValue({ gstin: null });
+});
+
+describe('POST /checkout — invoice details', () => {
+  it('puts the org\'s GSTIN in the subscription notes, so the invoice carries it', async () => {
+    prisma.subscription.findUnique.mockResolvedValue(null);
+    prisma.organization.findUnique.mockResolvedValue({ gstin: '27AAPFU0939F1ZV' });
+
+    await request(makeApp()).post('/checkout').send({ tier: 'PRO' }).expect(200);
+
+    expect(razorpay.subscriptions.create).toHaveBeenCalledWith(expect.objectContaining({
+      notes: expect.objectContaining({ gstin: '27AAPFU0939F1ZV' }),
+    }));
+  });
+
+  it('sends no gstin key at all when the org has none', async () => {
+    // Razorpay renders every note; an empty "gstin:" on an invoice looks like a mistake.
+    prisma.subscription.findUnique.mockResolvedValue(null);
+
+    await request(makeApp()).post('/checkout').send({ tier: 'PRO' }).expect(200);
+
+    const { notes } = razorpay.subscriptions.create.mock.calls[0][0];
+    expect(notes).not.toHaveProperty('gstin');
+  });
 });
 
 describe('POST /checkout — pre-payment entitlement', () => {
