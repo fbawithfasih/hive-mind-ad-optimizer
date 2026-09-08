@@ -30,15 +30,44 @@ export const razorpay = (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY
     })
   : null;
 
-// Map our tiers to Razorpay Plan IDs — create plans in Razorpay Dashboard → Plans
+// Map our tiers to Razorpay Plan IDs — create plans in Razorpay Dashboard → Plans.
+// Monthly and yearly are separate Plan objects at Razorpay (a Plan carries its
+// period), so they are separate maps here. A tier with no yearly id simply
+// cannot be bought yearly; checkout says so rather than falling back to monthly.
 export const PLAN_IDS = {
   BASIC:      process.env.RAZORPAY_PLAN_BASIC,
   PRO:        process.env.RAZORPAY_PLAN_PRO,
   ENTERPRISE: process.env.RAZORPAY_PLAN_ENTERPRISE,
 };
 
+export const PLAN_IDS_YEARLY = {
+  BASIC:      process.env.RAZORPAY_PLAN_BASIC_YEARLY,
+  PRO:        process.env.RAZORPAY_PLAN_PRO_YEARLY,
+  ENTERPRISE: process.env.RAZORPAY_PLAN_ENTERPRISE_YEARLY,
+};
+
+export const INTERVALS = ['monthly', 'yearly'];
+
+/** The Razorpay plan id for a tier at an interval, or null when not configured. */
+export function planIdFor(tier, interval = 'monthly') {
+  const map = interval === 'yearly' ? PLAN_IDS_YEARLY : PLAN_IDS;
+  return map[tier] ?? null;
+}
+
+/**
+ * Which tier a Razorpay plan id belongs to.
+ *
+ * Searches both intervals. This is what the webhook uses to decide what a
+ * paying customer gets, and it falls back to BASIC for an id it does not
+ * know — so a yearly plan id missing from here would quietly provision a
+ * Scale subscriber as Starter. The yearly map is not optional to this lookup.
+ */
 export function tierFromPlanId(planId) {
-  return Object.entries(PLAN_IDS).find(([, pid]) => pid === planId)?.[0] ?? 'BASIC';
+  for (const map of [PLAN_IDS, PLAN_IDS_YEARLY]) {
+    const hit = Object.entries(map).find(([, pid]) => pid && pid === planId);
+    if (hit) return hit[0];
+  }
+  return 'BASIC';
 }
 
 /**

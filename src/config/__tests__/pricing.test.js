@@ -19,12 +19,15 @@ import path from 'node:path';
 import { PLAN_PRICING, PLAN_TIER_MAP } from '../pricing.js';
 import { PLAN_LIMITS, FIELD_LABELS, MONTHLY_FIELDS, STANDING_FIELDS } from '../plan-limits.js';
 
-const inr = (n) => `₹${n.toLocaleString('en-IN')}/mo`;
+const inr = (n, per) => `₹${n.toLocaleString('en-IN')}/${per}`;
 
 describe('the pricing config is internally consistent', () => {
-  it.each(Object.entries(PLAN_PRICING))('%s displays its own monthly price', (_tier, plan) => {
+  it.each(Object.entries(PLAN_PRICING))('%s displays its own monthly and yearly price', (_tier, plan) => {
+    // Indian digit grouping: ₹1,69,990, not ₹169,990. The display string is
+    // what the customer sees, so it is pinned to the locale, not hand-typed.
     expect(plan.currency).toBe('INR');
-    expect(plan.priceDisplay).toBe(inr(plan.priceMonthly));
+    expect(plan.priceDisplay).toBe(inr(plan.priceMonthly, 'mo'));
+    expect(plan.priceAnnualDisplay).toBe(inr(plan.priceAnnual, 'yr'));
   });
 
   it.each(Object.entries(PLAN_PRICING))('%s annual price is ten months', (_tier, plan) => {

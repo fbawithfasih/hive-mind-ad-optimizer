@@ -21,7 +21,13 @@ jest.mock('../../../db/prisma.js', () => ({
 
 jest.mock('../../../services/razorpay.js', () => ({
   razorpay: { subscriptions: { create: jest.fn(), cancel: jest.fn() }, orders: { create: jest.fn() } },
-  PLAN_IDS: { BASIC: 'plan_basic', PRO: 'plan_pro', ENTERPRISE: 'plan_ent' },
+  PLAN_IDS:        { BASIC: 'plan_basic', PRO: 'plan_pro', ENTERPRISE: 'plan_ent' },
+  // Scale has no yearly plan here on purpose: /status must report null, not omit it.
+  PLAN_IDS_YEARLY: { BASIC: 'plan_basic_y', PRO: 'plan_pro_y', ENTERPRISE: undefined },
+  INTERVALS:       ['monthly', 'yearly'],
+  planIdFor:       jest.fn((tier, interval = 'monthly') => (interval === 'yearly'
+    ? { BASIC: 'plan_basic_y', PRO: 'plan_pro_y' }[tier]
+    : { BASIC: 'plan_basic', PRO: 'plan_pro', ENTERPRISE: 'plan_ent' }[tier]) ?? null),
   verifyPaymentSignature:       jest.fn(),
   verifyOrderSignature:         jest.fn(),
   verifyWebhookSignature:       jest.fn(),
@@ -267,6 +273,20 @@ describe('GET /status — what the plan includes', () => {
     const res = await request(makeApp()).get('/status');
 
     expect(res.body.org).toEqual({ id: 'org-1', name: 'Queenza', gstin: '27AAPFU0939F1ZV' });
+  });
+
+  it('offers yearly where a yearly plan exists, and says null where it does not', async () => {
+    // The billing page draws the Annual toggle from this; a tier whose yearly
+    // plan is missing must be reported as monthly-only, not left out of the
+    // list, or the page could not show the plan at all.
+    prisma.organization.findUnique.mockResolvedValue({ trialEndsAt: null, tier: 'PRO' });
+
+    const res = await request(makeApp()).get('/status');
+
+    expect(res.status).toBe(200);
+    const byTier = Object.fromEntries(res.body.availablePlans.map((p) => [p.tier, p]));
+    expect(byTier.PRO).toMatchObject({ planId: 'plan_pro', planIdYearly: 'plan_pro_y', priceYearly: '₹69,990/yr' });
+    expect(byTier.ENTERPRISE).toMatchObject({ planId: 'plan_ent', planIdYearly: null });
   });
 
   it('returns the caller\'s own plan limits', async () => {

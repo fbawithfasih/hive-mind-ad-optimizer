@@ -34,6 +34,7 @@ const PLAN_DETAILS = [
     tier: 'BASIC',
     name: 'Starter',
     price: '₹2,499/mo',
+    priceYearly: '₹24,990/yr',
     features: [
       '1 Amazon Ads profile',
       'Daily AI agent review of your search terms (shadow mode)',
@@ -49,6 +50,7 @@ const PLAN_DETAILS = [
     tier: 'PRO',
     name: 'Growth',
     price: '₹6,999/mo',
+    priceYearly: '₹69,990/yr',
     popular: true,
     features: [
       '3 Amazon Ads profiles',
@@ -67,6 +69,7 @@ const PLAN_DETAILS = [
     tier: 'ENTERPRISE',
     name: 'Scale',
     price: '₹16,999/mo',
+    priceYearly: '₹1,69,990/yr',
     features: [
       '10 Amazon Ads profiles',
       'Everything in Growth',
@@ -129,6 +132,8 @@ export default function BillingPage({ user, onLogout }) {
   const [data, setData]         = useState(null);
   const [loading, setLoading]   = useState(true);
   const [working, setWorking]   = useState(false);
+  /** Billing interval the plan cards are showing; yearly is ten months for twelve. */
+  const [interval, setInterval_] = useState('monthly');
   const [error, setError]       = useState(null);
   const [banner, setBanner]     = useState(null); // { type: 'success'|'info', msg }
   const [showCancel, setShowCancel] = useState(false);
@@ -161,7 +166,7 @@ export default function BillingPage({ user, onLogout }) {
 
   useEffect(() => { reload(); }, [reload]);
 
-  async function handleCheckout(tier) {
+  async function handleCheckout(tier, billingInterval = 'monthly') {
     setError(null);
     setWorking(true);
 
@@ -174,7 +179,7 @@ export default function BillingPage({ user, onLogout }) {
 
     let checkoutData;
     try {
-      checkoutData = await createCheckoutSession(tier);
+      checkoutData = await createCheckoutSession(tier, billingInterval);
     } catch (err) {
       setError(errMsg(err, 'Could not start checkout.'));
       setWorking(false);
@@ -253,6 +258,7 @@ export default function BillingPage({ user, onLogout }) {
   const usage          = data?.currentMonthUsage;
   const trial          = data?.trial ?? {};
   const availableTiers = new Set((data?.availablePlans ?? []).map(p => p.tier));
+  const yearlyTiers    = new Set((data?.availablePlans ?? []).filter(p => p.planIdYearly).map(p => p.tier));
   const visiblePlans   = PLAN_DETAILS.filter(p => availableTiers.size === 0 || availableTiers.has(p.tier));
   const canCancel      = isAdmin && sub?.status === 'ACTIVE' && sub?.subscriptionId;
   const trialExpired   = user?.currentOrg?.trialExpired || trial.trialExpired;
@@ -442,9 +448,30 @@ export default function BillingPage({ user, onLogout }) {
 
             {/* Plan cards */}
             <div style={{ background: 'var(--bg-panel)', borderRadius: 14, border: '1px solid var(--border-strong)', padding: '24px' }}>
-              <p style={{ margin: '0 0 20px', fontSize: 12, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                {sub ? 'Change Plan' : 'Choose a Plan'}
-              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 20 }}>
+                <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  {sub ? 'Change Plan' : 'Choose a Plan'}
+                </p>
+                {/* Yearly only appears once at least one tier has a yearly Razorpay plan;
+                    a toggle that leads nowhere is worse than none. */}
+                {yearlyTiers.size > 0 && (
+                  <div role="radiogroup" aria-label="Billing interval" style={{ display: 'inline-flex', border: '1px solid var(--border-strong)', borderRadius: 99, padding: 3, gap: 2 }}>
+                    {[['monthly', 'Monthly'], ['yearly', 'Annual — 2 months free']].map(([value, label]) => (
+                      <button
+                        key={value}
+                        role="radio"
+                        aria-checked={interval === value}
+                        onClick={() => setInterval_(value)}
+                        style={{
+                          padding: '5px 12px', borderRadius: 99, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                          background: interval === value ? 'var(--accent)' : 'transparent',
+                          color: interval === value ? '#fff' : 'var(--text-muted)',
+                        }}
+                      >{label}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {availableTiers.size === 0 && (
                 <p style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 16 }}>
@@ -478,7 +505,12 @@ export default function BillingPage({ user, onLogout }) {
                           <span style={{ fontSize: 16, fontWeight: 800, color: TIER_TEXT[plan.tier] }}>{TIER_LABEL[plan.tier]}</span>
                           {isCurrent && <Badge label="Current" color="var(--success-deep)" />}
                         </div>
-                        <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{plan.price}</span>
+                        <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>
+                          {interval === 'yearly' && yearlyTiers.has(plan.tier) ? plan.priceYearly : plan.price}
+                        </span>
+                        {interval === 'yearly' && !yearlyTiers.has(plan.tier) && (
+                          <span style={{ display: 'block', fontSize: 11, color: 'var(--text-faint)' }}>Monthly only</span>
+                        )}
                       </div>
 
                       <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
@@ -492,7 +524,7 @@ export default function BillingPage({ user, onLogout }) {
 
                       {isAdmin && availableTiers.has(plan.tier) && (
                         <button
-                          onClick={() => !isCurrent && !working && handleCheckout(plan.tier)}
+                          onClick={() => !isCurrent && !working && handleCheckout(plan.tier, yearlyTiers.has(plan.tier) ? interval : 'monthly')}
                           disabled={isDisabled || isCurrent}
                           style={{
                             width: '100%', padding: '9px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600,

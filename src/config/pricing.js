@@ -23,9 +23,9 @@
  *   Scale   → ENTERPRISE
  */
 export const PLAN_PRICING = {
-  BASIC:      { name: 'Starter', currency: 'INR', priceMonthly: 2499,  priceAnnual: 24990,  usdReference: 29,  priceDisplay: '₹2,499/mo'  },
-  PRO:        { name: 'Growth',  currency: 'INR', priceMonthly: 6999,  priceAnnual: 69990,  usdReference: 83,  priceDisplay: '₹6,999/mo'  },
-  ENTERPRISE: { name: 'Scale',   currency: 'INR', priceMonthly: 16999, priceAnnual: 169990, usdReference: 199, priceDisplay: '₹16,999/mo' },
+  BASIC:      { name: 'Starter', currency: 'INR', priceMonthly: 2499,  priceAnnual: 24990,  usdReference: 29,  priceDisplay: '₹2,499/mo',  priceAnnualDisplay: '₹24,990/yr'   },
+  PRO:        { name: 'Growth',  currency: 'INR', priceMonthly: 6999,  priceAnnual: 69990,  usdReference: 83,  priceDisplay: '₹6,999/mo',  priceAnnualDisplay: '₹69,990/yr'   },
+  ENTERPRISE: { name: 'Scale',   currency: 'INR', priceMonthly: 16999, priceAnnual: 169990, usdReference: 199, priceDisplay: '₹16,999/mo', priceAnnualDisplay: '₹1,69,990/yr' },
 };
 
 // Marketing site plan name → internal tier

@@ -269,8 +269,9 @@ export async function getBillingStatus() {
   return res.data;
 }
 
-export async function createCheckoutSession(tier) {
-  const res = await api.post('/billing/checkout', { tier });
+/** @param {'monthly'|'yearly'} [interval] */
+export async function createCheckoutSession(tier, interval = 'monthly') {
+  const res = await api.post('/billing/checkout', { tier, interval });
   return res.data; // { subscriptionId, keyId }
 }
 
