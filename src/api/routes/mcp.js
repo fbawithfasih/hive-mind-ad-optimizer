@@ -3,6 +3,9 @@ import { executeMCPCommand } from '../../services/claude-mcp.js';
 import { rateLimitMiddleware } from '../utils/rateLimit.js';
 import { getBrandAnalyticsContext } from '../../services/brand-analytics/loader.js';
 import { requireRole } from '../middleware/requireRole.js';
+import { enforcePlanLimit } from '../../services/plan-limits.js';
+import { trackUsage } from '../../services/razorpay.js';
+import { swallow } from '../utils/capture.js';
 
 const router = express.Router();
 
@@ -22,7 +25,12 @@ const mcpRateLimit = rateLimitMiddleware(10, 60000, req => req.user?.email || re
  * @returns {Object} 400 - Missing command field
  * @returns {Object} 500 - Internal server error
  */
-router.post('/execute', requireRole('MEMBER'), mcpRateLimit, async (req, res) => {
+// The per-minute limiter above stops a burst; the plan limit is the monthly
+// allowance the pricing page sells. UsageMetric.apiCalls existed from the day
+// billing shipped and nothing ever incremented it, so "100 AI questions a
+// month" was a number with no counter behind it — this route now counts, and
+// counts only a question the model actually answered.
+router.post('/execute', requireRole('MEMBER'), mcpRateLimit, enforcePlanLimit('apiCalls'), async (req, res) => {
   const { command, history, model } = req.body;
 
   if (!command) {
@@ -35,6 +43,7 @@ router.post('/execute', requireRole('MEMBER'), mcpRateLimit, async (req, res) =>
     const brandContext = orgId ? await getBrandAnalyticsContext(orgId, brand ?? 'Unknown') : null;
 
     const result = await executeMCPCommand(command, history || [], model || 'gemini', brandContext);
+    if (orgId) trackUsage(orgId, 'apiCalls').catch(swallow('trackUsage:apiCalls'));
     return res.json(result);
   } catch (err) {
     console.error('MCP route error:', err.message);
