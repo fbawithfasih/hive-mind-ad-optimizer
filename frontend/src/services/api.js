@@ -754,6 +754,23 @@ export async function recordAgentVerdictApi(decisionId, verdict, note) {
   return res.data;
 }
 
+/**
+ * Take one applied decision back.
+ *
+ * Archiving at Amazon is terminal — the keyword cannot be restored, only
+ * recreated — so every caller confirms first.
+ */
+export async function revertAgentDecisionApi(decisionId) {
+  const res = await api.post(`/agent/decisions/${decisionId}/revert`);
+  return res.data;
+}
+
+/** Take back everything one run applied. Same terminal caveat, at run scale. */
+export async function revertAgentRunApi(runId) {
+  const res = await api.post(`/agent/runs/${runId}/revert`);
+  return res.data;
+}
+
 export async function getAgentGraduationApi() {
   const res = await api.get('/agent/graduation');
   return res.data;
