@@ -31,6 +31,10 @@ model User {
   // issued before the bump — that's how password reset and "log out
   // everywhere" revoke sessions that are otherwise stateless.
   tokenVersion    Int       @default(0)
+  // First-touch attribution captured on the client at signup: utm_*, a
+  // partner's ref code, the plan chosen on the site, landing path, referrer.
+  // Whitelisted and length-capped by api/utils/attribution.js before it lands.
+  signupSource    Json?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

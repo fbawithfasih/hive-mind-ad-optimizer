@@ -20,6 +20,7 @@ import { requireRole } from '../middleware/requireRole.js';
 import { graduationByActionType, GRADUATABLE } from '../../services/agent/graduation.js';
 import { adsClientForOrg, NoAdsCredentialError } from '../../services/agent/ads-client-for-org.js';
 import { revertBlocker, revertable, revertOne } from '../../services/agent/revert.js';
+import { track } from '../../services/events.js';
 
 const router = express.Router();
 const logger = createLogger('AGENT_API');
@@ -251,6 +252,11 @@ router.put('/objectives/:profileId', requireRole('ADMIN'), async (req, res) => {
       logger.warn(`Agent set LIVE — org=${orgId} profile=${profileId} ` +
         `negatives=${objective.negativeMode} promotions=${objective.promotionMode}`);
     }
+
+    track('agent_enrolled', { orgId, userId: req.tenant.userId ?? null, props: {
+      profileId, enabled: objective.enabled,
+      negativeMode: objective.negativeMode, promotionMode: objective.promotionMode,
+    } });
 
     res.json({ objective });
   } catch (err) {

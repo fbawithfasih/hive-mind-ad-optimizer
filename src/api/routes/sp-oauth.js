@@ -23,6 +23,7 @@ import { createEphemeralStore } from '../../services/ephemeral-store.js';
 import { withTenant } from '../middleware/withTenant.js';
 import { prisma } from '../../db/prisma.js';
 import { sessionExpiredAbsolute, claimsAreValid } from '../../config/session.js';
+import { track } from '../../services/events.js';
 
 dotenv.config({ override: true });
 
@@ -314,6 +315,9 @@ router.get('/ads-callback', async (req, res) => {
     const { refresh_token } = tokenRes.data;
     await updateOrgAdsToken(orgId, refresh_token);
     logger.info(`Ads refresh token saved for org ${orgId}`);
+    // Both consents done — the step most trials never reach. No user in
+    // scope here; the OAuth state carried only the org.
+    track('amazon_connected', { orgId });
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     res.redirect(`${frontendUrl}?connected=both`);

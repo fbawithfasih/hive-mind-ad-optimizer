@@ -36,6 +36,7 @@ import { PLAN_LIMITS } from '../../config/plan-limits.js';
 import { syncOrgEntitlement } from '../../services/entitlement.js';
 import { sendPaymentFailedEmail } from '../../services/email.js';
 import { orgAdminEmails } from '../../services/org-recipients.js';
+import { track } from '../../services/events.js';
 
 // Short-lived Redis client for claim tokens (separate from BullMQ connections)
 const claimRedis = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
@@ -263,6 +264,7 @@ router.post('/checkout', requireAuth, requireVerifiedEmail, razorpayRequired, re
   });
 
   logger.info(`Razorpay subscription created for org ${orgId} (tier: ${tier}, sub: ${rzpSubscription.id})`);
+  track('checkout_started', { orgId, userId: req.user?.userId, props: { tier } });
   res.json({
     subscriptionId: rzpSubscription.id,
     keyId:          process.env.RAZORPAY_KEY_ID,
@@ -297,6 +299,7 @@ router.post('/verify', requireAuth, requireVerifiedEmail, razorpayRequired, requ
       where: { id: sub.id },
       data:  { status: 'ACTIVE' },
     });
+    track('subscribed', { orgId: sub.orgId, userId: req.user?.userId, props: { tier: sub.tier, via: 'verify' } });
     // The org row carries the tier the rest of the system reads; promoting the
     // subscription without it leaves a paying customer on their old plan.
     await syncOrgEntitlement(sub.orgId);
@@ -366,6 +369,7 @@ router.post('/cancel', requireAuth, requireVerifiedEmail, razorpayRequired, requ
     },
   });
   await syncOrgEntitlement(orgId);
+  track('cancelled', { orgId, userId: req.user?.userId, props: { tier: subscription.tier } });
 
   logger.info(`Subscription ${subscription.subscriptionId} cancelled for org ${orgId} (${reason})`);
   res.json({
