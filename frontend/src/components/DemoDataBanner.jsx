@@ -23,7 +23,7 @@ export default function DemoDataBanner({ visible }) {
       </div>
       <a href="/api/sp-oauth/start" style={{
         padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none',
-        background: 'var(--accent)', color: '#fff', whiteSpace: 'nowrap',
+        background: 'var(--fill-accent)', color: '#fff', whiteSpace: 'nowrap',
       }}>Connect Amazon</a>
     </div>
   );
