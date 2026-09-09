@@ -2,6 +2,7 @@ import express from 'express';
 import { classifySearchTerms } from '../../services/search-term-classifier.js';
 import { isProfileAccessDenied, pruneInaccessibleProfile } from '../utils/pruneProfile.js';
 import { loadAnalytics } from '../../services/brand-analytics/loader.js';
+import { createBoundedCache } from '../utils/bounded-cache.js';
 
 const router = express.Router();
 
@@ -14,18 +15,14 @@ const norm = (s) => String(s ?? '').trim().toLowerCase();
 // have the next call land instantly once the underlying report has filled
 // in. Module-level Map → cleared on process restart, which is fine for a
 // 1h TTL.
-const searchTermCache = new Map();
+// Bounded: the previous Map expired an entry only when it was next read, so
+// an entry nobody reads again was never removed, and the key is
+// (org, profile, date range) — a handful of sellers clicking through date
+// pickers fills it with rows nothing will ask for twice.
 const SEARCH_TERM_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
-function cacheGet(key) {
-  const entry = searchTermCache.get(key);
-  if (!entry) return null;
-  if (Date.now() - entry.t > SEARCH_TERM_CACHE_TTL_MS) {
-    searchTermCache.delete(key);
-    return null;
-  }
-  return entry.v;
-}
-function cacheSet(key, v) { searchTermCache.set(key, { v, t: Date.now() }); }
+const searchTermCache = createBoundedCache({ maxEntries: 200, ttlMs: SEARCH_TERM_CACHE_TTL_MS });
+const cacheGet = (key) => searchTermCache.get(key);
+const cacheSet = (key, v) => searchTermCache.set(key, v);
 
 // Internal polling cap. Shorter than Cloudflare's edge timeout so the route
 // always returns a real JSON error (not a generic 502) before the connection
