@@ -7,8 +7,10 @@
  * would silently never run again until it aged out of the removeOnFail window.
  * Finished jobs are cleared before the add.
  *
- * Only profiles with an enabled ProfileObjective are swept. Enrolment is
- * explicit: an org connecting Amazon does not thereby acquire an agent.
+ * Only profiles with an enabled ProfileObjective are swept. Enrolment happens
+ * once, when an org's first real profile is synced (see enrolment.js), and
+ * only ever in SHADOW; the sweep asks nothing about how a profile came to be
+ * enrolled, only whether its objective is enabled.
  */
 
 import { prisma } from '../../db/prisma.js';
@@ -23,7 +25,7 @@ const logger = createLogger('AGENT_SCHEDULER');
  * Jobs still waiting, active or delayed are left alone — those are in flight,
  * and clearing them would duplicate live work.
  */
-async function clearFinishedJob(jobId) {
+export async function clearFinishedJob(jobId) {
   const existing = await agentQueue.getJob(jobId).catch(() => null);
   if (!existing) return false;
 
@@ -39,6 +41,25 @@ export function agentJobId(orgId, profileId, date = new Date()) {
   return `agent-${orgId}-${profileId}-${date.toISOString().slice(0, 10)}`;
 }
 
+/**
+ * Enqueue one run for one profile, now.
+ *
+ * The jobId is the day's, deliberately. A run enqueued at 10:00 and the
+ * sweep at 04:30 the next morning are different days; a run enqueued at
+ * 03:00 and that morning's sweep are the same day, dedupe on jobId, and
+ * whichever claims the slot first runs — the other finds it taken. That is
+ * correct: the same occurrence date means the same report window, and a
+ * second run would only double the day's rows in the evidence base.
+ *
+ * @returns {Promise<{ jobId: string, retried: boolean }>}
+ */
+export async function enqueueAgentRun(orgId, profileId, now = new Date(), extra = {}) {
+  const jobId = agentJobId(orgId, profileId, now);
+  const retried = await clearFinishedJob(jobId);
+  await agentQueue.add('agent-run', { orgId, profileId, ...extra }, { jobId });
+  return { jobId, retried };
+}
+
 export async function enqueueAgentSweep(now = new Date()) {
   const objectives = await prisma.profileObjective.findMany({
     where:  { enabled: true },
@@ -49,13 +70,13 @@ export async function enqueueAgentSweep(now = new Date()) {
   let retried  = 0;
 
   for (const objective of objectives) {
-    const jobId = agentJobId(objective.orgId, objective.profileId, now);
-    if (await clearFinishedJob(jobId)) retried += 1;
-
-    await agentQueue
-      .add('agent-run', { orgId: objective.orgId, profileId: objective.profileId }, { jobId })
-      .then(() => { enqueued += 1; })
-      .catch((err) => logger.warn(`Could not enqueue ${jobId}: ${err.message}`));
+    try {
+      const r = await enqueueAgentRun(objective.orgId, objective.profileId, now);
+      enqueued += 1;
+      if (r.retried) retried += 1;
+    } catch (err) {
+      logger.warn(`Could not enqueue ${agentJobId(objective.orgId, objective.profileId, now)}: ${err.message}`);
+    }
   }
 
   const live = objectives.filter(o => o.negativeMode === 'LIVE' || o.promotionMode === 'LIVE').length;
