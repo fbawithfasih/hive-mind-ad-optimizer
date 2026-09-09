@@ -18,6 +18,10 @@ import { getTenantContext } from '../../../db/tenant-context.js';
 /** Contexts captured at query time, in call order: { model, ctx }. */
 const seen = [];
 
+// Seeding the sample profile is its own concern (orgs-demo-seed.test.js);
+// here the transaction client is a stub with only the tables this file is about.
+jest.mock('../../../services/demo/seed.js', () => ({ seedDemoProfile: jest.fn(async () => ({ seeded: true })) }));
+
 jest.mock('../../../db/prisma.js', () => {
   const { getTenantContext: ctx } = jest.requireActual('../../../db/tenant-context.js');
   const rec = (model, value) => jest.fn(() => {

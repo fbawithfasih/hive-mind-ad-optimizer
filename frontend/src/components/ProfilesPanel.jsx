@@ -116,13 +116,14 @@ export default function ProfilesPanel({ isAdmin }) {
                     {p.profileName}
                   </span>
                   {p.isDefault && <span style={S.badge('var(--success-deep)')}>Default</span>}
+                  {p.isDemo && <span style={S.badge('var(--warning-deep)')}>Demo data</span>}
                 </div>
                 <span style={{ fontSize: 11, color: 'var(--text-subtle)' }}>
                   {p.countryCode} · ID {p.profileId}
                   {p.lastSyncedAt && ` · synced ${new Date(p.lastSyncedAt).toLocaleDateString()}`}
                 </span>
               </div>
-              {isAdmin && !p.isDefault && (
+              {isAdmin && !p.isDefault && !p.isDemo && (
                 <button
                   onClick={() => handleSetDefault(p.profileId)}
                   disabled={settingDefault === p.profileId}

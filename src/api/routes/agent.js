@@ -241,6 +241,10 @@ router.put('/objectives/:profileId', requireRole('ADMIN'), async (req, res) => {
   try {
     const profile = await prisma.sellerProfile.findFirst({ where: { orgId, profileId } });
     if (!profile) return res.status(404).json({ error: 'Profile not found for this organization' });
+    // The sweep would ask Amazon about a profile that does not exist there.
+    if (profile.isDemo) {
+      return res.status(400).json({ error: 'The sample profile cannot be enrolled — connect your Amazon account first.' });
+    }
 
     const objective = await prisma.profileObjective.upsert({
       where:  { orgId_profileId: { orgId, profileId } },

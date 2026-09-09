@@ -75,7 +75,8 @@ function record(tier, field, orgId) {
  */
 async function usageFor(orgId, field) {
   if (field === 'profiles') {
-    return prisma.sellerProfile.count({ where: { orgId } });
+    // The sample profile is not an Amazon account and costs nothing.
+    return prisma.sellerProfile.count({ where: { orgId, isDemo: false } });
   }
   const row = await prisma.usageMetric.findFirst({
     where: { orgId, month: currentMonth() },

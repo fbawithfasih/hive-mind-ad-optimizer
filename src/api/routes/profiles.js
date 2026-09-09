@@ -3,6 +3,7 @@ import { prisma } from '../../db/prisma.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { createLogger } from '../utils/logger.js';
 import { applyProfileCap } from '../../services/plan-limits.js';
+import { removeDemoProfile } from '../../services/demo/seed.js';
 
 const router = express.Router();
 const logger = createLogger('PROFILES');
@@ -43,14 +44,14 @@ router.post('/sync', requireRole('ADMIN'), async (req, res) => {
 
     // Check whether the org already has a default profile
     const hasDefault = await prisma.sellerProfile.findFirst({
-      where: { orgId: req.tenant.orgId, isDefault: true },
+      where: { orgId: req.tenant.orgId, isDefault: true, isDemo: false },
     });
 
     // Apply the plan's profile cap to profiles being added, never to ones
     // already connected. An org that is over its cap keeps everything it has
     // working — a sync must never disconnect a profile the seller is using.
     const existing = await prisma.sellerProfile.findMany({
-      where:  { orgId: req.tenant.orgId },
+      where:  { orgId: req.tenant.orgId, isDemo: false },
       select: { profileId: true },
     });
     const known = new Set(existing.map(e => e.profileId));
@@ -103,6 +104,12 @@ router.post('/sync', requireRole('ADMIN'), async (req, res) => {
     if (removed > 0) {
       logger.info(`Removed ${removed} stale profiles for org ${req.tenant.orgId}`);
     }
+
+    // The sample has done its job. The deleteMany above already dropped the
+    // profile row (demo-us is never in returnedIds); this clears the run it
+    // left behind, which has no relation to the profile and would otherwise
+    // keep a fictional seller's proposals in the review queue.
+    if (upserted.length) await removeDemoProfile(prisma, req.tenant.orgId);
 
     logger.info(`Synced ${upserted.length} profiles for org ${req.tenant.orgId}`);
     res.json({
