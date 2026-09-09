@@ -10,6 +10,8 @@ import { requireVerifiedEmail } from '../middleware/requireVerifiedEmail.js';
 import { trialEndsAtFrom } from '../../config/trial.js';
 import { normaliseGstin } from '../utils/gstin.js';
 import { track } from '../../services/events.js';
+import { demoEnabled } from '../../services/demo/index.js';
+import { seedDemoProfile } from '../../services/demo/seed.js';
 
 const router = express.Router();
 const logger = createLogger('ORGS');
@@ -106,6 +108,11 @@ router.post('/', async (req, res) => {
         },
       });
 
+      // The sample seller, so the first dashboard is not empty. In the same
+      // transaction: an org with no member is as broken as one with a half-
+      // seeded sample, and both should fail together.
+      if (demoEnabled()) await seedDemoProfile(tx, created.id);
+
       return created;
     }));
 
@@ -117,6 +124,7 @@ router.post('/', async (req, res) => {
     // has just paid, and the sweep excludes paid orgs for the same reason.
     sendTrialWelcome(org.id).catch((err) =>
       logger.warn(`Welcome email left to the sweep for org ${org.id}: ${err.message}`));
+
     // The first funnel step, carrying where the signup came from. Read from
     // the user rather than the request so a partner code captured days ago
     // still lands on the org it produced. Fire-and-forget.

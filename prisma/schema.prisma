@@ -188,6 +188,9 @@ model SellerProfile {
   primaryCountry String
   merchantToken  String? // Encrypted
   isDefault      Boolean   @default(false)
+  // Sample data, not an Amazon account. Never counted against the plan,
+  // never synced, never enrolled; removed on the first real sync.
+  isDemo         Boolean   @default(false)
   lastSyncedAt   DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

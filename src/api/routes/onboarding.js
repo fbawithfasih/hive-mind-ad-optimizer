@@ -24,7 +24,7 @@ router.get('/status', async (req, res) => {
   const [user, credCount, profileCount, optimizationCount, reportCount] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { emailVerified: true } }),
     prisma.amazonCredential.count({ where: { orgId, status: 'ACTIVE' } }),
-    prisma.sellerProfile.count({ where: { orgId } }),
+    prisma.sellerProfile.count({ where: { orgId, isDemo: false } }),
     prisma.listingOptimization.count({ where: { orgId, status: 'COMPLETED' } }),
     prisma.reportJob.count({ where: { orgId, status: 'COMPLETED' } }),
   ]);

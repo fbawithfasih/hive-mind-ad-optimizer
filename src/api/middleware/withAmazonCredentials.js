@@ -20,6 +20,8 @@ import { createSpApiClient, default as defaultSpClient } from '../../services/am
 import { createLogger } from '../utils/logger.js';
 import { marketplaceIdForCountry, languageTagForCountry } from '../utils/marketplaces.js';
 import { prisma } from '../../db/prisma.js';
+import { isDemoRequest } from '../../services/demo/index.js';
+import { demoAdsClient } from '../../services/demo/ads-client.js';
 
 const logger = createLogger('CREDS_MW');
 
@@ -34,6 +36,15 @@ const ADS_REQUIRED_PREFIXES = [
   '/api/alerts',
   '/api/profiles',
 ];
+
+/**
+ * Profile sync must always reach the real branch: a demo-only org that syncs
+ * should get the honest "Ads not connected", never "synced 0 profiles" from
+ * a fixture that has none.
+ */
+function isProfileSync(req) {
+  return req.method === 'POST' && (req.originalUrl || req.url || '').startsWith('/api/profiles/sync');
+}
 
 function pathRequiresAds(req) {
   const url = req.originalUrl || req.url || '';
@@ -76,6 +87,25 @@ export async function withAmazonCredentials(req, res, next) {
 
     const cred = await loadOrgCredential(orgId);
 
+    // Sample data, decided before credentials: between "connected" and
+    // "synced" an org has a real token but only the demo profile, and asking
+    // Amazon about profile demo-us would 4xx. Reads are served by the fixture
+    // client; writes are refused — nothing about a fictional seller can be
+    // changed, and a route must say so rather than pretend.
+    const demo = pathRequiresAds(req) && !isProfileSync(req) ? await isDemoRequest(req, orgId) : false;
+    if (demo && req.method !== 'GET') {
+      return res.status(412).json({
+        error:  'Demo data is read-only.',
+        code:   'DEMO_READ_ONLY',
+        action: 'Connect your Amazon account to make changes.',
+      });
+    }
+    const attachDemo = () => {
+      req.adsClient = demoAdsClient;
+      req.hasOwnAdsCreds = true;   // stops campaigns.js falling back to AMAZON_DEFAULT_PROFILE_ID
+      req.isDemo = true;
+    };
+
     if (cred) {
       const { marketplaceId, languageTag } = await resolveMarketplaceContext(req, orgId, cred.marketplaceId);
 
@@ -85,7 +115,9 @@ export async function withAmazonCredentials(req, res, next) {
       const adsClientId     = cred.adsClientId     || process.env.AMAZON_ADS_CLIENT_ID     || '';
       const adsClientSecret = cred.adsClientSecret || process.env.AMAZON_ADS_CLIENT_SECRET || '';
 
-      if (cred.adsRefreshToken) {
+      if (demo) {
+        attachDemo();
+      } else if (cred.adsRefreshToken) {
         req.adsClient = createAdsClient({
           clientId:     adsClientId,
           clientSecret: adsClientSecret,
@@ -128,6 +160,11 @@ export async function withAmazonCredentials(req, res, next) {
       });
 
       logger.debug(`Loaded per-org Amazon credentials for org ${orgId}, marketplace ${marketplaceId}`);
+    } else if (demo) {
+      attachDemo();
+      // No SP client to stand in: sales.js keeps its honest SP_NOT_CONNECTED,
+      // and the banner on the page says why.
+      req.spClient = {};
     } else {
       req.adsClient = defaultAdsClient;
       req.spClient  = defaultSpClient;

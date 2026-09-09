@@ -109,7 +109,7 @@ export default function TopBar({
               <optgroup key={accountId} label={group.label}>
                 {group.profiles.map(p => (
                   <option key={p.profileId} value={p.profileId}>
-                    {FLAG(p.countryCode)} {p.countryCode}{p.isDefault ? ' ★' : ''}
+                    {p.isDemo ? 'Sample data' : `${FLAG(p.countryCode)} ${p.countryCode}${p.isDefault ? ' ★' : ''}`}
                   </option>
                 ))}
               </optgroup>

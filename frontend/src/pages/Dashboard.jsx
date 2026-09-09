@@ -26,6 +26,7 @@ import ListingHistoryPanel from '../components/ListingHistoryPanel.jsx';
 import ImageOptimizerPanel from '../components/ImageOptimizerPanel.jsx';
 import BulkActionBar from '../components/BulkActionBar.jsx';
 import AdsNotConnectedBanner from '../components/AdsNotConnectedBanner.jsx';
+import DemoDataBanner from '../components/DemoDataBanner.jsx';
 import { BrandAnalyticsPanel } from '../components/BrandAnalytics/index.js';
 import { logoutApi, resendVerificationApi, switchOrgApi, evaluateAlertsApi, getUnreadCountApi, markFiresReadApi, bulkUpdateCampaigns } from '../services/api.js';
 import { getDaysAgoISO } from '../utils/date-helpers.js';
@@ -470,6 +471,7 @@ export default function Dashboard({ user, onboarded, onLogout }) {
     >
 
       <AdsNotConnectedBanner />
+      <DemoDataBanner visible={!!selectedProfile?.isDemo} />
 
       {/* A failed profiles load used to render as an empty profile list, which is
           indistinguishable from having no Amazon account connected — so the user
