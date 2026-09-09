@@ -26,7 +26,7 @@ const SignOutIcon  = () => <Icon d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3
 const TOOLS = [
   {
     tab: 'campaigns', name: 'Campaigns', badge: 'CORE',
-    desc: 'Monitor and manage Sponsored Products, Brands & Display campaigns with real-time performance metrics.',
+    desc: 'Monitor and manage your Sponsored Products campaigns — status, daily budgets, and the spend, clicks and sales Amazon reports for any date range.',
     gradient: 'linear-gradient(135deg, #FF6B35, #F7931E)',
     glow: 'rgba(255,107,53,0.45)',
     bg: 'rgba(255,107,53,0.12)',
@@ -46,7 +46,7 @@ const TOOLS = [
   },
   {
     tab: 'listings', name: 'Listing Optimizer', badge: 'AI',
-    desc: 'Generate SEO-rich titles, bullets and A+ content powered by Claude AI — crafted to rank on Amazon.',
+    desc: 'Generate SEO-rich titles, bullet points and descriptions with Claude — built from your own search-term data, ready to publish.',
     gradient: 'linear-gradient(135deg, #DA22FF, #9733EE)',
     glow: 'rgba(218,34,255,0.40)',
     bg: 'rgba(218,34,255,0.10)',
@@ -76,7 +76,7 @@ const TOOLS = [
   },
   {
     tab: 'bulk', name: 'Bulk Optimizer', badge: 'POWER',
-    desc: 'Optimise bids and budgets across hundreds of campaigns simultaneously. Scale without the grind.',
+    desc: 'Enable, pause or re-budget hundreds of campaigns in one action, and rewrite listings in bulk.',
     gradient: 'linear-gradient(135deg, #00C9FF, #00B4D8)',
     glow: 'rgba(0,201,255,0.40)',
     bg: 'rgba(0,201,255,0.10)',
@@ -86,7 +86,7 @@ const TOOLS = [
   },
   {
     tab: 'health', name: 'Listing Health', badge: 'MONITOR',
-    desc: 'Track quality scores, suppression alerts and content issues before they tank your ranking.',
+    desc: 'Score a listing\'s title, bullets, images and keywords, and see which content issues to fix first.',
     gradient: 'linear-gradient(135deg, #0BA360, #3CBA92)',
     glow: 'rgba(11,163,96,0.42)',
     bg: 'rgba(11,163,96,0.10)',
@@ -96,7 +96,7 @@ const TOOLS = [
   },
   {
     tab: 'keywords', name: 'Keyword Intelligence', badge: 'AI',
-    desc: 'AI keyword recommendations, match type analysis and opportunity scoring for all your ASINs.',
+    desc: 'AI keyword recommendations and match-type analysis for an ASIN, grounded in your own search-term reports.',
     gradient: 'linear-gradient(135deg, #F7971E, #FFD200)',
     glow: 'rgba(247,151,30,0.45)',
     bg: 'rgba(247,151,30,0.10)',
@@ -126,7 +126,7 @@ const TOOLS = [
   },
   {
     tab: 'automation', name: 'Automation Rules', badge: 'PRO',
-    desc: 'Set intelligent rules to auto-adjust bids, pause underperformers and scale winners — 24/7.',
+    desc: 'Set rules that pause campaigns or change daily budgets when ACoS, spend or sales cross a threshold — checked on a schedule, never touching bids.',
     gradient: 'linear-gradient(135deg, #4776E6, #3B1FDB)',
     glow: 'rgba(71,118,230,0.42)',
     bg: 'rgba(71,118,230,0.10)',
