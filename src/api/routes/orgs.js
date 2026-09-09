@@ -9,6 +9,7 @@ import { sendOrgInvitationEmail } from '../../services/email.js';
 import { requireVerifiedEmail } from '../middleware/requireVerifiedEmail.js';
 import { trialEndsAtFrom } from '../../config/trial.js';
 import { normaliseGstin } from '../utils/gstin.js';
+import { track } from '../../services/events.js';
 
 const router = express.Router();
 const logger = createLogger('ORGS');
@@ -116,6 +117,12 @@ router.post('/', async (req, res) => {
     // has just paid, and the sweep excludes paid orgs for the same reason.
     sendTrialWelcome(org.id).catch((err) =>
       logger.warn(`Welcome email left to the sweep for org ${org.id}: ${err.message}`));
+    // The first funnel step, carrying where the signup came from. Read from
+    // the user rather than the request so a partner code captured days ago
+    // still lands on the org it produced. Fire-and-forget.
+    runAsSystem(() => prisma.user.findUnique({ where: { id: req.user.userId }, select: { signupSource: true } }))
+      .then((u) => track('org_created', { orgId: org.id, userId: req.user.userId, props: u?.signupSource ?? {} }))
+      .catch(() => {});
 
     res.status(201).json({ org });
   } catch (err) {

@@ -22,6 +22,7 @@ import { consumeClaimToken } from './billing.js';
 import { appleConfigured, getAppleClientSecret, verifyAppleIdToken } from '../../services/apple-auth.js';
 import { resolveSsoUser, claimIsTrue } from '../../services/sso-account.js';
 import { trialEndsAtFrom } from '../../config/trial.js';
+import { sanitiseAttribution } from '../utils/attribution.js';
 import {
   SESSION_MAX_AGE,
   SESSION_ABSOLUTE_MAX_SECONDS,
@@ -92,7 +93,7 @@ function issueSession(res, user, { activeOrgId = null, authAt = nowSeconds() } =
  */
 router.post('/signup', authLimiter, async (req, res) => {
   try {
-    const { password, firstName = '', lastName = '', claimToken } = req.body;
+    const { password, firstName = '', lastName = '', claimToken, attribution } = req.body;
     const email = normalizeEmail(req.body.email);
 
     // Validation
@@ -128,6 +129,8 @@ router.post('/signup', authLimiter, async (req, res) => {
         firstName,
         lastName,
         emailVerified: false,
+        // First touch, as the browser captured it; whitelisted and capped.
+        signupSource: sanitiseAttribution(attribution),
       },
     });
 

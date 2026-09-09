@@ -1,3 +1,4 @@
+import { readAttribution } from '../attribution.js';
 import axios from 'axios';
 import { profilesCache, campaignsCache, searchTermsCache } from '../utils/cache.js';
 
@@ -121,6 +122,9 @@ export async function loginApi(email, password) {
 export async function signupApi(email, password, firstName = '', lastName = '', claimToken = null) {
   const body = { email, password, firstName, lastName };
   if (claimToken) body.claimToken = claimToken;
+  // First-touch attribution captured on the first page this browser opened.
+  const attribution = readAttribution();
+  if (attribution) body.attribution = attribution;
   const res = await api.post('/auth/signup', body);
   return res.data;
 }
