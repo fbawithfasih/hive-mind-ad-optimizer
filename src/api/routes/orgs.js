@@ -6,6 +6,7 @@ import { createLogger } from '../utils/logger.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
 import { sendOrgInvitationEmail } from '../../services/email.js';
 import { requireVerifiedEmail } from '../middleware/requireVerifiedEmail.js';
+import { trialEndsAtFrom } from '../../config/trial.js';
 
 const router = express.Router();
 const logger = createLogger('ORGS');
@@ -90,7 +91,7 @@ router.post('/', async (req, res) => {
           name: name.trim(),
           slug,
           description: description?.trim() || null,
-          trialEndsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3-day trial
+          trialEndsAt: trialEndsAtFrom(),
         },
       });
 

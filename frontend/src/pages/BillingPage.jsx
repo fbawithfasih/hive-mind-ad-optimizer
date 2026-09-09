@@ -228,7 +228,7 @@ export default function BillingPage({ user, onLogout }) {
                 Your free trial has ended
               </h2>
               <p style={{ margin: '0 0 20px', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                Your 3-day trial has expired. Choose a plan below to restore full access to
+                Your free trial has expired. Choose a plan below to restore full access to
                 Hive Mind Ad Optimizer 360 — campaigns, AI tools, and everything else.
               </p>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 20px', borderRadius: 99, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', fontSize: 13, color: 'var(--danger-soft)', fontWeight: 600 }}>

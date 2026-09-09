@@ -63,8 +63,14 @@ model Organization {
   tier            SubscriptionTier @default(BASIC)
   billingStatus   BillingStatus    @default(ACTIVE)
   trialEndsAt     DateTime?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+
+  // When each trial lifecycle email went out, so the daily worker can send
+  // each one exactly once across retries and replicas. Null means not yet.
+  trialWelcomeSentAt DateTime?
+  trialEndingSentAt  DateTime?
+  trialExpiredSentAt DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   // Relations
   members               OrgMember[]

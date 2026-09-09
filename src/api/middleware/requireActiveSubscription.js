@@ -1,5 +1,6 @@
 import { prisma } from '../../db/prisma.js';
 import { isEntitled, isLapsedProviderlessSubscription } from '../../services/entitlement.js';
+import { TRIAL_DAYS } from '../../config/trial.js';
 
 /**
  * Allows the request through if the org has:
@@ -62,7 +63,7 @@ export async function requireActiveSubscription(req, res, next) {
   const isTrialExpired = trialEndsAt && trialEndsAt.getTime() <= Date.now();
   return res.status(402).json({
     error: isTrialExpired
-      ? 'Your 3-day free trial has ended. Subscribe to continue.'
+      ? `Your ${TRIAL_DAYS}-day free trial has ended. Subscribe to continue.`
       : 'An active subscription is required. Visit /billing to subscribe.',
     code: isTrialExpired ? 'TRIAL_EXPIRED' : 'SUBSCRIPTION_REQUIRED',
   });
