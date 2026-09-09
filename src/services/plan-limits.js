@@ -82,6 +82,13 @@ async function usageFor(orgId, field) {
   }
   if (field === 'seats')           return prisma.orgMember.count({ where: { orgId } });
   if (field === 'automationRules') return prisma.campaignRule.count({ where: { orgId } });
+  if (field === 'llmTokens') {
+    const row = await prisma.usageMetric.findFirst({
+      where:  { orgId, month: currentMonth() },
+      select: { llmInputTokens: true, llmOutputTokens: true },
+    });
+    return (row?.llmInputTokens ?? 0) + (row?.llmOutputTokens ?? 0);
+  }
   const row = await prisma.usageMetric.findFirst({
     where: { orgId, month: currentMonth() },
     select: { [field]: true },

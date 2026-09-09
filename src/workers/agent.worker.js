@@ -396,7 +396,7 @@ export async function agentProcessor(job) {
 
     const { kept, vetoed, reviewError } = await reviewCandidates(candidates, {
       ...objective, profileId,
-    }, { callModel: job.data?.callModel ?? defaultReviewer });
+    }, { callModel: job.data?.callModel ?? ((system, user) => defaultReviewer(system, user, orgId)) });
 
     const guarded = applyGuardrails(kept, {
       report: window,
@@ -525,9 +525,9 @@ async function applyOrRecord({ actions, objectiveRecord, adsClient, profileId, r
  * pure and testable. Injected by the processor; overridable from job data in
  * tests.
  */
-async function defaultReviewer(system, user) {
+async function defaultReviewer(system, user, orgId) {
   const { callModelForReview } = await import('../services/agent/review-model.js');
-  return callModelForReview(system, user);
+  return callModelForReview(system, user, { orgId });
 }
 
 export default agentProcessor;

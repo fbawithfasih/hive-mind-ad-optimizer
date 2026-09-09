@@ -146,6 +146,7 @@ export async function reportingProcessor(job) {
     searchTerms: classifiedTerms,
     model,
     brandContext,
+    orgId,
   });
 
   // 6. Persist result

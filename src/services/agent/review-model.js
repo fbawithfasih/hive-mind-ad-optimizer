@@ -13,9 +13,7 @@
  * opposite trade.
  */
 
-import { fetchWithTimeout, TIMEOUT_MS } from '../http.js';
-
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+import { claudeMessages } from '../llm.js';
 
 export const REVIEW_MODEL = 'claude-sonnet-4-6';
 
@@ -26,31 +24,15 @@ const MAX_TOKENS = 8192;
  * @returns {Promise<string>} raw model text, for parseReviewResponse to handle
  * @throws  so reviewCandidates can degrade to policy-only
  */
-export async function callModelForReview(systemPrompt, userMessage) {
-  if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not configured');
-
-  const res = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: REVIEW_MODEL,
-      max_tokens: MAX_TOKENS,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userMessage }],
-    }),
-  }, TIMEOUT_MS.llm);
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(`Review model error ${res.status}: ${err?.error?.message ?? res.statusText}`);
-  }
-
-  const json = await res.json();
-  return json?.content?.[0]?.text ?? '';
+export async function callModelForReview(systemPrompt, userMessage, { orgId = null } = {}) {
+  // Metered against the org whose profile is being reviewed, and capped by
+  // its plan; over the ceiling in strict mode this throws, and
+  // reviewCandidates degrades to policy-only for the day. See services/llm.js.
+  const { text } = await claudeMessages({
+    model: REVIEW_MODEL, system: systemPrompt, maxTokens: MAX_TOKENS, orgId, purpose: 'review',
+    messages: [{ role: 'user', content: userMessage }],
+  });
+  return text;
 }
 
 export default callModelForReview;
