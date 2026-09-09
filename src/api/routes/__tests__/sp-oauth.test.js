@@ -5,8 +5,24 @@ import jwt from 'jsonwebtoken';
 import { __store } from '../../../services/ephemeral-store.js';
 import spOauthRouter from '../sp-oauth.js';
 
-// Mock axios (token exchange) and saveOrgCredential
-jest.mock('axios');
+// Mock axios (token exchange) and saveOrgCredential.
+//
+// A factory rather than the automock, because this route now reaches
+// services/http.js — through services/events.js — and that module builds its
+// shared axios instance and attaches the Amazon retry/throttle interceptors at
+// import time. An automocked `create()` returns undefined, so the suite failed
+// to load before a single test ran.
+jest.mock('axios', () => {
+  const instance = {
+    interceptors: { request: { use: jest.fn() }, response: { use: jest.fn() } },
+    defaults: {},
+    get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn(), request: jest.fn(),
+  };
+  return {
+    __esModule: true,
+    default: { create: jest.fn(() => instance), post: jest.fn(), get: jest.fn() },
+  };
+});
 // In-memory stand-in for the Redis-backed CSRF nonce store. Keeps the
 // start → callback round trip these tests rely on, and lets a failure be
 // simulated without a live Redis.
