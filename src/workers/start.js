@@ -42,6 +42,7 @@ import { billingReconcileProcessor }     from './billing-reconcile.worker.js';
 import { agentProcessor }               from './agent.worker.js';
 import { lifecycleEmailProcessor }      from './lifecycle-email.worker.js';
 import { processRole } from '../config/process-role.js';
+import { recordJobDuration } from '../services/queue-metrics.js';
 
 const logger = createLogger('WORKERS');
 
@@ -60,9 +61,17 @@ export { processRole, shouldRunWorkers, shouldServeHttp } from '../config/proces
  * anything else running at the same time. The id names the queue and the job,
  * so it is greppable straight from a dead-letter record.
  */
-const asSystem = (processor) => (job) =>
-  runWithCorrelationId(`job:${job.queueName ?? 'unknown'}:${job.id ?? '?'}`,
-    () => runAsSystem(() => processor(job)));
+const asSystem = (processor) => async (job) => {
+  const started = Date.now();
+  try {
+    return await runWithCorrelationId(`job:${job.queueName ?? 'unknown'}:${job.id ?? '?'}`,
+      () => runAsSystem(() => processor(job)));
+  } finally {
+    // Timed here rather than on the 'completed' event, so a job that threw is
+    // measured too: a queue whose jobs fail slowly is the interesting case.
+    recordJobDuration(job.queueName, Date.now() - started);
+  }
+};
 
 /** Repeatable jobs. Deduplicated by jobId, so re-registering on boot is a no-op. */
 function scheduleRecurringJobs() {
