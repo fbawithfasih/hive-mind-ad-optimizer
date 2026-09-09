@@ -47,6 +47,9 @@ describe('defaults', () => {
     // The lifecycle sweep walks every trialing org itself; a second copy would
     // race the marks that keep each email to exactly one send.
     expect(c.lifecycleEmail).toBe(1);
+    // The digest job fans out to every org in one run; a second copy sends a
+    // second Monday.
+    expect(c.digest).toBe(1);
   });
 
   it('leaves Brand Analytics where it was — SP-API has no bucket pacing it', () => {
@@ -56,7 +59,7 @@ describe('defaults', () => {
   it('names every queue, so a replica can report what it is running', () => {
     expect(Object.keys(loadWith()).sort()).toEqual([
       'agent', 'alertEvaluation', 'automation', 'billingReconcile',
-      'brandAnalytics', 'bulkListing', 'lifecycleEmail', 'reporting', 'tokenCleanup',
+      'brandAnalytics', 'bulkListing', 'digest', 'lifecycleEmail', 'reporting', 'tokenCleanup',
     ].sort());
   });
 });

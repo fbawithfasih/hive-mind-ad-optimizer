@@ -104,6 +104,9 @@ export const WORKER_CONCURRENCY = {
   // Serial: the processor walks every trialing org itself, and a second copy
   // would race the marks that keep each email to exactly one send.
   lifecycleEmail:    concurrencyFor('LIFECYCLE_EMAIL', 1),
+  // Serial for the same reason, and more sharply: the digest job fans out to
+  // every org in one processor run, so a second copy sends a second Monday.
+  digest:            concurrencyFor('DIGEST', 1),
 };
 
 /**
@@ -360,6 +363,24 @@ export const lifecycleEmailQueue = new Queue(LIFECYCLE_EMAIL_QUEUE_NAME, {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Digest queue — the Monday email, one job that fans out in the processor
+// ─────────────────────────────────────────────────────────────────────────────
+
+const DIGEST_QUEUE_NAME = 'digest';
+
+export const digestQueue = new Queue(DIGEST_QUEUE_NAME, {
+  connection: makeRedisConnection(),
+  defaultJobOptions: {
+    // A retry re-sends to orgs already emailed this run, so one attempt only.
+    // A missed week is better than two identical Mondays, and the next week
+    // is seven days away.
+    attempts:         1,
+    removeOnComplete: { count: 10 },
+    removeOnFail:     { count: 10 },
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Agent queue — the autonomous account-manager runs, one job per profile per day
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -420,6 +441,7 @@ export const QUEUES_BY_NAME = {
   [BILLING_RECONCILE_QUEUE_NAME]:  billingReconcileQueue,
   [AGENT_QUEUE_NAME]:              agentQueue,
   [LIFECYCLE_EMAIL_QUEUE_NAME]:    lifecycleEmailQueue,
+  [DIGEST_QUEUE_NAME]:             digestQueue,
 };
 
 /**
@@ -468,6 +490,24 @@ export function createLifecycleEmailWorker(processor) {
   return worker;
 }
 
+/**
+ * @param {Function} processor  - async (job) => void
+ * @returns {Worker}
+ */
+export function createDigestWorker(processor) {
+  const worker = new Worker(DIGEST_QUEUE_NAME, processor, {
+    connection:  makeRedisConnection(),
+    concurrency: WORKER_CONCURRENCY.digest,
+  });
+
+  worker.on('completed', (job) => logger.info(`Digest job ${job.id} completed`));
+  worker.on('failed', (job, err) => logger.error(`Digest job ${job?.id} failed: ${err.message}`));
+
+  attachDeadLetter(worker, DIGEST_QUEUE_NAME);
+  logger.info('Digest worker started');
+  return worker;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Graceful shutdown
 // ─────────────────────────────────────────────────────────────────────────────
@@ -483,5 +523,6 @@ export async function closeQueue() {
     alertEvaluationQueue.close(),
     billingReconcileQueue.close(),
     lifecycleEmailQueue.close(),
+    digestQueue.close(),
   ]);
 }
