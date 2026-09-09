@@ -429,6 +429,17 @@ describe('helpers', () => {
     expect(inverseFor(action, null)).toBeNull();
   });
 
+  it('refuses an inverse for a duplicate, even when Amazon names the keyword', () => {
+    // The dangerous shape. DUPLICATE_VALUE means the keyword was already
+    // there, so archiving it would remove one the seller — or an earlier run
+    // that has its own inverse — created. An id in the response is not
+    // evidence this run created anything.
+    const action = { actionType: 'ADD_EXACT', campaignId: 'c', adGroupId: 'g', searchTerm: 't' };
+
+    expect(inverseFor(action, { code: 'DUPLICATE_VALUE', keywordId: 5 })).toBeNull();
+    expect(inverseFor(action, { code: 'INVALID_ARGUMENT', keywordId: 5 })).toBeNull();
+  });
+
   it('derives the occurrence from a repeatable job id', () => {
     expect(occurrenceDate({ id: 'repeat:h:1788323400000' }).toISOString()).toBe('2026-09-02T04:30:00.000Z');
   });
