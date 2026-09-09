@@ -261,6 +261,14 @@ describe('GET /status — what the plan includes', () => {
     prisma.usageMetric.findFirst.mockResolvedValue(null);
   });
 
+  it("returns the org's id, name and GSTIN, for the fields billing edits in place", async () => {
+    prisma.organization.findUnique.mockResolvedValue({ id: 'org-1', name: 'Queenza', gstin: '27AAPFU0939F1ZV', trialEndsAt: null, tier: 'PRO' });
+
+    const res = await request(makeApp()).get('/status');
+
+    expect(res.body.org).toEqual({ id: 'org-1', name: 'Queenza', gstin: '27AAPFU0939F1ZV' });
+  });
+
   it('returns the caller\'s own plan limits', async () => {
     prisma.organization.findUnique.mockResolvedValue({ trialEndsAt: null, tier: 'PRO' });
 

@@ -138,6 +138,36 @@ describe('PUT /:orgId brandName', () => {
     );
   });
 
+  it('stores a GSTIN uppercased, for the invoice', async () => {
+    prisma.organization.update.mockResolvedValueOnce({ id: 'org-A', gstin: '27AAPFU0939F1ZV' });
+
+    const res = await request(makeApp()).put('/org-A').send({ gstin: ' 27aapfu0939f1zv ' });
+
+    expect(res.status).toBe(200);
+    expect(prisma.organization.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { gstin: '27AAPFU0939F1ZV' } })
+    );
+  });
+
+  it('refuses a malformed GSTIN before writing anything', async () => {
+    // It goes on invoices; a wrong one is an invoice the accountant rejects.
+    const res = await request(makeApp()).put('/org-A').send({ gstin: 'not-a-gstin' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/15-character/);
+    expect(prisma.organization.update).not.toHaveBeenCalled();
+  });
+
+  it('clears the GSTIN when given an empty string', async () => {
+    prisma.organization.update.mockResolvedValueOnce({ id: 'org-A', gstin: null });
+
+    await request(makeApp()).put('/org-A').send({ gstin: '' }).expect(200);
+
+    expect(prisma.organization.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { gstin: null } })
+    );
+  });
+
   it('persists a trimmed brand name', async () => {
     prisma.organization.update.mockResolvedValueOnce({ id: 'org-A', brandName: 'Queenza' });
 

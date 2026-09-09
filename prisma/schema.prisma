@@ -69,8 +69,13 @@ model Organization {
   trialWelcomeSentAt DateTime?
   trialEndingSentAt  DateTime?
   trialExpiredSentAt DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+
+  // GST identification number, for invoices; optional. Carried into the
+  // Razorpay subscription notes at checkout so input credit can be claimed.
+  gstin String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   members               OrgMember[]

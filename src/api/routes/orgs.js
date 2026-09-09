@@ -8,6 +8,7 @@ import { normalizeEmail } from '../utils/normalizeEmail.js';
 import { sendOrgInvitationEmail } from '../../services/email.js';
 import { requireVerifiedEmail } from '../middleware/requireVerifiedEmail.js';
 import { trialEndsAtFrom } from '../../config/trial.js';
+import { normaliseGstin } from '../utils/gstin.js';
 
 const router = express.Router();
 const logger = createLogger('ORGS');
@@ -328,16 +329,22 @@ router.put('/:orgId', async (req, res) => {
     const m = await getAccess(req.user.userId, req.params.orgId, 'ADMIN');
     if (!m) return res.status(403).json({ error: 'Admin access required.' });
 
-    const { name, description, brandName } = req.body;
+    const { name, description, brandName, gstin } = req.body;
     const data = {};
     if (name?.trim()) data.name = name.trim();
     if (description !== undefined) data.description = description?.trim() || null;
     // Brand Analytics matches this against product titles, so store it as the
     // seller typed it. Empty string clears it back to null.
     if (brandName !== undefined) data.brandName = brandName?.trim() || null;
+    // Goes on invoices, so it is checked for shape; empty clears it.
+    if (gstin !== undefined) {
+      const g = normaliseGstin(gstin);
+      if (!g.ok) return res.status(400).json({ error: g.error });
+      data.gstin = g.value;
+    }
 
     if (!Object.keys(data).length) {
-      return res.status(400).json({ error: 'Provide name, description, or brandName to update.' });
+      return res.status(400).json({ error: 'Provide name, description, brandName, or gstin to update.' });
     }
 
     const org = await prisma.organization.update({
