@@ -500,6 +500,49 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     return Array.isArray(res.data) ? res.data : [];
   }
 
+  /**
+   * Archive a keyword, or a negative keyword, by id.
+   *
+   * Amazon has no delete. Archiving is how anything is removed from an
+   * account, it is done one id at a time — there is no batch form of it the
+   * way there is for create — and it is terminal: an archived keyword cannot
+   * be restored, only recreated. Callers are expected to mean it.
+   *
+   * The two endpoints differ only in their path, so one implementation backs
+   * both. The v2 response is a single result object rather than the array the
+   * create endpoints return, so it is handed back as-is for the caller to read
+   * a code off.
+   *
+   * A 404 is reported as NOT_FOUND rather than thrown. Asking to archive
+   * something that is already gone is the expected outcome of a retry, and the
+   * end state the caller wanted either way.
+   */
+  async function archiveById(profileId, keywordId, path) {
+    const token = await getAccessToken();
+    try {
+      const res = await http.delete(
+        `${hostFor(profileId)}/v2/sp/${path}/${Number(keywordId)}`,
+        { headers: adsHeaders(token, profileId) }
+      );
+      return res.data ?? { code: 'SUCCESS', keywordId: String(keywordId) };
+    } catch (e) {
+      if (e.response?.status === 404) {
+        return { code: 'NOT_FOUND', keywordId: String(keywordId) };
+      }
+      throw e;
+    }
+  }
+
+  /** Archive a negative keyword, which is how a negative is removed. */
+  async function archiveNegativeKeyword(profileId, keywordId) {
+    return archiveById(profileId, keywordId, 'negativeKeywords');
+  }
+
+  /** Archive a positive keyword, which stops it spending. */
+  async function archiveKeyword(profileId, keywordId) {
+    return archiveById(profileId, keywordId, 'keywords');
+  }
+
   return {
     getProfiles,
     getCampaigns,
@@ -513,6 +556,8 @@ export function createAdsClient({ clientId, clientSecret, refreshToken, cacheKey
     updateCampaigns,
     addNegativeKeywords,
     addKeywords,
+    archiveNegativeKeyword,
+    archiveKeyword,
     setProfileRegions,
   };
 }
@@ -540,5 +585,7 @@ export const getSearchTermReport         = _defaultClient.getSearchTermReport;
 export const updateCampaigns             = _defaultClient.updateCampaigns;
 export const addNegativeKeywords         = _defaultClient.addNegativeKeywords;
 export const addKeywords                 = _defaultClient.addKeywords;
+export const archiveNegativeKeyword      = _defaultClient.archiveNegativeKeyword;
+export const archiveKeyword              = _defaultClient.archiveKeyword;
 
 export default _defaultClient;

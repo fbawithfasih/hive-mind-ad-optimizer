@@ -21,6 +21,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   getAgentDecisionsApi, getAgentGraduationApi, getAgentObjectivesApi,
   getAgentRunsApi, getStoredProfilesApi, recordAgentVerdictApi, saveAgentObjectiveApi,
+  revertAgentDecisionApi, revertAgentRunApi,
 } from '../services/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 
@@ -103,7 +104,21 @@ function GraduationCard({ actionType, status }) {
 }
 
 /** One proposal, with the numbers it was made from. */
-function DecisionRow({ decision, onVerdict, busy, isMobile }) {
+/**
+ * Can this decision be taken back from the panel?
+ *
+ * Mirrors revertBlocker on the server, which is the authority — this only
+ * decides whether to draw the button. A DUPLICATE is excluded for the reason
+ * that matters most: Amazon reports it when the keyword was already there, so
+ * the seller created it and archiving it would delete their own work.
+ */
+function canRevert(decision) {
+  return decision.status === 'APPLIED'
+    && decision.outcome !== 'DUPLICATE'
+    && Boolean(decision.inverse?.keywordId);
+}
+
+function DecisionRow({ decision, onVerdict, onRevert, busy, isMobile, isAdmin }) {
   const i = decision.inputs ?? {};
   const verdict = decision.humanVerdict;
 
@@ -174,6 +189,33 @@ function DecisionRow({ decision, onVerdict, busy, isMobile }) {
             }}
           >Disagree</button>
         </div>
+      )}
+
+      {/* Reverting is offered only where there is something at Amazon to undo.
+          It sits apart from the verdict buttons because it is a different kind
+          of act: a verdict is evidence, this changes a live account and cannot
+          be taken back. */}
+      {isAdmin && canRevert(decision) && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--overlay-5)' }}>
+          <button
+            onClick={() => onRevert(decision)}
+            disabled={busy}
+            style={{
+              padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+              cursor: busy ? 'wait' : 'pointer', border: '1px solid var(--overlay-7)',
+              background: 'transparent', color: 'var(--text-muted)',
+            }}
+          >Revert this</button>
+          <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--text-faint)' }}>
+            Archives the keyword at Amazon — permanent
+          </span>
+        </div>
+      )}
+
+      {decision.status === 'REVERTED' && (
+        <p style={{ margin: '10px 0 0', fontSize: 11, color: 'var(--text-faint)' }}>
+          Reverted — the keyword is archived at Amazon
+        </p>
       )}
     </div>
   );
@@ -444,6 +486,65 @@ export default function AgentPanel({ isAdmin = false }) {
     }
   }
 
+  /**
+   * Take one applied decision back.
+   *
+   * Confirmed first, and worded so the irreversible half is the part being
+   * agreed to: archiving at Amazon is terminal, and a keyword that comes back
+   * is a new keyword with no history.
+   */
+  async function handleRevert(decision) {
+    const ok = window.confirm(
+      `Archive "${decision.searchTerm}" at Amazon?\n\n` +
+      'This undoes what the agent applied. Archiving is permanent — the keyword ' +
+      'cannot be restored, only added again as a new one.'
+    );
+    if (!ok) return;
+
+    setBusyId(decision.id);
+    setError(null);
+    try {
+      await revertAgentDecisionApi(decision.id);
+      // Reflect both changes locally: the revert settles the verdict too, when
+      // none was given, and the row should say so without a refetch.
+      setDecisions((prev) => prev.map((d) => (d.id === decision.id
+        ? { ...d, status: 'REVERTED', humanVerdict: d.humanVerdict ?? 'DISAGREE' }
+        : d)));
+      getAgentGraduationApi().then((g) => setGraduation(g.graduation)).catch(() => {});
+    } catch (err) {
+      setError(err?.response?.data?.error ?? 'Could not revert that decision');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  /** Take back everything the last run applied — the bad-day button. */
+  async function handleRevertRun(run) {
+    const ok = window.confirm(
+      `Revert every keyword run ${new Date(run.startedAt).toLocaleString()} applied?\n\n` +
+      `Up to ${run.applied} keywords will be archived at Amazon. This is permanent.`
+    );
+    if (!ok) return;
+
+    setBusyId(run.id);
+    setError(null);
+    try {
+      const res = await revertAgentRunApi(run.id);
+      // Reload first, then report. load() clears the error banner on entry, so
+      // setting the message before it would wipe the one thing the operator
+      // needs from a partial revert: which terms are still live at Amazon.
+      await load(filter);
+      if (res.failures?.length) {
+        setError(`Reverted ${res.reverted} of ${res.attempted}. ` +
+          `Could not revert: ${res.failures.map((f) => f.searchTerm).join(', ')}`);
+      }
+    } catch (err) {
+      setError(err?.response?.data?.error ?? 'Could not revert that run');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function handleSaveObjective(profileId, patch) {
     setSavingObjective(true);
     setError(null);
@@ -571,6 +672,17 @@ export default function AgentPanel({ isAdmin = false }) {
             Last run {new Date(lastRun.startedAt).toLocaleString()} — {lastRun.status}
             {lastRun.abortReason ? ` (${lastRun.abortReason})` : ''}, {lastRun.candidates} proposed,
             {' '}{lastRun.applied} applied.
+            {isAdmin && lastRun.applied > 0 && (
+              <button
+                onClick={() => handleRevertRun(lastRun)}
+                disabled={busyId === lastRun.id}
+                style={{
+                  marginLeft: 8, padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+                  cursor: busyId === lastRun.id ? 'wait' : 'pointer',
+                  border: '1px solid var(--overlay-7)', background: 'transparent', color: 'var(--text-muted)',
+                }}
+              >Revert this run</button>
+            )}
           </p>
         )}
       </Card>
@@ -608,8 +720,8 @@ export default function AgentPanel({ isAdmin = false }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {decisions.map((d) => (
             <DecisionRow
-              key={d.id} decision={d} isMobile={isMobile}
-              busy={busyId === d.id} onVerdict={handleVerdict}
+              key={d.id} decision={d} isMobile={isMobile} isAdmin={isAdmin}
+              busy={busyId === d.id} onVerdict={handleVerdict} onRevert={handleRevert}
             />
           ))}
         </div>
