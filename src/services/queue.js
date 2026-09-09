@@ -299,6 +299,24 @@ export const billingReconcileQueue = new Queue(BILLING_RECONCILE_QUEUE_NAME, {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Lifecycle email queue — the daily trial-email sweep
+// ─────────────────────────────────────────────────────────────────────────────
+
+const LIFECYCLE_EMAIL_QUEUE_NAME = 'lifecycle-email';
+
+export const lifecycleEmailQueue = new Queue(LIFECYCLE_EMAIL_QUEUE_NAME, {
+  connection: makeRedisConnection(),
+  defaultJobOptions: {
+    // Every send claims its mark first, so a retry only re-sends what the
+    // failed run gave back.
+    attempts:         2,
+    backoff:          { type: 'exponential', delay: 60_000 },
+    removeOnComplete: { count: 10 },
+    removeOnFail:     { count: 10 },
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Agent queue — the autonomous account-manager runs, one job per profile per day
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -358,6 +376,7 @@ export const QUEUES_BY_NAME = {
   [BA_FETCH_QUEUE_NAME]:           brandAnalyticsFetchQueue,
   [BILLING_RECONCILE_QUEUE_NAME]:  billingReconcileQueue,
   [AGENT_QUEUE_NAME]:              agentQueue,
+  [LIFECYCLE_EMAIL_QUEUE_NAME]:    lifecycleEmailQueue,
 };
 
 /**
@@ -383,6 +402,29 @@ export function createBillingReconcileWorker(processor) {
   return worker;
 }
 
+/**
+ * @param {Function} processor  - async (job) => void
+ * @returns {Worker}
+ */
+export function createLifecycleEmailWorker(processor) {
+  const worker = new Worker(LIFECYCLE_EMAIL_QUEUE_NAME, processor, {
+    connection:  makeRedisConnection(),
+    concurrency: 1,
+  });
+
+  worker.on('completed', (job) => {
+    logger.info(`Lifecycle email job ${job.id} completed`);
+  });
+
+  worker.on('failed', (job, err) => {
+    logger.error(`Lifecycle email job ${job?.id} failed: ${err.message}`);
+  });
+
+  attachDeadLetter(worker, LIFECYCLE_EMAIL_QUEUE_NAME);
+  logger.info('Lifecycle email worker started');
+  return worker;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Graceful shutdown
 // ─────────────────────────────────────────────────────────────────────────────
@@ -397,5 +439,6 @@ export async function closeQueue() {
     agentQueue.close(),
     alertEvaluationQueue.close(),
     billingReconcileQueue.close(),
+    lifecycleEmailQueue.close(),
   ]);
 }

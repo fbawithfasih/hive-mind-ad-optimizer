@@ -28,8 +28,9 @@ import {
   createReportingWorker, createBulkListingWorker, createTokenCleanupWorker,
   createAutomationWorker, createBrandAnalyticsFetchWorker,
   createAlertEvaluationWorker, createBillingReconcileWorker, createAgentWorker,
+  createLifecycleEmailWorker,
   tokenCleanupQueue, automationQueue, brandAnalyticsFetchQueue,
-  alertEvaluationQueue, billingReconcileQueue, agentQueue,
+  alertEvaluationQueue, billingReconcileQueue, agentQueue, lifecycleEmailQueue,
 } from '../services/queue.js';
 import { reportingProcessor }            from './reporting.worker.js';
 import { bulkListingProcessor }          from './bulk-listing.worker.js';
@@ -39,6 +40,7 @@ import { brandAnalyticsFetchProcessor }  from './brand-analytics-fetch.worker.js
 import { alertEvaluationProcessor }      from './alert-evaluation.worker.js';
 import { billingReconcileProcessor }     from './billing-reconcile.worker.js';
 import { agentProcessor }               from './agent.worker.js';
+import { lifecycleEmailProcessor }      from './lifecycle-email.worker.js';
 
 const logger = createLogger('WORKERS');
 
@@ -109,6 +111,11 @@ function scheduleRecurringJobs() {
   // cannot leave the database out of step.
   schedule(billingReconcileQueue, 'daily-reconcile', {},
     { repeat: { pattern: '0 5 * * *' }, jobId: 'billing-daily-reconcile' }, 'billing reconcile');
+
+  // An hour after the reconcile, so "no active subscription" is judged on
+  // subscription rows Razorpay has just confirmed.
+  schedule(lifecycleEmailQueue, 'lifecycle-daily', {},
+    { repeat: { pattern: '0 6 * * *' }, jobId: 'lifecycle-daily' }, 'trial lifecycle emails');
 }
 
 /**
@@ -126,6 +133,7 @@ export function startWorkers() {
     createAlertEvaluationWorker(asSystem(alertEvaluationProcessor)),
     createBillingReconcileWorker(asSystem(billingReconcileProcessor)),
     createAgentWorker(asSystem(agentProcessor)),
+    createLifecycleEmailWorker(asSystem(lifecycleEmailProcessor)),
   ];
 
   scheduleRecurringJobs();
