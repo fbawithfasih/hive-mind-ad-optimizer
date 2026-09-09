@@ -425,6 +425,10 @@ model RuleExecution {
   affectedCount Int      @default(0)
   changes       Json? // [{ campaignId, name, field, oldValue, newValue }]
   error         String?
+  // True when the rule was only asked what it would do. Same shape as a real
+  // execution so the history can show both, distinguishable so a count of
+  // affected campaigns cannot be mistaken for changes that happened.
+  dryRun        Boolean  @default(false)
   executedAt    DateTime @default(now())
   // Identifies the scheduled sweep occurrence this execution belongs to, e.g.
   // "morning:2026-08-31". The unique index below is what makes the automation

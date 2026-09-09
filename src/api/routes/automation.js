@@ -165,6 +165,43 @@ router.post('/rules/:id/run', requireRole('MEMBER'), async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /api/automation/rules/:id/dry-run — what would this rule change?
+//
+// A rule that changes budgets on live campaigns is a thing a seller should be
+// able to look at before it runs. Until now the only way to find out what a
+// rule did was to let it do it and read the history afterwards, which is a
+// poor way to learn that a threshold was an order of magnitude off.
+//
+// Recorded like any other execution, marked as a dry run, so the history
+// shows what was considered as well as what was done.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/rules/:id/dry-run', requireRole('MEMBER'), async (req, res) => {
+  const rule = await prisma.campaignRule.findFirst({
+    where: { id: req.params.id, orgId: req.tenant.orgId },
+  });
+  if (!rule) return res.status(404).json({ error: 'Rule not found' });
+
+  const result = await executeRule(rule, req.adsClient, { dryRun: true });
+
+  await prisma.ruleExecution.create({
+    data: {
+      ruleId:        rule.id,
+      orgId:         req.tenant.orgId,
+      status:        result.status,
+      affectedCount: result.affectedCount,
+      changes:       result.changes,
+      dryRun:        true,
+      error:         result.error ?? null,
+    },
+  });
+
+  // lastRunAt is deliberately not touched: a dry run is not a run, and the
+  // schedule that reads it must not be pushed back by looking.
+  logger.info(`Rule "${rule.name}" dry run: ${result.status}, ${result.affectedCount} campaigns would change`);
+  res.json(result);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /api/automation/run-all — execute all active rules for the org
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/run-all', requireRole('MEMBER'), async (req, res) => {
