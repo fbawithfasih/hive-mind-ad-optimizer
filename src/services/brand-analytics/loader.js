@@ -17,15 +17,26 @@ import {
 } from './analytics.js';
 import { prisma } from '../../db/prisma.js';
 import { baDataRoot } from '../../config/paths.js';
+import { createBoundedCache } from '../../api/utils/bounded-cache.js';
 
 // Resolved per call so BA_DATA_DIR (a mounted volume in production) is
 // honoured — see src/config/paths.js.
 
 // ── In-memory cache keyed by orgId ────────────────────────────────────────────
+//
+// Bounded, because this holds a *fully parsed* Brand Analytics report per
+// organization. As a plain Map with no expiry and no eviction it grew with
+// the customer count and never shrank: at a few thousand orgs the process
+// runs out of memory, and that arrives as a restart loop rather than as an
+// error anyone can read.
+//
+// An hour, and fifty orgs. The underlying reports are fetched weekly at most,
+// so an hour is fresh by any measure, and fifty is far more than the number
+// of orgs one replica serves in an hour while still being a fixed ceiling.
 
-const cache = new Map();
+const cache = createBoundedCache({ maxEntries: 50, ttlMs: 60 * 60 * 1000 });
 
-export function getCache(orgId)       { return cache.get(orgId) ?? null; }
+export function getCache(orgId)       { return cache.get(orgId); }
 export function setCache(orgId, data) { cache.set(orgId, { data, loadedAt: new Date() }); }
 export function clearCache(orgId)     { cache.delete(orgId); }
 
