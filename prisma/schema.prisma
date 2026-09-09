@@ -241,7 +241,7 @@ model ListingOptimization {
   batch BulkListingBatch? @relation(fields: [batchId], references: [id])
 
   @@unique([batchId, itemKey])
-  @@index([orgId])
+  @@index([orgId, createdAt])
   @@index([batchId])
   @@index([asin])
   @@index([sku])
@@ -291,7 +291,7 @@ model ReportJob {
   // Relations
   org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  @@index([orgId])
+  @@index([orgId, createdAt])
   @@index([status])
   @@index([createdAt])
 }
@@ -377,9 +377,9 @@ model UsageMetric {
 
   // Relations
   org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  // No orgId index: @@unique([orgId, month]) already serves every lookup.
 
   @@unique([orgId, month])
-  @@index([orgId])
 }
 
 // ============================================================================
@@ -472,7 +472,7 @@ model AlertFire {
 
   alert CampaignAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
 
-  @@index([orgId])
+  @@index([orgId, triggeredAt])
   @@index([alertId])
   @@index([isRead])
   @@index([triggeredAt])
@@ -502,7 +502,8 @@ model AuditLog {
   org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   user User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([orgId])
+  // "this org's rows, newest first" — the query every list endpoint runs.
+  @@index([orgId, createdAt])
   @@index([userId])
   @@index([action])
   @@index([createdAt])
