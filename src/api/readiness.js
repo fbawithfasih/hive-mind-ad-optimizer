@@ -18,6 +18,8 @@ import { prisma } from '../db/prisma.js';
 import { reportingQueue } from '../services/queue.js';
 import { tenantGuardStats } from '../db/tenant-guard.js';
 import { planLimitMode, planLimitStats } from '../services/plan-limits.js';
+import { processRole, shouldRunWorkers } from '../config/process-role.js';
+import { WORKER_CONCURRENCY } from '../services/queue.js';
 
 /** A dependency check must never be the reason the endpoint hangs. */
 const PROBE_TIMEOUT_MS = 3_000;
@@ -97,11 +99,19 @@ export async function readinessHandler(_req, res) {
     ? { mode: planLimitMode(), wouldBlock: 0 }
     : { mode: planLimitMode(), wouldBlock: limits.total, byField: limits.byField };
 
+  // Which shape this process is running in, and — when it runs workers — how
+  // many jobs each queue may run at once. Splitting the API and the workers
+  // into two Railway services is an environment change, not a code change, so
+  // without this there is no way to confirm from outside that it took: both
+  // services answer /ready and both would look identical.
+  const role = { role: processRole(), workers: shouldRunWorkers() ? WORKER_CONCURRENCY : null };
+
   res.status(result.ok ? 200 : 503).json({
     status:  result.ok ? 'ready' : 'not_ready',
     version: process.env.BUILD_VERSION ?? null,
     commit:  process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
     ...result,
+    process: role,
     tenantGuard,
     planLimits,
   });

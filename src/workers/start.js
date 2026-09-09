@@ -41,26 +41,14 @@ import { alertEvaluationProcessor }      from './alert-evaluation.worker.js';
 import { billingReconcileProcessor }     from './billing-reconcile.worker.js';
 import { agentProcessor }               from './agent.worker.js';
 import { lifecycleEmailProcessor }      from './lifecycle-email.worker.js';
+import { processRole } from '../config/process-role.js';
 
 const logger = createLogger('WORKERS');
 
-const ROLES = new Set(['all', 'api', 'worker']);
-
-/** @returns {'all'|'api'|'worker'} */
-export function processRole() {
-  const role = process.env.PROCESS_ROLE;
-  return ROLES.has(role) ? role : 'all';
-}
-
-/** Whether this process should run background workers. */
-export function shouldRunWorkers() {
-  return processRole() !== 'api';
-}
-
-/** Whether this process should serve HTTP traffic. */
-export function shouldServeHttp() {
-  return processRole() !== 'worker';
-}
+// Re-exported from config/process-role.js, which owns them so that the
+// readiness probe can ask what role a process is without importing every
+// worker processor to find out. Existing callers import them from here.
+export { processRole, shouldRunWorkers, shouldServeHttp } from '../config/process-role.js';
 
 /**
  * Each job runs as trusted system code: workers span organizations and pass an
