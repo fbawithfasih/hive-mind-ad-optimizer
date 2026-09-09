@@ -59,7 +59,8 @@ describe('defaults', () => {
   it('names every queue, so a replica can report what it is running', () => {
     expect(Object.keys(loadWith()).sort()).toEqual([
       'agent', 'alertEvaluation', 'automation', 'billingReconcile',
-      'brandAnalytics', 'bulkListing', 'digest', 'lifecycleEmail', 'reporting', 'tokenCleanup',
+      'brandAnalytics', 'bulkListing', 'digest', 'lifecycleEmail', 'reporting',
+      'salesFetch', 'tokenCleanup',
     ].sort());
   });
 });

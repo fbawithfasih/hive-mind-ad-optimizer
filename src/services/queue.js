@@ -107,6 +107,10 @@ export const WORKER_CONCURRENCY = {
   // Serial for the same reason, and more sharply: the digest job fans out to
   // every org in one processor run, so a second copy sends a second Monday.
   digest:            concurrencyFor('DIGEST', 1),
+  // Not slot-bound — the poll jobs re-enqueue with a delay rather than sleep,
+  // and the snapshot is idempotent per (org, day). The limit is SP-API Reports,
+  // which nothing paces, so this matches Brand Analytics rather than the agent.
+  salesFetch:        concurrencyFor('SALES_FETCH', 2),
 };
 
 /**
@@ -381,6 +385,24 @@ export const digestQueue = new Queue(DIGEST_QUEUE_NAME, {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Sales snapshot queue — nightly Sales & Traffic per org, polled by delayed job
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SALES_FETCH_QUEUE_NAME = 'sales-fetch';
+
+export const salesFetchQueue = new Queue(SALES_FETCH_QUEUE_NAME, {
+  connection: makeRedisConnection(),
+  defaultJobOptions: {
+    attempts:         3,
+    backoff:          { type: 'exponential', delay: 60_000 },
+    // A poll chain can be fifteen jobs for one org in one night; keeping
+    // hundreds of them would bury the ones worth reading.
+    removeOnComplete: { count: 50 },
+    removeOnFail:     { count: 50 },
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Agent queue — the autonomous account-manager runs, one job per profile per day
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -442,6 +464,7 @@ export const QUEUES_BY_NAME = {
   [AGENT_QUEUE_NAME]:              agentQueue,
   [LIFECYCLE_EMAIL_QUEUE_NAME]:    lifecycleEmailQueue,
   [DIGEST_QUEUE_NAME]:             digestQueue,
+  [SALES_FETCH_QUEUE_NAME]:        salesFetchQueue,
 };
 
 /**
@@ -508,6 +531,23 @@ export function createDigestWorker(processor) {
   return worker;
 }
 
+/**
+ * @param {Function} processor  - async (job) => void
+ * @returns {Worker}
+ */
+export function createSalesFetchWorker(processor) {
+  const worker = new Worker(SALES_FETCH_QUEUE_NAME, processor, {
+    connection:  makeRedisConnection(),
+    concurrency: WORKER_CONCURRENCY.salesFetch,
+  });
+
+  worker.on('failed', (job, err) => logger.error(`Sales fetch job ${job?.id} failed: ${err.message}`));
+
+  attachDeadLetter(worker, SALES_FETCH_QUEUE_NAME);
+  logger.info('Sales fetch worker started');
+  return worker;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Graceful shutdown
 // ─────────────────────────────────────────────────────────────────────────────
@@ -524,5 +564,6 @@ export async function closeQueue() {
     billingReconcileQueue.close(),
     lifecycleEmailQueue.close(),
     digestQueue.close(),
+    salesFetchQueue.close(),
   ]);
 }
