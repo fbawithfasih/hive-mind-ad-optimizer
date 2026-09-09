@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getBillingStatus, createCheckoutSession, verifyPaymentApi, cancelSubscriptionApi, logoutApi } from '../services/api.js';
+import { INTENDED_PLAN_KEY } from './SignupPage.jsx';
 
 const TIER_LABEL  = { BASIC: 'Starter', PRO: 'Growth', ENTERPRISE: 'Scale', CUSTOM: 'Custom' };
 const TIER_COLOR  = { BASIC: 'var(--text-subtle)', PRO: 'var(--info-strong)', ENTERPRISE: 'var(--accent-strong)', CUSTOM: 'var(--warning)' };
@@ -13,6 +14,17 @@ const TIER_TEXT = { BASIC: 'var(--text-muted)', PRO: 'var(--info)', ENTERPRISE: 
 // dark mode, where neither white (4.23:1) nor ink (4.22:1) passes on #8B5CF6.
 const TIER_FILL = { BASIC: '#475569', PRO: '#1D4ED8', ENTERPRISE: '#6D28D9', CUSTOM: '#B45309' };
 const STATUS_COLOR = { ACTIVE: 'var(--success-deep)', PAST_DUE: 'var(--warning-deep)', CANCELLED: 'var(--rose)', EXPIRED: 'var(--text-subtle)' };
+
+/** Marketing-site plan names → the tiers the cards below are keyed by. */
+const INTENDED_TIER = {
+  STARTER: 'BASIC', BASIC: 'BASIC', GROWTH: 'PRO', PRO: 'PRO', SCALE: 'ENTERPRISE', ENTERPRISE: 'ENTERPRISE',
+};
+
+/** The plan chosen on the marketing site, if this browser remembers one. */
+function readIntendedTier() {
+  try { return INTENDED_TIER[localStorage.getItem(INTENDED_PLAN_KEY) ?? ''] ?? null; }
+  catch { return null; }
+}
 
 // Prices mirror src/config/pricing.js — keep aligned with the backend source of truth.
 const PLAN_DETAILS = [
@@ -90,6 +102,7 @@ export default function BillingPage({ user, onLogout }) {
   const [error, setError]       = useState(null);
   const [banner, setBanner]     = useState(null); // { type: 'success'|'info', msg }
   const [showCancel, setShowCancel] = useState(false);
+  const [intendedTier] = useState(readIntendedTier);
 
   const isAdmin = user?.currentOrg?.role === 'ADMIN';
 
@@ -100,6 +113,12 @@ export default function BillingPage({ user, onLogout }) {
       .catch(() => setError('Failed to load billing information.'))
       .finally(() => setLoading(false));
   }, []);
+
+  // Once a subscription is live the remembered choice has done its job.
+  useEffect(() => {
+    if (data?.subscription?.status !== 'ACTIVE') return;
+    try { localStorage.removeItem(INTENDED_PLAN_KEY); } catch { /* nothing to forget */ }
+  }, [data?.subscription?.status]);
 
   useEffect(() => { reload(); }, [reload]);
 
@@ -344,7 +363,9 @@ export default function BillingPage({ user, onLogout }) {
                 {visiblePlans.map(plan => {
                   const isCurrent  = sub?.tier === plan.tier && sub?.status === 'ACTIVE';
                   const isDisabled = working || !isAdmin || !availableTiers.has(plan.tier);
-                  const highlight  = plan.popular && !isCurrent;
+                  // The plan they picked on the site outranks "most popular"; with no
+                  // pick remembered, the cards read as they always have.
+                  const highlight  = (intendedTier ? plan.tier === intendedTier : plan.popular) && !isCurrent;
 
                   return (
                     <div key={plan.tier} style={{
@@ -353,9 +374,9 @@ export default function BillingPage({ user, onLogout }) {
                       background: isCurrent ? 'color-mix(in srgb, var(--success) 3%, transparent)' : highlight ? `color-mix(in srgb, ${TIER_COLOR[plan.tier]} 3%, transparent)` : 'var(--bg-app-2)',
                       display: 'flex', flexDirection: 'column', gap: 14, position: 'relative',
                     }}>
-                      {plan.popular && !isCurrent && (
+                      {highlight && (
                         <span style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: TIER_FILL[plan.tier], color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 10px', borderRadius: 99, whiteSpace: 'nowrap' }}>
-                          Most popular
+                          {intendedTier ? 'Your pick' : 'Most popular'}
                         </span>
                       )}
 
