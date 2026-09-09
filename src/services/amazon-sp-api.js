@@ -404,8 +404,37 @@ export function createSpApiClient({
       currency = currency ?? r.salesByDate?.orderedProductSales?.currencyCode ?? null;
     }
 
-    console.log(`✅ Sales & Traffic report ${reportId} parsed — ${rows.length} days, total ${currency ?? ''} ${totalSales.toFixed(2)}`);
-    return { status: 'COMPLETED', totalSales, currency, days: rows.length };
+    // The per-ASIN half of the same payload. It was already being requested
+    // — the report is created with asinGranularity: PARENT — downloaded, and
+    // then dropped on the floor, which meant the one number sellers ask about
+    // most, Buy Box share, was arriving every time and never surfacing.
+    //
+    // Sessions with no units is the shape of a listing that has gone out of
+    // stock or lost the Buy Box: people are still arriving and nobody can
+    // buy. It is not proof of either — a listing can simply convert badly —
+    // so it is reported as what it is, and named as a signal rather than a
+    // diagnosis.
+    const asins = (payload.salesAndTrafficByAsin ?? []).map((a) => {
+      const sales   = a.salesByAsin ?? {};
+      const traffic = a.trafficByAsin ?? {};
+      const unitsOrdered = Number(sales.unitsOrdered ?? 0) || 0;
+      const sessions     = Number(traffic.sessions ?? 0) || 0;
+      return {
+        asin:             a.parentAsin ?? a.childAsin ?? a.asin ?? null,
+        unitsOrdered,
+        orderedSales:     Number(sales.orderedProductSales?.amount ?? 0) || 0,
+        sessions,
+        pageViews:        Number(traffic.pageViews ?? 0) || 0,
+        // Null rather than zero when Amazon omits it: a missing Buy Box
+        // figure and a Buy Box of zero mean opposite things, and only one of
+        // them is worth waking someone about.
+        buyBoxPercentage: traffic.buyBoxPercentage == null ? null : Number(traffic.buyBoxPercentage),
+        noSalesDespiteTraffic: sessions > 0 && unitsOrdered === 0,
+      };
+    }).filter((a) => a.asin);
+
+    console.log(`✅ Sales & Traffic report ${reportId} parsed — ${rows.length} days, ${asins.length} ASINs, total ${currency ?? ''} ${totalSales.toFixed(2)}`);
+    return { status: 'COMPLETED', totalSales, currency, days: rows.length, asins };
   }
 
   /**
