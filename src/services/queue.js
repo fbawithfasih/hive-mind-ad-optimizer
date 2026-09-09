@@ -66,6 +66,46 @@ export const reportingQueue = new Queue(QUEUE_NAME, {
 // Worker factory (called once in server.js)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// How many jobs a worker runs at once
+//
+// These were all set when the process had no idea how fast it was allowed to
+// talk to Amazon, so the safe answer was "one at a time" and the reports
+// queue's two. That is no longer the constraint it was: services/amazon-rate-
+// limit.js paces every per-profile Ads call against that profile's own bucket,
+// so two runs for two different sellers do not contend at all, and two runs
+// for the same seller are paced rather than throttled.
+//
+// What a run mostly does is wait. Amazon takes minutes to produce a search-term
+// report, and until the poll moves off the worker slot entirely — a separate
+// change, deliberately not this one — the slot is held while nothing happens.
+// At concurrency 1 that means one profile's report blocks every other profile
+// in the queue: at 500 enrolled profiles a daily sweep cannot finish in a day.
+// Concurrency is the lever that fixes that today, and the rate limiter is what
+// makes pulling it safe.
+//
+// Overridable per queue, because the right number depends on how much memory a
+// replica has and how many replicas there are, and neither is known here.
+const concurrencyFor = (name, fallback) => {
+  const raw = Number(process.env[`WORKER_CONCURRENCY_${name}`]);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : fallback;
+};
+
+/** Named so /ready and the tests can report what a replica is actually running. */
+export const WORKER_CONCURRENCY = {
+  reporting:         concurrencyFor('REPORTING', 4),
+  bulkListing:       concurrencyFor('BULK_LISTING', 3),
+  tokenCleanup:      concurrencyFor('TOKEN_CLEANUP', 1),
+  automation:        concurrencyFor('AUTOMATION', 1),
+  brandAnalytics:    concurrencyFor('BRAND_ANALYTICS', 2),
+  alertEvaluation:   concurrencyFor('ALERT_EVALUATION', 1),
+  billingReconcile:  concurrencyFor('BILLING_RECONCILE', 1),
+  agent:             concurrencyFor('AGENT', 8),
+  // Serial: the processor walks every trialing org itself, and a second copy
+  // would race the marks that keep each email to exactly one send.
+  lifecycleEmail:    concurrencyFor('LIFECYCLE_EMAIL', 1),
+};
+
 /**
  * @param {Function} processor  - async (job) => void
  * @returns {Worker}
@@ -73,7 +113,7 @@ export const reportingQueue = new Queue(QUEUE_NAME, {
 export function createReportingWorker(processor) {
   const worker = new Worker(QUEUE_NAME, processor, {
     connection:  makeRedisConnection(),
-    concurrency: 2,   // Max 2 reports running simultaneously per server instance
+    concurrency: WORKER_CONCURRENCY.reporting,
   });
 
   worker.on('completed', (job) => {
@@ -114,7 +154,7 @@ export const bulkListingQueue = new Queue(BULK_QUEUE_NAME, {
 export function createBulkListingWorker(processor) {
   const worker = new Worker(BULK_QUEUE_NAME, processor, {
     connection:  makeRedisConnection(),
-    concurrency: 3,  // 3 concurrent listing optimizations
+    concurrency: WORKER_CONCURRENCY.bulkListing,
   });
 
   worker.on('completed', (job) => {
@@ -155,7 +195,7 @@ export const tokenCleanupQueue = new Queue(CLEANUP_QUEUE_NAME, {
 export function createTokenCleanupWorker(processor) {
   const worker = new Worker(CLEANUP_QUEUE_NAME, processor, {
     connection:  makeRedisConnection(),
-    concurrency: 1,
+    concurrency: WORKER_CONCURRENCY.tokenCleanup,
   });
 
   worker.on('completed', (job) => {
@@ -194,7 +234,7 @@ export const automationQueue = new Queue(AUTOMATION_QUEUE_NAME, {
 export function createAutomationWorker(processor) {
   const worker = new Worker(AUTOMATION_QUEUE_NAME, processor, {
     connection:  makeRedisConnection(),
-    concurrency: 1,
+    concurrency: WORKER_CONCURRENCY.automation,
   });
 
   worker.on('completed', (job) => {
@@ -229,7 +269,8 @@ export const alertEvaluationQueue = new Queue(ALERT_EVAL_QUEUE_NAME, {
 export function createAlertEvaluationWorker(processor) {
   const worker = new Worker(ALERT_EVAL_QUEUE_NAME, processor, {
     connection:  makeRedisConnection(),
-    concurrency: 1,   // serial — keeps ordering and avoids email storms
+    // Serial on purpose: keeps ordering and avoids email storms.
+    concurrency: WORKER_CONCURRENCY.alertEvaluation,
   });
   worker.on('completed', (job) => {
     logger.info(`Alert eval ${job.id} completed (${job.data.__sweep ? 'sweep' : `org=${job.data.orgId}`})`);
@@ -265,7 +306,9 @@ export const brandAnalyticsFetchQueue = new Queue(BA_FETCH_QUEUE_NAME, {
 export function createBrandAnalyticsFetchWorker(processor) {
   const worker = new Worker(BA_FETCH_QUEUE_NAME, processor, {
     connection:  makeRedisConnection(),
-    concurrency: 2,   // SP-API rate-limits the Reports API tightly
+    // SP-API rate-limits the Reports API tightly, and nothing paces it the
+    // way the Ads bucket paces advertising calls. Left where it was.
+    concurrency: WORKER_CONCURRENCY.brandAnalytics,
   });
 
   worker.on('completed', (job) => {
@@ -342,9 +385,9 @@ export const agentQueue = new Queue(AGENT_QUEUE_NAME, {
 export function createAgentWorker(processor) {
   const worker = new Worker(AGENT_QUEUE_NAME, processor, {
     connection: makeRedisConnection(),
-    // One at a time. A run fetches a search-term report, which Amazon takes
-    // minutes to produce, and these workers share a process with the API.
-    concurrency: 1,
+    // A run is mostly waiting on Amazon. See WORKER_CONCURRENCY above for
+    // why this is no longer one.
+    concurrency: WORKER_CONCURRENCY.agent,
   });
 
   worker.on('completed', (job) => {
@@ -386,7 +429,7 @@ export const QUEUES_BY_NAME = {
 export function createBillingReconcileWorker(processor) {
   const worker = new Worker(BILLING_RECONCILE_QUEUE_NAME, processor, {
     connection:  makeRedisConnection(),
-    concurrency: 1,
+    concurrency: WORKER_CONCURRENCY.billingReconcile,
   });
 
   worker.on('completed', (job) => {
@@ -409,7 +452,7 @@ export function createBillingReconcileWorker(processor) {
 export function createLifecycleEmailWorker(processor) {
   const worker = new Worker(LIFECYCLE_EMAIL_QUEUE_NAME, processor, {
     connection:  makeRedisConnection(),
-    concurrency: 1,
+    concurrency: WORKER_CONCURRENCY.lifecycleEmail,
   });
 
   worker.on('completed', (job) => {
