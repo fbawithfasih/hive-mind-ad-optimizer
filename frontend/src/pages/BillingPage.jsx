@@ -103,6 +103,9 @@ export default function BillingPage({ user, onLogout }) {
   const [banner, setBanner]     = useState(null); // { type: 'success'|'info', msg }
   const [showCancel, setShowCancel] = useState(false);
   const [intendedTier] = useState(readIntendedTier);
+  /** Why, before the cancel goes through. The server refuses a cancel without one. */
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelNote, setCancelNote]     = useState('');
 
   const isAdmin = user?.currentOrg?.role === 'ADMIN';
 
@@ -178,10 +181,11 @@ export default function BillingPage({ user, onLogout }) {
   }
 
   async function handleCancel() {
+    if (!cancelReason) { setError('Please tell us why you are cancelling.'); return; }
     setWorking(true);
     setError(null);
     try {
-      await cancelSubscriptionApi();
+      await cancelSubscriptionApi(cancelReason, cancelNote);
       setBanner({ type: 'info', msg: 'Subscription cancelled. Access continues until the current period ends.' });
       setShowCancel(false);
       reload();
@@ -321,8 +325,25 @@ export default function BillingPage({ user, onLogout }) {
                   <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--danger)' }}>
                     Are you sure? Your subscription will cancel at the end of the current billing period.
                   </p>
+                  {/* The reason is the only thing a cancellation teaches us; it is asked once, here. */}
+                  <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+                    Why are you cancelling?
+                    <select value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} disabled={working}
+                      style={{ display: 'block', marginTop: 4, width: '100%', maxWidth: 360, padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border-strong)', background: 'var(--bg-app-2)', color: 'var(--text-primary)', fontSize: 13 }}>
+                      <option value="">Choose a reason…</option>
+                      <option value="too_expensive">Too expensive</option>
+                      <option value="not_enough_value">Not seeing enough value</option>
+                      <option value="missing_features">Missing a feature I need</option>
+                      <option value="switching_tools">Switching to another tool</option>
+                      <option value="pausing_selling">Pausing or closing my Amazon business</option>
+                      <option value="other">Something else</option>
+                    </select>
+                  </label>
+                  <textarea value={cancelNote} onChange={(e) => setCancelNote(e.target.value)} disabled={working}
+                    placeholder="Anything else? (optional)" rows={2} maxLength={500}
+                    style={{ display: 'block', width: '100%', maxWidth: 360, marginBottom: 12, padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border-strong)', background: 'var(--bg-app-2)', color: 'var(--text-primary)', fontSize: 13, resize: 'vertical' }} />
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={handleCancel} disabled={working}
+                    <button onClick={handleCancel} disabled={working || !cancelReason}
                       style={{ padding: '7px 16px', borderRadius: 7, border: 'none', background: 'var(--fill-danger)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: working ? 'not-allowed' : 'pointer' }}>
                       {working ? 'Cancelling…' : 'Yes, cancel'}
                     </button>

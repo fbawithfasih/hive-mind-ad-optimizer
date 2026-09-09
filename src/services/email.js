@@ -356,3 +356,59 @@ export async function sendTrialExpiredEmail(to, { orgName }) {
     `, { preheader: `The trial for ${orgName} has ended. Your account is kept.` }),
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Billing
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Minor units → "₹2,499.00" / "$49.00". Falls back to the raw number for a currency it does not know. */
+function money(minor, currency) {
+  const major = Number(minor) / 100;
+  try {
+    return new Intl.NumberFormat(currency === 'INR' ? 'en-IN' : 'en-US', { style: 'currency', currency }).format(major);
+  } catch {
+    return `${major.toFixed(2)} ${currency ?? ''}`.trim();
+  }
+}
+
+/**
+ * A subscription charge did not go through.
+ *
+ * Sent on Razorpay's payment.failed and subscription.halted. Razorpay retries
+ * a failed charge on its own schedule, so the ask is to fix the payment
+ * method, not to pay again by hand.
+ */
+export async function sendPaymentFailedEmail(to, { orgName, amount, currency, reason, halted = false }) {
+  const url = `${FRONTEND_URL()}/billing`;
+  const org = escapeHtml(orgName);
+  const sum = amount != null && currency ? money(amount, currency) : null;
+  const why = reason ? escapeHtml(String(reason)) : null;
+
+  const headline = halted
+    ? 'Your subscription is on hold'
+    : 'A payment for your subscription did not go through';
+  const consequence = halted
+    ? 'Razorpay has stopped retrying, and access will pause at the end of the current period unless the payment method is updated.'
+    : 'Razorpay will retry automatically over the next few days. If the retry also fails, access pauses at the end of the current period.';
+
+  return send({
+    to,
+    subject: halted
+      ? `Action needed: your ${APP_NAME} subscription is on hold`
+      : `A payment for ${APP_NAME} did not go through`,
+    text:
+      `${headline} for ${orgName}.\n\n` +
+      (sum ? `Amount: ${sum}\n` : '') +
+      (reason ? `Reason from the bank: ${reason}\n` : '') +
+      `\n${consequence}\n\n` +
+      `Update your payment method: ${url}` +
+      textFooter(),
+    html: wrap(`
+      <h2 style="margin:0 0 8px;color:#0f172a;font-size:20px;font-weight:800">${headline}</h2>
+      <p style="color:#475569;margin:0 0 16px;font-size:14px;line-height:1.6">For <strong>${org}</strong>.${sum ? ` Amount: <strong>${sum}</strong>.` : ''}${why ? ` Reason from the bank: <em>${why}</em>.` : ''}</p>
+      <p style="color:#475569;margin:0 0 24px;font-size:14px;line-height:1.6">${consequence}</p>
+      <a href="${url}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Update payment method</a>
+      <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">Nothing was charged. If you have already fixed this, no further action is needed.</p>
+    `, { preheader: `${headline} for ${orgName}.` }),
+  });
+}

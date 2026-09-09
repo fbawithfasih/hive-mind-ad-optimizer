@@ -185,3 +185,30 @@ describe('trial lifecycle emails', () => {
     expect(msg.html).toContain('/billing');
   });
 });
+
+describe('payment failed email', () => {
+  const { sendPaymentFailedEmail } = require('../email.js');
+
+  it('states the amount in the currency charged and the bank reason', async () => {
+    await sendPaymentFailedEmail('a@b.com', { orgName: 'Queenza', amount: 699900, currency: 'INR', reason: 'Insufficient funds' });
+
+    const msg = mockSend.mock.calls[0][0];
+    expect(msg.subject).toBe('A payment for Hive Mind Nestor did not go through');
+    expect(msg.text).toMatch(/₹6,999\.00/);
+    expect(msg.text).toMatch(/Insufficient funds/);
+    expect(msg.html).toContain('/billing');
+  });
+
+  it('says the subscription is on hold once Razorpay has given up', async () => {
+    await sendPaymentFailedEmail('a@b.com', { orgName: 'Queenza', halted: true });
+
+    const msg = mockSend.mock.calls[0][0];
+    expect(msg.subject).toMatch(/on hold/);
+    expect(msg.text).toMatch(/stopped retrying/);
+  });
+
+  it('copes with a payload that carries no amount', async () => {
+    await sendPaymentFailedEmail('a@b.com', { orgName: 'Queenza' });
+    expect(mockSend.mock.calls[0][0].text).not.toMatch(/Amount:/);
+  });
+});

@@ -279,8 +279,12 @@ export async function verifyPaymentApi(paymentId, subscriptionId, signature) {
   return res.data;
 }
 
-export async function cancelSubscriptionApi() {
-  const res = await api.post('/billing/cancel');
+/**
+ * @param {string} reason one of the server's CANCEL_REASONS
+ * @param {string} [note] free text, optional
+ */
+export async function cancelSubscriptionApi(reason, note) {
+  const res = await api.post('/billing/cancel', { reason, note });
   return res.data;
 }
 
