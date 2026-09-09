@@ -2,21 +2,39 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getOnboardingStatus, resendVerificationApi, syncProfilesApi, createOrgApi } from '../services/api.js';
 
+// Setup ends where the trial's argument begins: the agent's first proposals.
+// The two Amazon consents are one step here and two actions underneath —
+// `actionKeys` lists both so the card stays "current" through either.
 const STEPS = [
-  { key: 'emailVerified',        actionKey: 'verify_email',     icon: '✉️',  title: 'Verify your email',          desc: 'Click the link we sent to activate your account.' },
-  { key: 'credentialsConnected', actionKey: 'connect_amazon',   icon: '🔑',  title: 'Connect Amazon account',      desc: 'Link your Amazon Advertising API credentials.' },
-  { key: 'profileSynced',        actionKey: 'sync_profile',     icon: '📋',  title: 'Sync your seller profiles',   desc: 'Import your Amazon advertising profiles.' },
-  { key: 'firstOptimization',    actionKey: 'optimize_listing', icon: '✨',  title: 'Optimize your first listing', desc: 'Run AI optimization on a product listing.' },
-  { key: 'firstReport',          actionKey: 'generate_report',  icon: '📊',  title: 'Generate your first report',  desc: 'Run an advertising report from the dashboard.' },
+  { key: 'emailVerified',        actionKeys: ['verify_email'],                  icon: '✉️', title: 'Verify your email',            desc: 'Click the link we sent to activate your account.' },
+  { key: 'credentialsConnected', actionKeys: ['connect_amazon', 'connect_ads'], icon: '🔑', title: 'Connect your Amazon account',  desc: 'Two quick consents: Seller Central, then Advertising. About two minutes.' },
+  { key: 'profileSynced',        actionKeys: ['sync_profile'],                  icon: '📋', title: 'Sync your seller profiles',    desc: 'Import your Amazon advertising profiles. This also enrols the agent, in shadow mode.' },
+  { key: 'firstProposals',       actionKeys: ['await_proposals'],               icon: '🤖', title: 'Review your first proposals',  desc: 'The agent reads your last 30 days of search terms and proposes what it would have negated — usually within the hour.' },
 ];
 
 const ACTIONS = {
-  verify_email:      { label: 'Resend verification email', action: 'resend' },
-  connect_amazon:    { label: 'Connect Amazon account', href: '/api/sp-oauth/start' },
-  sync_profile:      { label: 'Sync seller profiles', action: 'sync_profiles' },
-  optimize_listing:  { label: 'Go to Listing Optimizer', href: '/?tab=listings' },
-  generate_report:   { label: 'Go to Reports', href: '/?tab=reports' },
+  verify_email:     { label: 'Resend verification email', action: 'resend' },
+  connect_amazon:   { label: 'Connect Seller Central', href: '/api/sp-oauth/start' },
+  connect_ads:      { label: 'Connect Amazon Advertising', href: '/api/sp-oauth/ads-start' },
+  sync_profile:     { label: 'Sync seller profiles', action: 'sync_profiles' },
+  await_proposals:  { label: 'Open the agent', href: '/?tab=agent' },
 };
+
+/** The two consents behind one step, as a pair of dots. */
+function ConsentDots({ detail }) {
+  const dot = (ok, label) => (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: ok ? 'var(--success)' : 'var(--text-subtle)' }}>
+      <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: ok ? 'var(--success)' : 'var(--border-strong)' }} />
+      {label}{ok ? ' ✓' : ''}
+    </span>
+  );
+  return (
+    <div style={{ display: 'flex', gap: 14, marginTop: 6 }} aria-label="Amazon consents">
+      {dot(!!detail?.spConnected, 'Seller Central')}
+      {dot(!!detail?.adsConnected, 'Advertising')}
+    </div>
+  );
+}
 
 function CreateOrgGate({ onCreated }) {
   const [name, setName]       = useState('');
@@ -148,7 +166,9 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
       {/* Header */}
       <header style={{ background: 'var(--bg-panel)', borderBottom: '1px solid var(--border-strong)', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>AMAIOP Setup</span>
-        <Link to="/" style={{ fontSize: 13, color: 'var(--text-subtle)', textDecoration: 'none' }}>Skip for now →</Link>
+        <Link to={status?.demo ? '/?tab=overview' : '/'} style={{ fontSize: 13, color: 'var(--text-subtle)', textDecoration: 'none' }}>
+          {status?.demo ? 'Skip for now — explore with sample data →' : 'Skip for now →'}
+        </Link>
       </header>
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 16px' }}>
@@ -157,7 +177,7 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
           {/* Progress header */}
           <div style={{ marginBottom: 32, textAlign: 'center' }}>
             <h1 style={{ margin: '0 0 6px', fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>
-              {status?.complete ? '🎉 All set!' : 'Get started with AMAIOP'}
+              {status?.complete ? '🎉 All set!' : 'Get started with Hive Mind Ad Optimizer'}
             </h1>
             <p style={{ margin: '0 0 20px', fontSize: 14, color: 'var(--text-muted)' }}>
               {status?.complete ? 'Redirecting to your dashboard…' : `${done} of ${total} steps complete`}
@@ -172,7 +192,7 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {STEPS.map((step, i) => {
               const complete = !!steps[step.key];
-              const isCurrent = !complete && next === step.actionKey;
+              const isCurrent = !complete && step.actionKeys.includes(next);
               return (
                 <div key={step.key} style={{
                   display: 'flex', alignItems: 'flex-start', gap: 16, padding: '16px 20px',
@@ -195,6 +215,12 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
                       {step.title}
                     </p>
                     <p style={{ margin: 0, fontSize: 13, color: 'var(--text-subtle)' }}>{step.desc}</p>
+                    {step.key === 'credentialsConnected' && !complete && <ConsentDots detail={status?.detail} />}
+                    {step.key === 'firstProposals' && isCurrent && status?.detail?.proposals === 0 && (
+                      <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--text-faint)' }}>
+                        Nothing yet — the first run is queued. Come back in a little while, or explore the sample data meanwhile.
+                      </p>
+                    )}
                     {/* Inline action for current step */}
                     {isCurrent && ACTIONS[next] && (
                       <div style={{ marginTop: 10 }}>
@@ -241,7 +267,9 @@ export default function OnboardingPage({ user, onComplete, onOrgCreated }) {
           </div>
 
           <p style={{ textAlign: 'center', marginTop: 24, fontSize: 13, color: 'var(--text-faint)' }}>
-            <Link to="/" style={{ color: 'var(--text-subtle)', textDecoration: 'none' }}>Skip setup and go to dashboard →</Link>
+            <Link to={status?.demo ? '/?tab=overview' : '/'} style={{ color: 'var(--text-subtle)', textDecoration: 'none' }}>
+              {status?.demo ? 'Skip setup — explore with sample data →' : 'Skip setup and go to dashboard →'}
+            </Link>
           </p>
         </div>
       </div>
