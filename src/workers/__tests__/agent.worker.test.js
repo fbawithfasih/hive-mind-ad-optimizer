@@ -443,6 +443,16 @@ describe('helpers', () => {
   it('derives the occurrence from a repeatable job id', () => {
     expect(occurrenceDate({ id: 'repeat:h:1788323400000' }).toISOString()).toBe('2026-09-02T04:30:00.000Z');
   });
+
+  it('a first-sync run and the same-day sweep share a slot on purpose', () => {
+    // Same occurrence date means the same report window; a second run that
+    // day would only double the evidence rows. Whichever claims first runs.
+    const sweep    = slotKeyFor({ id: 'repeat:h:1788323400000' });                                         // 04:30 UTC
+    const firstRun = slotKeyFor({ id: 'agent-org-p1-2026-09-02', timestamp: Date.parse('2026-09-02T10:15:00Z') });
+    expect(firstRun).toBe(sweep);
+    // …and a run enqueued the evening before is a different day, not a collision.
+    expect(slotKeyFor({ id: 'agent-org-p1-2026-09-01', timestamp: Date.parse('2026-09-01T18:00:00Z') })).not.toBe(sweep);
+  });
 });
 
 

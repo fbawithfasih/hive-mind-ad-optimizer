@@ -4,6 +4,7 @@ import { requireRole } from '../middleware/requireRole.js';
 import { createLogger } from '../utils/logger.js';
 import { applyProfileCap } from '../../services/plan-limits.js';
 import { removeDemoProfile } from '../../services/demo/seed.js';
+import { enrolOnFirstSync } from '../../services/agent/enrolment.js';
 
 const router = express.Router();
 const logger = createLogger('PROFILES');
@@ -88,6 +89,12 @@ router.post('/sync', requireRole('ADMIN'), async (req, res) => {
       })
     );
 
+    // The first real sync enrols one profile in shadow and asks for a run now,
+    // so the trial's first proposals do not wait for tomorrow's sweep. Never
+    // fails the sync: the profiles are already saved.
+    const enrolment = await enrolOnFirstSync({ orgId: req.tenant.orgId, profiles: upserted })
+      .catch((err) => { logger.warn(`Enrolment after sync failed: ${err.message}`); return null; });
+
     // Remove profiles that Amazon's API no longer returns for this org's credentials.
     // This cleans up stale entries from a previous agency-level sync that stored
     // multiple clients' profiles under this org.
@@ -116,6 +123,7 @@ router.post('/sync', requireRole('ADMIN'), async (req, res) => {
       synced: upserted.length,
       removed,
       profiles: upserted,
+      enrolment,
       // Named so the UI can explain the gap rather than leaving the seller to
       // wonder where their other Amazon accounts went.
       ...(skipped.length ? { skippedForPlanLimit: skipped } : {}),
