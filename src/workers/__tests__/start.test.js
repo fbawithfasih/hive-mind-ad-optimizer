@@ -19,6 +19,7 @@ jest.mock('../../services/queue.js', () => {
     createBillingReconcileWorker:     jest.fn(worker),
     createAgentWorker:                jest.fn(worker),
     createLifecycleEmailWorker:       jest.fn(worker),
+    createDigestWorker:               jest.fn(worker),
     tokenCleanupQueue:       queue(),
     automationQueue:         queue(),
     brandAnalyticsFetchQueue: queue(),
@@ -26,6 +27,7 @@ jest.mock('../../services/queue.js', () => {
     billingReconcileQueue:   queue(),
     agentQueue:              queue(),
     lifecycleEmailQueue:     queue(),
+    digestQueue:             queue(),
     closeQueue: jest.fn(),
   };
 });
@@ -39,12 +41,13 @@ jest.mock('../alert-evaluation.worker.js',     () => ({ alertEvaluationProcessor
 jest.mock('../billing-reconcile.worker.js',    () => ({ billingReconcileProcessor: jest.fn() }));
 jest.mock('../agent.worker.js',                () => ({ agentProcessor: jest.fn() }));
 jest.mock('../lifecycle-email.worker.js',      () => ({ lifecycleEmailProcessor: jest.fn() }));
+jest.mock('../digest.worker.js',               () => ({ digestProcessor: jest.fn() }));
 
 import { startWorkers, processRole, shouldRunWorkers, shouldServeHttp } from '../start.js';
 import {
   createReportingWorker, createAutomationWorker, automationQueue,
   billingReconcileQueue, tokenCleanupQueue, agentQueue, createAgentWorker,
-  lifecycleEmailQueue,
+  lifecycleEmailQueue, digestQueue,
 } from '../../services/queue.js';
 
 beforeEach(() => {
@@ -99,12 +102,13 @@ describe('startWorkers', () => {
       ...lifecycleEmailQueue.add.mock.calls,
       ...tokenCleanupQueue.add.mock.calls,
       ...agentQueue.add.mock.calls,
+      ...digestQueue.add.mock.calls,
     ].map(([, , opts]) => opts.jobId);
 
     expect(jobIds).toEqual(expect.arrayContaining([
       'auto:morning', 'auto:evening', 'billing-daily-reconcile', 'nightly-token-cleanup',
       'lifecycle-daily',
-      'agent-daily-sweep',
+      'agent-daily-sweep', 'weekly-digest',
     ]));
   });
 

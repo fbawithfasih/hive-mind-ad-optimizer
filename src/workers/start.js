@@ -28,9 +28,10 @@ import {
   createReportingWorker, createBulkListingWorker, createTokenCleanupWorker,
   createAutomationWorker, createBrandAnalyticsFetchWorker,
   createAlertEvaluationWorker, createBillingReconcileWorker, createAgentWorker,
-  createLifecycleEmailWorker,
+  createLifecycleEmailWorker, createDigestWorker,
   tokenCleanupQueue, automationQueue, brandAnalyticsFetchQueue,
   alertEvaluationQueue, billingReconcileQueue, agentQueue, lifecycleEmailQueue,
+  digestQueue,
 } from '../services/queue.js';
 import { reportingProcessor }            from './reporting.worker.js';
 import { bulkListingProcessor }          from './bulk-listing.worker.js';
@@ -41,6 +42,7 @@ import { alertEvaluationProcessor }      from './alert-evaluation.worker.js';
 import { billingReconcileProcessor }     from './billing-reconcile.worker.js';
 import { agentProcessor }               from './agent.worker.js';
 import { lifecycleEmailProcessor }      from './lifecycle-email.worker.js';
+import { digestProcessor }              from './digest.worker.js';
 import { processRole } from '../config/process-role.js';
 import { recordJobDuration } from '../services/queue-metrics.js';
 
@@ -113,6 +115,11 @@ function scheduleRecurringJobs() {
   // subscription rows Razorpay has just confirmed.
   schedule(lifecycleEmailQueue, 'lifecycle-daily', {},
     { repeat: { pattern: '0 6 * * *' }, jobId: 'lifecycle-daily' }, 'trial lifecycle emails');
+
+  // Monday 07:00 UTC — 12:30 in India, after the morning's agent sweep has
+  // landed, so the week's proposals are counted including today's.
+  schedule(digestQueue, 'weekly-digest', {},
+    { repeat: { pattern: '0 7 * * 1' }, jobId: 'weekly-digest' }, 'weekly digest');
 }
 
 /**
@@ -131,6 +138,7 @@ export function startWorkers() {
     createBillingReconcileWorker(asSystem(billingReconcileProcessor)),
     createAgentWorker(asSystem(agentProcessor)),
     createLifecycleEmailWorker(asSystem(lifecycleEmailProcessor)),
+    createDigestWorker(asSystem(digestProcessor)),
   ];
 
   scheduleRecurringJobs();

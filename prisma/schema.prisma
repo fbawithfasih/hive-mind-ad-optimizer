@@ -56,6 +56,10 @@ model Organization {
   description     String?
   logoUrl         String?
   billingEmail    String?
+  // The Monday digest. On by default — it is the only recurring reason a
+  // part-time seller opens the product, and an opt-in nobody finds is the
+  // same as no digest at all.
+  digestEnabled   Boolean          @default(true)
   // Amazon brand name, as it appears in product titles. Used by Brand
   // Analytics to identify the org's own ASINs (identifyBrandASINs) and to
   // label generated reports. Nullable — orgs that never set it fall back to

@@ -412,3 +412,94 @@ export async function sendPaymentFailedEmail(to, { orgName, amount, currency, re
     `, { preheader: `${headline} for ${orgName}.` }),
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The Monday digest
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A week, as the seller's own numbers.
+ *
+ * The agent's counts are genuinely the last seven days. The performance
+ * figures are whatever period the seller's latest report covers, and the
+ * email says so rather than implying otherwise — see services/digest.js.
+ * When there is no fresh report the section is absent, not zeroed.
+ */
+export async function sendWeeklyDigestEmail(to, { orgName, agent, alerts, performance, unsubscribeUrl }) {
+  const url = `${FRONTEND_URL()}/?tab=agent`;
+  const org = escapeHtml(orgName);
+  const n   = (v) => (v == null ? '—' : Number(v).toLocaleString('en-IN'));
+  const usd = (v) => (v == null ? '—' : `$${Number(v).toFixed(2)}`);
+
+  const perfRows = performance ? [
+    ['Spend',  usd(performance.spend)],
+    ['Sales',  usd(performance.sales)],
+    ['ACoS',   performance.acos == null ? 'no sales' : `${performance.acos}%`],
+    ['ROAS',   performance.roas == null ? '—' : `${performance.roas}×`],
+    ['Clicks', n(performance.clicks)],
+  ] : [];
+
+  const subject = agent.proposed > 0
+    ? `${orgName}: the agent found ${agent.proposed} thing${agent.proposed === 1 ? '' : 's'} last week`
+    : `${orgName}: your week on Amazon`;
+
+  const textPerf = performance
+    ? `\nPerformance (${performance.periodLabel}):\n` +
+      perfRows.map(([k, v]) => ` • ${k}: ${v}`).join('\n') + '\n'
+    : '\nNo recent campaign report — run one from the dashboard to see spend and ACoS here.\n';
+
+  return send({
+    to,
+    subject,
+    text:
+      `Your week on Amazon — ${orgName}\n\n` +
+      `The agent:\n` +
+      ` • ${agent.proposed} proposal${agent.proposed === 1 ? '' : 's'} in the last 7 days\n` +
+      ` • ${agent.applied} applied to your account\n` +
+      ` • ${agent.awaitingVerdict} waiting for your verdict\n` +
+      (alerts > 0 ? ` • ${alerts} alert${alerts === 1 ? '' : 's'} fired\n` : '') +
+      textPerf +
+      `\nReview what the agent proposed: ${url}\n` +
+      (unsubscribeUrl ? `\nTo stop these: ${unsubscribeUrl}\n` : '') +
+      textFooter(),
+    html: wrap(`
+      <h2 style="margin:0 0 6px;color:#0f172a;font-size:20px;font-weight:800">Your week on Amazon</h2>
+      <p style="color:#475569;margin:0 0 20px;font-size:14px"><strong>${org}</strong> · last 7 days</p>
+
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:20px">
+        <thead><tr style="background:#f8fafc">
+          <th style="padding:10px 14px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">The agent</th>
+          <th style="padding:10px 14px;text-align:right;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.06em"></th>
+        </tr></thead>
+        <tbody>
+          ${[['Proposed', agent.proposed], ['Applied to your account', agent.applied],
+             ['Waiting for your verdict', agent.awaitingVerdict],
+             ...(alerts > 0 ? [['Alerts fired', alerts]] : [])].map(([k, v]) => `
+            <tr>
+              <td style="padding:10px 14px;border-bottom:1px solid #eee;color:#475569;font-size:13px">${k}</td>
+              <td style="padding:10px 14px;border-bottom:1px solid #eee;text-align:right;font-weight:700;color:#0f172a">${n(v)}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+
+      ${performance ? `
+      <p style="color:#0f172a;margin:0 0 6px;font-size:14px;font-weight:700">Performance</p>
+      <p style="color:#94a3b8;margin:0 0 10px;font-size:12px">From your latest campaign report, covering ${escapeHtml(performance.periodLabel)}.</p>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:20px">
+        <tbody>
+          ${perfRows.map(([k, v]) => `
+            <tr>
+              <td style="padding:10px 14px;border-bottom:1px solid #eee;color:#475569;font-size:13px">${k}</td>
+              <td style="padding:10px 14px;border-bottom:1px solid #eee;text-align:right;font-weight:700;color:#0f172a">${v}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>` : `
+      <p style="color:#94a3b8;font-size:13px;margin:0 0 20px">No recent campaign report, so there are no spend or ACoS figures this week. Run one from the dashboard and they will appear here.</p>`}
+
+      <a href="${url}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Review what the agent proposed</a>
+      ${unsubscribeUrl ? `<p style="color:#94a3b8;font-size:12px;margin:24px 0 0">Don't want these? <a href="${unsubscribeUrl}" style="color:#64748b">Turn the weekly email off</a>.</p>` : ''}
+    `, { preheader: agent.proposed > 0
+        ? `${agent.proposed} proposals, ${agent.awaitingVerdict} waiting for your verdict.`
+        : `Your week on Amazon with ${orgName}.` }),
+  });
+}
