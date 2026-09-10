@@ -28,10 +28,10 @@ import {
   createReportingWorker, createBulkListingWorker, createTokenCleanupWorker,
   createAutomationWorker, createBrandAnalyticsFetchWorker,
   createAlertEvaluationWorker, createBillingReconcileWorker, createAgentWorker,
-  createLifecycleEmailWorker, createDigestWorker,
+  createLifecycleEmailWorker, createDigestWorker, createSalesFetchWorker,
   tokenCleanupQueue, automationQueue, brandAnalyticsFetchQueue,
   alertEvaluationQueue, billingReconcileQueue, agentQueue, lifecycleEmailQueue,
-  digestQueue,
+  digestQueue, salesFetchQueue,
 } from '../services/queue.js';
 import { reportingProcessor }            from './reporting.worker.js';
 import { bulkListingProcessor }          from './bulk-listing.worker.js';
@@ -43,6 +43,7 @@ import { billingReconcileProcessor }     from './billing-reconcile.worker.js';
 import { agentProcessor }               from './agent.worker.js';
 import { lifecycleEmailProcessor }      from './lifecycle-email.worker.js';
 import { digestProcessor }              from './digest.worker.js';
+import { salesFetchProcessor }          from './sales-fetch.worker.js';
 import { processRole } from '../config/process-role.js';
 import { recordJobDuration } from '../services/queue-metrics.js';
 
@@ -103,6 +104,12 @@ function scheduleRecurringJobs() {
   schedule(agentQueue, 'agent-daily-sweep', { __sweep: true },
     { repeat: { pattern: '30 4 * * *' }, jobId: 'agent-daily-sweep' }, 'agent daily sweep');
 
+  // 02:30 UTC — before the token cleanup, and well before the 04:30 alert
+  // sweep, so the snapshot the alerts will read is already stored. Its own
+  // polling runs on delayed jobs, so the gap is slack, not a sleeping worker.
+  schedule(salesFetchQueue, 'sales-daily-sweep', { __sweep: true },
+    { repeat: { pattern: '30 2 * * *' }, jobId: 'sales-daily-sweep' }, 'sales snapshot sweep');
+
   schedule(tokenCleanupQueue, 'nightly-cleanup', {},
     { repeat: { pattern: '0 2 * * *' }, jobId: 'nightly-token-cleanup' }, 'token cleanup');
 
@@ -139,6 +146,7 @@ export function startWorkers() {
     createAgentWorker(asSystem(agentProcessor)),
     createLifecycleEmailWorker(asSystem(lifecycleEmailProcessor)),
     createDigestWorker(asSystem(digestProcessor)),
+    createSalesFetchWorker(asSystem(salesFetchProcessor)),
   ];
 
   scheduleRecurringJobs();

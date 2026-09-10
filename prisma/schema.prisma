@@ -675,6 +675,10 @@ enum ReportType {
   KEYWORD_ANALYSIS
   LISTING_HEALTH
   REVENUE_SUMMARY
+  // The nightly Sales & Traffic snapshot: daily totals plus per-ASIN Buy Box,
+  // sessions and units. Distinct from REVENUE_SUMMARY, which the reporting
+  // agent writes AI prose under.
+  SALES_TRAFFIC
 }
 
 enum BrandAnalyticsReportType {
