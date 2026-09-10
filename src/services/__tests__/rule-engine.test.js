@@ -52,20 +52,23 @@ beforeEach(() => {
 });
 
 describe('when there is nothing to act on', () => {
-  it('skips a rule whose org has no completed report', async () => {
+  // 'no_report' rather than a generic skip: never having had data is the
+  // commonest reason a rule looks broken, and it read identically to "ran,
+  // matched nothing".
+  it('names the missing report rather than reporting a generic skip', async () => {
     prisma.reportJob.findFirst.mockResolvedValue(null);
 
     const res = await executeRule(rule(), adsClient);
 
-    expect(res).toMatchObject({ status: 'skipped', affectedCount: 0, changes: [] });
+    expect(res).toMatchObject({ status: 'no_report', affectedCount: 0, changes: [] });
     expect(res.error).toMatch(/report/i);
     expect(adsClient.updateCampaigns).not.toHaveBeenCalled();
   });
 
-  it('skips a report row that exists but carries no result', async () => {
+  it('names it too when the report row exists but carries no result', async () => {
     prisma.reportJob.findFirst.mockResolvedValue({ id: 'rep-1', result: null });
 
-    expect(await executeRule(rule(), adsClient)).toMatchObject({ status: 'skipped' });
+    expect(await executeRule(rule(), adsClient)).toMatchObject({ status: 'no_report' });
   });
 
   it('touches nothing when no campaign matches', async () => {

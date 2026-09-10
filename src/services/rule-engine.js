@@ -97,7 +97,7 @@ function buildChange(record, rule) {
  * @param {object} adsClient - Amazon Ads API client (req.adsClient)
  * @returns {Promise<{status, affectedCount, changes, error}>}
  */
-export async function executeRule(rule, adsClient) {
+export async function executeRule(rule, adsClient, { dryRun = false } = {}) {
   // Find the latest completed campaign performance report for this org
   const report = await prisma.reportJob.findFirst({
     where: {
@@ -109,10 +109,16 @@ export async function executeRule(rule, adsClient) {
   });
 
   if (!report?.result) {
+    // A distinct status, not a generic skip. This is the single most common
+    // reason a rule appears to do nothing — it has never had data to judge —
+    // and it was reported the same way as "ran, matched nothing", so the two
+    // were indistinguishable in the history panel. Naming it is what turns
+    // "my rule is broken" into "run a report first".
     return {
-      status: 'skipped',
+      status: 'no_report',
       affectedCount: 0,
       changes: [],
+      dryRun,
       error: 'No completed campaign performance report found. Run a report first.',
     };
   }
@@ -129,7 +135,15 @@ export async function executeRule(rule, adsClient) {
     .filter(Boolean);
 
   if (matchingChanges.length === 0) {
-    return { status: 'success', affectedCount: 0, changes: [], error: null };
+    return { status: 'success', affectedCount: 0, changes: [], dryRun, error: null };
+  }
+
+  // A dry run stops here, having done every part except the one that touches
+  // a live account. The changes it returns are the same objects a real run
+  // would apply, so what the seller reads is what would happen — not a
+  // separate description of it that could drift.
+  if (dryRun) {
+    return { status: 'success', affectedCount: matchingChanges.length, changes: matchingChanges, dryRun: true, error: null };
   }
 
   // Apply changes via Amazon Ads API
@@ -141,12 +155,13 @@ export async function executeRule(rule, adsClient) {
 
   try {
     await adsClient.updateCampaigns(rule.profileId, apiUpdates);
-    return { status: 'success', affectedCount: matchingChanges.length, changes: matchingChanges, error: null };
+    return { status: 'success', affectedCount: matchingChanges.length, changes: matchingChanges, dryRun: false, error: null };
   } catch (err) {
     return {
       status: 'partial',
       affectedCount: 0,
       changes: matchingChanges,
+      dryRun: false,
       error: err.message,
     };
   }

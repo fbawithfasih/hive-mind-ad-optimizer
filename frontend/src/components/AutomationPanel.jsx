@@ -39,6 +39,10 @@ const STATUS_COLOR = {
   partial: 'var(--warning)',
   failed:  'var(--danger-strong)',
   skipped: 'var(--text-subtle)',
+  // The rule has never had a report to judge. Its own colour and its own
+  // sentence, because "0 campaigns affected" is what it used to say and that
+  // reads as "your rule ran and nothing matched".
+  no_report: 'var(--warning)',
 };
 
 const S = {
@@ -259,7 +263,11 @@ function RuleCard({ rule, onToggle, onDelete, onRun, onViewHistory }) {
       {result && (
         <div style={{ marginTop: 12, padding: 12, background: 'var(--bg-app-2)', borderRadius: 8, border: `1px solid color-mix(in srgb, ${STATUS_COLOR[result.status] ?? 'var(--border-strong)'} 20%, transparent)` }}>
           <p style={{ fontSize: 12, color: STATUS_COLOR[result.status] ?? 'var(--text-muted)', fontWeight: 600 }}>
-            {result.status === 'skipped' ? 'Skipped' : `${result.affectedCount} campaign(s) affected`}
+            {result.status === 'no_report'
+              ? 'No campaign report to judge yet — run one first'
+              : result.status === 'skipped'
+                ? 'Skipped'
+                : `${result.affectedCount} campaign(s) ${result.dryRun ? 'would be affected' : 'affected'}`}
           </p>
           {result.error && <p style={{ fontSize: 11, color: 'var(--danger-strong)', marginTop: 4 }}>{result.error}</p>}
           {result.changes?.slice(0, 5).map((c, i) => (
