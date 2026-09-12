@@ -25,6 +25,9 @@ import { captureSwallowed } from '../utils/capture.js';
 import {
   razorpay,
   PLAN_IDS,
+  PLAN_IDS_YEARLY,
+  INTERVALS,
+  planIdFor,
   verifyWebhookSignature,
   verifyPaymentSignature,
   verifyOrderSignature,
@@ -179,8 +182,17 @@ router.get('/status', requireAuth, async (req, res) => {
     // The org itself, for the fields billing edits in place.
     org: org ? { id: org.id, name: org.name, gstin: org.gstin ?? null } : null,
     planLimits: PLAN_LIMITS[org?.tier ?? 'BASIC'] ?? PLAN_LIMITS.BASIC,
+    // A plan is available when its monthly Razorpay id is configured; yearly
+    // is an extra option on top, null when that Plan object does not exist yet.
     availablePlans: Object.entries(PLAN_PRICING)
-      .map(([tier, p]) => ({ tier, planId: PLAN_IDS[tier], name: p.name, price: p.priceDisplay }))
+      .map(([tier, p]) => ({
+        tier,
+        planId:       PLAN_IDS[tier],
+        planIdYearly: PLAN_IDS_YEARLY[tier] ?? null,
+        name:         p.name,
+        price:        p.priceDisplay,
+        priceYearly:  p.priceAnnualDisplay,
+      }))
       .filter(p => p.planId),
   });
 });
@@ -192,11 +204,22 @@ router.get('/status', requireAuth, async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 router.post('/checkout', requireAuth, requireVerifiedEmail, razorpayRequired, requireRole('ADMIN'), async (req, res) => {
-  const { tier } = req.body;
+  const { tier, interval = 'monthly' } = req.body;
   if (!tier || !PLAN_IDS[tier]) {
     return res.status(400).json({
       error: `tier must be one of: ${Object.keys(PLAN_IDS).filter(k => PLAN_IDS[k]).join(', ')}`,
     });
+  }
+  if (!INTERVALS.includes(interval)) {
+    return res.status(400).json({ error: `interval must be one of: ${INTERVALS.join(', ')}` });
+  }
+
+  // Yearly is its own Plan object at Razorpay. Refuse rather than fall back to
+  // monthly: a customer who chose "two months free" and was silently charged
+  // twelve times would be right to feel cheated.
+  const planId = planIdFor(tier, interval);
+  if (!planId) {
+    return res.status(400).json({ error: `${interval} billing is not available for ${tier} yet` });
   }
 
   const { orgId } = req.tenant;
@@ -216,12 +239,16 @@ router.post('/checkout', requireAuth, requireVerifiedEmail, razorpayRequired, re
   let rzpSubscription;
   try {
     rzpSubscription = await razorpay.subscriptions.create({
-      plan_id:         PLAN_IDS[tier],
-      total_count:     12,          // 12 billing cycles (1 year); user can cancel anytime
+      plan_id:         planId,
+      // Razorpay needs a cycle count. Monthly runs 12 cycles (a year); yearly
+      // runs 5 (five years). Either can be cancelled at any time, and the
+      // reconcile worker picks up whatever Razorpay says the period is.
+      total_count:     interval === 'yearly' ? 5 : 12,
       quantity:        1,
       notes: {
         orgId,
         tier,
+        interval,
         ...(gstin ? { gstin } : {}),
       },
     });
@@ -232,6 +259,10 @@ router.post('/checkout', requireAuth, requireVerifiedEmail, razorpayRequired, re
     logger.error(`checkout: Razorpay subscription create failed for org ${orgId} (tier ${tier}): ${detail}`);
     return res.status(502).json({ error: `Could not start checkout: ${detail}` });
   }
+
+  // Placeholder period until the webhook reports the real one. Only the length
+  // depends on the interval; the row stays PENDING either way.
+  const periodDays = interval === 'yearly' ? 365 : 30;
 
   // Pre-create / update the Subscription row so the webhook can find it by
   // subscriptionId — syncSubscriptionFromRazorpay() bails when there is no row.
@@ -254,8 +285,8 @@ router.post('/checkout', requireAuth, requireVerifiedEmail, razorpayRequired, re
       tier,
       status:             'PENDING',
       currentPeriodStart: new Date(),
-      currentPeriodEnd:   new Date(Date.now() + 30 * 86400000),
-      renewalDate:        new Date(Date.now() + 30 * 86400000),
+      currentPeriodEnd:   new Date(Date.now() + periodDays * 86400000),
+      renewalDate:        new Date(Date.now() + periodDays * 86400000),
     },
     update: {
       subscriptionId: rzpSubscription.id,
@@ -263,8 +294,8 @@ router.post('/checkout', requireAuth, requireVerifiedEmail, razorpayRequired, re
     },
   });
 
-  logger.info(`Razorpay subscription created for org ${orgId} (tier: ${tier}, sub: ${rzpSubscription.id})`);
-  track('checkout_started', { orgId, userId: req.user?.userId, props: { tier } });
+  logger.info(`Razorpay subscription created for org ${orgId} (tier: ${tier}, ${interval}, sub: ${rzpSubscription.id})`);
+  track('checkout_started', { orgId, userId: req.user?.userId, props: { tier, interval } });
   res.json({
     subscriptionId: rzpSubscription.id,
     keyId:          process.env.RAZORPAY_KEY_ID,

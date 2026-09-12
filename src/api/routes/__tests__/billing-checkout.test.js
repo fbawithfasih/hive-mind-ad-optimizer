@@ -21,9 +21,16 @@ jest.mock('../../../db/prisma.js', () => ({
   },
 }));
 
-jest.mock('../../../services/razorpay.js', () => ({
+jest.mock('../../../services/razorpay.js', () => {
+  const PLAN_IDS        = { BASIC: 'plan_basic', PRO: 'plan_pro', ENTERPRISE: 'plan_ent' };
+  // Scale has no yearly plan here on purpose — the "not configured" path.
+  const PLAN_IDS_YEARLY = { BASIC: 'plan_basic_y', PRO: 'plan_pro_y', ENTERPRISE: undefined };
+  return {
   razorpay: { subscriptions: { create: jest.fn() } },
-  PLAN_IDS: { BASIC: 'plan_basic', PRO: 'plan_pro', ENTERPRISE: 'plan_ent' },
+  PLAN_IDS,
+  PLAN_IDS_YEARLY,
+  INTERVALS: ['monthly', 'yearly'],
+  planIdFor: (tier, interval = 'monthly') => (interval === 'yearly' ? PLAN_IDS_YEARLY : PLAN_IDS)[tier] ?? null,
   verifyPaymentSignature:       jest.fn(),
   verifyWebhookSignature:       jest.fn(),
   syncSubscriptionFromRazorpay: jest.fn(),
@@ -31,7 +38,8 @@ jest.mock('../../../services/razorpay.js', () => ({
   describeRazorpayError:        jest.fn(() => 'err'),
   tierFromPlanId:               jest.fn(() => 'BASIC'),
   trackUsage:                   jest.fn(),
-}));
+  };
+});
 
 // Auth/role gates are covered by their own suites; here they must simply pass.
 jest.mock('../../middleware/requireAuth.js',          () => ({ requireAuth:          (req, _res, next) => next() }));
@@ -138,6 +146,48 @@ describe('POST /checkout — pre-payment entitlement', () => {
 
     expect(res.status).toBe(502);
     expect(prisma.subscription.upsert).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /checkout — yearly billing', () => {
+  it('uses the yearly plan id and a five-year cycle count', async () => {
+    prisma.subscription.findUnique.mockResolvedValue(null);
+
+    await request(makeApp()).post('/checkout').send({ tier: 'PRO', interval: 'yearly' }).expect(200);
+
+    expect(razorpay.subscriptions.create).toHaveBeenCalledWith(expect.objectContaining({
+      plan_id: 'plan_pro_y', total_count: 5, notes: expect.objectContaining({ interval: 'yearly' }),
+    }));
+  });
+
+  it('defaults to monthly when no interval is sent', async () => {
+    // Every existing caller sends only { tier }; they must keep getting what
+    // they got.
+    prisma.subscription.findUnique.mockResolvedValue(null);
+
+    await request(makeApp()).post('/checkout').send({ tier: 'PRO' }).expect(200);
+
+    expect(razorpay.subscriptions.create).toHaveBeenCalledWith(expect.objectContaining({
+      plan_id: 'plan_pro', total_count: 12,
+    }));
+  });
+
+  it('refuses an interval it does not know', async () => {
+    const res = await request(makeApp()).post('/checkout').send({ tier: 'PRO', interval: 'weekly' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/interval must be one of/);
+    expect(razorpay.subscriptions.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses yearly for a tier with no yearly plan, rather than charging monthly', async () => {
+    // Falling back to monthly would charge twelve times a customer who chose
+    // "two months free".
+    const res = await request(makeApp()).post('/checkout').send({ tier: 'ENTERPRISE', interval: 'yearly' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/yearly billing is not available/);
+    expect(razorpay.subscriptions.create).not.toHaveBeenCalled();
   });
 });
 
