@@ -464,7 +464,10 @@ export default function BillingPage({ user, onLogout }) {
                         onClick={() => setInterval_(value)}
                         style={{
                           padding: '5px 12px', borderRadius: 99, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                          background: interval === value ? 'var(--accent)' : 'transparent',
+                          // --fill-accent, not --accent: white ink is only legible while the
+                          // fill stays dark, and --accent lightens in dark mode. Same reason
+                          // TIER_FILL above is literal.
+                          background: interval === value ? 'var(--fill-accent)' : 'transparent',
                           color: interval === value ? '#fff' : 'var(--text-muted)',
                         }}
                       >{label}</button>
