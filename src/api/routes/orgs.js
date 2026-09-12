@@ -3,9 +3,15 @@ import { randomBytes } from 'crypto';
 import { prisma } from '../../db/prisma.js';
 import { runAsSystem, runWithTenant } from '../../db/tenant-context.js';
 import { createLogger } from '../utils/logger.js';
+import { sendTrialWelcome } from '../../services/trial-lifecycle.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
 import { sendOrgInvitationEmail } from '../../services/email.js';
 import { requireVerifiedEmail } from '../middleware/requireVerifiedEmail.js';
+import { trialEndsAtFrom } from '../../config/trial.js';
+import { normaliseGstin } from '../utils/gstin.js';
+import { track } from '../../services/events.js';
+import { demoEnabled } from '../../services/demo/index.js';
+import { seedDemoProfile } from '../../services/demo/seed.js';
 
 const router = express.Router();
 const logger = createLogger('ORGS');
@@ -90,7 +96,7 @@ router.post('/', async (req, res) => {
           name: name.trim(),
           slug,
           description: description?.trim() || null,
-          trialEndsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3-day trial
+          trialEndsAt: trialEndsAtFrom(),
         },
       });
 
@@ -102,10 +108,30 @@ router.post('/', async (req, res) => {
         },
       });
 
+      // The sample seller, so the first dashboard is not empty. In the same
+      // transaction: an org with no member is as broken as one with a half-
+      // seeded sample, and both should fail together.
+      if (demoEnabled()) await seedDemoProfile(tx, created.id);
+
       return created;
     }));
 
     logger.info(`Org created: ${org.id} (${org.name}) by user ${req.user.userId}`);
+
+    // The welcome, now rather than at tomorrow's sweep. Fire-and-forget: a
+    // failed email must not fail the signup, and the sweep backfills it.
+    // Deliberately not wired into the claim-token path in auth.js — that org
+    // has just paid, and the sweep excludes paid orgs for the same reason.
+    sendTrialWelcome(org.id).catch((err) =>
+      logger.warn(`Welcome email left to the sweep for org ${org.id}: ${err.message}`));
+
+    // The first funnel step, carrying where the signup came from. Read from
+    // the user rather than the request so a partner code captured days ago
+    // still lands on the org it produced. Fire-and-forget.
+    runAsSystem(() => prisma.user.findUnique({ where: { id: req.user.userId }, select: { signupSource: true } }))
+      .then((u) => track('org_created', { orgId: org.id, userId: req.user.userId, props: u?.signupSource ?? {} }))
+      .catch(() => {});
+
     res.status(201).json({ org });
   } catch (err) {
     logger.error(`Create org error: ${err.message}`);
@@ -318,16 +344,22 @@ router.put('/:orgId', async (req, res) => {
     const m = await getAccess(req.user.userId, req.params.orgId, 'ADMIN');
     if (!m) return res.status(403).json({ error: 'Admin access required.' });
 
-    const { name, description, brandName } = req.body;
+    const { name, description, brandName, gstin } = req.body;
     const data = {};
     if (name?.trim()) data.name = name.trim();
     if (description !== undefined) data.description = description?.trim() || null;
     // Brand Analytics matches this against product titles, so store it as the
     // seller typed it. Empty string clears it back to null.
     if (brandName !== undefined) data.brandName = brandName?.trim() || null;
+    // Goes on invoices, so it is checked for shape; empty clears it.
+    if (gstin !== undefined) {
+      const g = normaliseGstin(gstin);
+      if (!g.ok) return res.status(400).json({ error: g.error });
+      data.gstin = g.value;
+    }
 
     if (!Object.keys(data).length) {
-      return res.status(400).json({ error: 'Provide name, description, or brandName to update.' });
+      return res.status(400).json({ error: 'Provide name, description, brandName, or gstin to update.' });
     }
 
     const org = await prisma.organization.update({

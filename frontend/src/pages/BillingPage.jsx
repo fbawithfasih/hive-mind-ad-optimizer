@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { getBillingStatus, createCheckoutSession, verifyPaymentApi, cancelSubscriptionApi, logoutApi } from '../services/api.js';
+import { getBillingStatus, createCheckoutSession, verifyPaymentApi, cancelSubscriptionApi, logoutApi, updateOrgApi } from '../services/api.js';
+import { INTENDED_PLAN_KEY } from './SignupPage.jsx';
 
 const TIER_LABEL  = { BASIC: 'Starter', PRO: 'Growth', ENTERPRISE: 'Scale', CUSTOM: 'Custom' };
 const TIER_COLOR  = { BASIC: 'var(--text-subtle)', PRO: 'var(--info-strong)', ENTERPRISE: 'var(--accent-strong)', CUSTOM: 'var(--warning)' };
@@ -13,6 +14,17 @@ const TIER_TEXT = { BASIC: 'var(--text-muted)', PRO: 'var(--info)', ENTERPRISE: 
 // dark mode, where neither white (4.23:1) nor ink (4.22:1) passes on #8B5CF6.
 const TIER_FILL = { BASIC: '#475569', PRO: '#1D4ED8', ENTERPRISE: '#6D28D9', CUSTOM: '#B45309' };
 const STATUS_COLOR = { ACTIVE: 'var(--success-deep)', PAST_DUE: 'var(--warning-deep)', CANCELLED: 'var(--rose)', EXPIRED: 'var(--text-subtle)' };
+
+/** Marketing-site plan names → the tiers the cards below are keyed by. */
+const INTENDED_TIER = {
+  STARTER: 'BASIC', BASIC: 'BASIC', GROWTH: 'PRO', PRO: 'PRO', SCALE: 'ENTERPRISE', ENTERPRISE: 'ENTERPRISE',
+};
+
+/** The plan chosen on the marketing site, if this browser remembers one. */
+function readIntendedTier() {
+  try { return INTENDED_TIER[localStorage.getItem(INTENDED_PLAN_KEY) ?? ''] ?? null; }
+  catch { return null; }
+}
 
 // Prices and limits mirror src/config/pricing.js and src/config/plan-limits.js —
 // keep aligned with the backend source of truth. Only shipped features are
@@ -120,6 +132,13 @@ export default function BillingPage({ user, onLogout }) {
   const [error, setError]       = useState(null);
   const [banner, setBanner]     = useState(null); // { type: 'success'|'info', msg }
   const [showCancel, setShowCancel] = useState(false);
+  const [intendedTier] = useState(readIntendedTier);
+  /** Why, before the cancel goes through. The server refuses a cancel without one. */
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelNote, setCancelNote]     = useState('');
+  /** GSTIN as typed; saved to the org so Razorpay invoices carry it. */
+  const [gstin, setGstin] = useState('');
+  const [savingGstin, setSavingGstin] = useState(false);
 
   const isAdmin = user?.currentOrg?.role === 'ADMIN';
 
@@ -130,6 +149,15 @@ export default function BillingPage({ user, onLogout }) {
       .catch(() => setError('Failed to load billing information.'))
       .finally(() => setLoading(false));
   }, []);
+
+  // Once a subscription is live the remembered choice has done its job.
+  useEffect(() => {
+    if (data?.subscription?.status !== 'ACTIVE') return;
+    try { localStorage.removeItem(INTENDED_PLAN_KEY); } catch { /* nothing to forget */ }
+  }, [data?.subscription?.status]);
+  // Seed the GSTIN box from the org once billing status loads; the box is
+  // then the seller's to edit until they save.
+  useEffect(() => { setGstin(data?.org?.gstin ?? ''); }, [data?.org?.gstin]);
 
   useEffect(() => { reload(); }, [reload]);
 
@@ -188,11 +216,28 @@ export default function BillingPage({ user, onLogout }) {
     rzp.open();
   }
 
+  async function handleSaveGstin(e) {
+    e.preventDefault();
+    if (!org?.id) return;
+    setSavingGstin(true);
+    setError(null);
+    try {
+      await updateOrgApi(org.id, { gstin });
+      setBanner({ type: 'info', msg: gstin.trim() ? 'GSTIN saved — it will appear on your invoices.' : 'GSTIN removed.' });
+      reload();
+    } catch (err) {
+      setError(errMsg(err, 'Could not save GSTIN.'));
+    } finally {
+      setSavingGstin(false);
+    }
+  }
+
   async function handleCancel() {
+    if (!cancelReason) { setError('Please tell us why you are cancelling.'); return; }
     setWorking(true);
     setError(null);
     try {
-      await cancelSubscriptionApi();
+      await cancelSubscriptionApi(cancelReason, cancelNote);
       setBanner({ type: 'info', msg: 'Subscription cancelled. Access continues until the current period ends.' });
       setShowCancel(false);
       reload();
@@ -203,6 +248,7 @@ export default function BillingPage({ user, onLogout }) {
     }
   }
 
+  const org            = data?.org;
   const sub            = data?.subscription;
   const usage          = data?.currentMonthUsage;
   const trial          = data?.trial ?? {};
@@ -258,7 +304,7 @@ export default function BillingPage({ user, onLogout }) {
                 Your free trial has ended
               </h2>
               <p style={{ margin: '0 0 20px', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                Your 3-day trial has expired. Choose a plan below to restore full access to
+                Your free trial has expired. Choose a plan below to restore full access to
                 Hive Mind Ad Optimizer 360 — campaigns, AI tools, and everything else.
               </p>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 20px', borderRadius: 99, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', fontSize: 13, color: 'var(--danger-soft)', fontWeight: 600 }}>
@@ -332,8 +378,25 @@ export default function BillingPage({ user, onLogout }) {
                   <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--danger)' }}>
                     Are you sure? Your subscription will cancel at the end of the current billing period.
                   </p>
+                  {/* The reason is the only thing a cancellation teaches us; it is asked once, here. */}
+                  <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+                    Why are you cancelling?
+                    <select value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} disabled={working}
+                      style={{ display: 'block', marginTop: 4, width: '100%', maxWidth: 360, padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border-strong)', background: 'var(--bg-app-2)', color: 'var(--text-primary)', fontSize: 13 }}>
+                      <option value="">Choose a reason…</option>
+                      <option value="too_expensive">Too expensive</option>
+                      <option value="not_enough_value">Not seeing enough value</option>
+                      <option value="missing_features">Missing a feature I need</option>
+                      <option value="switching_tools">Switching to another tool</option>
+                      <option value="pausing_selling">Pausing or closing my Amazon business</option>
+                      <option value="other">Something else</option>
+                    </select>
+                  </label>
+                  <textarea value={cancelNote} onChange={(e) => setCancelNote(e.target.value)} disabled={working}
+                    placeholder="Anything else? (optional)" rows={2} maxLength={500}
+                    style={{ display: 'block', width: '100%', maxWidth: 360, marginBottom: 12, padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border-strong)', background: 'var(--bg-app-2)', color: 'var(--text-primary)', fontSize: 13, resize: 'vertical' }} />
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={handleCancel} disabled={working}
+                    <button onClick={handleCancel} disabled={working || !cancelReason}
                       style={{ padding: '7px 16px', borderRadius: 7, border: 'none', background: 'var(--fill-danger)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: working ? 'not-allowed' : 'pointer' }}>
                       {working ? 'Cancelling…' : 'Yes, cancel'}
                     </button>
@@ -358,6 +421,25 @@ export default function BillingPage({ user, onLogout }) {
               </div>
             )}
 
+            {/* Tax details — the GSTIN goes on Razorpay invoices so input credit can be claimed. */}
+            {isAdmin && org && (
+              <form onSubmit={handleSaveGstin} style={{ background: 'var(--bg-panel)', borderRadius: 14, border: '1px solid var(--border-strong)', padding: '20px 24px' }}>
+                <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Tax details</p>
+                <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-faint)' }}>
+                  Your GSTIN is printed on every invoice so you can claim input tax credit. Optional.
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+                  <input value={gstin} onChange={(e) => setGstin(e.target.value.toUpperCase())} disabled={savingGstin}
+                    placeholder="27AAPFU0939F1ZV" maxLength={15} spellCheck={false} aria-label="GSTIN"
+                    style={{ flex: '1 1 220px', maxWidth: 280, padding: '8px 10px', borderRadius: 7, border: '1px solid var(--border-strong)', background: 'var(--bg-app-2)', color: 'var(--text-primary)', fontSize: 13, fontFamily: 'ui-monospace, monospace', letterSpacing: '0.04em' }} />
+                  <button type="submit" disabled={savingGstin || (gstin ?? '') === (org.gstin ?? '')}
+                    style={{ padding: '8px 16px', borderRadius: 7, border: '1px solid var(--border-strong)', background: 'transparent', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, cursor: savingGstin ? 'wait' : 'pointer' }}>
+                    {savingGstin ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              </form>
+            )}
+
             {/* Plan cards */}
             <div style={{ background: 'var(--bg-panel)', borderRadius: 14, border: '1px solid var(--border-strong)', padding: '24px' }}>
               <p style={{ margin: '0 0 20px', fontSize: 12, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -374,7 +456,9 @@ export default function BillingPage({ user, onLogout }) {
                 {visiblePlans.map(plan => {
                   const isCurrent  = sub?.tier === plan.tier && sub?.status === 'ACTIVE';
                   const isDisabled = working || !isAdmin || !availableTiers.has(plan.tier);
-                  const highlight  = plan.popular && !isCurrent;
+                  // The plan they picked on the site outranks "most popular"; with no
+                  // pick remembered, the cards read as they always have.
+                  const highlight  = (intendedTier ? plan.tier === intendedTier : plan.popular) && !isCurrent;
 
                   return (
                     <div key={plan.tier} style={{
@@ -383,9 +467,9 @@ export default function BillingPage({ user, onLogout }) {
                       background: isCurrent ? 'color-mix(in srgb, var(--success) 3%, transparent)' : highlight ? `color-mix(in srgb, ${TIER_COLOR[plan.tier]} 3%, transparent)` : 'var(--bg-app-2)',
                       display: 'flex', flexDirection: 'column', gap: 14, position: 'relative',
                     }}>
-                      {plan.popular && !isCurrent && (
+                      {highlight && (
                         <span style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: TIER_FILL[plan.tier], color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 10px', borderRadius: 99, whiteSpace: 'nowrap' }}>
-                          Most popular
+                          {intendedTier ? 'Your pick' : 'Most popular'}
                         </span>
                       )}
 

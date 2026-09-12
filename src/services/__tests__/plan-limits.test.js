@@ -143,7 +143,8 @@ describe('checkPlanLimit', () => {
   it('counts profiles as a standing total, not a monthly one', async () => {
     prisma.sellerProfile.count.mockResolvedValue(1);
     expect((await checkPlanLimit('org-1', 'profiles')).allowed).toBe(false);
-    expect(prisma.sellerProfile.count).toHaveBeenCalledWith({ where: { orgId: 'org-1' } });
+    // The sample profile is not an Amazon account and must not use up a Starter's one slot.
+    expect(prisma.sellerProfile.count).toHaveBeenCalledWith({ where: { orgId: 'org-1', isDemo: false } });
   });
 
   it('allows when the check itself fails', async () => {

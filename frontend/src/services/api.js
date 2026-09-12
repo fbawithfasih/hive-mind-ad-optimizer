@@ -1,3 +1,4 @@
+import { readAttribution } from '../attribution.js';
 import axios from 'axios';
 import { profilesCache, campaignsCache, searchTermsCache } from '../utils/cache.js';
 
@@ -121,6 +122,9 @@ export async function loginApi(email, password) {
 export async function signupApi(email, password, firstName = '', lastName = '', claimToken = null) {
   const body = { email, password, firstName, lastName };
   if (claimToken) body.claimToken = claimToken;
+  // First-touch attribution captured on the first page this browser opened.
+  const attribution = readAttribution();
+  if (attribution) body.attribution = attribution;
   const res = await api.post('/auth/signup', body);
   return res.data;
 }
@@ -279,8 +283,12 @@ export async function verifyPaymentApi(paymentId, subscriptionId, signature) {
   return res.data;
 }
 
-export async function cancelSubscriptionApi() {
-  const res = await api.post('/billing/cancel');
+/**
+ * @param {string} reason one of the server's CANCEL_REASONS
+ * @param {string} [note] free text, optional
+ */
+export async function cancelSubscriptionApi(reason, note) {
+  const res = await api.post('/billing/cancel', { reason, note });
   return res.data;
 }
 
@@ -751,6 +759,23 @@ export async function getAgentDecisionsApi(params = {}) {
 
 export async function recordAgentVerdictApi(decisionId, verdict, note) {
   const res = await api.post(`/agent/decisions/${decisionId}/verdict`, { verdict, note });
+  return res.data;
+}
+
+/**
+ * Take one applied decision back.
+ *
+ * Archiving at Amazon is terminal — the keyword cannot be restored, only
+ * recreated — so every caller confirms first.
+ */
+export async function revertAgentDecisionApi(decisionId) {
+  const res = await api.post(`/agent/decisions/${decisionId}/revert`);
+  return res.data;
+}
+
+/** Take back everything one run applied. Same terminal caveat, at run scale. */
+export async function revertAgentRunApi(runId) {
+  const res = await api.post(`/agent/runs/${runId}/revert`);
   return res.data;
 }
 

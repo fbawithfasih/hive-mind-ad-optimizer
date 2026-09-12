@@ -41,9 +41,8 @@ import { UnrecoverableError } from 'bullmq';
 
 import { prisma } from '../db/prisma.js';
 import { createLogger } from '../api/utils/logger.js';
-import { loadOrgCredential } from '../services/credentials.js';
 import { isEntitled } from '../services/entitlement.js';
-import { createAdsClient, default as defaultAdsClient } from '../services/amazon-ads.js';
+import { adsClientForOrg, NoAdsCredentialError } from '../services/agent/ads-client-for-org.js';
 import { decideHarvest, decisionKey } from '../services/agent/harvest-policy.js';
 import { reviewCandidates } from '../services/agent/llm-review.js';
 import { applyGuardrails } from '../services/agent/guardrails.js';
@@ -236,8 +235,17 @@ export function adGroupTermCounts(rows = []) {
  * matched to its action by index. Defensive about length: a short response
  * leaves the action without an inverse rather than pairing it with the wrong
  * keyword, which would make a revert delete something the agent never added.
+ *
+ * A DUPLICATE_VALUE is the same hazard by another route, and the more likely
+ * one. Amazon returns it — sometimes with the offending keywordId attached —
+ * when the keyword was already there, which means the seller created it, or a
+ * run of ours did on a day whose decision row already carries its own inverse.
+ * Either way this run did not add it and must not hand anyone a licence to
+ * archive it. Only an outright SUCCESS is something the agent can claim to
+ * have created, so only a SUCCESS earns an inverse.
  */
 export function inverseFor(action, apiResult) {
+  if ((apiResult?.code ?? 'SUCCESS') !== 'SUCCESS') return null;
   const keywordId = apiResult?.keywordId ?? null;
   if (!keywordId) return null;
   return {
@@ -365,22 +373,14 @@ export async function agentProcessor(job) {
   });
 
   try {
-    const cred = await loadOrgCredential(orgId);
-    if (!cred?.adsClientId) {
-      throw new UnrecoverableError(`No Amazon Ads credential for org ${orgId}`);
+    let adsClient;
+    try {
+      adsClient = await adsClientForOrg(orgId);
+    } catch (err) {
+      // An org with no Amazon connection will not grow one by being retried.
+      if (err instanceof NoAdsCredentialError) throw new UnrecoverableError(err.message);
+      throw err;
     }
-
-    const adsClient = createAdsClient({
-      clientId:     cred.adsClientId,
-      clientSecret: cred.adsClientSecret,
-      refreshToken: cred.adsRefreshToken,
-      cacheKey:     `ads:${orgId}`,
-    }) ?? defaultAdsClient;
-
-    const regions = await prisma.sellerProfile.findMany({
-      where: { orgId }, select: { profileId: true, countryCode: true },
-    });
-    adsClient.setProfileRegions?.(regions);
 
     const window = reportWindow(occurredAt, LOOKBACK_DAYS);
     logger.info(`Agent run starting — ${tag} window ${window.startDate}→${window.endDate} mode=${runMode}`);

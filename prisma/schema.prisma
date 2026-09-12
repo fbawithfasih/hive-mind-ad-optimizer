@@ -31,6 +31,10 @@ model User {
   // issued before the bump — that's how password reset and "log out
   // everywhere" revoke sessions that are otherwise stateless.
   tokenVersion    Int       @default(0)
+  // First-touch attribution captured on the client at signup: utm_*, a
+  // partner's ref code, the plan chosen on the site, landing path, referrer.
+  // Whitelisted and length-capped by api/utils/attribution.js before it lands.
+  signupSource    Json?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -52,6 +56,10 @@ model Organization {
   description     String?
   logoUrl         String?
   billingEmail    String?
+  // The Monday digest. On by default — it is the only recurring reason a
+  // part-time seller opens the product, and an opt-in nobody finds is the
+  // same as no digest at all.
+  digestEnabled   Boolean          @default(true)
   // Amazon brand name, as it appears in product titles. Used by Brand
   // Analytics to identify the org's own ASINs (identifyBrandASINs) and to
   // label generated reports. Nullable — orgs that never set it fall back to
@@ -63,8 +71,19 @@ model Organization {
   tier            SubscriptionTier @default(BASIC)
   billingStatus   BillingStatus    @default(ACTIVE)
   trialEndsAt     DateTime?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+
+  // When each trial lifecycle email went out, so the daily worker can send
+  // each one exactly once across retries and replicas. Null means not yet.
+  trialWelcomeSentAt DateTime?
+  trialEndingSentAt  DateTime?
+  trialExpiredSentAt DateTime?
+
+  // GST identification number, for invoices; optional. Carried into the
+  // Razorpay subscription notes at checkout so input credit can be claimed.
+  gstin String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   members               OrgMember[]
@@ -173,6 +192,9 @@ model SellerProfile {
   primaryCountry String
   merchantToken  String? // Encrypted
   isDefault      Boolean   @default(false)
+  // Sample data, not an Amazon account. Never counted against the plan,
+  // never synced, never enrolled; removed on the first real sync.
+  isDemo         Boolean   @default(false)
   lastSyncedAt   DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -223,7 +245,7 @@ model ListingOptimization {
   batch BulkListingBatch? @relation(fields: [batchId], references: [id])
 
   @@unique([batchId, itemKey])
-  @@index([orgId])
+  @@index([orgId, createdAt])
   @@index([batchId])
   @@index([asin])
   @@index([sku])
@@ -273,7 +295,7 @@ model ReportJob {
   // Relations
   org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  @@index([orgId])
+  @@index([orgId, createdAt])
   @@index([status])
   @@index([createdAt])
 }
@@ -359,9 +381,9 @@ model UsageMetric {
 
   // Relations
   org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  // No orgId index: @@unique([orgId, month]) already serves every lookup.
 
   @@unique([orgId, month])
-  @@index([orgId])
 }
 
 // ============================================================================
@@ -403,6 +425,10 @@ model RuleExecution {
   affectedCount Int      @default(0)
   changes       Json? // [{ campaignId, name, field, oldValue, newValue }]
   error         String?
+  // True when the rule was only asked what it would do. Same shape as a real
+  // execution so the history can show both, distinguishable so a count of
+  // affected campaigns cannot be mistaken for changes that happened.
+  dryRun        Boolean  @default(false)
   executedAt    DateTime @default(now())
   // Identifies the scheduled sweep occurrence this execution belongs to, e.g.
   // "morning:2026-08-31". The unique index below is what makes the automation
@@ -454,7 +480,7 @@ model AlertFire {
 
   alert CampaignAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
 
-  @@index([orgId])
+  @@index([orgId, triggeredAt])
   @@index([alertId])
   @@index([isRead])
   @@index([triggeredAt])
@@ -484,7 +510,8 @@ model AuditLog {
   org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   user User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([orgId])
+  // "this org's rows, newest first" — the query every list endpoint runs.
+  @@index([orgId, createdAt])
   @@index([userId])
   @@index([action])
   @@index([createdAt])
@@ -648,6 +675,10 @@ enum ReportType {
   KEYWORD_ANALYSIS
   LISTING_HEALTH
   REVENUE_SUMMARY
+  // The nightly Sales & Traffic snapshot: daily totals plus per-ASIN Buy Box,
+  // sessions and units. Distinct from REVENUE_SUMMARY, which the reporting
+  // agent writes AI prose under.
+  SALES_TRAFFIC
 }
 
 enum BrandAnalyticsReportType {
@@ -750,6 +781,11 @@ model AgentDecision {
   reviewedAt   DateTime?
   reviewedById String?
 
+  // Archiving at Amazon is terminal, so the one irreversible thing this system
+  // does to a customer's account names who asked for it.
+  revertedAt   DateTime?
+  revertedById String?
+
   createdAt DateTime @default(now())
 
   run AgentRun     @relation(fields: [runId], references: [id], onDelete: Cascade)
@@ -777,7 +813,7 @@ model ProfileObjective {
   // It was Int @default(12), which made calibration unreachable through the
   // database and handed every new profile a threshold that negates a healthy
   // term 48% of the time at a 6% conversion rate.
-  minClicks             Int?
+  minClicks Int?
 
   // Clicks a term needs before its conversion rate is worth acting on.
   //

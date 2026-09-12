@@ -7,14 +7,14 @@
 // timeout on every outbound request. That is the seam to mock: mocking 'axios'
 // directly would stub out http.create() and leave the shared instance undefined.
 jest.mock('../http.js', () => ({
-  http:          { get: jest.fn(), post: jest.fn() },
+  http:          { get: jest.fn(), post: jest.fn(), delete: jest.fn() },
   TIMEOUT_MS:    { api: 30000, token: 15000, download: 120000, llm: 120000 },
   fetchWithTimeout: jest.fn(),
   isTimeout:     jest.fn(() => false),
 }));
 
 import { http } from '../http.js';
-import { getProfiles, getCampaigns } from '../amazon-ads.js';
+import { getProfiles, getCampaigns, archiveKeyword, archiveNegativeKeyword } from '../amazon-ads.js';
 import { invalidateTokenManager } from '../auth-utils.js';
 
 describe('Amazon Ads API', () => {
@@ -25,6 +25,7 @@ describe('Amazon Ads API', () => {
     // e.g. the "reuse cached token" test sets http.get.mockResolvedValue(...).
     http.get.mockReset();
     http.post.mockReset();
+    http.delete.mockReset();
     // Clear the cached token so each test starts with a fresh token fetch.
     // The default client uses cacheKey 'ads:default' in the module-level registry.
     invalidateTokenManager('ads:default');
@@ -280,4 +281,44 @@ describe('Amazon Ads API', () => {
       expect(result).toEqual([{ profileId: 1, countryCode: 'US' }]);
     });
   });
+  describe('Archiving keywords', () => {
+    const token = () => http.post.mockResolvedValueOnce({
+      data: { access_token: 'token', expires_in: 3600 },
+    });
+
+    it('archives a keyword and a negative keyword on their own endpoints', async () => {
+      // The two are different objects in Amazon's model and removing the wrong
+      // one is not a recoverable mistake, so the path is worth pinning.
+      token();
+      http.delete.mockResolvedValue({ data: { code: 'SUCCESS', keywordId: 42 } });
+
+      await archiveKeyword(1, 42);
+      expect(http.delete.mock.calls[0][0]).toContain('/v2/sp/keywords/42');
+
+      await archiveNegativeKeyword(1, 42);
+      expect(http.delete.mock.calls[1][0]).toContain('/v2/sp/negativeKeywords/42');
+    });
+
+    it('reports an already-archived keyword as NOT_FOUND rather than throwing', async () => {
+      // Archiving twice is the expected outcome of a retry, and the end state
+      // the caller wanted either way. Throwing would turn a no-op into a
+      // failure the operator has to interpret.
+      token();
+      const notFound = new Error('Request failed with status code 404');
+      notFound.response = { status: 404 };
+      http.delete.mockRejectedValueOnce(notFound);
+
+      await expect(archiveKeyword(1, 42)).resolves.toMatchObject({ code: 'NOT_FOUND' });
+    });
+
+    it('still throws on a failure that is not a missing keyword', async () => {
+      token();
+      const boom = new Error('Request failed with status code 500');
+      boom.response = { status: 500 };
+      http.delete.mockRejectedValueOnce(boom);
+
+      await expect(archiveKeyword(1, 42)).rejects.toThrow();
+    });
+  });
+
 });

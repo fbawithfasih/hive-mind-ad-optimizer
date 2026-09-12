@@ -18,12 +18,18 @@ jest.mock('../../services/queue.js', () => {
     createAlertEvaluationWorker:      jest.fn(worker),
     createBillingReconcileWorker:     jest.fn(worker),
     createAgentWorker:                jest.fn(worker),
+    createLifecycleEmailWorker:       jest.fn(worker),
+    createDigestWorker:               jest.fn(worker),
+    createSalesFetchWorker:           jest.fn(worker),
     tokenCleanupQueue:       queue(),
     automationQueue:         queue(),
     brandAnalyticsFetchQueue: queue(),
     alertEvaluationQueue:    queue(),
     billingReconcileQueue:   queue(),
     agentQueue:              queue(),
+    lifecycleEmailQueue:     queue(),
+    digestQueue:             queue(),
+    salesFetchQueue:         queue(),
     closeQueue: jest.fn(),
   };
 });
@@ -36,11 +42,15 @@ jest.mock('../brand-analytics-fetch.worker.js',() => ({ brandAnalyticsFetchProce
 jest.mock('../alert-evaluation.worker.js',     () => ({ alertEvaluationProcessor: jest.fn() }));
 jest.mock('../billing-reconcile.worker.js',    () => ({ billingReconcileProcessor: jest.fn() }));
 jest.mock('../agent.worker.js',                () => ({ agentProcessor: jest.fn() }));
+jest.mock('../lifecycle-email.worker.js',      () => ({ lifecycleEmailProcessor: jest.fn() }));
+jest.mock('../digest.worker.js',               () => ({ digestProcessor: jest.fn() }));
+jest.mock('../sales-fetch.worker.js',          () => ({ salesFetchProcessor: jest.fn() }));
 
 import { startWorkers, processRole, shouldRunWorkers, shouldServeHttp } from '../start.js';
 import {
   createReportingWorker, createAutomationWorker, automationQueue,
   billingReconcileQueue, tokenCleanupQueue, agentQueue, createAgentWorker,
+  lifecycleEmailQueue, digestQueue, salesFetchQueue,
 } from '../../services/queue.js';
 
 beforeEach(() => {
@@ -92,13 +102,17 @@ describe('startWorkers', () => {
     const jobIds = [
       ...automationQueue.add.mock.calls,
       ...billingReconcileQueue.add.mock.calls,
+      ...lifecycleEmailQueue.add.mock.calls,
       ...tokenCleanupQueue.add.mock.calls,
       ...agentQueue.add.mock.calls,
+      ...digestQueue.add.mock.calls,
+      ...salesFetchQueue.add.mock.calls,
     ].map(([, , opts]) => opts.jobId);
 
     expect(jobIds).toEqual(expect.arrayContaining([
       'auto:morning', 'auto:evening', 'billing-daily-reconcile', 'nightly-token-cleanup',
-      'agent-daily-sweep',
+      'lifecycle-daily',
+      'agent-daily-sweep', 'weekly-digest', 'sales-daily-sweep',
     ]));
   });
 

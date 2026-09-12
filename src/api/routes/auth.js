@@ -21,6 +21,8 @@ import { normalizeEmail } from '../utils/normalizeEmail.js';
 import { consumeClaimToken } from './billing.js';
 import { appleConfigured, getAppleClientSecret, verifyAppleIdToken } from '../../services/apple-auth.js';
 import { resolveSsoUser, claimIsTrue } from '../../services/sso-account.js';
+import { trialEndsAtFrom } from '../../config/trial.js';
+import { sanitiseAttribution } from '../utils/attribution.js';
 import {
   SESSION_MAX_AGE,
   SESSION_ABSOLUTE_MAX_SECONDS,
@@ -91,7 +93,7 @@ function issueSession(res, user, { activeOrgId = null, authAt = nowSeconds() } =
  */
 router.post('/signup', authLimiter, async (req, res) => {
   try {
-    const { password, firstName = '', lastName = '', claimToken } = req.body;
+    const { password, firstName = '', lastName = '', claimToken, attribution } = req.body;
     const email = normalizeEmail(req.body.email);
 
     // Validation
@@ -127,6 +129,8 @@ router.post('/signup', authLimiter, async (req, res) => {
         firstName,
         lastName,
         emailVerified: false,
+        // First touch, as the browser captured it; whitelisted and capped.
+        signupSource: sanitiseAttribution(attribution),
       },
     });
 
@@ -151,7 +155,7 @@ router.post('/signup', authLimiter, async (req, res) => {
           // context can exist for it yet. Both writes carry an explicit orgId.
           const org = await runAsSystem(async () => {
             const created = await prisma.organization.create({
-              data: { name: orgName, slug, trialEndsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) },
+              data: { name: orgName, slug, trialEndsAt: trialEndsAtFrom() },
             });
             await prisma.orgMember.create({
               data: { userId: user.id, orgId: created.id, role: 'ADMIN' },

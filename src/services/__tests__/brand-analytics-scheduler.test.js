@@ -8,7 +8,7 @@ import { jest } from '@jest/globals';
 
 jest.mock('../../db/prisma.js', () => ({
   prisma: {
-    brandAnalyticsReport: { findFirst: jest.fn(), findUnique: jest.fn() },
+    brandAnalyticsReport: { findFirst: jest.fn(), findUnique: jest.fn(), findMany: jest.fn() },
     organization:         { findMany: jest.fn(), count: jest.fn() },
   },
 }));
@@ -26,7 +26,7 @@ jest.mock('../queue.js', () => ({
 }));
 
 import {
-  cadenceForTier, previousClosedPeriod, getBrandAsinsForOrg, enqueueDailySweep,
+  cadenceForTier, previousClosedPeriod, recentClosedPeriods, getBrandAsinsForOrg, enqueueDailySweep,
 } from '../brand-analytics-scheduler.js';
 import { prisma } from '../../db/prisma.js';
 import { brandAnalyticsFetchQueue } from '../queue.js';
@@ -179,9 +179,17 @@ describe('getBrandAsinsForOrg', () => {
 
 
 describe('enqueueDailySweep — who is worth asking Amazon about', () => {
+  /** Every core report already in hand, for every period the sweep looks at. */
+  const wholeWindowCompleted = () =>
+    recentClosedPeriods('MONTHLY', 2).flatMap(({ periodStart, periodEnd }) =>
+      ['TOP_SEARCH_TERMS', 'BRAND_CATALOG_PERFORMANCE'].map(reportType => ({
+        reportType, periodStart, periodEnd,
+      })));
+
   beforeEach(() => {
     jest.clearAllMocks();
     prisma.brandAnalyticsReport.findUnique.mockResolvedValue(null);
+    prisma.brandAnalyticsReport.findMany.mockResolvedValue([]);
     prisma.brandAnalyticsReport.findFirst.mockResolvedValue(null);
     prisma.organization.count.mockResolvedValue(0);
     brandAnalyticsFetchQueue.getJob.mockResolvedValue(null);
@@ -210,7 +218,7 @@ describe('enqueueDailySweep — who is worth asking Amazon about', () => {
     const result = await enqueueDailySweep();
 
     expect(brandAnalyticsFetchQueue.add).not.toHaveBeenCalled();
-    expect(result).toEqual({ orgs: 0, enqueued: 0, retried: 0, skipped: 7 });
+    expect(result).toEqual({ orgs: 0, enqueued: 0, retried: 0, backfilled: 0, skipped: 7 });
   });
 
   it('reports how many orgs it skipped, so the quiet is explained', async () => {
@@ -232,7 +240,7 @@ describe('enqueueDailySweep — who is worth asking Amazon about', () => {
 
   it('skips a report already fetched successfully for the period', async () => {
     prisma.organization.findMany.mockResolvedValue([{ id: 'org-A', tier: 'BASIC', name: 'Acme' }]);
-    prisma.brandAnalyticsReport.findUnique.mockResolvedValue({ status: 'COMPLETED' });
+    prisma.brandAnalyticsReport.findMany.mockResolvedValue(wholeWindowCompleted());
 
     await enqueueDailySweep();
 
@@ -338,6 +346,7 @@ describe('enqueueDailySweep — a failed fetch getting another chance', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     prisma.brandAnalyticsReport.findUnique.mockResolvedValue(null);
+    prisma.brandAnalyticsReport.findMany.mockResolvedValue([]);
     prisma.brandAnalyticsReport.findFirst.mockResolvedValue(null);
     prisma.organization.count.mockResolvedValue(0);
     prisma.organization.findMany.mockResolvedValue([{ id: 'org-A', tier: 'BASIC', name: 'Acme' }]);
@@ -393,11 +402,161 @@ describe('enqueueDailySweep — a failed fetch getting another chance', () => {
   });
 
   it('never touches the queue for a report already completed', async () => {
-    prisma.brandAnalyticsReport.findUnique.mockResolvedValue({ status: 'COMPLETED' });
+    prisma.brandAnalyticsReport.findMany.mockResolvedValue(
+      recentClosedPeriods('MONTHLY', 2).flatMap(({ periodStart, periodEnd }) =>
+        ['TOP_SEARCH_TERMS', 'BRAND_CATALOG_PERFORMANCE'].map(reportType => ({ reportType, periodStart, periodEnd }))));
 
     await enqueueDailySweep();
 
     expect(brandAnalyticsFetchQueue.getJob).not.toHaveBeenCalled();
     expect(brandAnalyticsFetchQueue.add).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('recentClosedPeriods — how long we keep asking', () => {
+  it('returns the newest closed period first', () => {
+    const [newest] = recentClosedPeriods('WEEKLY', 4, new Date('2026-09-09T03:15:00Z'));
+    expect(newest).toEqual(previousClosedPeriod('WEEKLY', new Date('2026-09-09T03:15:00Z')));
+  });
+
+  it('walks back whole Sun→Sat weeks without a gap or an overlap', () => {
+    const periods = recentClosedPeriods('WEEKLY', 4, new Date('2026-09-09T03:15:00Z'));
+
+    expect(periods).toHaveLength(4);
+    for (const { periodStart, periodEnd } of periods) {
+      expect(periodStart.getUTCDay()).toBe(0); // Sunday
+      expect(periodEnd.getUTCDay()).toBe(6);   // Saturday
+      expect((periodEnd - periodStart) / 86_400_000).toBe(6);
+    }
+    // Each period ends exactly one day before the next one starts.
+    for (let i = 1; i < periods.length; i++) {
+      expect(periods[i].periodEnd.getTime()).toBe(periods[i - 1].periodStart.getTime() - 86_400_000);
+    }
+  });
+
+  it('reaches the week that production lost, four weeks on', () => {
+    // 2026-08-16→08-22 is still FAILED for four of five report types because
+    // the sweep only ever asked about the newest closed week. From the sweep on
+    // 2026-09-09 that week is still inside the window, so it gets asked again.
+    const periods = recentClosedPeriods('WEEKLY', 4, new Date('2026-09-09T03:15:00Z'));
+    const spans = periods.map(p => `${p.periodStart.toISOString().slice(0,10)}→${p.periodEnd.toISOString().slice(0,10)}`);
+
+    expect(spans).toEqual([
+      '2026-08-30→2026-09-05',
+      '2026-08-23→2026-08-29',
+      '2026-08-16→2026-08-22',
+      '2026-08-09→2026-08-15',
+    ]);
+  });
+
+  it('walks back whole calendar months, including across a year boundary', () => {
+    const spans = recentClosedPeriods('MONTHLY', 2, new Date('2027-01-15T00:00:00Z'))
+      .map(p => `${p.periodStart.toISOString().slice(0,10)}→${p.periodEnd.toISOString().slice(0,10)}`);
+
+    expect(spans).toEqual(['2026-12-01→2026-12-31', '2026-11-01→2026-11-30']);
+  });
+
+  it('walks back whole quarters', () => {
+    const spans = recentClosedPeriods('QUARTERLY', 2, new Date('2026-05-15T00:00:00Z'))
+      .map(p => `${p.periodStart.toISOString().slice(0,10)}→${p.periodEnd.toISOString().slice(0,10)}`);
+
+    expect(spans).toEqual(['2026-01-01→2026-03-31', '2025-10-01→2025-12-31']);
+  });
+
+  it('defaults to the single newest period, so callers opt in to the catch-up', () => {
+    expect(recentClosedPeriods('WEEKLY')).toHaveLength(1);
+  });
+});
+
+
+describe('enqueueDailySweep — catching up a period Amazon published late', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.brandAnalyticsReport.findUnique.mockResolvedValue(null);
+    prisma.brandAnalyticsReport.findMany.mockResolvedValue([]);
+    prisma.brandAnalyticsReport.findFirst.mockResolvedValue(null);
+    prisma.organization.count.mockResolvedValue(0);
+    brandAnalyticsFetchQueue.getJob.mockResolvedValue(null);
+  });
+
+  const spanOf = (data) => `${data.periodStart.slice(0,10)}→${data.periodEnd.slice(0,10)}`;
+
+  it('asks about more than the newest period, so a late report is not lost', async () => {
+    prisma.organization.findMany.mockResolvedValue([{ id: 'org-A', tier: 'PRO', name: 'Acme' }]);
+
+    await enqueueDailySweep();
+
+    const spans = new Set(brandAnalyticsFetchQueue.add.mock.calls.map(([, data]) => spanOf(data)));
+    expect(spans.size).toBe(4);
+  });
+
+  it('re-asks only for the report types still missing from an older period', async () => {
+    // The shape production is actually in: the newest week landed for everything
+    // except the two that publish late, and an older week is missing one of them.
+    const [newest, previous] = recentClosedPeriods('WEEKLY', 4);
+    const inHand = [];
+    for (const { periodStart, periodEnd } of recentClosedPeriods('WEEKLY', 4)) {
+      for (const reportType of ['TOP_SEARCH_TERMS', 'REPEAT_PURCHASE', 'MARKET_BASKET', 'BRAND_CATALOG_PERFORMANCE', 'SQP_BRAND']) {
+        const late = reportType === 'SQP_BRAND' || reportType === 'BRAND_CATALOG_PERFORMANCE';
+        if (periodStart.getTime() === newest.periodStart.getTime() && late) continue;
+        if (periodStart.getTime() === previous.periodStart.getTime() && reportType === 'SQP_BRAND') continue;
+        inHand.push({ reportType, periodStart, periodEnd });
+      }
+    }
+    prisma.brandAnalyticsReport.findMany.mockResolvedValue(inHand);
+    prisma.brandAnalyticsReport.findFirst.mockResolvedValue({ rawData: [{ asin: 'B000000001' }] });
+    prisma.organization.findMany.mockResolvedValue([{ id: 'org-A', tier: 'PRO', name: 'Acme' }]);
+
+    const result = await enqueueDailySweep();
+
+    const asked = brandAnalyticsFetchQueue.add.mock.calls.map(([, d]) => `${d.reportType} ${spanOf(d)}`).sort();
+    expect(asked).toEqual([
+      `BRAND_CATALOG_PERFORMANCE ${spanOf({ periodStart: newest.periodStart.toISOString(), periodEnd: newest.periodEnd.toISOString() })}`,
+      `SQP_BRAND ${spanOf({ periodStart: newest.periodStart.toISOString(), periodEnd: newest.periodEnd.toISOString() })}`,
+      `SQP_BRAND ${spanOf({ periodStart: previous.periodStart.toISOString(), periodEnd: previous.periodEnd.toISOString() })}`,
+    ].sort());
+    expect(result.backfilled).toBe(1); // only the older week's SQP counts as catch-up
+  });
+
+  it('queues the newest period before the catch-up', async () => {
+    prisma.organization.findMany.mockResolvedValue([{ id: 'org-A', tier: 'BASIC', name: 'Acme' }]);
+
+    await enqueueDailySweep();
+
+    const [newest] = recentClosedPeriods('MONTHLY', 2);
+    const firstSpan = spanOf(brandAnalyticsFetchQueue.add.mock.calls[0][1]);
+    expect(firstSpan).toBe(`${newest.periodStart.toISOString().slice(0,10)}→${newest.periodEnd.toISOString().slice(0,10)}`);
+  });
+
+  it('derives the SQP ASIN list once per org, not once per period', async () => {
+    prisma.brandAnalyticsReport.findFirst.mockResolvedValue({ rawData: [{ asin: 'B000000001' }] });
+    prisma.organization.findMany.mockResolvedValue([{ id: 'org-A', tier: 'PRO', name: 'Acme' }]);
+
+    await enqueueDailySweep();
+
+    expect(prisma.brandAnalyticsReport.findFirst).toHaveBeenCalledTimes(1);
+    const sqp = brandAnalyticsFetchQueue.add.mock.calls.filter(([, d]) => d.reportType === 'SQP_BRAND');
+    expect(sqp).toHaveLength(4);
+    for (const [, data] of sqp) expect(data.asins).toEqual(['B000000001']);
+  });
+
+  it('asks the database once per org for the whole window, not once per report', async () => {
+    prisma.organization.findMany.mockResolvedValue([{ id: 'org-A', tier: 'PRO', name: 'Acme' }]);
+
+    await enqueueDailySweep();
+
+    expect(prisma.brandAnalyticsReport.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.brandAnalyticsReport.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('says in one line how much of the sweep was catch-up', async () => {
+    prisma.organization.findMany.mockResolvedValue([{ id: 'org-A', tier: 'BASIC', name: 'Acme' }]);
+
+    const result = await enqueueDailySweep();
+
+    // BASIC: 2 core reports × 2 monthly periods; half of them are the older one.
+    expect(result.enqueued).toBe(4);
+    expect(result.backfilled).toBe(2);
   });
 });

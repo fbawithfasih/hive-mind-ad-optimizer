@@ -18,10 +18,13 @@ export function useProfileState() {
         setProfilesError(null);
         if (list.length === 0) return;
 
+        // Sample data only when there is nothing real: the moment a real
+        // profile exists it must win, whatever country the sample claims.
+        const pool = list.some(p => !p.isDemo) ? list.filter(p => !p.isDemo) : list;
         // Default preference: US > any explicitly marked default > first entry
-        const us        = list.find(p => p.countryCode === 'US');
-        const defaulted = list.find(p => p.isDefault);
-        setSelectedProfileId(String((us ?? defaulted ?? list[0]).profileId));
+        const us        = pool.find(p => p.countryCode === 'US');
+        const defaulted = pool.find(p => p.isDefault);
+        setSelectedProfileId(String((us ?? defaulted ?? pool[0]).profileId));
       })
       .catch((err) => {
         // Distinguish "the call failed" from "you have no profiles". They look

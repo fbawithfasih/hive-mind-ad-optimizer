@@ -76,7 +76,10 @@ function record(tier, field, orgId) {
  * available again the same second.
  */
 async function usageFor(orgId, field) {
-  if (field === 'profiles')        return prisma.sellerProfile.count({ where: { orgId } });
+  if (field === 'profiles') {
+    // The sample profile is not an Amazon account and costs nothing.
+    return prisma.sellerProfile.count({ where: { orgId, isDemo: false } });
+  }
   if (field === 'seats')           return prisma.orgMember.count({ where: { orgId } });
   if (field === 'automationRules') return prisma.campaignRule.count({ where: { orgId } });
   const row = await prisma.usageMetric.findFirst({

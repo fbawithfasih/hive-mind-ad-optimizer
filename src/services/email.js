@@ -265,3 +265,241 @@ export async function sendOrgInvitationEmail(to, { orgName, inviterName, role, t
     `, { preheader: `${inviterName} invited you to join ${orgName} on ${APP_NAME}.` }),
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Trial lifecycle
+//
+// Three emails, sent once each by services/trial-lifecycle.js. None of them
+// quotes a price: the pricing page is the source of truth for that and an
+// email cannot be edited after it is sent.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const longDate = (d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+const plural   = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+export async function sendTrialWelcomeEmail(to, { orgName, trialEndsAt, trialDays }) {
+  const url  = `${FRONTEND_URL()}/onboarding`;
+  const org  = escapeHtml(orgName);
+  const ends = longDate(trialEndsAt);
+
+  return send({
+    to,
+    subject: `Welcome to ${APP_NAME} — your ${trialDays}-day trial has started`,
+    text:
+      `Welcome to ${APP_NAME}.\n\n` +
+      `Your ${trialDays}-day trial for ${orgName} runs until ${ends}. No card needed.\n\n` +
+      `What happens next:\n` +
+      ` 1. Connect your Amazon Ads account (two consent screens, about two minutes).\n` +
+      ` 2. Every morning the agent reads your search-term report and proposes what it would negate or promote, and why.\n` +
+      ` 3. You review the proposals. Nothing touches your account until you have seen it be right.\n\n` +
+      `Start here: ${url}` +
+      textFooter(),
+    html: wrap(`
+      <h2 style="margin:0 0 8px;color:#0f172a;font-size:20px;font-weight:800">Welcome to ${APP_NAME}</h2>
+      <p style="color:#475569;margin:0 0 20px;font-size:14px;line-height:1.6">Your ${trialDays}-day trial for <strong>${org}</strong> runs until <strong>${ends}</strong>. No card needed.</p>
+      <p style="color:#0f172a;margin:0 0 8px;font-size:14px;font-weight:700">What happens next</p>
+      <ol style="color:#475569;margin:0 0 24px;padding-left:20px;font-size:14px;line-height:1.7">
+        <li>Connect your Amazon Ads account — two consent screens, about two minutes.</li>
+        <li>Every morning the agent reads your search-term report and proposes what it would negate or promote, and why.</li>
+        <li>You review the proposals. Nothing touches your account until you have seen it be right.</li>
+      </ol>
+      <a href="${url}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Connect Amazon Ads</a>
+      <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">Reply to this email if anything is unclear — a person reads it.</p>
+    `, { preheader: `Your ${trialDays}-day trial runs until ${ends}. Here is what happens next.` }),
+  });
+}
+
+export async function sendTrialEndingEmail(to, { orgName, daysLeft, trialEndsAt }) {
+  const url  = `${FRONTEND_URL()}/billing`;
+  const org  = escapeHtml(orgName);
+  const ends = longDate(trialEndsAt);
+  const left = plural(daysLeft, 'day');
+
+  return send({
+    to,
+    subject: `Your ${APP_NAME} trial ends in ${left}`,
+    text:
+      `Your trial for ${orgName} ends on ${ends} — ${left} from now.\n\n` +
+      `After that the agent keeps proposing, but listing optimization, reports and image tools pause until you choose a plan.\n\n` +
+      `Plans are monthly, cancel any time, with a 7-day money-back guarantee.\n\n` +
+      `Choose a plan: ${url}` +
+      textFooter(),
+    html: wrap(`
+      <h2 style="margin:0 0 8px;color:#0f172a;font-size:20px;font-weight:800">Your trial ends in ${left}</h2>
+      <p style="color:#475569;margin:0 0 16px;font-size:14px;line-height:1.6">The trial for <strong>${org}</strong> ends on <strong>${ends}</strong>.</p>
+      <p style="color:#475569;margin:0 0 24px;font-size:14px;line-height:1.6">After that the agent keeps proposing, but listing optimization, reports and image tools pause until you choose a plan. Plans are monthly, cancel any time, with a 7-day money-back guarantee.</p>
+      <a href="${url}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Choose a plan</a>
+      <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">Not the right fit? No action needed — the trial simply ends.</p>
+    `, { preheader: `${left} left on your trial for ${orgName}.` }),
+  });
+}
+
+export async function sendTrialExpiredEmail(to, { orgName }) {
+  const url = `${FRONTEND_URL()}/billing`;
+  const org = escapeHtml(orgName);
+
+  return send({
+    to,
+    subject: `Your ${APP_NAME} trial has ended`,
+    text:
+      `The trial for ${orgName} has ended.\n\n` +
+      `Your account and its history are kept. The agent keeps proposing in shadow mode; listing optimization, reports and image tools are paused until you choose a plan.\n\n` +
+      `Plans are monthly, cancel any time, with a 7-day money-back guarantee.\n\n` +
+      `Choose a plan: ${url}` +
+      textFooter(),
+    html: wrap(`
+      <h2 style="margin:0 0 8px;color:#0f172a;font-size:20px;font-weight:800">Your trial has ended</h2>
+      <p style="color:#475569;margin:0 0 16px;font-size:14px;line-height:1.6">The trial for <strong>${org}</strong> has ended. Your account and its history are kept.</p>
+      <p style="color:#475569;margin:0 0 24px;font-size:14px;line-height:1.6">The agent keeps proposing in shadow mode; listing optimization, reports and image tools are paused until you choose a plan. Plans are monthly, cancel any time, with a 7-day money-back guarantee.</p>
+      <a href="${url}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Choose a plan</a>
+      <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">This is the last email about your trial.</p>
+    `, { preheader: `The trial for ${orgName} has ended. Your account is kept.` }),
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Billing
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Minor units → "₹2,499.00" / "$49.00". Falls back to the raw number for a currency it does not know. */
+function money(minor, currency) {
+  const major = Number(minor) / 100;
+  try {
+    return new Intl.NumberFormat(currency === 'INR' ? 'en-IN' : 'en-US', { style: 'currency', currency }).format(major);
+  } catch {
+    return `${major.toFixed(2)} ${currency ?? ''}`.trim();
+  }
+}
+
+/**
+ * A subscription charge did not go through.
+ *
+ * Sent on Razorpay's payment.failed and subscription.halted. Razorpay retries
+ * a failed charge on its own schedule, so the ask is to fix the payment
+ * method, not to pay again by hand.
+ */
+export async function sendPaymentFailedEmail(to, { orgName, amount, currency, reason, halted = false }) {
+  const url = `${FRONTEND_URL()}/billing`;
+  const org = escapeHtml(orgName);
+  const sum = amount != null && currency ? money(amount, currency) : null;
+  const why = reason ? escapeHtml(String(reason)) : null;
+
+  const headline = halted
+    ? 'Your subscription is on hold'
+    : 'A payment for your subscription did not go through';
+  const consequence = halted
+    ? 'Razorpay has stopped retrying, and access will pause at the end of the current period unless the payment method is updated.'
+    : 'Razorpay will retry automatically over the next few days. If the retry also fails, access pauses at the end of the current period.';
+
+  return send({
+    to,
+    subject: halted
+      ? `Action needed: your ${APP_NAME} subscription is on hold`
+      : `A payment for ${APP_NAME} did not go through`,
+    text:
+      `${headline} for ${orgName}.\n\n` +
+      (sum ? `Amount: ${sum}\n` : '') +
+      (reason ? `Reason from the bank: ${reason}\n` : '') +
+      `\n${consequence}\n\n` +
+      `Update your payment method: ${url}` +
+      textFooter(),
+    html: wrap(`
+      <h2 style="margin:0 0 8px;color:#0f172a;font-size:20px;font-weight:800">${headline}</h2>
+      <p style="color:#475569;margin:0 0 16px;font-size:14px;line-height:1.6">For <strong>${org}</strong>.${sum ? ` Amount: <strong>${sum}</strong>.` : ''}${why ? ` Reason from the bank: <em>${why}</em>.` : ''}</p>
+      <p style="color:#475569;margin:0 0 24px;font-size:14px;line-height:1.6">${consequence}</p>
+      <a href="${url}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Update payment method</a>
+      <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">Nothing was charged. If you have already fixed this, no further action is needed.</p>
+    `, { preheader: `${headline} for ${orgName}.` }),
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The Monday digest
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A week, as the seller's own numbers.
+ *
+ * The agent's counts are genuinely the last seven days. The performance
+ * figures are whatever period the seller's latest report covers, and the
+ * email says so rather than implying otherwise — see services/digest.js.
+ * When there is no fresh report the section is absent, not zeroed.
+ */
+export async function sendWeeklyDigestEmail(to, { orgName, agent, alerts, performance, unsubscribeUrl }) {
+  const url = `${FRONTEND_URL()}/?tab=agent`;
+  const org = escapeHtml(orgName);
+  const n   = (v) => (v == null ? '—' : Number(v).toLocaleString('en-IN'));
+  const usd = (v) => (v == null ? '—' : `$${Number(v).toFixed(2)}`);
+
+  const perfRows = performance ? [
+    ['Spend',  usd(performance.spend)],
+    ['Sales',  usd(performance.sales)],
+    ['ACoS',   performance.acos == null ? 'no sales' : `${performance.acos}%`],
+    ['ROAS',   performance.roas == null ? '—' : `${performance.roas}×`],
+    ['Clicks', n(performance.clicks)],
+  ] : [];
+
+  const subject = agent.proposed > 0
+    ? `${orgName}: the agent found ${agent.proposed} thing${agent.proposed === 1 ? '' : 's'} last week`
+    : `${orgName}: your week on Amazon`;
+
+  const textPerf = performance
+    ? `\nPerformance (${performance.periodLabel}):\n` +
+      perfRows.map(([k, v]) => ` • ${k}: ${v}`).join('\n') + '\n'
+    : '\nNo recent campaign report — run one from the dashboard to see spend and ACoS here.\n';
+
+  return send({
+    to,
+    subject,
+    text:
+      `Your week on Amazon — ${orgName}\n\n` +
+      `The agent:\n` +
+      ` • ${agent.proposed} proposal${agent.proposed === 1 ? '' : 's'} in the last 7 days\n` +
+      ` • ${agent.applied} applied to your account\n` +
+      ` • ${agent.awaitingVerdict} waiting for your verdict\n` +
+      (alerts > 0 ? ` • ${alerts} alert${alerts === 1 ? '' : 's'} fired\n` : '') +
+      textPerf +
+      `\nReview what the agent proposed: ${url}\n` +
+      (unsubscribeUrl ? `\nTo stop these: ${unsubscribeUrl}\n` : '') +
+      textFooter(),
+    html: wrap(`
+      <h2 style="margin:0 0 6px;color:#0f172a;font-size:20px;font-weight:800">Your week on Amazon</h2>
+      <p style="color:#475569;margin:0 0 20px;font-size:14px"><strong>${org}</strong> · last 7 days</p>
+
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:20px">
+        <thead><tr style="background:#f8fafc">
+          <th style="padding:10px 14px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">The agent</th>
+          <th style="padding:10px 14px;text-align:right;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.06em"></th>
+        </tr></thead>
+        <tbody>
+          ${[['Proposed', agent.proposed], ['Applied to your account', agent.applied],
+             ['Waiting for your verdict', agent.awaitingVerdict],
+             ...(alerts > 0 ? [['Alerts fired', alerts]] : [])].map(([k, v]) => `
+            <tr>
+              <td style="padding:10px 14px;border-bottom:1px solid #eee;color:#475569;font-size:13px">${k}</td>
+              <td style="padding:10px 14px;border-bottom:1px solid #eee;text-align:right;font-weight:700;color:#0f172a">${n(v)}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+
+      ${performance ? `
+      <p style="color:#0f172a;margin:0 0 6px;font-size:14px;font-weight:700">Performance</p>
+      <p style="color:#94a3b8;margin:0 0 10px;font-size:12px">From your latest campaign report, covering ${escapeHtml(performance.periodLabel)}.</p>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:20px">
+        <tbody>
+          ${perfRows.map(([k, v]) => `
+            <tr>
+              <td style="padding:10px 14px;border-bottom:1px solid #eee;color:#475569;font-size:13px">${k}</td>
+              <td style="padding:10px 14px;border-bottom:1px solid #eee;text-align:right;font-weight:700;color:#0f172a">${v}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>` : `
+      <p style="color:#94a3b8;font-size:13px;margin:0 0 20px">No recent campaign report, so there are no spend or ACoS figures this week. Run one from the dashboard and they will appear here.</p>`}
+
+      <a href="${url}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Review what the agent proposed</a>
+      ${unsubscribeUrl ? `<p style="color:#94a3b8;font-size:12px;margin:24px 0 0">Don't want these? <a href="${unsubscribeUrl}" style="color:#64748b">Turn the weekly email off</a>.</p>` : ''}
+    `, { preheader: agent.proposed > 0
+        ? `${agent.proposed} proposals, ${agent.awaitingVerdict} waiting for your verdict.`
+        : `Your week on Amazon with ${orgName}.` }),
+  });
+}

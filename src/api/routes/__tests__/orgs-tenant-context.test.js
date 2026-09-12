@@ -18,6 +18,10 @@ import { getTenantContext } from '../../../db/tenant-context.js';
 /** Contexts captured at query time, in call order: { model, ctx }. */
 const seen = [];
 
+// Seeding the sample profile is its own concern (orgs-demo-seed.test.js);
+// here the transaction client is a stub with only the tables this file is about.
+jest.mock('../../../services/demo/seed.js', () => ({ seedDemoProfile: jest.fn(async () => ({ seeded: true })) }));
+
 jest.mock('../../../db/prisma.js', () => {
   const { getTenantContext: ctx } = jest.requireActual('../../../db/tenant-context.js');
   const rec = (model, value) => jest.fn(() => {
@@ -135,6 +139,36 @@ describe('PUT /:orgId brandName', () => {
   beforeEach(() => {
     prisma.orgMember.findFirst.mockImplementation(() =>
       Promise.resolve({ id: 'm1', role: 'ADMIN', org: { id: 'org-A' } })
+    );
+  });
+
+  it('stores a GSTIN uppercased, for the invoice', async () => {
+    prisma.organization.update.mockResolvedValueOnce({ id: 'org-A', gstin: '27AAPFU0939F1ZV' });
+
+    const res = await request(makeApp()).put('/org-A').send({ gstin: ' 27aapfu0939f1zv ' });
+
+    expect(res.status).toBe(200);
+    expect(prisma.organization.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { gstin: '27AAPFU0939F1ZV' } })
+    );
+  });
+
+  it('refuses a malformed GSTIN before writing anything', async () => {
+    // It goes on invoices; a wrong one is an invoice the accountant rejects.
+    const res = await request(makeApp()).put('/org-A').send({ gstin: 'not-a-gstin' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/15-character/);
+    expect(prisma.organization.update).not.toHaveBeenCalled();
+  });
+
+  it('clears the GSTIN when given an empty string', async () => {
+    prisma.organization.update.mockResolvedValueOnce({ id: 'org-A', gstin: null });
+
+    await request(makeApp()).put('/org-A').send({ gstin: '' }).expect(200);
+
+    expect(prisma.organization.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { gstin: null } })
     );
   });
 

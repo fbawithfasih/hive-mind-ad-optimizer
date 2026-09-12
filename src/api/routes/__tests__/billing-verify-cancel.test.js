@@ -143,6 +143,44 @@ describe('POST /verify — a payment with no subscription row', () => {
   });
 });
 
+describe('POST /cancel — why', () => {
+  beforeEach(() => {
+    prisma.subscription.findUnique.mockResolvedValue({
+      id: 'db-1', orgId: ORG_ID, subscriptionId: 'sub_rzp_1', status: 'ACTIVE',
+    });
+    razorpay.subscriptions.cancel.mockResolvedValue({});
+  });
+
+  it('refuses a cancel with no reason, before touching Razorpay', async () => {
+    // Subscription.cancelReason existed for months and nothing wrote it. The
+    // reason is the only thing a cancellation teaches us; it is not optional.
+    const res = await request(makeApp()).post('/cancel').send({});
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/reason must be one of/);
+    expect(razorpay.subscriptions.cancel).not.toHaveBeenCalled();
+  });
+
+  it('refuses a reason it does not know', async () => {
+    const res = await request(makeApp()).post('/cancel').send({ reason: 'vibes' });
+    expect(res.status).toBe(400);
+  });
+
+  it('stores the reason', async () => {
+    await request(makeApp()).post('/cancel').send({ reason: 'too_expensive' }).expect(200);
+    expect(prisma.subscription.update.mock.calls[0][0].data.cancelReason).toBe('too_expensive');
+  });
+
+  it('appends the note to the reason, trimmed and capped', async () => {
+    const note = '  ' + 'x'.repeat(600) + '  ';
+    await request(makeApp()).post('/cancel').send({ reason: 'other', note }).expect(200);
+
+    const stored = prisma.subscription.update.mock.calls[0][0].data.cancelReason;
+    expect(stored.startsWith('other: ')).toBe(true);
+    expect(stored.length).toBe('other: '.length + 500);
+  });
+});
+
 describe('POST /cancel', () => {
   beforeEach(() => {
     prisma.subscription.findUnique.mockResolvedValue({
@@ -154,14 +192,14 @@ describe('POST /cancel', () => {
   it('cancels at cycle end, not immediately', async () => {
     // The customer has paid through the current period; cancelling immediately
     // at Razorpay would forfeit time they already bought.
-    const res = await request(makeApp()).post('/cancel').send({});
+    const res = await request(makeApp()).post('/cancel').send({ reason: 'other' });
 
     expect(res.status).toBe(200);
     expect(razorpay.subscriptions.cancel).toHaveBeenCalledWith('sub_rzp_1', true);
   });
 
   it('records the cancellation with a timestamp', async () => {
-    await request(makeApp()).post('/cancel').send({});
+    await request(makeApp()).post('/cancel').send({ reason: 'other' });
 
     const { where, data } = prisma.subscription.update.mock.calls[0][0];
     expect(where).toEqual({ id: 'db-1' });
@@ -174,7 +212,7 @@ describe('POST /cancel', () => {
     // customer while showing them a cancelled subscription.
     razorpay.subscriptions.cancel.mockRejectedValue(new Error('gateway down'));
 
-    const res = await request(makeApp()).post('/cancel').send({});
+    const res = await request(makeApp()).post('/cancel').send({ reason: 'other' });
 
     expect(res.status).toBe(502);
     expect(prisma.subscription.update).not.toHaveBeenCalled();
@@ -185,7 +223,7 @@ describe('POST /cancel', () => {
       error: { description: 'Subscription is not active' },
     });
 
-    const res = await request(makeApp()).post('/cancel').send({});
+    const res = await request(makeApp()).post('/cancel').send({ reason: 'other' });
 
     expect(res.status).toBe(502);
     expect(res.body.error).toMatch(/Subscription is not active/);
@@ -194,7 +232,7 @@ describe('POST /cancel', () => {
   it('400s when the org has no subscription', async () => {
     prisma.subscription.findUnique.mockResolvedValue(null);
 
-    const res = await request(makeApp()).post('/cancel').send({});
+    const res = await request(makeApp()).post('/cancel').send({ reason: 'other' });
 
     expect(res.status).toBe(400);
     expect(razorpay.subscriptions.cancel).not.toHaveBeenCalled();
@@ -203,14 +241,14 @@ describe('POST /cancel', () => {
   it('400s when the row exists but was never linked to Razorpay', async () => {
     prisma.subscription.findUnique.mockResolvedValue({ id: 'db-1', subscriptionId: null });
 
-    const res = await request(makeApp()).post('/cancel').send({});
+    const res = await request(makeApp()).post('/cancel').send({ reason: 'other' });
 
     expect(res.status).toBe(400);
     expect(razorpay.subscriptions.cancel).not.toHaveBeenCalled();
   });
 
   it('looks the subscription up by the caller\'s own org', async () => {
-    await request(makeApp()).post('/cancel').send({});
+    await request(makeApp()).post('/cancel').send({ reason: 'other' });
     expect(prisma.subscription.findUnique).toHaveBeenCalledWith({ where: { orgId: ORG_ID } });
   });
 });
@@ -221,6 +259,14 @@ describe('GET /status — what the plan includes', () => {
   beforeEach(() => {
     prisma.subscription.findUnique.mockResolvedValue(null);
     prisma.usageMetric.findFirst.mockResolvedValue(null);
+  });
+
+  it("returns the org's id, name and GSTIN, for the fields billing edits in place", async () => {
+    prisma.organization.findUnique.mockResolvedValue({ id: 'org-1', name: 'Queenza', gstin: '27AAPFU0939F1ZV', trialEndsAt: null, tier: 'PRO' });
+
+    const res = await request(makeApp()).get('/status');
+
+    expect(res.body.org).toEqual({ id: 'org-1', name: 'Queenza', gstin: '27AAPFU0939F1ZV' });
   });
 
   it('returns the caller\'s own plan limits', async () => {

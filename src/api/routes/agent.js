@@ -18,6 +18,9 @@ import { prisma } from '../../db/prisma.js';
 import { createLogger } from '../utils/logger.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { graduationByActionType, GRADUATABLE } from '../../services/agent/graduation.js';
+import { adsClientForOrg, NoAdsCredentialError } from '../../services/agent/ads-client-for-org.js';
+import { revertBlocker, revertable, revertOne } from '../../services/agent/revert.js';
+import { track } from '../../services/events.js';
 
 const router = express.Router();
 const logger = createLogger('AGENT_API');
@@ -238,6 +241,10 @@ router.put('/objectives/:profileId', requireRole('ADMIN'), async (req, res) => {
   try {
     const profile = await prisma.sellerProfile.findFirst({ where: { orgId, profileId } });
     if (!profile) return res.status(404).json({ error: 'Profile not found for this organization' });
+    // The sweep would ask Amazon about a profile that does not exist there.
+    if (profile.isDemo) {
+      return res.status(400).json({ error: 'The sample profile cannot be enrolled — connect your Amazon account first.' });
+    }
 
     const objective = await prisma.profileObjective.upsert({
       where:  { orgId_profileId: { orgId, profileId } },
@@ -250,10 +257,143 @@ router.put('/objectives/:profileId', requireRole('ADMIN'), async (req, res) => {
         `negatives=${objective.negativeMode} promotions=${objective.promotionMode}`);
     }
 
+    track('agent_enrolled', { orgId, userId: req.tenant.userId ?? null, props: {
+      profileId, enabled: objective.enabled,
+      negativeMode: objective.negativeMode, promotionMode: objective.promotionMode,
+    } });
+
     res.json({ objective });
   } catch (err) {
     logger.error(`Upsert objective failed: ${err.message}`);
     res.status(500).json({ error: 'Could not save objective' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reverting
+//
+// The agent adds keywords to a real account when an action type is LIVE, and
+// every applied decision records the keyword id that would take it back. These
+// two endpoints are the only thing that acts on that record.
+//
+// ADMIN, and for a stronger reason than the verdict route: archiving is
+// terminal at Amazon. A reverted keyword cannot be restored, only recreated,
+// losing its history and its id. Nothing here is inferred or automatic.
+//
+// A revert also settles the verdict, when no verdict has been given. Undoing
+// an action is a disagreement with it in the most concrete form available, and
+// that verdict is the evidence graduation.js computes autonomy from — so a run
+// of reverts pulls an action type back below the bar that let it go live. An
+// explicit AGREE is never overwritten: a reviewer who agreed with the decision
+// and is undoing it for some other reason has said something the revert should
+// not contradict on their behalf.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Mark one decision reverted, and record the disagreement it implies. */
+function revertResult(decision, { status, outcome }, userId) {
+  const data = { status, outcome };
+  if (status === 'REVERTED') {
+    data.revertedAt = new Date();
+    data.revertedById = userId ?? null;
+    if (!decision.humanVerdict) {
+      data.humanVerdict = 'DISAGREE';
+      data.reviewedAt = new Date();
+      data.reviewedById = userId ?? null;
+      data.humanNote = 'Reverted';
+    }
+  }
+  return data;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/agent/decisions/:id/revert — take one applied action back
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/decisions/:id/revert', requireRole('ADMIN'), async (req, res) => {
+  const { orgId, userId } = req.tenant;
+
+  try {
+    // Scoped through the run, which is also where profileId lives — a revert
+    // has to know which Amazon account it is talking to.
+    const decision = await prisma.agentDecision.findFirst({
+      where:   { id: req.params.id, orgId },
+      include: { run: { select: { profileId: true } } },
+    });
+    if (!decision) return res.status(404).json({ error: 'Decision not found' });
+
+    const blocker = revertBlocker(decision);
+    if (blocker) return res.status(409).json({ error: blocker });
+
+    const adsClient = await adsClientForOrg(orgId);
+    const result = await revertOne(decision, { adsClient, profileId: decision.run.profileId });
+
+    await prisma.agentDecision.updateMany({
+      where: { id: decision.id, orgId },
+      data:  revertResult(decision, result, userId),
+    });
+
+    if (result.status !== 'REVERTED') {
+      logger.error(`Revert failed — org=${orgId} decision=${decision.id} ${result.outcome}`);
+      return res.status(502).json({ error: result.outcome });
+    }
+
+    logger.warn(`Agent decision reverted — org=${orgId} decision=${decision.id} ` +
+      `keyword=${decision.inverse?.keywordId} by=${userId}`);
+    res.json({ ok: true, status: result.status, outcome: result.outcome });
+  } catch (err) {
+    if (err instanceof NoAdsCredentialError) {
+      return res.status(409).json({ error: 'This organization has no Amazon Ads connection' });
+    }
+    logger.error(`Revert decision failed: ${err.message}`);
+    res.status(500).json({ error: 'Could not revert decision' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/agent/runs/:id/revert — take back everything one run applied
+//
+// The bad-day button. Guardrails cap a run at 75 actions, so this is bounded
+// and runs inline; a partial failure leaves the decisions it did revert
+// reverted and reports the count, because the alternative — rolling forward
+// again — is not available once a keyword is archived.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/runs/:id/revert', requireRole('ADMIN'), async (req, res) => {
+  const { orgId, userId } = req.tenant;
+
+  try {
+    const run = await prisma.agentRun.findFirst({
+      where:   { id: req.params.id, orgId },
+      include: { decisions: { orderBy: { createdAt: 'asc' } } },
+    });
+    if (!run) return res.status(404).json({ error: 'Run not found' });
+
+    const targets = revertable(run.decisions);
+    if (targets.length === 0) {
+      return res.status(409).json({ error: 'This run has nothing that can be reverted' });
+    }
+
+    const adsClient = await adsClientForOrg(orgId);
+
+    let reverted = 0;
+    const failures = [];
+    for (const decision of targets) {
+      const result = await revertOne(decision, { adsClient, profileId: run.profileId });
+      await prisma.agentDecision.updateMany({
+        where: { id: decision.id, orgId },
+        data:  revertResult(decision, result, userId),
+      });
+      if (result.status === 'REVERTED') reverted += 1;
+      else failures.push({ id: decision.id, searchTerm: decision.searchTerm, outcome: result.outcome });
+    }
+
+    logger.warn(`Agent run reverted — org=${orgId} run=${run.id} ` +
+      `${reverted}/${targets.length} by=${userId}`);
+    res.json({ ok: failures.length === 0, attempted: targets.length, reverted, failures });
+  } catch (err) {
+    if (err instanceof NoAdsCredentialError) {
+      return res.status(409).json({ error: 'This organization has no Amazon Ads connection' });
+    }
+    logger.error(`Revert run failed: ${err.message}`);
+    res.status(500).json({ error: 'Could not revert run' });
   }
 });
 

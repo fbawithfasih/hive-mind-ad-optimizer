@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { signupApi } from '../services/api.js';
+
+/** Where the marketing site's ?plan= choice waits for the billing page. */
+export const INTENDED_PLAN_KEY = 'hmn.intendedPlan';
 
 const PLAN_LABELS = {
   STARTER: 'Starter', BASIC: 'Starter',
@@ -37,6 +40,15 @@ export default function SignupPage({ onSignup }) {
   const claimToken = searchParams.get('claim') ?? null;
   const planParam  = (searchParams.get('plan') ?? '').toUpperCase();
   const planLabel  = PLAN_LABELS[planParam] ?? null;
+
+  // A plan chosen on the marketing site arrives here as ?plan=. Nothing is
+  // bought yet — the trial comes first — so the choice is kept in this
+  // browser for the billing page to put front and centre later. Best-effort:
+  // storage can be unavailable, and the page must work without it.
+  useEffect(() => {
+    if (!planLabel || claimToken) return;
+    try { localStorage.setItem(INTENDED_PLAN_KEY, planParam); } catch { /* private mode, etc. */ }
+  }, [planLabel, planParam, claimToken]);
 
   const [form, setForm]   = useState({ email: '', password: '', firstName: '', lastName: '' });
   const [error, setError]  = useState(null);
@@ -86,7 +98,7 @@ export default function SignupPage({ onSignup }) {
             </svg>
           </div>
           <h1 style={S.h1}>Create your account</h1>
-          <p style={S.sub}>AMAIOP · Amazon Ads Optimizer</p>
+          <p style={S.sub}>Hive Mind Ad Optimizer</p>
         </div>
 
         {planLabel && claimToken && (
@@ -94,6 +106,14 @@ export default function SignupPage({ onSignup }) {
             <span style={S.planBadgeIcon}>✓</span>
             <span style={S.planBadgeText}>
               You've selected the <span style={S.planBadgeName}>{planLabel} plan</span> — your subscription will activate automatically.
+            </span>
+          </div>
+        )}
+        {planLabel && !claimToken && (
+          <div style={S.planBadge}>
+            <span style={S.planBadgeIcon}>✓</span>
+            <span style={S.planBadgeText}>
+              You've chosen the <span style={S.planBadgeName}>{planLabel} plan</span> — start with a 14-day free trial, no card needed. It will be waiting on your billing page.
             </span>
           </div>
         )}

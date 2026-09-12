@@ -14,10 +14,14 @@ jest.mock('../../../services/razorpay.js', () => ({
   syncSubscriptionFromRazorpay: jest.fn(),
   syncPaymentFromRazorpay:      jest.fn(),
 }));
+jest.mock('../../../services/email.js',          () => ({ sendPaymentFailedEmail: jest.fn(async () => ({ id: 'm' })) }));
+jest.mock('../../../services/org-recipients.js', () => ({ orgAdminEmails: jest.fn(async () => ['admin@queenza.in']) }));
 
 import { razorpayWebhookHandler }   from '../billing.js';
 import * as razorpayModule           from '../../../services/razorpay.js';
 import { prisma }                    from '../../../db/prisma.js';
+import { sendPaymentFailedEmail }    from '../../../services/email.js';
+import { orgAdminEmails }            from '../../../services/org-recipients.js';
 
 const { verifyWebhookSignature, syncSubscriptionFromRazorpay, syncPaymentFromRazorpay } = razorpayModule;
 
@@ -214,5 +218,80 @@ describe('razorpayWebhookHandler — idempotency', () => {
     const res = mockRes();
     await razorpayWebhookHandler(req, res);
     expect(prisma.webhookEvent.findUnique).toHaveBeenCalledWith({ where: { eventId: 'evt_abc123' } });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Failed payments reach a person
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('payment.failed', () => {
+  const failedPayment = {
+    id: 'pay_fail1', subscription_id: 'sub_test123', amount: 699900, currency: 'INR',
+    error_description: 'Insufficient funds',
+  };
+
+  beforeEach(() => {
+    prisma.subscription.findFirst.mockResolvedValue({
+      id: 'db-1', subscriptionId: 'sub_test123', org: { id: 'org-1', name: 'Queenza' },
+    });
+  });
+
+  it('emails the org admins with the amount and the bank reason', async () => {
+    const res = mockRes();
+    await razorpayWebhookHandler(mockReq('payment.failed', failedPayment, 'payment'), res);
+
+    expect(res.json).toHaveBeenCalledWith({ received: true });
+    expect(orgAdminEmails).toHaveBeenCalledWith('org-1');
+    expect(sendPaymentFailedEmail).toHaveBeenCalledWith(['admin@queenza.in'], {
+      orgName: 'Queenza', amount: 699900, currency: 'INR', reason: 'Insufficient funds', halted: false,
+    });
+  });
+
+  it('does not sync anything — a failed charge changes no subscription state by itself', async () => {
+    await razorpayWebhookHandler(mockReq('payment.failed', failedPayment, 'payment'), mockRes());
+    expect(syncSubscriptionFromRazorpay).not.toHaveBeenCalled();
+    expect(syncPaymentFromRazorpay).not.toHaveBeenCalled();
+  });
+
+  it('still acknowledges the event when nobody can be found to tell', async () => {
+    // A 5xx would make Razorpay redeliver, and the org would be no more
+    // findable the second time.
+    prisma.subscription.findFirst.mockResolvedValue(null);
+    const res = mockRes();
+
+    await razorpayWebhookHandler(mockReq('payment.failed', failedPayment, 'payment'), res);
+
+    expect(res.json).toHaveBeenCalledWith({ received: true });
+    expect(sendPaymentFailedEmail).not.toHaveBeenCalled();
+  });
+
+  it('still acknowledges the event when the email itself fails', async () => {
+    sendPaymentFailedEmail.mockRejectedValueOnce(new Error('Resend down'));
+    const res = mockRes();
+
+    await razorpayWebhookHandler(mockReq('payment.failed', failedPayment, 'payment'), res);
+
+    expect(res.json).toHaveBeenCalledWith({ received: true });
+  });
+});
+
+describe('subscription.halted', () => {
+  it('syncs the status and sends the on-hold email', async () => {
+    prisma.subscription.findFirst.mockResolvedValue({
+      id: 'db-1', subscriptionId: 'sub_test123', org: { id: 'org-1', name: 'Queenza' },
+    });
+
+    await razorpayWebhookHandler(mockReq('subscription.halted', { ...mockSub, status: 'halted' }), mockRes());
+
+    expect(syncSubscriptionFromRazorpay).toHaveBeenCalledWith(expect.objectContaining({ status: 'halted' }));
+    expect(sendPaymentFailedEmail).toHaveBeenCalledWith(['admin@queenza.in'], expect.objectContaining({ halted: true }));
+  });
+});
+
+describe('subscription.pending', () => {
+  it('syncs, so a subscription in retry shows as such', async () => {
+    await razorpayWebhookHandler(mockReq('subscription.pending', { ...mockSub, status: 'pending' }), mockRes());
+    expect(syncSubscriptionFromRazorpay).toHaveBeenCalledTimes(1);
   });
 });
