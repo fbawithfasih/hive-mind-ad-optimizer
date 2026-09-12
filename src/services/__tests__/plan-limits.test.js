@@ -20,6 +20,8 @@ jest.mock('../../db/prisma.js', () => ({
     organization:  { findUnique: jest.fn() },
     usageMetric:   { findFirst: jest.fn() },
     sellerProfile: { count: jest.fn() },
+    orgMember:     { count: jest.fn() },
+    campaignRule:  { count: jest.fn() },
   },
 }));
 
@@ -50,25 +52,51 @@ beforeEach(() => {
   onTier('BASIC');
   prisma.usageMetric.findFirst.mockResolvedValue(null);
   prisma.sellerProfile.count.mockResolvedValue(0);
+  prisma.orgMember.count.mockResolvedValue(0);
+  prisma.campaignRule.count.mockResolvedValue(0);
+});
+
+describe('standing limits count rows that exist right now', () => {
+  it('seats counts org members', async () => {
+    // A seat freed by removing a member is available again the same second —
+    // there is no monthly tally to wait out.
+    onTier('BASIC');
+    prisma.orgMember.count.mockResolvedValue(1);
+    expect(await checkPlanLimit('org-1', 'seats')).toMatchObject({ allowed: false, used: 1, limit: 1 });
+    expect(prisma.orgMember.count).toHaveBeenCalledWith({ where: { orgId: 'org-1' } });
+  });
+
+  it('automationRules counts campaign rules', async () => {
+    onTier('PRO');
+    prisma.campaignRule.count.mockResolvedValue(19);
+    expect(await checkPlanLimit('org-1', 'automationRules')).toMatchObject({ allowed: true, used: 19, limit: 20 });
+    expect(prisma.campaignRule.count).toHaveBeenCalledWith({ where: { orgId: 'org-1' } });
+  });
+
+  it('never reads a UsageMetric row for a standing field', async () => {
+    await checkPlanLimit('org-1', 'seats');
+    await checkPlanLimit('org-1', 'automationRules');
+    expect(prisma.usageMetric.findFirst).not.toHaveBeenCalled();
+  });
 });
 
 describe('the limit table', () => {
   it.each([
-    ['BASIC', 'listingsOptimized', 100],
+    ['BASIC', 'listingsOptimized',  20],
     ['BASIC', 'bulkOperations',      5],
     ['BASIC', 'reportsGenerated',   10],
     ['BASIC', 'profiles',            1],
     ['PRO',   'bulkOperations',     50],
-    ['PRO',   'profiles',            5],
+    ['PRO',   'profiles',            3],
   ])('%s %s → %i, matching what the pricing page sells', (tier, field, expected) => {
     expect(limitFor(tier, field)).toBe(expected);
   });
 
   it.each([
-    ['PRO',        'listingsOptimized'],
+    ['ENTERPRISE', 'listingsOptimized'],
     ['PRO',        'reportsGenerated'],
     ['ENTERPRISE', 'bulkOperations'],
-    ['ENTERPRISE', 'profiles'],
+    ['ENTERPRISE', 'apiCalls'],
     ['CUSTOM',     'listingsOptimized'],
   ])('%s %s is unlimited', (tier, field) => {
     expect(limitFor(tier, field)).toBeNull();
@@ -107,8 +135,8 @@ describe('checkPlanLimit', () => {
   });
 
   it('never blocks on an unlimited field', async () => {
-    onTier('PRO');
-    expect(await checkPlanLimit('org-1', 'listingsOptimized')).toMatchObject({ allowed: true, unlimited: true });
+    onTier('PRO'); // Growth caps listings now; reports are the unlimited field
+    expect(await checkPlanLimit('org-1', 'reportsGenerated')).toMatchObject({ allowed: true, unlimited: true });
     expect(prisma.usageMetric.findFirst).not.toHaveBeenCalled();  // no query needed
   });
 
@@ -240,13 +268,13 @@ describe('applyProfileCap', () => {
   });
 
   it('fills the remaining headroom before refusing', async () => {
-    onTier('PRO'); // limit 5
+    onTier('PRO'); // limit 3: two already connected leaves room for exactly one more
     const raw = ['a', 'b', 'c', 'd', 'e', 'f'].map(profile);
 
-    const { limited, skipped } = await applyProfileCap('org-1', raw, new Set(['a', 'b', 'c']));
+    const { limited, skipped } = await applyProfileCap('org-1', raw, new Set(['a', 'b']));
 
-    expect(limited.map(p => p.profileId)).toEqual(['a', 'b', 'c', 'd', 'e']);
-    expect(skipped.map(p => p.profileId)).toEqual(['f']);
+    expect(limited.map(p => p.profileId)).toEqual(['a', 'b', 'c']);
+    expect(skipped.map(p => p.profileId)).toEqual(['d', 'e', 'f']);
   });
 
   it('imports everything on an unlimited plan', async () => {

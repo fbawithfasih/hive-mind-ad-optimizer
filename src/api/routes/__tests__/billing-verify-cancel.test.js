@@ -275,7 +275,7 @@ describe('GET /status — what the plan includes', () => {
     const res = await request(makeApp()).get('/status');
 
     expect(res.status).toBe(200);
-    expect(res.body.planLimits).toMatchObject({ bulkOperations: 50, profiles: 5 });
+    expect(res.body.planLimits).toMatchObject({ bulkOperations: 50, profiles: 3, seats: 3 });
   });
 
   it('reports unlimited as null rather than omitting it', async () => {

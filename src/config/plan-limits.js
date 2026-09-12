@@ -11,28 +11,46 @@
  * anyway, so being explicit avoids a difference that only shows up over the
  * wire.
  *
- * Keep in step with the feature lists in frontend/src/pages/BillingPage.jsx.
- * The audit script (scripts/plan-limit-audit.js) reports how many orgs are
- * currently over each of these.
+ * Field names are UsageMetric column names for the monthly ones, on purpose:
+ * services/plan-limits.js reads usage by selecting the field straight off the
+ * row, so a limit called `aiQueries` against a column called `apiCalls` would
+ * read zero forever. The label in FIELD_LABELS is where the customer-facing
+ * wording lives.
+ *
+ * Keep in step with the feature lists in frontend/src/pages/BillingPage.jsx
+ * and the marketing site. The audit script (scripts/plan-limit-audit.js)
+ * reports how many orgs are currently over each of these.
  */
 export const PLAN_LIMITS = {
   BASIC: {
-    listingsOptimized: 100,
+    listingsOptimized: 20,
     bulkOperations:    5,
     reportsGenerated:  10,
+    apiCalls:          100,
+    imagesOptimized:   10,
+    automationRules:   3,
     profiles:          1,
+    seats:             1,
   },
   PRO: {
-    listingsOptimized: null,
+    listingsOptimized: 100,
     bulkOperations:    50,
     reportsGenerated:  null,
-    profiles:          5,
+    apiCalls:          500,
+    imagesOptimized:   50,
+    automationRules:   20,
+    profiles:          3,
+    seats:             3,
   },
   ENTERPRISE: {
     listingsOptimized: null,
     bulkOperations:    null,
     reportsGenerated:  null,
-    profiles:          null,
+    apiCalls:          null,
+    imagesOptimized:   200,
+    automationRules:   null,
+    profiles:          10,
+    seats:             10,
   },
   // CUSTOM exists in the SubscriptionTier enum for negotiated contracts. It is
   // unlimited by definition — the contract is the limit, not this table.
@@ -40,19 +58,35 @@ export const PLAN_LIMITS = {
     listingsOptimized: null,
     bulkOperations:    null,
     reportsGenerated:  null,
+    apiCalls:          null,
+    imagesOptimized:   null,
+    automationRules:   null,
     profiles:          null,
+    seats:             null,
   },
 };
 
 /** Fields that count per calendar month, against a UsageMetric column. */
-export const MONTHLY_FIELDS = new Set(['listingsOptimized', 'bulkOperations', 'reportsGenerated']);
+export const MONTHLY_FIELDS = new Set([
+  'listingsOptimized', 'bulkOperations', 'reportsGenerated', 'apiCalls', 'imagesOptimized',
+]);
+
+/**
+ * Fields that are a standing count of rows rather than a monthly tally.
+ * services/plan-limits.js knows which table each one counts.
+ */
+export const STANDING_FIELDS = new Set(['profiles', 'seats', 'automationRules']);
 
 /** Human wording for the 402 body, so the message names the thing they hit. */
 export const FIELD_LABELS = {
   listingsOptimized: 'listing optimizations',
   bulkOperations:    'bulk operations',
   reportsGenerated:  'reports',
+  apiCalls:          'AI questions',
+  imagesOptimized:   'image regenerations',
+  automationRules:   'automation rules',
   profiles:          'Amazon profiles',
+  seats:             'team seats',
 };
 
 /**
