@@ -10,9 +10,17 @@
  * There is no "agency-owned" concept in the schema, and this deliberately does
  * not add one. Comped access is expressed the way the paywall already
  * understands it — a provider-less Subscription, ACTIVE, with a period end far
- * in the future — so services/entitlement.js admits it with no special case,
- * syncOrgEntitlement keeps org.tier at ENTERPRISE, and the plan limits read as
- * unlimited. Nothing has to know this org is special.
+ * in the future — so services/entitlement.js admits it with no special case
+ * and syncOrgEntitlement carries the tier onto the org. Nothing has to know
+ * this org is special.
+ *
+ * The comped tier is CUSTOM, not ENTERPRISE. This script used to grant
+ * ENTERPRISE and claim the limits read as unlimited; they do not. ENTERPRISE
+ * caps profiles at 10 and image regenerations at 200, and the agency's own two
+ * orgs hold 35 profiles each — so the comp quietly carried a ceiling it was
+ * never meant to have. CUSTOM is the tier the limit table already defines as
+ * unlimited, for exactly this: a negotiated contract where the contract is the
+ * limit, not the table.
  *
  * It replaces scripts/grant-master-account.js, which hardcoded one email. That
  * is why the agency's second org sat blocked for four weeks after its trial
@@ -96,7 +104,7 @@ async function main() {
     const now = new Date();
     const desired = revoke
       ? { tier: 'BASIC',      status: 'CANCELLED', end: now }
-      : { tier: 'ENTERPRISE', status: 'ACTIVE',    end: FAR_FUTURE };
+      : { tier: 'CUSTOM',     status: 'ACTIVE',    end: FAR_FUTURE };
 
     console.log(`  ${org.name}`);
     console.log(`    org          tier ${org.tier} → ${desired.tier}, trialEndsAt ${org.trialEndsAt ? org.trialEndsAt.toISOString().slice(0, 10) : 'null'} → null`);
