@@ -10,9 +10,9 @@
 // Both providers are reused from existing env vars — no new keys required.
 
 import { fetchWithTimeout, TIMEOUT_MS } from './http.js';
+import { claudeMessages } from './llm.js';
 
 const GEMINI_API_KEY    = process.env.GOOGLE_AI_API_KEY;
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY    = process.env.OPENAI_API_KEY;
 
 // Google has renamed this model twice (preview → GA). Try the current GA
@@ -46,8 +46,7 @@ Respond ONLY with valid JSON in exactly this shape (no markdown fences, no extra
 - negativePrompt: comma-separated list to exclude: "redesign, restyle, recolor, different product, generic version, people, hands, mannequin, props, accessories, decorative items, backgrounds other than pure white, gradient background, scene, surface, shadow on background, text, watermark, logo overlay, multiple products, illustration, cartoon, 3D render look, low resolution, blurry, oversaturated, unrealistic colors, product smaller than 80% of frame".
 - complianceNotes: 2–4 short bullets reminding the user which Amazon rules this prompt enforces.`;
 
-async function callClaudeJson(userPrompt, { referenceImageBase64, referenceMimeType } = {}, maxTokens = 1500) {
-  if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not configured');
+async function callClaudeJson(userPrompt, { referenceImageBase64, referenceMimeType, orgId = null } = {}, maxTokens = 1500) {
 
   const content = [];
   if (referenceImageBase64) {
@@ -62,26 +61,11 @@ async function callClaudeJson(userPrompt, { referenceImageBase64, referenceMimeT
   }
   content.push({ type: 'text', text: userPrompt });
 
-  const res = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: maxTokens,
-      system: PROMPT_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content }],
-    }),
-  }, TIMEOUT_MS.llm);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(`Claude API error ${res.status}: ${err?.error?.message ?? res.statusText}`);
-  }
-  const json = await res.json();
-  const raw = json.content?.map((b) => b.text).join('') ?? '';
+  // Metered, capped and cached in one place — see services/llm.js.
+  const { text: raw } = await claudeMessages({
+    model: 'claude-sonnet-4-6', system: PROMPT_SYSTEM_PROMPT, maxTokens, orgId, purpose: 'image-prompt',
+    messages: [{ role: 'user', content }],
+  });
   const start = raw.indexOf('{');
   const end   = raw.lastIndexOf('}');
   const jsonStr = start !== -1 && end > start ? raw.slice(start, end + 1) : raw.trim();
@@ -103,7 +87,7 @@ async function callClaudeJson(userPrompt, { referenceImageBase64, referenceMimeT
  * }} details
  * @returns {Promise<{prompt: string, negativePrompt: string, complianceNotes: string[], style?: string, camera?: string}>}
  */
-export async function generateImagePrompt(details, { referenceImageBase64, referenceMimeType } = {}) {
+export async function generateImagePrompt(details, { referenceImageBase64, referenceMimeType, orgId = null } = {}) {
   const lines = [
     `Product name: ${details.productName ?? '(unspecified)'}`,
     details.category       && `Category: ${details.category}`,
@@ -120,7 +104,7 @@ export async function generateImagePrompt(details, { referenceImageBase64, refer
     ? `The product photo above is the EXACT product the seller is selling. Look at it carefully and generate the Amazon main-image prompt. The brief below is supplementary context — when it conflicts with the photo, the photo wins. Return ONLY JSON.\n\n${lines}`
     : `No reference photo provided. Generate a single Amazon main-image prompt for the following product brief. Return ONLY JSON.\n\n${lines}`;
 
-  const parsed = await callClaudeJson(userPrompt, { referenceImageBase64, referenceMimeType });
+  const parsed = await callClaudeJson(userPrompt, { referenceImageBase64, referenceMimeType, orgId });
   if (!parsed.prompt) throw new Error('Claude did not return a usable prompt');
   return {
     prompt:           String(parsed.prompt),
@@ -282,9 +266,9 @@ function pickProvider(requested) {
  *   provider?: 'openai'|'gemini',
  * }} args
  */
-export async function optimizeMainImage({ details, referenceImageBase64, referenceMimeType, provider }) {
+export async function optimizeMainImage({ details, referenceImageBase64, referenceMimeType, provider, orgId = null }) {
   const chosen = pickProvider(provider);
-  const promptSpec = await generateImagePrompt(details, { referenceImageBase64, referenceMimeType });
+  const promptSpec = await generateImagePrompt(details, { referenceImageBase64, referenceMimeType, orgId });
   const generator = chosen === 'openai' ? generateMainImageOpenAI : generateMainImage;
   const image = await generator({
     prompt:               promptSpec.prompt,

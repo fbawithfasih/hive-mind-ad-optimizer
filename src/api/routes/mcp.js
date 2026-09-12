@@ -6,6 +6,7 @@ import { requireRole } from '../middleware/requireRole.js';
 import { enforcePlanLimit } from '../../services/plan-limits.js';
 import { trackUsage } from '../../services/razorpay.js';
 import { swallow } from '../utils/capture.js';
+import { LLM_BUDGET_CODE } from '../../services/llm.js';
 
 const router = express.Router();
 
@@ -42,10 +43,18 @@ router.post('/execute', requireRole('MEMBER'), mcpRateLimit, enforcePlanLimit('a
     const orgId        = req.tenant?.orgId ?? null;
     const brandContext = orgId ? await getBrandAnalyticsContext(orgId, brand ?? 'Unknown') : null;
 
-    const result = await executeMCPCommand(command, history || [], model || 'gemini', brandContext);
+    // orgId reaches the LLM door so the token budget is metered there; the
+    // apiCalls count stays here, and is only incremented once the model has
+    // actually answered — a question refused for budget is not a question sold.
+    const result = await executeMCPCommand(command, history || [], model || 'gemini', brandContext, { orgId });
     if (orgId) trackUsage(orgId, 'apiCalls').catch(swallow('trackUsage:apiCalls'));
     return res.json(result);
   } catch (err) {
+    // Over the plan's AI token allowance: the same answer as any other plan
+    // limit, so the client's upgrade prompt handles it.
+    if (err?.code === LLM_BUDGET_CODE) {
+      return res.status(402).json({ error: err.message, code: 'PLAN_LIMIT_REACHED', field: 'llmTokens', limit: err.limit, used: err.used, tier: err.tier });
+    }
     console.error('MCP route error:', err.message);
     return res.status(500).json({ error: err.message });
   }

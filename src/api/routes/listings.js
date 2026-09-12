@@ -95,7 +95,8 @@ router.post('/optimize', requireRole('MEMBER'), enforcePlanLimit('listingsOptimi
   try {
     const result = await optimizeListing(
       { asin, title, bullets, description, genericKeyword, searchTerms, uploadedKeywords },
-      model || 'gemini'
+      model || 'gemini',
+      { orgId: req.tenant.orgId }
     );
 
     // Persist to DB if we have enough info to identify the listing.

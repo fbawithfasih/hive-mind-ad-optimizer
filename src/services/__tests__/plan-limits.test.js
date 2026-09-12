@@ -56,6 +56,28 @@ beforeEach(() => {
   prisma.campaignRule.count.mockResolvedValue(0);
 });
 
+describe('the AI token allowance', () => {
+  it('is the sum of input and output tokens this month', async () => {
+    // Two columns because they are priced apart; one ceiling because the
+    // question is "what has this org cost", not which half.
+    onTier('BASIC');
+    prisma.usageMetric.findFirst.mockResolvedValue({ llmInputTokens: 1_000_000, llmOutputTokens: 400_000 });
+
+    const r = await checkPlanLimit('org-1', 'llmTokens', 8192);
+
+    expect(r).toMatchObject({ used: 1_400_000, limit: 1_500_000, allowed: true });
+    expect(prisma.usageMetric.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      select: { llmInputTokens: true, llmOutputTokens: true },
+    }));
+  });
+
+  it('refuses a call whose max_tokens would cross the line', async () => {
+    onTier('BASIC');
+    prisma.usageMetric.findFirst.mockResolvedValue({ llmInputTokens: 1_495_000, llmOutputTokens: 0 });
+    expect((await checkPlanLimit('org-1', 'llmTokens', 8192)).allowed).toBe(false);
+  });
+});
+
 describe('standing limits count rows that exist right now', () => {
   it('seats counts org members', async () => {
     // A seat freed by removing a member is available again the same second —

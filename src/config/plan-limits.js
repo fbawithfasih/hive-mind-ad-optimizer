@@ -11,7 +11,8 @@
  * anyway, so being explicit avoids a difference that only shows up over the
  * wire.
  *
- * Field names are UsageMetric column names for the monthly ones, on purpose:
+ * Field names are UsageMetric column names for the monthly ones (llmTokens
+ * excepted — services/plan-limits.js sums two columns for it), on purpose:
  * services/plan-limits.js reads usage by selecting the field straight off the
  * row, so a limit called `aiQueries` against a column called `apiCalls` would
  * read zero forever. The label in FIELD_LABELS is where the customer-facing
@@ -23,6 +24,7 @@
  */
 export const PLAN_LIMITS = {
   BASIC: {
+    llmTokens:         1_500_000,
     listingsOptimized: 20,
     bulkOperations:    5,
     reportsGenerated:  10,
@@ -33,6 +35,7 @@ export const PLAN_LIMITS = {
     seats:             1,
   },
   PRO: {
+    llmTokens:         6_000_000,
     listingsOptimized: 100,
     bulkOperations:    50,
     reportsGenerated:  null,
@@ -43,6 +46,7 @@ export const PLAN_LIMITS = {
     seats:             3,
   },
   ENTERPRISE: {
+    llmTokens:         20_000_000,
     listingsOptimized: null,
     bulkOperations:    null,
     reportsGenerated:  null,
@@ -55,6 +59,7 @@ export const PLAN_LIMITS = {
   // CUSTOM exists in the SubscriptionTier enum for negotiated contracts. It is
   // unlimited by definition — the contract is the limit, not this table.
   CUSTOM: {
+    llmTokens:         null,
     listingsOptimized: null,
     bulkOperations:    null,
     reportsGenerated:  null,
@@ -69,6 +74,9 @@ export const PLAN_LIMITS = {
 /** Fields that count per calendar month, against a UsageMetric column. */
 export const MONTHLY_FIELDS = new Set([
   'listingsOptimized', 'bulkOperations', 'reportsGenerated', 'apiCalls', 'imagesOptimized',
+  // Not a column: the sum of llmInputTokens and llmOutputTokens. A ceiling on
+  // what one org can cost in model calls in a month, whatever route ran them.
+  'llmTokens',
 ]);
 
 /**
@@ -83,6 +91,7 @@ export const FIELD_LABELS = {
   bulkOperations:    'bulk operations',
   reportsGenerated:  'reports',
   apiCalls:          'AI questions',
+  llmTokens:         'AI tokens',
   imagesOptimized:   'image regenerations',
   automationRules:   'automation rules',
   profiles:          'Amazon profiles',

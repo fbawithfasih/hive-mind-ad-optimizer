@@ -173,6 +173,7 @@ export function verifyPaymentSignature(paymentId, subscriptionId, signature) {
 
 const USAGE_FIELDS = new Set([
   'listingsOptimized', 'apiCalls', 'reportsGenerated', 'bulkOperations', 'imagesOptimized',
+  'llmInputTokens', 'llmOutputTokens',
 ]);
 
 export async function trackUsage(orgId, field, by = 1) {

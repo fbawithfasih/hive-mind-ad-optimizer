@@ -378,6 +378,10 @@ model UsageMetric {
   // and trackUsage swallowed the error, so the counter read zero forever and
   // nothing said why.
   imagesOptimized   Int      @default(0)
+  // Claude token spend, kept apart because input and output are priced apart.
+  // The plan limit (plan-limits.js llmTokens) is on their sum.
+  llmInputTokens    Int      @default(0)
+  llmOutputTokens   Int      @default(0)
 
   // Relations
   org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)

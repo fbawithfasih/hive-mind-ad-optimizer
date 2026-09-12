@@ -55,7 +55,9 @@ async function main() {
 
     for (const field of MONTHLY_FIELDS) {
       const limit = limitFor(org.tier, field);
-      const used  = usage[field] ?? 0;
+      const used  = field === 'llmTokens'
+        ? (usage.llmInputTokens ?? 0) + (usage.llmOutputTokens ?? 0)
+        : usage[field] ?? 0;
       if (limit !== null && used > limit) breaches.push({ field, used, limit });
     }
 

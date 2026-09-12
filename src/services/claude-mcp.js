@@ -1,10 +1,10 @@
 import dotenv from 'dotenv';
 import { fetchWithTimeout, TIMEOUT_MS } from './http.js';
+import { claudeMessages } from './llm.js';
 
 dotenv.config({ override: true });
 
 const GEMINI_API_KEY    = process.env.GOOGLE_AI_API_KEY;
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -71,7 +71,7 @@ async function callGemini(userCommand, conversationHistory = [], systemPrompt = 
   return json.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? '';
 }
 
-async function callClaude(userCommand, conversationHistory = [], systemPrompt = SYSTEM_PROMPT, maxTokens = 4096) {
+async function callClaude(userCommand, conversationHistory = [], systemPrompt = SYSTEM_PROMPT, maxTokens = 4096, { orgId = null, purpose = 'chat' } = {}) {
   const messages = [
     ...conversationHistory
       .filter((m) => typeof m.content === 'string')
@@ -79,46 +79,24 @@ async function callClaude(userCommand, conversationHistory = [], systemPrompt = 
     { role: 'user', content: userCommand },
   ];
 
-  const body = {
-    model: 'claude-sonnet-4-6',
-    max_tokens: maxTokens,
-    system: systemPrompt,
-    messages,
-  };
-
-  const res = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify(body),
-  }, TIMEOUT_MS.llm);
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(`Claude API error ${res.status}: ${err?.error?.message ?? res.statusText}`);
-  }
-
-  const json = await res.json();
-  if (json.stop_reason === 'max_tokens') {
-    console.warn(`⚠️  Claude hit max_tokens (${maxTokens}) — response was truncated`);
-  }
-  return json.content?.map((b) => b.text).join('') ?? '';
+  // Metered, capped and cached in one place — see services/llm.js.
+  const { text } = await claudeMessages({
+    model: 'claude-sonnet-4-6', system: systemPrompt, messages, maxTokens, orgId, purpose,
+  });
+  return text;
 }
 
 /**
  * Execute a natural-language command against campaign/search-term data.
  * @param {string} [brandContext] - Optional brand analytics text block from buildAIContext()
  */
-export async function executeMCPCommand(userCommand, conversationHistory = [], model = 'gemini', brandContext = null) {
+export async function executeMCPCommand(userCommand, conversationHistory = [], model = 'gemini', brandContext = null, { orgId = null } = {}) {
   const enrichedCommand = brandContext
     ? `${userCommand}\n\n---\n\n${brandContext}`
     : userCommand;
 
   const summary = model === 'claude'
-    ? await callClaude(enrichedCommand, conversationHistory)
+    ? await callClaude(enrichedCommand, conversationHistory, SYSTEM_PROMPT, 4096, { orgId, purpose: 'chat' })
     : await callGemini(enrichedCommand, conversationHistory);
 
   const updatedHistory = [
@@ -208,7 +186,7 @@ const REPORT_SECTIONS = {
  * Generate a professional Amazon advertising report from campaign + search term data.
  * @param {string} [brandContext] - Optional brand analytics text block from buildAIContext()
  */
-export async function generateAmazonReport({ reportType, startDate, endDate, campaigns, searchTerms, model = 'claude', brandContext = null }) {
+export async function generateAmazonReport({ reportType, startDate, endDate, campaigns, searchTerms, model = 'claude', brandContext = null, orgId = null }) {
   // Pre-compute aggregates
   const totalSpend      = campaigns.reduce((s, c) => s + (c.spend || 0), 0);
   const totalSales      = campaigns.reduce((s, c) => s + (c.sales || 0), 0);
@@ -311,7 +289,7 @@ ${sections}
 Write the full report now. Use the real numbers from the data above. Be specific.${brandContext ? `\n\n---\n\n${brandContext}\n\nUse the brand analytics intelligence above to enrich insights — reference brand visibility gaps, dominant keywords to defend, weak keywords to fix, and top competitor ASINs where relevant.` : ''}`;
 
   const raw = model === 'claude'
-    ? await callClaude(userPrompt, [], REPORT_SYSTEM_PROMPT)
+    ? await callClaude(userPrompt, [], REPORT_SYSTEM_PROMPT, 4096, { orgId, purpose: 'report' })
     : await callGemini(userPrompt, [], REPORT_SYSTEM_PROMPT);
 
   return raw;
@@ -403,7 +381,7 @@ export function enforceListingLimits(parsed) {
   return { ...parsed, title, bullets, description, genericKeyword };
 }
 
-export async function optimizeListing({ asin, title, bullets, description, genericKeyword, searchTerms, uploadedKeywords }, model = 'gemini') {
+export async function optimizeListing({ asin, title, bullets, description, genericKeyword, searchTerms, uploadedKeywords }, model = 'gemini', { orgId = null } = {}) {
   const bulletsText = (bullets ?? []).map((b, i) => `${i + 1}. ${b}`).join('\n');
   const priorityBlock = (uploadedKeywords ?? []).length > 0
     ? `\nPRIORITY KEYWORDS (user-uploaded — MUST include as many as possible, these take highest priority):\n${(uploadedKeywords).join(', ')}\n`
@@ -441,7 +419,7 @@ Optimize the title, bullets, and description.${(uploadedKeywords ?? []).length >
   // Use a generous token budget so the full JSON always fits; for Gemini 2.5-flash
   // disable thinking (thinkingBudget: 0) so reasoning tokens don't eat output headroom.
   const raw = model === 'claude'
-    ? await callClaude(userPrompt, [], LISTING_SYSTEM_PROMPT, 8192)
+    ? await callClaude(userPrompt, [], LISTING_SYSTEM_PROMPT, 8192, { orgId, purpose: 'listing' })
     : await callGemini(userPrompt, [], LISTING_SYSTEM_PROMPT, {
         maxOutputTokens: 8192,
         thinkingConfig: { thinkingBudget: 0 },

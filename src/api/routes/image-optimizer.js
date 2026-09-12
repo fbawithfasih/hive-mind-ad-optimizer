@@ -1,6 +1,7 @@
 import express from 'express';
 import { optimizeMainImage } from '../../services/image-optimizer.js';
 import { requireRole } from '../middleware/requireRole.js';
+import { LLM_BUDGET_CODE } from '../../services/llm.js';
 import { trackUsage } from '../../services/razorpay.js';
 import { enforcePlanLimit } from '../../services/plan-limits.js';
 import { swallow } from '../utils/capture.js';
@@ -52,10 +53,14 @@ router.post('/optimize', requireRole('MEMBER'), enforcePlanLimit('imagesOptimize
       referenceImageBase64,
       referenceMimeType,
       provider,
+      orgId: req.tenant.orgId,
     });
     trackUsage(req.tenant.orgId, 'imagesOptimized').catch(swallow('trackUsage:imagesOptimized'));
     res.json(result);
   } catch (err) {
+    if (err?.code === LLM_BUDGET_CODE) {
+      return res.status(402).json({ error: err.message, code: 'PLAN_LIMIT_REACHED', field: 'llmTokens', limit: err.limit, used: err.used, tier: err.tier });
+    }
     console.error('[image-optimizer] failed:', err.message);
     res.status(500).json({ error: err.message });
   }

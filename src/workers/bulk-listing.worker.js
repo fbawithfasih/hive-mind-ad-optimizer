@@ -106,7 +106,8 @@ export async function bulkListingProcessor(job) {
   try {
     result = await optimizeListing(
       { asin, title, bullets, description, searchTerms, uploadedKeywords },
-      model || 'gemini'
+      model || 'gemini',
+      { orgId }
     );
   } catch (err) {
     errorMessage = err.message;
