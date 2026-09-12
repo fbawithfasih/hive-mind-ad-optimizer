@@ -2,6 +2,7 @@ import express from 'express';
 import { optimizeMainImage } from '../../services/image-optimizer.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { trackUsage } from '../../services/razorpay.js';
+import { enforcePlanLimit } from '../../services/plan-limits.js';
 import { swallow } from '../utils/capture.js';
 
 const router = express.Router();
@@ -32,7 +33,10 @@ const MAX_BASE64_LEN = 12 * 1024 * 1024; // ~12 MB raw → ~9 MB image
  *   promptSpec: { prompt, negativePrompt, complianceNotes, style, camera }
  * }
  */
-router.post('/optimize', requireRole('MEMBER'), async (req, res) => {
+// Two model calls per request (Claude writes the prompt, Gemini draws), so
+// this is the most expensive thing a Starter customer can click. The counter
+// has been incrementing since capture.js fixed it; now something reads it.
+router.post('/optimize', requireRole('MEMBER'), enforcePlanLimit('imagesOptimized'), async (req, res) => {
   const { referenceImageBase64, referenceMimeType, details, provider } = req.body ?? {};
 
   if (!details?.productName) {

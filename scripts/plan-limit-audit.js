@@ -18,7 +18,7 @@
  */
 import { prisma } from '../src/db/prisma.js';
 import { runAsSystem } from '../src/db/tenant-context.js';
-import { PLAN_LIMITS, MONTHLY_FIELDS, FIELD_LABELS, limitFor } from '../src/config/plan-limits.js';
+import { PLAN_LIMITS, MONTHLY_FIELDS, STANDING_FIELDS, FIELD_LABELS, limitFor } from '../src/config/plan-limits.js';
 
 const argv = process.argv.slice(2);
 const value = (name) => {
@@ -43,6 +43,8 @@ async function main() {
       id: true, name: true, tier: true, billingStatus: true,
       usageMetrics:   { where: { month }, take: 1 },
       sellerProfiles: { select: { id: true } },
+      members:        { select: { id: true } },
+      campaignRules:  { select: { id: true } },
     },
   });
 
@@ -57,9 +59,18 @@ async function main() {
       if (limit !== null && used > limit) breaches.push({ field, used, limit });
     }
 
-    const profileLimit = limitFor(org.tier, 'profiles');
-    if (profileLimit !== null && org.sellerProfiles.length > profileLimit) {
-      breaches.push({ field: 'profiles', used: org.sellerProfiles.length, limit: profileLimit });
+    // Standing fields are a count of rows that exist now, not a monthly tally.
+    // Every field in STANDING_FIELDS must have a counter here, or the audit
+    // would say "safe to flip" about a limit it never looked at.
+    const standing = {
+      profiles:        org.sellerProfiles.length,
+      seats:           org.members.length,
+      automationRules: org.campaignRules.length,
+    };
+    for (const field of STANDING_FIELDS) {
+      if (!(field in standing)) throw new Error(`plan-limit-audit: no counter for standing field '${field}'`);
+      const limit = limitFor(org.tier, field);
+      if (limit !== null && standing[field] > limit) breaches.push({ field, used: standing[field], limit });
     }
 
     if (breaches.length) over.push({ org, breaches });
