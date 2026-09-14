@@ -3,6 +3,7 @@ import { prisma } from '../../db/prisma.js';
 import { executeRule, executeAllRules } from '../../services/rule-engine.js';
 import { createLogger } from '../utils/logger.js';
 import { requireRole } from '../middleware/requireRole.js';
+import { captureEvent } from '../../services/posthog.js';
 
 const router = express.Router();
 const logger = createLogger('AUTOMATION');
@@ -58,6 +59,12 @@ router.post('/rules', requireRole('MEMBER'), async (req, res) => {
       },
     });
     logger.info(`Rule "${name}" created for org ${req.tenant.orgId}`);
+    await captureEvent({
+      distinctId: req.user?.userId,
+      event: 'automation_rule_created',
+      properties: { metric, action, schedule: schedule ?? 'manual' },
+      groups: { organization: req.tenant.orgId },
+    });
     res.status(201).json(rule);
   } catch (e) {
     logger.error(`Create rule error: ${e.message}`);
@@ -161,6 +168,16 @@ router.post('/rules/:id/run', requireRole('MEMBER'), async (req, res) => {
   });
 
   logger.info(`Rule "${rule.name}" manual run: ${result.status}, ${result.affectedCount} campaigns affected`);
+  await captureEvent({
+    distinctId: req.user?.userId,
+    event: 'automation_rule_executed',
+    properties: {
+      action: rule.action,
+      status: result.status,
+      affected_count: result.affectedCount,
+    },
+    groups: { organization: req.tenant.orgId },
+  });
   res.json(result);
 });
 

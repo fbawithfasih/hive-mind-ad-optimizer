@@ -38,6 +38,7 @@
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^8.0.5",
     "papaparse": "^5.5.3",
+    "posthog-node": "^5.52.1",
     "prisma": "^6.19.3",
     "rate-limit-redis": "^6.0.1",
     "razorpay": "^2.9.6",

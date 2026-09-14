@@ -7,6 +7,7 @@ import { createLogger } from '../utils/logger.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { swallow } from '../utils/capture.js';
 import { enforcePlanLimit } from '../../services/plan-limits.js';
+import { captureEvent } from '../../services/posthog.js';
 
 const router = express.Router();
 const logger = createLogger('REPORTING_AGENT');
@@ -87,6 +88,12 @@ router.post('/start', requireRole('MEMBER'), enforcePlanLimit('reportsGenerated'
 
   trackUsage(req.tenant.orgId, 'reportsGenerated').catch(swallow('trackUsage:reportsGenerated'));
   logger.info(`Job ${jobId} enqueued for org ${req.tenant.orgId}`);
+  await captureEvent({
+    distinctId: req.user?.userId,
+    event: 'report_generation_started',
+    properties: { report_type: reportType, model },
+    groups: { organization: req.tenant.orgId },
+  });
   res.json({ jobId, startDate: start, endDate: end });
 });
 

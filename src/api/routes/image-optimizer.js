@@ -5,6 +5,7 @@ import { LLM_BUDGET_CODE } from '../../services/llm.js';
 import { trackUsage } from '../../services/razorpay.js';
 import { enforcePlanLimit } from '../../services/plan-limits.js';
 import { swallow } from '../utils/capture.js';
+import { captureEvent } from '../../services/posthog.js';
 
 const router = express.Router();
 
@@ -56,6 +57,15 @@ router.post('/optimize', requireRole('MEMBER'), enforcePlanLimit('imagesOptimize
       orgId: req.tenant.orgId,
     });
     trackUsage(req.tenant.orgId, 'imagesOptimized').catch(swallow('trackUsage:imagesOptimized'));
+    await captureEvent({
+      distinctId: req.user?.userId,
+      event: 'image_optimized',
+      properties: {
+        provider: provider ?? 'default',
+        used_reference_image: !!referenceImageBase64,
+      },
+      groups: { organization: req.tenant.orgId },
+    });
     res.json(result);
   } catch (err) {
     if (err?.code === LLM_BUDGET_CODE) {

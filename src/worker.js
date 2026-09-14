@@ -23,8 +23,10 @@ import { prisma } from './db/prisma.js';
 import { closeQueue } from './services/queue.js';
 import { closeEphemeralStore } from './services/ephemeral-store.js';
 import { startWorkers } from './workers/start.js';
+import { initPostHog, shutdownPostHog } from './services/posthog.js';
 
 dotenv.config();
+initPostHog();
 
 const logger = createLogger('WORKER_PROCESS');
 const PORT = process.env.PORT || 8080;
@@ -47,6 +49,7 @@ async function shutdown(signal) {
     await workers.close();
     await closeQueue();
     await closeEphemeralStore();
+    await shutdownPostHog();
     await prisma.$disconnect();
     logger.info('Shutdown complete');
     process.exit(0);

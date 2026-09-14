@@ -8,16 +8,16 @@
  * Each event becomes an AuditLog row with actor SYSTEM and action
  * `event.<name>`, which makes the funnel a query against a table that
  * already exists, is already org-scoped, and already has retention on the
- * roadmap. When POSTHOG_KEY is set the same event is also sent to PostHog,
- * keyed by org, so the funnel can be drawn without writing SQL.
+ * roadmap. When PostHog is configured the same event is also sent through
+ * the official SDK and grouped by org, so the funnel can be drawn without SQL.
  *
- * Never throws and never awaits the network on the caller's behalf: an event
- * that fails to record must not fail the signup that produced it.
+ * Never throws: SDK delivery is flushed before this promise resolves, but an
+ * analytics failure must not fail the user action that produced it.
  */
 
 import { prisma } from '../db/prisma.js';
-import { fetchWithTimeout } from './http.js';
 import { createLogger } from '../api/utils/logger.js';
+import { captureEvent } from './posthog.js';
 
 const logger = createLogger('EVENTS');
 
@@ -27,17 +27,8 @@ export const EVENTS = [
   'checkout_started', 'subscribed', 'cancelled',
 ];
 
-const POSTHOG_TIMEOUT_MS = 3000;
-
-function posthogConfig() {
-  const key = process.env.POSTHOG_KEY;
-  if (!key) return null;
-  const host = (process.env.POSTHOG_HOST || 'https://us.i.posthog.com').replace(/\/$/, '');
-  return { key, host };
-}
-
 /**
- * Record one event. Fire-and-forget: the returned promise never rejects.
+ * Record one event. The returned promise flushes delivery and never rejects.
  *
  * @param {string} name one of EVENTS
  * @param {{ orgId: string, userId?: string|null, props?: Record<string, unknown> }} ctx
@@ -67,23 +58,15 @@ export async function track(name, { orgId, userId = null, props = {} } = {}) {
     logger.error(`track: could not record ${name} for org ${orgId}: ${err.message}`);
   }
 
-  const ph = posthogConfig();
-  if (!ph) return;
   try {
-    const res = await fetchWithTimeout(`${ph.host}/capture/`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        api_key:     ph.key,
-        event:       name,
-        distinct_id: orgId,
-        properties:  { ...props, orgId, userId, $lib: 'amaiop-server' },
-        timestamp:   new Date().toISOString(),
-      }),
-    }, POSTHOG_TIMEOUT_MS);
-    if (!res.ok) logger.warn(`track: PostHog answered ${res.status} for ${name}`);
+    await captureEvent({
+      distinctId: userId ?? `org:${orgId}`,
+      event: name,
+      properties: { ...props, org_id: orgId },
+      groups: { organization: orgId },
+    });
   } catch (err) {
-    logger.warn(`track: PostHog unreachable for ${name}: ${err.message}`);
+    logger.warn(`track: PostHog capture failed for ${name}: ${err.message}`);
   }
 }
 

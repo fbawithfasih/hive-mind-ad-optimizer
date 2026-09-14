@@ -23,6 +23,7 @@ import { appleConfigured, getAppleClientSecret, verifyAppleIdToken } from '../..
 import { resolveSsoUser, claimIsTrue } from '../../services/sso-account.js';
 import { trialEndsAtFrom } from '../../config/trial.js';
 import { sanitiseAttribution } from '../utils/attribution.js';
+import { captureEvent, identifyUser } from '../../services/posthog.js';
 import {
   SESSION_MAX_AGE,
   SESSION_ABSOLUTE_MAX_SECONDS,
@@ -212,6 +213,21 @@ router.post('/signup', authLimiter, async (req, res) => {
 
     issueSession(res, user, { activeOrgId: claimedOrgId });
 
+    await identifyUser({
+      distinctId: user.id,
+      properties: {
+        email: user.email,
+        first_name: user.firstName,
+        last_name: user.lastName,
+      },
+    });
+    await captureEvent({
+      distinctId: user.id,
+      event: 'user_signed_up',
+      properties: { auth_method: 'password', claimed_organization: !!claimedOrgId },
+      groups: claimedOrgId ? { organization: claimedOrgId } : undefined,
+    });
+
     res.status(201).json({
       ok: true,
       user: {
@@ -283,6 +299,21 @@ router.post('/login', authLimiter, loginAccountLimiter, async (req, res) => {
     );
 
     issueSession(res, user, { activeOrgId: firstMembership?.orgId ?? null });
+
+    await identifyUser({
+      distinctId: user.id,
+      properties: {
+        email: user.email,
+        first_name: user.firstName,
+        last_name: user.lastName,
+      },
+    });
+    await captureEvent({
+      distinctId: user.id,
+      event: 'user_logged_in',
+      properties: { auth_method: 'password' },
+      groups: firstMembership?.orgId ? { organization: firstMembership.orgId } : undefined,
+    });
 
     res.json({
       ok: true,

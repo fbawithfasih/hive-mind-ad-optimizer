@@ -8,6 +8,7 @@ import { requireRole } from '../middleware/requireRole.js';
 import { flattenListingKeywords } from '../utils/listingKeywords.js';
 import { swallow } from '../utils/capture.js';
 import { enforcePlanLimit } from '../../services/plan-limits.js';
+import { captureEvent } from '../../services/posthog.js';
 
 const router = express.Router();
 
@@ -128,6 +129,12 @@ router.post('/optimize', requireRole('MEMBER'), enforcePlanLimit('listingsOptimi
     }
 
     trackUsage(req.tenant.orgId, 'listingsOptimized').catch(swallow('trackUsage:listingsOptimized'));
+    await captureEvent({
+      distinctId: req.user?.userId,
+      event: 'listing_optimized',
+      properties: { model: model || 'gemini', persisted: !!(asin || sku) },
+      groups: { organization: req.tenant.orgId },
+    });
     res.json(result);
   } catch (err) {
     console.error('Listing optimize error:', err.message);
@@ -216,6 +223,14 @@ router.put('/update', requireRole('MEMBER'), async (req, res) => {
       });
     }
 
+    if (result?.status === 'ACCEPTED') {
+      await captureEvent({
+        distinctId: req.user?.userId,
+        event: 'listing_published',
+        properties: { status: result.status },
+        groups: { organization: req.tenant.orgId },
+      });
+    }
     res.json(result);
   } catch (err) {
     console.error('Listing update error:', err.message);
@@ -272,6 +287,12 @@ router.post('/bulk-optimize', requireRole('MEMBER'), enforcePlanLimit('bulkOpera
 
   trackUsage(req.tenant.orgId, 'bulkOperations').catch(swallow('trackUsage:bulkOperations'));
   console.log(`[bulk-optimize] Batch ${batchRef} enqueued — ${items.length} items for org ${req.tenant.orgId}`);
+  await captureEvent({
+    distinctId: req.user?.userId,
+    event: 'bulk_listing_optimization_started',
+    properties: { item_count: items.length, model },
+    groups: { organization: req.tenant.orgId },
+  });
   res.json({ batchId: batchRef, total: items.length });
 });
 

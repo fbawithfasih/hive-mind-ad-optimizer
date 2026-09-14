@@ -5,6 +5,7 @@ import { createLogger } from '../utils/logger.js';
 import { applyProfileCap } from '../../services/plan-limits.js';
 import { removeDemoProfile } from '../../services/demo/seed.js';
 import { enrolOnFirstSync } from '../../services/agent/enrolment.js';
+import { captureEvent } from '../../services/posthog.js';
 
 const router = express.Router();
 const logger = createLogger('PROFILES');
@@ -119,6 +120,16 @@ router.post('/sync', requireRole('ADMIN'), async (req, res) => {
     if (upserted.length) await removeDemoProfile(prisma, req.tenant.orgId);
 
     logger.info(`Synced ${upserted.length} profiles for org ${req.tenant.orgId}`);
+    await captureEvent({
+      distinctId: req.user?.userId,
+      event: 'profile_synced',
+      properties: {
+        synced_count: upserted.length,
+        removed_count: removed,
+        skipped_for_plan_limit_count: skipped.length,
+      },
+      groups: { organization: req.tenant.orgId },
+    });
     res.json({
       synced: upserted.length,
       removed,
