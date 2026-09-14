@@ -3,11 +3,11 @@ import { prisma } from '../../db/prisma.js';
 import { createLogger } from '../utils/logger.js';
 import { randomUUID } from 'crypto';
 import { requireRole } from '../middleware/requireRole.js';
+import { VALID_ALERT_METRICS as VALID_METRICS } from '../../config/alert-metrics.js';
 
 const router = express.Router();
 const logger = createLogger('ALERTS');
 
-const VALID_METRICS    = ['acos', 'spend', 'roas', 'ctr', 'clicks', 'impressions'];
 const VALID_CONDITIONS = ['gt', 'lt', 'gte', 'lte'];
 const DEDUP_HOURS      = 4; // don't re-fire same alert+campaign within this window
 

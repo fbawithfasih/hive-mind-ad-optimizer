@@ -1,9 +1,12 @@
 /**
  * Alert evaluation service
  *
- * Runs an org's active CampaignAlert rules against the latest completed
- * CAMPAIGN_PERFORMANCE report and creates AlertFire records for each match
- * (with a 4-hour per-(alert, campaign) dedup window).
+ * Runs an org's active CampaignAlert rules and creates AlertFire records for
+ * each match (with a 4-hour per-(alert, subject) dedup window). Campaign
+ * metrics are scored against the latest completed CAMPAIGN_PERFORMANCE report;
+ * ASIN metrics (Buy Box, sessions with no orders) against the latest nightly
+ * Sales & Traffic snapshot. An ASIN fire stores the ASIN in campaignId, so the
+ * dedup, the fires list and the notifications need no second shape.
  *
  * Used in two places:
  *   - The worker (workers/alert-evaluation.worker.js) on a daily sweep.
@@ -16,8 +19,21 @@
 
 import { randomUUID } from 'crypto';
 import { prisma } from '../db/prisma.js';
+import { isAsinMetric } from '../config/alert-metrics.js';
 
 const DEDUP_HOURS = 4;
+
+// The snapshot is taken nightly. One older than this means the sweep has
+// stopped reaching Amazon for the org — a disconnected Seller Central account,
+// say — and scoring it would repeat last week's problems as if they were new.
+const SNAPSHOT_MAX_AGE_HOURS = 48;
+
+// How each ASIN metric is read off a snapshot row (sales-snapshot.js). Null
+// means "not applicable to this ASIN", which never fires.
+const ASIN_METRIC = {
+  buybox:           (a) => a.buyBoxPercentage,
+  zeroSaleSessions: (a) => (a.unitsOrdered === 0 && a.sessions > 0 ? a.sessions : null),
+};
 
 const VALID_CONDITIONS = ['gt', 'lt', 'gte', 'lte'];
 
@@ -97,11 +113,65 @@ export function pureEvaluate(alerts, campaigns, recentDedupKeys) {
 }
 
 /**
- * Evaluate every active alert for one org against the latest completed
- * CAMPAIGN_PERFORMANCE report, persist new AlertFire rows, return the fires
- * (already enriched with alert metadata) so the caller can email them.
+ * The ASIN counterpart of pureEvaluate: same conditions and dedup, scored per
+ * ASIN of a Sales & Traffic snapshot. The fire's campaignId is the ASIN.
+ */
+export function pureEvaluateAsins(alerts, asins, recentDedupKeys) {
+  const fires = [];
+  const seenInBatch = new Set();
+  for (const alert of alerts) {
+    const read = ASIN_METRIC[alert.metric];
+    if (!alert.isActive || !read) continue;
+    for (const a of asins) {
+      if (!a?.asin) continue;
+      const raw = read(a);
+      if (raw == null) continue;
+      const value = Number(raw);
+      if (!meetsCondition(value, alert.condition, alert.threshold)) continue;
+
+      const dedupKey = `${alert.id}::${a.asin}`;
+      if (recentDedupKeys.has(dedupKey) || seenInBatch.has(dedupKey)) continue;
+      seenInBatch.add(dedupKey);
+
+      fires.push({
+        alert,
+        campaignId:   a.asin,
+        campaignName: `ASIN ${a.asin}`,
+        value,
+        dedupKey,
+      });
+    }
+  }
+  return fires;
+}
+
+async function latestCampaignRows(orgId) {
+  const report = await prisma.reportJob.findFirst({
+    where:   { orgId, type: 'CAMPAIGN_PERFORMANCE', status: 'COMPLETED' },
+    orderBy: { completedAt: 'desc' },
+  });
+  return Array.isArray(report?.result) ? report.result : [];
+}
+
+async function latestSnapshotAsins(orgId, now = Date.now()) {
+  const snapshot = await prisma.reportJob.findFirst({
+    where: {
+      orgId,
+      type:        'SALES_TRAFFIC',
+      status:      'COMPLETED',
+      completedAt: { gte: new Date(now - SNAPSHOT_MAX_AGE_HOURS * 3600 * 1000) },
+    },
+    orderBy: { completedAt: 'desc' },
+  });
+  return Array.isArray(snapshot?.result?.asins) ? snapshot.result.asins : [];
+}
+
+/**
+ * Evaluate every active alert for one org, persist new AlertFire rows, return
+ * the fires (already enriched with alert metadata) so the caller can email
+ * them. Each source is only loaded when an alert needs it.
  *
- * Returns null when the org has no active alerts or no report to score
+ * Returns null when the org has no active alerts or nothing to score them
  * against — caller should treat as a no-op (not an error).
  */
 export async function evaluateAlertsForOrg(orgId) {
@@ -110,14 +180,12 @@ export async function evaluateAlertsForOrg(orgId) {
   });
   if (!alerts.length) return null;
 
-  const report = await prisma.reportJob.findFirst({
-    where:   { orgId, type: 'CAMPAIGN_PERFORMANCE', status: 'COMPLETED' },
-    orderBy: { completedAt: 'desc' },
-  });
-  if (!report?.result) return null;
+  const campaignAlerts = alerts.filter((a) => !isAsinMetric(a.metric));
+  const asinAlerts     = alerts.filter((a) => isAsinMetric(a.metric));
 
-  const campaigns = Array.isArray(report.result) ? report.result : [];
-  if (!campaigns.length) return null;
+  const campaigns = campaignAlerts.length ? await latestCampaignRows(orgId) : [];
+  const asins     = asinAlerts.length ? await latestSnapshotAsins(orgId) : [];
+  if (!campaigns.length && !asins.length) return null;
 
   // Build the recent-fires dedup set
   const recentFires = await prisma.alertFire.findMany({
@@ -126,7 +194,10 @@ export async function evaluateAlertsForOrg(orgId) {
   });
   const dedupSet = new Set(recentFires.map(f => `${f.alertId}::${f.campaignId}`));
 
-  const fires = pureEvaluate(alerts, campaigns, dedupSet);
+  const fires = [
+    ...pureEvaluate(campaignAlerts, campaigns, dedupSet),
+    ...pureEvaluateAsins(asinAlerts, asins, dedupSet),
+  ];
   if (!fires.length) return [];
 
   await prisma.alertFire.createMany({
@@ -154,4 +225,4 @@ export async function evaluateAlertsForOrg(orgId) {
   }));
 }
 
-export const __testables = { meetsCondition, readMetric, pureEvaluate, METRIC_FIELD };
+export const __testables = { meetsCondition, readMetric, pureEvaluate, pureEvaluateAsins, METRIC_FIELD, SNAPSHOT_MAX_AGE_HOURS };

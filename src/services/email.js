@@ -14,6 +14,7 @@
 
 import { Resend } from 'resend';
 import { createLogger } from '../api/utils/logger.js';
+import { alertMetricLabel, formatAlertValue } from '../config/alert-metrics.js';
 
 const logger = createLogger('EMAIL');
 
@@ -152,20 +153,14 @@ export async function sendCampaignAlertEmail(to, { orgName, fires }) {
 
   const url = `${FRONTEND_URL()}/alerts`;
   const verb = (cond) => ({ gt: 'above', gte: 'at or above', lt: 'below', lte: 'at or below' })[cond] ?? cond;
-  const fmtVal = (m, v) => {
-    if (v == null) return '—';
-    if (m === 'acos' || m === 'ctr')               return `${(v * 100).toFixed(2)}%`;
-    if (m === 'roas')                              return `${v.toFixed(2)}×`;
-    if (m === 'spend')                             return `$${v.toFixed(2)}`;
-    return Number(v).toLocaleString('en-US');
-  };
+  const fmtVal = formatAlertValue;
 
   const subject = fires.length === 1
     ? `Alert: ${fires[0].alertName} fired on ${fires[0].campaignName}`
     : `${fires.length} campaign alerts fired (${orgName})`;
 
   const textRows = fires.map(f =>
-    ` • [${f.alertName}] ${f.campaignName} — ${f.metric.toUpperCase()} ${fmtVal(f.metric, f.value)} (${verb(f.condition)} ${fmtVal(f.metric, f.threshold)})`
+    ` • [${f.alertName}] ${f.campaignName} — ${alertMetricLabel(f.metric)} ${fmtVal(f.metric, f.value)} (${verb(f.condition)} ${fmtVal(f.metric, f.threshold)})`
   ).join('\n');
 
   const htmlRows = fires.map(f => `
@@ -174,7 +169,7 @@ export async function sendCampaignAlertEmail(to, { orgName, fires }) {
         <div style="font-weight:600;color:#1a1a1a">${escapeHtml(f.alertName)}</div>
         <div style="color:#777;font-size:13px;margin-top:2px">${escapeHtml(f.campaignName)}</div>
       </td>
-      <td style="padding:10px 14px;border-bottom:1px solid #eee;color:#555;font-size:13px">${f.metric.toUpperCase()}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eee;color:#555;font-size:13px">${escapeHtml(alertMetricLabel(f.metric))}</td>
       <td style="padding:10px 14px;border-bottom:1px solid #eee;font-weight:700;color:#dc2626">${fmtVal(f.metric, f.value)}</td>
       <td style="padding:10px 14px;border-bottom:1px solid #eee;color:#777;font-size:13px">${verb(f.condition)} ${fmtVal(f.metric, f.threshold)}</td>
     </tr>`).join('');
