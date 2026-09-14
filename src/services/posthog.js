@@ -12,11 +12,13 @@ function configurationError(variable) {
 export function initPostHog() {
   if (client) return client;
 
-  const token = process.env.POSTHOG_PROJECT_TOKEN;
-  const host = process.env.POSTHOG_HOST;
-  if (!token || !host) {
+  // POSTHOG_KEY is the name production already carries; the host defaults to
+  // the US cloud, where the project lives, as the pre-SDK capture code did.
+  const token = process.env.POSTHOG_PROJECT_TOKEN || process.env.POSTHOG_KEY;
+  const host = process.env.POSTHOG_HOST || 'https://us.i.posthog.com';
+  if (!token) {
     if (process.env.NODE_ENV !== 'production') {
-      throw configurationError(!token ? 'POSTHOG_PROJECT_TOKEN' : 'POSTHOG_HOST');
+      throw configurationError('POSTHOG_PROJECT_TOKEN');
     }
     return null;
   }
