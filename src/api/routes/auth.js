@@ -23,7 +23,7 @@ import { appleConfigured, getAppleClientSecret, verifyAppleIdToken } from '../..
 import { resolveSsoUser, claimIsTrue } from '../../services/sso-account.js';
 import { trialEndsAtFrom } from '../../config/trial.js';
 import { sanitiseAttribution } from '../utils/attribution.js';
-import { captureEvent, identifyUser } from '../../services/posthog.js';
+import { recordSessionStart } from '../../services/auth-events.js';
 import {
   SESSION_MAX_AGE,
   SESSION_ABSOLUTE_MAX_SECONDS,
@@ -213,19 +213,11 @@ router.post('/signup', authLimiter, async (req, res) => {
 
     issueSession(res, user, { activeOrgId: claimedOrgId });
 
-    await identifyUser({
-      distinctId: user.id,
-      properties: {
-        email: user.email,
-        first_name: user.firstName,
-        last_name: user.lastName,
-      },
-    });
-    await captureEvent({
-      distinctId: user.id,
-      event: 'user_signed_up',
-      properties: { auth_method: 'password', claimed_organization: !!claimedOrgId },
-      groups: claimedOrgId ? { organization: claimedOrgId } : undefined,
+    await recordSessionStart(user, {
+      method:  'password',
+      created: true,
+      orgId:   claimedOrgId,
+      props:   { claimed_organization: !!claimedOrgId },
     });
 
     res.status(201).json({
@@ -300,20 +292,7 @@ router.post('/login', authLimiter, loginAccountLimiter, async (req, res) => {
 
     issueSession(res, user, { activeOrgId: firstMembership?.orgId ?? null });
 
-    await identifyUser({
-      distinctId: user.id,
-      properties: {
-        email: user.email,
-        first_name: user.firstName,
-        last_name: user.lastName,
-      },
-    });
-    await captureEvent({
-      distinctId: user.id,
-      event: 'user_logged_in',
-      properties: { auth_method: 'password' },
-      groups: firstMembership?.orgId ? { organization: firstMembership.orgId } : undefined,
-    });
+    await recordSessionStart(user, { method: 'password', orgId: firstMembership?.orgId });
 
     res.json({
       ok: true,
@@ -793,6 +772,9 @@ router.get('/google/callback', async (req, res) => {
 
     // 5. Issue JWT + cookie
     issueSession(res, user, { activeOrgId: firstMembership?.orgId ?? null });
+    await recordSessionStart(user, {
+      method: 'google', created: resolved.created, orgId: firstMembership?.orgId,
+    });
 
     res.redirect(`${FRONTEND_URL}/`);
   } catch (err) {
@@ -931,6 +913,9 @@ router.post('/apple/callback', express.urlencoded({ extended: false }), async (r
     );
 
     issueSession(res, dbUser, { activeOrgId: firstMembership?.orgId ?? null });
+    await recordSessionStart(dbUser, {
+      method: 'apple', created: resolved.created, orgId: firstMembership?.orgId,
+    });
 
     res.redirect(`${FRONTEND_URL}/`);
   } catch (err) {

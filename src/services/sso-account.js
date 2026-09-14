@@ -44,7 +44,9 @@ async function touch(user, profile, extraUpdates) {
  * @param {string}  args.email         Already normalised
  * @param {boolean} args.emailVerified Does the PROVIDER assert this address?
  * @param {object}  [args.profile]     firstName / lastName / avatar to backfill
- * @returns {Promise<{ok: true, user: object} | {ok: false, reason: string}>}
+ * @returns {Promise<{ok: true, user: object, created: boolean} | {ok: false, reason: string}>}
+ *   `created` is true only when this call made the account, so a caller can
+ *   tell a signup from a login.
  */
 export async function resolveSsoUser({
   provider,
@@ -64,7 +66,7 @@ export async function resolveSsoUser({
       ? { emailVerified: true, emailVerifiedAt: new Date() }
       : {};
     logger.info(`${provider} login: existing user ${byProvider.id}`);
-    return { ok: true, user: await touch(byProvider, profile, verifyNow) };
+    return { ok: true, user: await touch(byProvider, profile, verifyNow), created: false };
   }
 
   // 2. No provider match, but an account exists on this email.
@@ -89,7 +91,7 @@ export async function resolveSsoUser({
     }
 
     logger.info(`${provider} login: linked to existing verified user ${byEmail.id}`);
-    return { ok: true, user: await touch(byEmail, profile, { [idField]: providerId }) };
+    return { ok: true, user: await touch(byEmail, profile, { [idField]: providerId }), created: false };
   }
 
   // 3. Nothing matched — brand-new account. Trust the provider's verification
@@ -111,5 +113,5 @@ export async function resolveSsoUser({
   });
 
   logger.info(`${provider} login: new user created ${user.id}`);
-  return { ok: true, user };
+  return { ok: true, user, created: true };
 }

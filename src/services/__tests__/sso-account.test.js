@@ -57,6 +57,7 @@ describe('resolveSsoUser — known provider identity', () => {
     const res = await googleLogin();
 
     expect(res.ok).toBe(true);
+    expect(res.created).toBe(false);
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
     expect(prisma.user.create).not.toHaveBeenCalled();
   });
@@ -112,6 +113,8 @@ describe('resolveSsoUser — linking to an existing email account', () => {
     const res = await googleLogin({ emailVerified: true });
 
     expect(res.ok).toBe(true);
+    // Linking an SSO identity onto an account that already existed is a login.
+    expect(res.created).toBe(false);
     expect(prisma.user.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'u1' },
@@ -141,6 +144,7 @@ describe('resolveSsoUser — new account', () => {
     const res = await googleLogin({ emailVerified: true });
 
     expect(res.ok).toBe(true);
+    expect(res.created).toBe(true);
     const { data } = prisma.user.create.mock.calls[0][0];
     expect(data.emailVerified).toBe(true);
     expect(data.emailVerifiedAt).toBeInstanceOf(Date);
