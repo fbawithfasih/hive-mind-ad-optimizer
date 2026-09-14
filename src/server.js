@@ -16,8 +16,10 @@ import { runAsSystem } from './db/tenant-context.js';
 import { closeEphemeralStore } from './services/ephemeral-store.js';
 import { closeQueue } from './services/queue.js';
 import { startWorkers, shouldRunWorkers } from './workers/start.js';
+import { capturePostHogException, initPostHog, shutdownPostHog } from './services/posthog.js';
 
 dotenv.config({ override: true });
+initPostHog();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -130,7 +132,7 @@ if (isProd) {
 Sentry.setupExpressErrorHandler(app);
 
 // Global error handler with structured logging
-app.use((err, req, res, next) => {
+app.use(async (err, req, res, next) => {
   const status = err.status || 500;
   const message = err.message || 'Internal Server Error';
 
@@ -139,6 +141,12 @@ app.use((err, req, res, next) => {
     path: req.path,
     method: req.method,
   });
+
+  await capturePostHogException(err, req.user?.userId, {
+    status,
+    request_path: req.path,
+    request_method: req.method,
+  }).catch((posthogErr) => logger.warn(`PostHog exception capture failed: ${posthogErr.message}`));
 
   res.status(status).json({
     error: {
@@ -165,6 +173,7 @@ async function shutdown(signal) {
     await workers?.close();
     await closeQueue();
     await closeEphemeralStore();
+    await shutdownPostHog();
     await prisma.$disconnect();
     logger.info('Shutdown complete');
     process.exit(0);

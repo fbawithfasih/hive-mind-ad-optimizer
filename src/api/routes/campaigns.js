@@ -2,6 +2,7 @@ import express from 'express';
 import { prisma } from '../../db/prisma.js';
 import { isProfileAccessDenied, pruneInaccessibleProfile } from '../utils/pruneProfile.js';
 import { requireRole } from '../middleware/requireRole.js';
+import { captureEvent } from '../../services/posthog.js';
 
 const router = express.Router();
 
@@ -110,6 +111,17 @@ router.put('/bulk', requireRole('MEMBER'), async (req, res) => {
     const results = await req.adsClient.updateCampaigns(profileId, updates);
     const succeeded = results.filter(r => r.code === 'SUCCESS').length;
     const failed    = results.filter(r => r.code !== 'SUCCESS');
+    await captureEvent({
+      distinctId: req.user?.userId,
+      event: 'campaigns_bulk_updated',
+      properties: {
+        action,
+        campaign_count: updates.length,
+        succeeded_count: succeeded,
+        failed_count: failed.length,
+      },
+      groups: { organization: req.tenant.orgId },
+    });
     res.json({ results, succeeded, failed, total: updates.length });
   } catch (err) {
     console.error('Bulk campaign update error:', err);

@@ -12,6 +12,7 @@ import { normaliseGstin } from '../utils/gstin.js';
 import { track } from '../../services/events.js';
 import { demoEnabled } from '../../services/demo/index.js';
 import { seedDemoProfile } from '../../services/demo/seed.js';
+import { captureEvent } from '../../services/posthog.js';
 
 const router = express.Router();
 const logger = createLogger('ORGS');
@@ -298,6 +299,12 @@ router.post('/invitations/accept', async (req, res) => {
     );
 
     logger.info(`User ${req.user.userId} accepted invitation to org ${invite.orgId}`);
+    await captureEvent({
+      distinctId: req.user?.userId,
+      event: 'invitation_accepted',
+      properties: { role: result.role, already_member: result.alreadyMember },
+      groups: { organization: invite.orgId },
+    });
     res.json({ ok: true, org, role: result.role, alreadyMember: result.alreadyMember });
   } catch (err) {
     logger.error(`Accept invitation error: ${err.message}`);

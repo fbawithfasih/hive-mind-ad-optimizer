@@ -21,6 +21,7 @@ import { graduationByActionType, GRADUATABLE } from '../../services/agent/gradua
 import { adsClientForOrg, NoAdsCredentialError } from '../../services/agent/ads-client-for-org.js';
 import { revertBlocker, revertable, revertOne } from '../../services/agent/revert.js';
 import { track } from '../../services/events.js';
+import { captureEvent } from '../../services/posthog.js';
 
 const router = express.Router();
 const logger = createLogger('AGENT_API');
@@ -135,6 +136,12 @@ router.post('/decisions/:id/verdict', requireRole('ADMIN'), async (req, res) => 
     });
     if (count === 0) return res.status(404).json({ error: 'Decision not found' });
 
+    await captureEvent({
+      distinctId: userId,
+      event: 'agent_decision_reviewed',
+      properties: { verdict, included_note: typeof note === 'string' && note.length > 0 },
+      groups: { organization: orgId },
+    });
     res.json({ ok: true });
   } catch (err) {
     logger.error(`Record verdict failed: ${err.message}`);

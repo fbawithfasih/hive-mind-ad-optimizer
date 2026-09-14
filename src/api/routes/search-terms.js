@@ -5,6 +5,7 @@ import { prisma } from '../../db/prisma.js';
 import { isProfileAccessDenied, pruneInaccessibleProfile } from '../utils/pruneProfile.js';
 import { splitIntoSearchTermWindows as splitIntoWindows, mergeSearchTermWindows } from '../../services/search-term-windows.js';
 import { requireRole } from '../middleware/requireRole.js';
+import { captureEvent } from '../../services/posthog.js';
 
 const router = express.Router();
 
@@ -183,6 +184,17 @@ router.post('/bulk-actions', requireRole('MEMBER'), async (req, res) => {
       tally(r, 'ADD_EXACT');
     }
     console.log(`[bulk-actions] profile=${profileId} added=${added} dup=${duplicates} failed=${failed}`);
+    await captureEvent({
+      distinctId: req.user?.userId,
+      event: 'search_term_actions_applied',
+      properties: {
+        action_count: actions.length,
+        added_count: added,
+        duplicate_count: duplicates,
+        failed_count: failed,
+      },
+      groups: { organization: req.tenant.orgId },
+    });
     res.json({ added, duplicates, failed, results });
   } catch (err) {
     console.error('[search-terms/bulk-actions]', err.message);
