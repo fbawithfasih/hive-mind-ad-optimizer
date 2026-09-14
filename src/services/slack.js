@@ -9,18 +9,11 @@
 
 import axios from 'axios';
 import { createLogger } from '../api/utils/logger.js';
+import { alertMetricLabel, formatAlertValue as fmtVal } from '../config/alert-metrics.js';
 
 const logger = createLogger('SLACK');
 
 const VERB = { gt: 'above', gte: 'at or above', lt: 'below', lte: 'at or below' };
-
-function fmtVal(metric, value) {
-  if (value == null) return '—';
-  if (metric === 'acos' || metric === 'ctr') return `${(value * 100).toFixed(2)}%`;
-  if (metric === 'roas')                     return `${value.toFixed(2)}×`;
-  if (metric === 'spend')                    return `$${value.toFixed(2)}`;
-  return Number(value).toLocaleString('en-US');
-}
 
 /**
  * @param {string} webhookUrl
@@ -51,7 +44,7 @@ export async function sendCampaignAlertSlack(webhookUrl, { orgName, fires, dashb
         type: 'mrkdwn',
         text:
           `*${escapeMd(f.alertName)}* — ${escapeMd(f.campaignName)}\n` +
-          `${f.metric.toUpperCase()} *${fmtVal(f.metric, f.value)}* (${VERB[f.condition] ?? f.condition} ${fmtVal(f.metric, f.threshold)})`,
+          `${alertMetricLabel(f.metric)} *${fmtVal(f.metric, f.value)}* (${VERB[f.condition] ?? f.condition} ${fmtVal(f.metric, f.threshold)})`,
       },
     })),
     ...(omitted > 0 ? [{

@@ -119,7 +119,7 @@ describe('email.js — sendCampaignAlertEmail', () => {
     const arg = mockSend.mock.calls[0][0];
     expect(arg.subject).toMatch(/Spend spike.*Camp A/);
     expect(arg.html).toContain('Camp A');
-    expect(arg.html).toContain('SPEND');
+    expect(arg.html).toContain('Spend');
   });
 
   it('sends to multiple recipients in one call', async () => {

@@ -52,7 +52,11 @@ const METRICS = [
   { value: 'ctr',         label: 'CTR',            hint: 'Click-through rate' },
   { value: 'clicks',      label: 'Clicks',         hint: 'Total clicks' },
   { value: 'impressions', label: 'Impressions',    hint: 'Total impressions' },
+  { value: 'buybox',      label: 'Buy Box (%)',    hint: 'Buy Box share per ASIN, last 7 days', asin: true },
+  { value: 'zeroSaleSessions', label: 'Sessions with no orders (7d)', hint: 'Traffic on an ASIN that sold nothing — out of stock, suppressed, or not converting', asin: true },
 ];
+
+const isAsinMetric = (m) => !!METRICS.find(x => x.value === m)?.asin;
 
 const CONDITIONS = [
   { value: 'gt',  label: 'is greater than'  },
@@ -61,10 +65,11 @@ const CONDITIONS = [
   { value: 'lte', label: 'is ≤'             },
 ];
 
-const METRIC_UNITS = { acos: '%', spend: '$', roas: '×', ctr: '', clicks: '', impressions: '' };
+const METRIC_UNITS = { acos: '%', spend: '$', roas: '×', ctr: '', clicks: '', impressions: '', buybox: '%', zeroSaleSessions: '' };
 const METRIC_COLORS = {
   acos: 'var(--rose)', spend: 'var(--warning)', roas: 'var(--success)',
   ctr: 'var(--info-strong)', clicks: 'var(--accent-strong)', impressions: 'var(--indigo)',
+  buybox: 'var(--warning)', zeroSaleSessions: 'var(--rose)',
 };
 
 function metricLabel(m) { return METRICS.find(x => x.value === m)?.label ?? m; }
@@ -125,7 +130,7 @@ function AlertForm({ initial, onSave, onCancel, isSaving }) {
         Fire when: <strong style={{ color: 'var(--indigo-soft)' }}>{metricLabel(form.metric)}</strong>{' '}
         <span style={{ color: 'var(--indigo)' }}>{condLabel(form.condition)}</span>{' '}
         <strong style={{ color: 'var(--indigo-soft)' }}>{form.threshold || '…'}{METRIC_UNITS[form.metric]}</strong>
-        {' '}across any campaign
+        {' '}{isAsinMetric(form.metric) ? 'on any ASIN, checked nightly' : 'across any campaign'}
       </div>
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
