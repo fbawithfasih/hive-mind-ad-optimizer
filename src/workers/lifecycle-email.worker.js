@@ -17,7 +17,7 @@ const logger = createLogger('WORKER');
 export async function lifecycleEmailProcessor(_job) {
   const tally = await sweepTrialEmails();
   logger.info(
-    `Trial emails: welcome ${tally.welcome}, ending ${tally.ending}, expired ${tally.expired}, failed ${tally.failed}`
+    `Trial emails: welcome ${tally.welcome}, findings ${tally.findings ?? 0}, ending ${tally.ending}, expired ${tally.expired}, failed ${tally.failed}`
   );
   return tally;
 }

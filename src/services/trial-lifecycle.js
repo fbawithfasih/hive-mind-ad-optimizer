@@ -1,10 +1,11 @@
 /**
- * The three emails a trial sends, each exactly once.
+ * The four emails a trial sends, each exactly once.
  *
  * A fourteen-day trial with no email is a fourteen-day silence. The seller
  * connects Amazon, the agent starts proposing at 04:30 the next morning, and
  * nobody tells them — then the trial ends and nobody tells them that either.
- * This is the welcome, the three-days-left nudge, and the it-has-ended note.
+ * This is the welcome, the day-3 "what the agent found" in the seller's own
+ * numbers, the three-days-left nudge, and the it-has-ended note.
  *
  * ── Exactly once ─────────────────────────────────────────────────────────────
  *
@@ -28,7 +29,8 @@
 import { prisma } from '../db/prisma.js';
 import { createLogger } from '../api/utils/logger.js';
 import { TRIAL_DAYS } from '../config/trial.js';
-import { sendTrialWelcomeEmail, sendTrialEndingEmail, sendTrialExpiredEmail } from './email.js';
+import { sendTrialWelcomeEmail, sendTrialFindingsEmail, sendTrialEndingEmail, sendTrialExpiredEmail } from './email.js';
+import { DEMO_SLOT_KEY } from './demo/index.js';
 
 const logger = createLogger('TRIAL_LIFECYCLE');
 
@@ -40,11 +42,80 @@ export const ENDING_WINDOW_DAYS = 3;
 export const EXPIRED_LOOKBACK_DAYS = 7;
 /** The sweep backfills a welcome the signup path failed to send, for this long. */
 export const WELCOME_BACKFILL_DAYS = 2;
+/** "What the agent found" goes out once an org is this many days old... */
+export const FINDINGS_AFTER_DAYS = 3;
+/** ...and never about an org older than this, so shipping it emails no old trial. */
+export const FINDINGS_LOOKBACK_DAYS = 7;
 
 const ORG_FIELDS = {
   id: true, name: true, trialEndsAt: true,
-  trialWelcomeSentAt: true, trialEndingSentAt: true, trialExpiredSentAt: true,
+  trialWelcomeSentAt: true, trialFindingsSentAt: true, trialEndingSentAt: true, trialExpiredSentAt: true,
 };
+
+// The marketplace a profile advertises in decides the currency its search-term
+// spend is reported in. A country not listed simply reports no amount.
+const CURRENCY_BY_COUNTRY = {
+  US: 'USD', CA: 'CAD', MX: 'MXN', BR: 'BRL', GB: 'GBP', UK: 'GBP', DE: 'EUR', FR: 'EUR', IT: 'EUR',
+  ES: 'EUR', NL: 'EUR', BE: 'EUR', IE: 'EUR', SE: 'SEK', PL: 'PLN', TR: 'TRY', AE: 'AED', SA: 'SAR',
+  EG: 'EGP', IN: 'INR', JP: 'JPY', AU: 'AUD', SG: 'SGD',
+};
+
+/**
+ * What the agent has found for one org, from real runs only (never the sample
+ * seller). A term the agent proposes again on a later day is one finding, not
+ * two, so the count matches what the seller will see in the agent panel.
+ *
+ * Wasted spend is the 30-day cost of each distinct negative candidate, and is
+ * only totalled when every such candidate is in one currency — adding dollars
+ * to pounds would be a number nobody could act on.
+ */
+export async function agentFindings(orgId) {
+  const realRun = { slotKey: { not: DEMO_SLOT_KEY } };
+  const [profiles, latestRun, decisions] = await Promise.all([
+    prisma.sellerProfile.findMany({ where: { orgId, isDemo: false }, select: { profileId: true, countryCode: true } }),
+    prisma.agentRun.findFirst({
+      where:   { orgId, ...realRun, status: 'COMPLETED' },
+      orderBy: { completedAt: 'desc' },
+      select:  { rowsIn: true },
+    }),
+    prisma.agentDecision.findMany({
+      where:  { orgId, run: realRun, status: { in: ['PROPOSED', 'APPLIED'] } },
+      select: {
+        actionType: true, status: true, campaignId: true, adGroupId: true, searchTerm: true, inputs: true,
+        run: { select: { profileId: true } },
+      },
+    }),
+  ]);
+
+  const countryOf = new Map(profiles.map((p) => [p.profileId, p.countryCode]));
+  const negatives = new Map();
+  const promotions = new Set();
+  const awaiting = new Set();
+
+  for (const d of decisions) {
+    const key = `${d.run?.profileId}|${d.campaignId}|${d.adGroupId}|${d.searchTerm.toLowerCase()}`;
+    if (d.status === 'PROPOSED') awaiting.add(`${d.actionType}|${key}`);
+    if (d.actionType === 'ADD_EXACT') { promotions.add(key); continue; }
+    const cost = Number(d.inputs?.cost) || 0;
+    const currency = CURRENCY_BY_COUNTRY[String(countryOf.get(d.run?.profileId) ?? '').toUpperCase()] ?? null;
+    const seen = negatives.get(key);
+    // The latest window is the one the seller will see; the larger figure is
+    // the conservative choice between two proposals of the same term.
+    negatives.set(key, { cost: Math.max(cost, seen?.cost ?? 0), currency });
+  }
+
+  const currencies = new Set([...negatives.values()].map((n) => n.currency));
+  const oneCurrency = currencies.size === 1 ? [...currencies][0] : null;
+  const spend = [...negatives.values()].reduce((sum, n) => sum + n.cost, 0);
+
+  return {
+    connected:      profiles.length > 0,
+    termsReviewed:  latestRun?.rowsIn ?? 0,
+    negatives:      { count: negatives.size, spend: +spend.toFixed(2), currency: oneCurrency },
+    promotions:     promotions.size,
+    awaitingReview: awaiting.size,
+  };
+}
 
 /** Every ADMIN's address. Trial status is transactional, so no opt-out applies. */
 async function adminEmails(orgId) {
@@ -117,7 +188,7 @@ export function daysLeft(trialEndsAt, now) {
 export async function sweepTrialEmails(now = new Date()) {
   const t = now.getTime();
   const unpaid = { subscriptions: { none: { status: 'ACTIVE' } } };
-  const tally = { welcome: 0, ending: 0, expired: 0, failed: 0 };
+  const tally = { welcome: 0, findings: 0, ending: 0, expired: 0, failed: 0 };
   const count = (kind, outcome) => {
     if (outcome === 'sent') tally[kind] += 1;
     else if (outcome === 'failed') tally.failed += 1;
@@ -164,6 +235,23 @@ export async function sweepTrialEmails(now = new Date()) {
   for (const org of expired) {
     count('expired', await deliver(org, 'trialExpiredSentAt', now, (to) =>
       sendTrialExpiredEmail(to, { orgName: org.name })));
+  }
+
+  // Day 3: what the agent found. Only while the trial has more than the ending
+  // window left, so it never lands in the same inbox the same week as "your
+  // trial ends in three days" — a short trial skips it rather than stacking.
+  const findings = await prisma.organization.findMany({
+    where: {
+      trialFindingsSentAt: null,
+      createdAt:   { lte: new Date(t - FINDINGS_AFTER_DAYS * DAY_MS), gte: new Date(t - FINDINGS_LOOKBACK_DAYS * DAY_MS) },
+      trialEndsAt: { gt: new Date(t + ENDING_WINDOW_DAYS * DAY_MS) },
+      ...unpaid,
+    },
+    select: ORG_FIELDS,
+  });
+  for (const org of findings) {
+    count('findings', await deliver(org, 'trialFindingsSentAt', now, async (to) =>
+      sendTrialFindingsEmail(to, { orgName: org.name, findings: await agentFindings(org.id) })));
   }
 
   return tally;

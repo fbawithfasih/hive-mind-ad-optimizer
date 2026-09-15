@@ -8,22 +8,27 @@
  */
 jest.mock('../../db/prisma.js', () => ({
   prisma: {
-    organization: { findMany: jest.fn(), findUnique: jest.fn(), updateMany: jest.fn() },
-    orgMember:    { findMany: jest.fn() },
+    organization:  { findMany: jest.fn(), findUnique: jest.fn(), updateMany: jest.fn() },
+    orgMember:     { findMany: jest.fn() },
+    sellerProfile: { findMany: jest.fn() },
+    agentRun:      { findFirst: jest.fn() },
+    agentDecision: { findMany: jest.fn() },
   },
 }));
 jest.mock('../email.js', () => ({
-  sendTrialWelcomeEmail: jest.fn(async () => ({ id: 'w' })),
-  sendTrialEndingEmail:  jest.fn(async () => ({ id: 'e' })),
-  sendTrialExpiredEmail: jest.fn(async () => ({ id: 'x' })),
+  sendTrialWelcomeEmail:  jest.fn(async () => ({ id: 'w' })),
+  sendTrialFindingsEmail: jest.fn(async () => ({ id: 'f' })),
+  sendTrialEndingEmail:   jest.fn(async () => ({ id: 'e' })),
+  sendTrialExpiredEmail:  jest.fn(async () => ({ id: 'x' })),
 }));
 
 import { prisma } from '../../db/prisma.js';
-import { sendTrialWelcomeEmail, sendTrialEndingEmail, sendTrialExpiredEmail } from '../email.js';
+import { sendTrialWelcomeEmail, sendTrialFindingsEmail, sendTrialEndingEmail, sendTrialExpiredEmail } from '../email.js';
 import {
-  sweepTrialEmails, sendTrialWelcome, daysLeft,
-  ENDING_WINDOW_DAYS, EXPIRED_LOOKBACK_DAYS, WELCOME_BACKFILL_DAYS,
+  sweepTrialEmails, sendTrialWelcome, daysLeft, agentFindings,
+  ENDING_WINDOW_DAYS, EXPIRED_LOOKBACK_DAYS, WELCOME_BACKFILL_DAYS, FINDINGS_AFTER_DAYS, FINDINGS_LOOKBACK_DAYS,
 } from '../trial-lifecycle.js';
+import { DEMO_SLOT_KEY } from '../demo/index.js';
 
 const NOW = new Date('2026-09-09T06:00:00Z');
 const DAY = 86400000;
@@ -32,18 +37,122 @@ const org = (over = {}) => ({
   trialWelcomeSentAt: null, trialEndingSentAt: null, trialExpiredSentAt: null, ...over,
 });
 
-/** The sweep issues three findMany calls: welcome, ending, expired — in that order. */
-function sweepFinds({ welcome = [], ending = [], expired = [] } = {}) {
+/** The sweep issues four findMany calls: welcome, ending, expired, findings — in that order. */
+function sweepFinds({ welcome = [], ending = [], expired = [], findings = [] } = {}) {
   prisma.organization.findMany
     .mockResolvedValueOnce(welcome)
     .mockResolvedValueOnce(ending)
-    .mockResolvedValueOnce(expired);
+    .mockResolvedValueOnce(expired)
+    .mockResolvedValueOnce(findings);
 }
 
 beforeEach(() => {
   jest.clearAllMocks();
   prisma.organization.updateMany.mockResolvedValue({ count: 1 }); // claim succeeds
   prisma.orgMember.findMany.mockResolvedValue([{ user: { email: 'admin@queenza.in' } }]);
+  prisma.sellerProfile.findMany.mockResolvedValue([]);
+  prisma.agentRun.findFirst.mockResolvedValue(null);
+  prisma.agentDecision.findMany.mockResolvedValue([]);
+});
+
+const decision = (over = {}) => ({
+  actionType: 'ADD_NEGATIVE', status: 'PROPOSED', campaignId: 'c1', adGroupId: 'ag1', searchTerm: 'cheap brass lamp',
+  inputs: { clicks: 22, cost: 14.3, purchases: 0 }, run: { profileId: 'p-us' }, ...over,
+});
+
+describe('day-3 findings email', () => {
+  it('asks for unpaid orgs between three and seven days old, with more than the ending window left', async () => {
+    sweepFinds();
+    await sweepTrialEmails(NOW);
+
+    const findingsQ = prisma.organization.findMany.mock.calls[3][0].where;
+    expect(findingsQ).toMatchObject({
+      trialFindingsSentAt: null,
+      createdAt: {
+        lte: new Date(NOW.getTime() - FINDINGS_AFTER_DAYS * DAY),
+        gte: new Date(NOW.getTime() - FINDINGS_LOOKBACK_DAYS * DAY),
+      },
+      // Never the same week as "your trial ends in three days".
+      trialEndsAt: { gt: new Date(NOW.getTime() + ENDING_WINDOW_DAYS * DAY) },
+      subscriptions: { none: { status: 'ACTIVE' } },
+    });
+  });
+
+  it('sends the agent findings to every admin, claiming its own mark', async () => {
+    const trial = org({ trialEndsAt: new Date(NOW.getTime() + 11 * DAY) });
+    sweepFinds({ findings: [trial] });
+    prisma.sellerProfile.findMany.mockResolvedValue([{ profileId: 'p-us', countryCode: 'US' }]);
+    prisma.agentDecision.findMany.mockResolvedValue([decision()]);
+
+    const tally = await sweepTrialEmails(NOW);
+
+    expect(tally.findings).toBe(1);
+    expect(prisma.organization.updateMany).toHaveBeenCalledWith({
+      where: { id: 'org-1', trialFindingsSentAt: null }, data: { trialFindingsSentAt: NOW },
+    });
+    expect(sendTrialFindingsEmail).toHaveBeenCalledWith(['admin@queenza.in'], {
+      orgName: 'Queenza',
+      findings: expect.objectContaining({ connected: true, negatives: { count: 1, spend: 14.3, currency: 'USD' } }),
+    });
+  });
+
+  it('gives the mark back when gathering the findings fails, so tomorrow tries again', async () => {
+    sweepFinds({ findings: [org({ trialEndsAt: new Date(NOW.getTime() + 11 * DAY) })] });
+    prisma.agentDecision.findMany.mockRejectedValue(new Error('db blip'));
+
+    const tally = await sweepTrialEmails(NOW);
+
+    expect(tally.failed).toBe(1);
+    expect(sendTrialFindingsEmail).not.toHaveBeenCalled();
+    expect(prisma.organization.updateMany).toHaveBeenLastCalledWith({ where: { id: 'org-1' }, data: { trialFindingsSentAt: null } });
+  });
+});
+
+describe('agentFindings', () => {
+  it('reports an org with no real profile as not connected', async () => {
+    await expect(agentFindings('org-1')).resolves.toMatchObject({ connected: false, negatives: { count: 0 } });
+  });
+
+  it('reads real runs only — never the sample seller', async () => {
+    await agentFindings('org-1');
+
+    expect(prisma.sellerProfile.findMany.mock.calls[0][0].where).toEqual({ orgId: 'org-1', isDemo: false });
+    expect(prisma.agentDecision.findMany.mock.calls[0][0].where.run).toEqual({ slotKey: { not: DEMO_SLOT_KEY } });
+    expect(prisma.agentRun.findFirst.mock.calls[0][0].where).toMatchObject({ slotKey: { not: DEMO_SLOT_KEY }, status: 'COMPLETED' });
+  });
+
+  it('counts a term proposed on two days once, with the larger spend', async () => {
+    prisma.sellerProfile.findMany.mockResolvedValue([{ profileId: 'p-us', countryCode: 'US' }]);
+    prisma.agentRun.findFirst.mockResolvedValue({ rowsIn: 412 });
+    prisma.agentDecision.findMany.mockResolvedValue([
+      decision({ inputs: { cost: 12.1 } }),
+      decision({ searchTerm: 'Cheap Brass Lamp', inputs: { cost: 14.3 } }),
+      decision({ searchTerm: 'brass diya set', inputs: { cost: 6.2 }, status: 'APPLIED' }),
+      decision({ actionType: 'ADD_EXACT', searchTerm: 'brass diya', inputs: { cost: 9 } }),
+    ]);
+
+    await expect(agentFindings('org-1')).resolves.toEqual({
+      connected:      true,
+      termsReviewed:  412,
+      negatives:      { count: 2, spend: 20.5, currency: 'USD' },
+      promotions:     1,
+      awaitingReview: 2, // the lamp negative and the diya promotion; the applied one is not waiting
+    });
+  });
+
+  it('gives no total when the wasted spend is in more than one currency', async () => {
+    prisma.sellerProfile.findMany.mockResolvedValue([
+      { profileId: 'p-us', countryCode: 'US' }, { profileId: 'p-uk', countryCode: 'GB' },
+    ]);
+    prisma.agentDecision.findMany.mockResolvedValue([
+      decision(),
+      decision({ run: { profileId: 'p-uk' }, searchTerm: 'brass lamp uk' }),
+    ]);
+
+    const { negatives } = await agentFindings('org-1');
+    expect(negatives.count).toBe(2);
+    expect(negatives.currency).toBeNull();
+  });
 });
 
 describe('who is asked for', () => {
@@ -94,7 +203,7 @@ describe('sending', () => {
 
     const tally = await sweepTrialEmails(NOW);
 
-    expect(tally).toEqual({ welcome: 0, ending: 1, expired: 0, failed: 0 });
+    expect(tally).toEqual({ welcome: 0, findings: 0, ending: 1, expired: 0, failed: 0 });
     expect(sendTrialEndingEmail).toHaveBeenCalledWith(
       ['a@queenza.in', 'b@queenza.in'],
       expect.objectContaining({ orgName: 'Queenza', daysLeft: 2 }),
@@ -153,7 +262,7 @@ describe('exactly once', () => {
 
     const tally = await sweepTrialEmails(NOW);
 
-    expect(tally).toEqual({ welcome: 0, ending: 0, expired: 0, failed: 0 });
+    expect(tally).toEqual({ welcome: 0, findings: 0, ending: 0, expired: 0, failed: 0 });
     expect(sendTrialEndingEmail).not.toHaveBeenCalled();
     expect(sendTrialExpiredEmail).not.toHaveBeenCalled();
   });
@@ -177,7 +286,7 @@ describe('exactly once', () => {
 
     const tally = await sweepTrialEmails(NOW);
 
-    expect(tally).toEqual({ welcome: 0, ending: 0, expired: 0, failed: 0 });
+    expect(tally).toEqual({ welcome: 0, findings: 0, ending: 0, expired: 0, failed: 0 });
     expect(sendTrialExpiredEmail).not.toHaveBeenCalled();
     expect(prisma.organization.updateMany).toHaveBeenCalledTimes(1); // the claim only; no unclaim
   });
@@ -190,7 +299,7 @@ describe('exactly once', () => {
 
     const tally = await sweepTrialEmails(NOW);
 
-    expect(tally).toEqual({ welcome: 0, ending: 0, expired: 1, failed: 1 });
+    expect(tally).toEqual({ welcome: 0, findings: 0, ending: 0, expired: 1, failed: 1 });
   });
 });
 

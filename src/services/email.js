@@ -304,6 +304,120 @@ export async function sendTrialWelcomeEmail(to, { orgName, trialEndsAt, trialDay
   });
 }
 
+/** A marketplace amount in major units → "$12.40" / "₹1,240.00"; null when there is no single currency. */
+function spendAmount(amount, currency) {
+  if (!currency) return null;
+  try {
+    return new Intl.NumberFormat(currency === 'INR' ? 'en-IN' : 'en-US', { style: 'currency', currency }).format(amount);
+  } catch {
+    return `${amount.toFixed(2)} ${currency}`;
+  }
+}
+
+/**
+ * Day 3 of the trial: what the agent actually found, in the seller's own
+ * numbers. The one email in the sequence that is about their account rather
+ * than about the trial, and so the one most likely to bring them back.
+ *
+ * Three shapes, because the honest message differs:
+ *   - Amazon not connected: nothing to report; the ask is to connect.
+ *   - Findings: wasted search terms (with the spend, when one currency) and
+ *     terms worth promoting, and how many await review.
+ *   - Connected, nothing found: say so plainly — a clean account is news too.
+ *
+ * @param {string|string[]} to
+ * @param {{ orgName: string, findings: {
+ *   connected: boolean, termsReviewed: number,
+ *   negatives: { count: number, spend: number, currency: string|null },
+ *   promotions: number, awaitingReview: number } }} opts
+ */
+export async function sendTrialFindingsEmail(to, { orgName, findings }) {
+  const org = escapeHtml(orgName);
+  const { connected, termsReviewed, negatives, promotions, awaitingReview } = findings;
+  const button = (href, label) =>
+    `<a href="${href}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">${label}</a>`;
+  const para = (html) => `<p style="color:#475569;margin:0 0 16px;font-size:14px;line-height:1.6">${html}</p>`;
+  const heading = (html) => `<h2 style="margin:0 0 8px;color:#0f172a;font-size:20px;font-weight:800">${html}</h2>`;
+
+  if (!connected) {
+    const url = `${FRONTEND_URL()}/onboarding`;
+    return send({
+      to,
+      subject: `Connect Amazon to see what the agent finds in your search terms`,
+      text:
+        `Your ${APP_NAME} trial for ${orgName} is three days in, and the agent has nothing to read yet.\n\n` +
+        `Connect your Amazon Ads account and, within a day, it reviews your last 30 days of search terms and shows you which ones are spending without orders — with the clicks, spend and reason for each. Nothing changes in your account until you allow it.\n\n` +
+        `Connect Amazon Ads: ${url}` +
+        textFooter(),
+      html: wrap(`
+        ${heading('The agent is ready when you are')}
+        ${para(`Your trial for <strong>${org}</strong> is three days in, and the agent has nothing to read yet.`)}
+        ${para('Connect your Amazon Ads account and, within a day, it reviews your last 30 days of search terms and shows you which ones are spending without orders — with the clicks, spend and reason for each. Nothing changes in your account until you allow it.')}
+        ${button(url, 'Connect Amazon Ads')}
+        <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">Reply to this email if connecting is giving you trouble — a person reads it.</p>
+      `, { preheader: 'Connect Amazon Ads and the agent reviews your last 30 days of search terms.' }),
+    });
+  }
+
+  const url = `${FRONTEND_URL()}/?tab=agent`;
+  const spend = negatives.count > 0 ? spendAmount(negatives.spend, negatives.currency) : null;
+
+  if (negatives.count === 0 && promotions === 0) {
+    const reviewed = termsReviewed > 0 ? `${termsReviewed.toLocaleString('en-US')} search terms` : 'your search terms';
+    return send({
+      to,
+      subject: `Your first findings: nothing wasteful in ${reviewed}`,
+      text:
+        `The agent has reviewed ${reviewed} for ${orgName} and found nothing it would negate or promote yet.\n\n` +
+        `That is good news: no search term has spent enough without an order to call it waste. The agent checks again every morning and will show you the moment that changes.\n\n` +
+        `See the agent: ${url}` +
+        textFooter(),
+      html: wrap(`
+        ${heading('Nothing wasteful yet')}
+        ${para(`The agent has reviewed ${reviewed} for <strong>${org}</strong> and found nothing it would negate or promote.`)}
+        ${para('That is good news: no search term has spent enough without an order to call it waste. The agent checks again every morning and will show you the moment that changes.')}
+        ${button(url, 'See the agent')}
+      `, { preheader: `The agent reviewed ${reviewed} and found nothing to change yet.` }),
+    });
+  }
+
+  const wasteLine = negatives.count > 0
+    ? `${plural(negatives.count, 'search term')} ${spend ? `spent ${spend}` : 'spent money'} without a single order`
+    : null;
+  const promoteLine = promotions > 0
+    ? `${plural(promotions, 'search term')} converting well enough to deserve ${promotions === 1 ? 'its' : 'their'} own exact-match keyword`
+    : null;
+  const subject = negatives.count > 0
+    ? `Your first findings: ${plural(negatives.count, 'search term')} ${spend ? `spent ${spend}` : 'spent'} without an order`
+    : `Your first findings: ${plural(promotions, 'search term')} worth promoting to exact match`;
+  const review = awaitingReview > 0
+    ? `${plural(awaitingReview, 'proposal')} ${awaitingReview === 1 ? 'is' : 'are'} waiting for your review.`
+    : 'Open the agent to see each one and the reason behind it.';
+  const lines = [wasteLine, promoteLine].filter(Boolean);
+
+  return send({
+    to,
+    subject,
+    text:
+      `In its first days on ${orgName}, the agent found:\n\n` +
+      lines.map((l) => ` • ${l}`).join('\n') + '\n\n' +
+      `Each proposal shows the clicks, spend and reason behind it. Nothing changes in your account until you have reviewed them and chosen to let the agent act.\n\n` +
+      `${review}\n\n` +
+      `Review them: ${url}` +
+      textFooter(),
+    html: wrap(`
+      ${heading('What the agent found')}
+      ${para(`In its first days on <strong>${org}</strong>, the agent found:`)}
+      <ul style="color:#0f172a;margin:0 0 16px;padding-left:20px;font-size:14px;line-height:1.7">
+        ${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}
+      </ul>
+      ${para('Each proposal shows the clicks, spend and reason behind it. Nothing changes in your account until you have reviewed them and chosen to let the agent act.')}
+      ${para(`<strong>${escapeHtml(review)}</strong>`)}
+      ${button(url, 'Review the proposals')}
+    `, { preheader: lines[0] }),
+  });
+}
+
 export async function sendTrialEndingEmail(to, { orgName, daysLeft, trialEndsAt }) {
   const url  = `${FRONTEND_URL()}/billing`;
   const org  = escapeHtml(orgName);

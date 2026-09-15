@@ -74,9 +74,10 @@ model Organization {
 
   // When each trial lifecycle email went out, so the daily worker can send
   // each one exactly once across retries and replicas. Null means not yet.
-  trialWelcomeSentAt DateTime?
-  trialEndingSentAt  DateTime?
-  trialExpiredSentAt DateTime?
+  trialWelcomeSentAt  DateTime?
+  trialFindingsSentAt DateTime?
+  trialEndingSentAt   DateTime?
+  trialExpiredSentAt  DateTime?
 
   // GST identification number, for invoices; optional. Carried into the
   // Razorpay subscription notes at checkout so input credit can be claimed.
