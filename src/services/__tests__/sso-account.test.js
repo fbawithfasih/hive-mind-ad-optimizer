@@ -62,6 +62,15 @@ describe('resolveSsoUser — known provider identity', () => {
     expect(prisma.user.create).not.toHaveBeenCalled();
   });
 
+  it('never rewrites a returning user\'s attribution', async () => {
+    prisma.user.findFirst.mockResolvedValue({ id: 'u1', email: 'victim@corp.com', emailVerified: true });
+
+    await googleLogin({ signupSource: { utm_source: 'spn' } });
+
+    const { data } = prisma.user.update.mock.calls[0][0];
+    expect(data.signupSource).toBeUndefined();
+  });
+
   it('does not overwrite profile fields that are already set', async () => {
     prisma.user.findFirst.mockResolvedValue({
       id: 'u1', email: 'victim@corp.com', emailVerified: true,
@@ -150,6 +159,16 @@ describe('resolveSsoUser — new account', () => {
     expect(data.emailVerifiedAt).toBeInstanceOf(Date);
     expect(data.googleId).toBe('google-sub-1');
     expect(data.passwordHash).toBeNull();
+  });
+
+  it('stores the first-touch attribution on a new account', async () => {
+    await googleLogin({ signupSource: { utm_source: 'spn' } });
+    expect(prisma.user.create.mock.calls[0][0].data.signupSource).toEqual({ utm_source: 'spn' });
+  });
+
+  it('stores null attribution when none arrived', async () => {
+    await googleLogin();
+    expect(prisma.user.create.mock.calls[0][0].data.signupSource).toBeNull();
   });
 
   it('creates an UNVERIFIED account when the provider does not vouch', async () => {

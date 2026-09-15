@@ -22,7 +22,7 @@ import { consumeClaimToken } from './billing.js';
 import { appleConfigured, getAppleClientSecret, verifyAppleIdToken } from '../../services/apple-auth.js';
 import { resolveSsoUser, claimIsTrue } from '../../services/sso-account.js';
 import { trialEndsAtFrom } from '../../config/trial.js';
-import { sanitiseAttribution, campaignProperties } from '../utils/attribution.js';
+import { sanitiseAttribution, campaignProperties, rememberAttribution, takeAttribution } from '../utils/attribution.js';
 import { recordSessionStart } from '../../services/auth-events.js';
 import {
   SESSION_MAX_AGE,
@@ -680,6 +680,8 @@ router.get('/google', (req, res) => {
     httpOnly: true, sameSite: 'lax', secure: isProd,
     maxAge: 10 * 60 * 1000,
   });
+  // First-touch attribution, for a signup that completes on the callback.
+  rememberAttribution(req, res, { sameSite: 'lax' });
 
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   url.searchParams.set('client_id',     GOOGLE_CLIENT_ID);
@@ -714,6 +716,7 @@ router.get('/google/callback', async (req, res) => {
   res.clearCookie('oauth_state', {
     httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production',
   });
+  const attribution = takeAttribution(req, res, { sameSite: 'lax' });
   if (!state || state !== savedState) {
     logger.warn('Google OAuth state mismatch — possible CSRF attempt');
     return res.redirect(`${FRONTEND_URL}/login?error=state_mismatch`);
@@ -756,6 +759,7 @@ router.get('/google/callback', async (req, res) => {
       email,
       emailVerified: claimIsTrue(verifiedEmail ?? emailVerifiedClaim),
       profile:       { firstName, lastName, avatar },
+      signupSource:  attribution,
     });
 
     if (!resolved.ok) {
@@ -778,6 +782,7 @@ router.get('/google/callback', async (req, res) => {
     issueSession(res, user, { activeOrgId: firstMembership?.orgId ?? null });
     await recordSessionStart(user, {
       method: 'google', created: resolved.created, orgId: firstMembership?.orgId,
+      props:  resolved.created ? campaignProperties(attribution) : {},
     });
 
     res.redirect(`${FRONTEND_URL}/`);
@@ -821,6 +826,8 @@ router.get('/apple', (req, res) => {
     secure:   isProd,
     maxAge:   10 * 60 * 1000,
   });
+  // Same SameSite as the state cookie: Apple's cross-site form_post must carry it back.
+  rememberAttribution(req, res, { sameSite: isProd ? 'none' : 'lax' });
 
   const url = new URL('https://appleid.apple.com/auth/authorize');
   url.searchParams.set('client_id',     APPLE_CLIENT_ID);
@@ -853,6 +860,7 @@ router.post('/apple/callback', express.urlencoded({ extended: false }), async (r
   res.clearCookie('apple_oauth_state', {
     httpOnly: true, sameSite: clearIsProd ? 'none' : 'lax', secure: clearIsProd,
   });
+  const attribution = takeAttribution(req, res, { sameSite: clearIsProd ? 'none' : 'lax' });
   if (!state || state !== savedState) {
     logger.warn('Apple OAuth state mismatch — possible CSRF attempt');
     return res.redirect(`${FRONTEND_URL}/login?error=state_mismatch`);
@@ -899,6 +907,7 @@ router.post('/apple/callback', express.urlencoded({ extended: false }), async (r
       email,
       emailVerified: claimIsTrue(claims.email_verified),
       profile:       { firstName, lastName },
+      signupSource:  attribution,
     });
 
     if (!resolved.ok) {
@@ -919,6 +928,7 @@ router.post('/apple/callback', express.urlencoded({ extended: false }), async (r
     issueSession(res, dbUser, { activeOrgId: firstMembership?.orgId ?? null });
     await recordSessionStart(dbUser, {
       method: 'apple', created: resolved.created, orgId: firstMembership?.orgId,
+      props:  resolved.created ? campaignProperties(attribution) : {},
     });
 
     res.redirect(`${FRONTEND_URL}/`);

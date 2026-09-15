@@ -44,6 +44,9 @@ async function touch(user, profile, extraUpdates) {
  * @param {string}  args.email         Already normalised
  * @param {boolean} args.emailVerified Does the PROVIDER assert this address?
  * @param {object}  [args.profile]     firstName / lastName / avatar to backfill
+ * @param {object}  [args.signupSource] sanitised first-touch attribution, stored
+ *   only when this call creates the account — a returning user's original
+ *   source is never overwritten by how they happened to sign in today
  * @returns {Promise<{ok: true, user: object, created: boolean} | {ok: false, reason: string}>}
  *   `created` is true only when this call made the account, so a caller can
  *   tell a signup from a login.
@@ -54,6 +57,7 @@ export async function resolveSsoUser({
   email,
   emailVerified,
   profile = {},
+  signupSource = null,
 }) {
   const idField = ID_FIELD[provider];
   if (!idField) throw new Error(`Unknown SSO provider: ${provider}`);
@@ -109,6 +113,7 @@ export async function resolveSsoUser({
       emailVerified,
       emailVerifiedAt: emailVerified ? new Date() : null,
       lastLogin:     new Date(),
+      signupSource,
     },
   });
 

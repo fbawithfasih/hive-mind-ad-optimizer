@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { signupApi } from '../services/api.js';
+import { ssoUrl } from '../attribution.js';
 
 /** Where the marketing site's ?plan= choice waits for the billing page. */
 export const INTENDED_PLAN_KEY = 'hmn.intendedPlan';
@@ -121,7 +122,7 @@ export default function SignupPage({ onSignup }) {
         {/* Google SSO */}
         <button
           type="button"
-          onClick={() => { window.location.href = '/api/auth/google'; }}
+          onClick={() => { window.location.href = ssoUrl('/api/auth/google'); }}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
             width: '100%', padding: '12px 16px', borderRadius: 8, marginBottom: 16,
@@ -144,7 +145,7 @@ export default function SignupPage({ onSignup }) {
         {/* Apple SSO */}
         <button
           type="button"
-          onClick={() => { window.location.href = '/api/auth/apple'; }}
+          onClick={() => { window.location.href = ssoUrl('/api/auth/apple'); }}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
             width: '100%', padding: '12px 16px', borderRadius: 8, marginBottom: 16,
