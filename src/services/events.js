@@ -11,8 +11,9 @@
  * roadmap. When PostHog is configured the same event is also sent through
  * the official SDK and grouped by org, so the funnel can be drawn without SQL.
  *
- * Never throws: SDK delivery is flushed before this promise resolves, but an
- * analytics failure must not fail the user action that produced it.
+ * Never throws, and never waits on PostHog: the SDK batches delivery in the
+ * background, so an analytics outage cannot slow or fail the user action that
+ * produced the event.
  */
 
 import { prisma } from '../db/prisma.js';

@@ -23,14 +23,25 @@ export function initPostHog() {
     return null;
   }
 
+  // Batched, delivered in the background. Both processes that send events —
+  // the API and the worker — are long-lived and flush on shutdown
+  // (shutdownPostHog), so nothing is lost on a deploy; flushing per event
+  // instead made every login and signup wait on a round trip to PostHog.
   client = new PostHog(token, {
     host,
-    flushAt: 1,
-    flushInterval: 0,
+    flushAt: FLUSH_AT,
+    flushInterval: FLUSH_INTERVAL_MS,
     enableExceptionAutocapture: true,
   });
   return client;
 }
+
+/** Events queued before a batch is sent, and the most a queued event waits. */
+export const FLUSH_AT = 20;
+export const FLUSH_INTERVAL_MS = 5000;
+
+// Each of these queues the call and returns; none waits on the network. They
+// stay async so existing `await captureEvent(...)` call sites keep working.
 
 export async function captureEvent({ distinctId, event, properties = {}, groups }) {
   const posthog = client;
@@ -38,7 +49,6 @@ export async function captureEvent({ distinctId, event, properties = {}, groups 
 
   try {
     posthog.capture({ distinctId, event, properties, groups });
-    await posthog.flush();
   } catch (error) {
     console.warn(`PostHog capture failed for ${event}: ${error.message}`);
   }
@@ -50,7 +60,6 @@ export async function identifyUser({ distinctId, properties }) {
 
   try {
     posthog.identify({ distinctId, properties });
-    await posthog.flush();
   } catch (error) {
     console.warn(`PostHog identify failed: ${error.message}`);
   }
@@ -60,8 +69,11 @@ export async function capturePostHogException(error, distinctId, properties = {}
   const posthog = client;
   if (!posthog) return;
 
-  posthog.captureException(error, distinctId, properties);
-  await posthog.flush();
+  try {
+    posthog.captureException(error, distinctId, properties);
+  } catch (captureError) {
+    console.warn(`PostHog exception capture failed: ${captureError.message}`);
+  }
 }
 
 export async function shutdownPostHog() {
