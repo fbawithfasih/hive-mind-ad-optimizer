@@ -49,4 +49,44 @@ export function campaignProperties(source) {
   return out;
 }
 
+// ── Carrying attribution through Google / Apple sign-in ──────────────────────
+//
+// An SSO signup leaves for the provider and comes back on a callback that has
+// never seen the browser's stored attribution. The start route receives it as
+// ?attribution=<json>, keeps it in a short-lived cookie for the round trip,
+// and the callback takes it back.
+
+export const ATTRIBUTION_COOKIE = 'oauth_attribution';
+const MAX_PARAM_LENGTH = 4000;
+const ROUND_TRIP_MS = 10 * 60 * 1000;
+
+/** A JSON string from a query parameter or cookie → a sanitised attribution, or null. */
+export function parseAttributionParam(raw) {
+  if (typeof raw !== 'string' || !raw || raw.length > MAX_PARAM_LENGTH) return null;
+  try {
+    return sanitiseAttribution(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
+
+const cookieOptions = (sameSite) => ({
+  httpOnly: true, sameSite, secure: process.env.NODE_ENV === 'production',
+});
+
+/** Start route: remember the attribution for the provider round trip, if any arrived. */
+export function rememberAttribution(req, res, { sameSite }) {
+  const attribution = parseAttributionParam(req.query?.attribution);
+  if (!attribution) return null;
+  res.cookie(ATTRIBUTION_COOKIE, JSON.stringify(attribution), { ...cookieOptions(sameSite), maxAge: ROUND_TRIP_MS });
+  return attribution;
+}
+
+/** Callback: take the attribution back and clear the cookie, whatever happens next. */
+export function takeAttribution(req, res, { sameSite }) {
+  const raw = req.cookies?.[ATTRIBUTION_COOKIE];
+  if (raw !== undefined) res.clearCookie(ATTRIBUTION_COOKIE, cookieOptions(sameSite));
+  return parseAttributionParam(raw);
+}
+
 export default sanitiseAttribution;

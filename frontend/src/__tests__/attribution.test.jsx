@@ -1,7 +1,23 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { captureAttribution, readAttribution, ATTRIBUTION_KEY } from '../attribution.js';
+import { captureAttribution, readAttribution, ssoUrl, ATTRIBUTION_KEY } from '../attribution.js';
 
 beforeEach(() => { localStorage.clear(); });
+
+describe('ssoUrl', () => {
+  it('carries the captured attribution to the Google or Apple start route', () => {
+    captureAttribution({ search: '?utm_source=spn&utm_campaign=past_clients', path: '/signup', referrer: '' });
+
+    const url = new URL(ssoUrl('/api/auth/google'), 'https://app.test');
+    expect(url.pathname).toBe('/api/auth/google');
+    expect(JSON.parse(url.searchParams.get('attribution'))).toEqual({
+      utm_source: 'spn', utm_campaign: 'past_clients', landing: '/signup',
+    });
+  });
+
+  it('is the bare route when nothing was captured', () => {
+    expect(ssoUrl('/api/auth/apple')).toBe('/api/auth/apple');
+  });
+});
 
 describe('captureAttribution', () => {
   it('keeps the utm parameters, the ref code, the plan, the landing path and the referrer host', () => {

@@ -38,6 +38,16 @@ export function captureAttribution({ search = window.location.search, path = win
   } catch { /* storage unavailable */ }
 }
 
+/**
+ * The Google/Apple sign-in URL, carrying the captured attribution. The
+ * provider round trip never sees localStorage, so the server keeps it in a
+ * short-lived cookie until the callback creates the account.
+ */
+export function ssoUrl(path) {
+  const attribution = readAttribution();
+  return attribution ? `${path}?attribution=${encodeURIComponent(JSON.stringify(attribution))}` : path;
+}
+
 /** What was captured, or null. */
 export function readAttribution() {
   try {
