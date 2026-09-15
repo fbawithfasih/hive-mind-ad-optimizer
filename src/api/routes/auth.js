@@ -22,7 +22,7 @@ import { consumeClaimToken } from './billing.js';
 import { appleConfigured, getAppleClientSecret, verifyAppleIdToken } from '../../services/apple-auth.js';
 import { resolveSsoUser, claimIsTrue } from '../../services/sso-account.js';
 import { trialEndsAtFrom } from '../../config/trial.js';
-import { sanitiseAttribution } from '../utils/attribution.js';
+import { sanitiseAttribution, campaignProperties } from '../utils/attribution.js';
 import { recordSessionStart } from '../../services/auth-events.js';
 import {
   SESSION_MAX_AGE,
@@ -121,6 +121,9 @@ router.post('/signup', authLimiter, async (req, res) => {
     // Hash password
     const passwordHash = await hashPassword(password);
 
+    // First touch, as the browser captured it; whitelisted and capped.
+    const signupSource = sanitiseAttribution(attribution);
+
     // Create user
     const user = await prisma.user.create({
       data: {
@@ -130,8 +133,7 @@ router.post('/signup', authLimiter, async (req, res) => {
         firstName,
         lastName,
         emailVerified: false,
-        // First touch, as the browser captured it; whitelisted and capped.
-        signupSource: sanitiseAttribution(attribution),
+        signupSource,
       },
     });
 
@@ -217,7 +219,9 @@ router.post('/signup', authLimiter, async (req, res) => {
       method:  'password',
       created: true,
       orgId:   claimedOrgId,
-      props:   { claimed_organization: !!claimedOrgId },
+      // Campaign tags ride on the event so a PostHog funnel can be broken
+      // down by source (e.g. utm_source=spn) without querying the database.
+      props:   { claimed_organization: !!claimedOrgId, ...campaignProperties(signupSource) },
     });
 
     res.status(201).json({
