@@ -31,4 +31,22 @@ export function sanitiseAttribution(input) {
   return Object.keys(out).length ? out : null;
 }
 
+/**
+ * The part of an attribution that is safe to send to analytics: the campaign
+ * tags, the referral code and the plan. `landing` and `referrer` stay in the
+ * database only — they are whole URLs, and query strings here can carry claim
+ * tokens and OAuth codes (the reason Sentry drops query params too).
+ *
+ * @param {Record<string, string>|null} source a sanitised attribution
+ * @returns {Record<string, string>}
+ */
+export function campaignProperties(source) {
+  const out = {};
+  for (const key of ATTRIBUTION_KEYS) {
+    if (key === 'landing' || key === 'referrer') continue;
+    if (source?.[key]) out[key] = source[key];
+  }
+  return out;
+}
+
 export default sanitiseAttribution;
