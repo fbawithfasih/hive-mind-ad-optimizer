@@ -174,6 +174,59 @@ describe('trial lifecycle emails', () => {
     expect(mockSend.mock.calls[0][0].subject).toMatch(/ends in 1 day$/);
   });
 
+  describe('day-3 findings', () => {
+    const { sendTrialFindingsEmail } = require('../email.js');
+    const base = { connected: true, termsReviewed: 412, negatives: { count: 0, spend: 0, currency: null }, promotions: 0, awaitingReview: 0 };
+
+    it('leads with the wasted spend, in the marketplace currency, and links to the agent', async () => {
+      await sendTrialFindingsEmail('a@b.com', {
+        orgName: 'Queenza',
+        findings: { ...base, negatives: { count: 7, spend: 83.4, currency: 'USD' }, promotions: 2, awaitingReview: 9 },
+      });
+
+      const msg = mockSend.mock.calls[0][0];
+      expect(msg.subject).toBe('Your first findings: 7 search terms spent $83.40 without an order');
+      expect(msg.text).toMatch(/2 search terms converting well/);
+      expect(msg.text).toMatch(/9 proposals are waiting for your review/);
+      expect(msg.html).toContain('/?tab=agent');
+    });
+
+    it('names no amount when there is no single currency', async () => {
+      await sendTrialFindingsEmail('a@b.com', {
+        orgName: 'Queenza', findings: { ...base, negatives: { count: 1, spend: 20, currency: null } },
+      });
+
+      const msg = mockSend.mock.calls[0][0];
+      expect(msg.subject).toBe('Your first findings: 1 search term spent without an order');
+      expect(msg.text).not.toMatch(/\$\d|₹|£/);
+    });
+
+    it('leads with promotions when nothing is wasted', async () => {
+      await sendTrialFindingsEmail('a@b.com', { orgName: 'Queenza', findings: { ...base, promotions: 1, awaitingReview: 1 } });
+      expect(mockSend.mock.calls[0][0].subject).toBe('Your first findings: 1 search term worth promoting to exact match');
+    });
+
+    it('says plainly when nothing was found', async () => {
+      await sendTrialFindingsEmail('a@b.com', { orgName: 'Queenza', findings: base });
+
+      const msg = mockSend.mock.calls[0][0];
+      expect(msg.subject).toBe('Your first findings: nothing wasteful in 412 search terms');
+      expect(msg.text).toMatch(/good news/);
+    });
+
+    it('asks an unconnected org to connect, and claims no findings', async () => {
+      await sendTrialFindingsEmail('a@b.com', {
+        orgName: 'Queenza <Crafts>', findings: { ...base, connected: false, termsReviewed: 0 },
+      });
+
+      const msg = mockSend.mock.calls[0][0];
+      expect(msg.subject).toMatch(/Connect Amazon/);
+      expect(msg.html).toContain('/onboarding');
+      expect(msg.html).toContain('Queenza &lt;Crafts&gt;');
+      expect(msg.text).not.toMatch(/found:/);
+    });
+  });
+
   it('expired says the account is kept and quotes no price', async () => {
     // Prices live on the pricing page; an email cannot be edited once sent.
     await sendTrialExpiredEmail('a@b.com', { orgName: 'Queenza' });
