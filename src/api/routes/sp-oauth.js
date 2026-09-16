@@ -10,6 +10,11 @@
  *
  * After connecting, the user's org will use its own refresh token for all
  * SP-API and Ads API calls instead of the global .env credentials.
+ *
+ * Sellers can also arrive from the other direction — from the Selling Partner
+ * Appstore, where Amazon sends them to us before consent. That entry point is
+ * GET /appstore-login → GET /appstore-resume; both rejoin the flow above at
+ * step 3, so there is one callback and one token exchange, not two.
  */
 
 import express from 'express';
@@ -24,6 +29,9 @@ import { withTenant } from '../middleware/withTenant.js';
 import { prisma } from '../../db/prisma.js';
 import { sessionExpiredAbsolute, claimsAreValid } from '../../config/session.js';
 import { track } from '../../services/events.js';
+import {
+  parseHandoff, saveHandoff, readHandoff, clearHandoff, consentUrl,
+} from '../utils/appstore-handoff.js';
 
 dotenv.config({ override: true });
 
@@ -186,6 +194,83 @@ router.get('/start', requireAuthNav, requireVerifiedEmailNav, withTenant, async 
 
   logger.info(`SP-API OAuth: org ${orgId} starting consent flow`);
   res.redirect(url.toString());
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/sp-oauth/appstore-login — the Login URI Amazon sends sellers to
+//
+// Registered in Developer Central. Amazon loads it when a seller presses
+// Authorize on our Appstore listing, before any consent screen, carrying
+// amazon_callback_uri, amazon_state, selling_partner_id and — while the app is
+// a draft — version=beta.
+//
+// It is unauthenticated by necessity: the seller may not have an account yet,
+// and this is where they find out they need one. So it does the least it can —
+// checks that the callback really is Amazon's, parks the parameters, and hands
+// off to the one guarded door below. Everything that needs a session happens
+// there.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/appstore-login', async (req, res) => {
+  const handoff = parseHandoff(req.query);
+  if (!handoff) {
+    logger.warn('Appstore login: rejected handoff parameters', {
+      has_callback: !!req.query?.amazon_callback_uri,
+      has_state:    !!req.query?.amazon_state,
+    });
+    return redirectToError(res, 'invalid_appstore_handoff');
+  }
+
+  try {
+    await saveHandoff(res, handoff);
+  } catch (err) {
+    logger.error(`Appstore login: could not store handoff: ${err.message}`);
+    return redirectToError(res, 'state_store_unavailable');
+  }
+
+  logger.info(`Appstore login: seller ${handoff.sellingPartnerId ?? '(unknown)'} arrived from Amazon`);
+  const backendBase = (process.env.BASE_URL || process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+  res.redirect(`${backendBase}/api/sp-oauth/appstore-resume`);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/sp-oauth/appstore-resume — send the seller on to Amazon's consent
+//
+// The guarded door. requireAuthNav redirects an anonymous seller to the login
+// page and the handoff cookie simply waits there, so a signup, a verification
+// email and an org can all happen in between; the frontend comes back here
+// once /auth/me reports both a handoff and an org.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/appstore-resume', requireAuthNav, requireVerifiedEmailNav, withTenant, async (req, res) => {
+  const handoff = await readHandoff(req).catch(() => null);
+  if (!handoff) {
+    // Expired, or someone wandered in. Nothing is broken; send them to the
+    // ordinary connect flow, which is what this would have achieved anyway.
+    logger.info('Appstore resume: no handoff in flight');
+    return res.redirect(`${(process.env.BASE_URL || 'http://localhost:3000').replace(/\/$/, '')}/api/sp-oauth/start`);
+  }
+
+  const orgId = req.tenant?.orgId;
+  if (!orgId) {
+    // Signed up from the Appstore and has no organization yet. The handoff is
+    // left in place; onboarding creates the org and the frontend returns here.
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+    return res.redirect(`${frontendUrl}/onboarding`);
+  }
+
+  const state = randomBytes(16).toString('hex');
+  try {
+    await storeState(state, orgId);
+  } catch (err) {
+    logger.error(`Appstore resume: could not store CSRF state: ${err.message}`);
+    return redirectToError(res, 'state_store_unavailable');
+  }
+
+  // Only now is the handoff spent — up to here the seller could still have
+  // been sent around the loop again.
+  await clearHandoff(req, res).catch(() => null);
+
+  logger.info(`Appstore resume: org ${orgId} continuing Amazon-initiated consent`);
+  res.redirect(consentUrl(handoff, { redirectUri: REDIRECT_URI, state }));
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

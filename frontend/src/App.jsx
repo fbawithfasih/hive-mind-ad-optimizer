@@ -74,6 +74,15 @@ export default function App() {
       // Same distinct id as the server's funnel events, so the browser session
       // and the signup that started it are one person in PostHog.
       identifyAnalytics(u);
+      // Came in from the Selling Partner Appstore: Amazon is still waiting to
+      // show this seller a consent screen. Now that they are signed in and
+      // have an org to attach the credential to, hand them back. Requiring the
+      // org is what keeps this from firing on the onboarding page it would
+      // otherwise send them to.
+      if (u?.spapiHandoff && u?.currentOrg?.id) {
+        window.location.href = '/api/sp-oauth/appstore-resume';
+        return;
+      }
       if (u?.organizations?.length > 0) {
         try {
           const status = await getOnboardingStatus();

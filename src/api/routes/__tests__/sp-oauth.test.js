@@ -42,6 +42,11 @@ jest.mock('../../../services/ephemeral-store.js', () => {
       entries.delete(key);
       return value ?? null;
     },
+    // The Appstore handoff is read without being spent, so the double needs
+    // the non-destructive half of the store too.
+    async get(key) {
+      return entries.get(key) ?? null;
+    },
   };
   return {
     createEphemeralStore: () => store,
@@ -407,5 +412,142 @@ describe('navigation auth gates', () => {
     const res = await request(makeApp()).get('/info');
 
     expect(res.status).toBe(200);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The Amazon-initiated (Appstore) entry point
+// ─────────────────────────────────────────────────────────────────────────────
+describe('GET /appstore-login', () => {
+  const AMAZON_CB = 'https://sellercentral.amazon.com/apps/authorize/confirm/abc';
+
+  /** Amazon reaches this route with no session — no cookie is injected. */
+  function anonApp() {
+    const app = express();
+    app.use((req, _res, next) => { req.cookies = {}; req.tenant = null; next(); });
+    app.use('/', spOauthRouter);
+    return serve(app);
+  }
+
+  beforeEach(() => { process.env.BASE_URL = 'https://api.test'; });
+
+  it('parks the handoff and sends the seller to the one guarded door', async () => {
+    const res = await request(anonApp())
+      .get('/appstore-login')
+      .query({ amazon_callback_uri: AMAZON_CB, amazon_state: 'amz-1', selling_partner_id: 'A3FH' });
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe('https://api.test/api/sp-oauth/appstore-resume');
+    expect(res.headers['set-cookie'].join()).toContain('hmn_spapi_handoff=');
+    expect(res.headers['set-cookie'].join()).toContain('HttpOnly');
+  });
+
+  it('refuses a callback uri that is not Amazon, rather than redirecting to it', async () => {
+    const res = await request(anonApp())
+      .get('/appstore-login')
+      .query({ amazon_callback_uri: 'https://evil.com/steal', amazon_state: 'amz-1' });
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('/auth/spapi/error?reason=invalid_appstore_handoff');
+    expect(res.headers.location).not.toContain('evil.com');
+  });
+
+  it('refuses a handoff with no amazon_state', async () => {
+    const res = await request(anonApp())
+      .get('/appstore-login')
+      .query({ amazon_callback_uri: AMAZON_CB });
+
+    expect(res.headers.location).toContain('reason=invalid_appstore_handoff');
+  });
+});
+
+describe('GET /appstore-resume', () => {
+  const AMAZON_CB = 'https://sellercentral.amazon.com/apps/authorize/confirm/abc';
+  const HANDOFF = {
+    amazonCallbackUri: AMAZON_CB,
+    amazonState:       'amz-1',
+    sellingPartnerId:  'A3FH',
+    beta:              false,
+  };
+
+  /** A signed-in browser carrying the handoff cookie id. */
+  function appWithHandoff({ tenant = DEFAULT_TENANT, handoffId = 'handoff-1' } = {}) {
+    const token = jwt.sign({ userId: 'user-1', activeOrgId: 'org-1' }, process.env.SESSION_SECRET);
+    const app = express();
+    app.use((req, _res, next) => {
+      req.cookies = { hmn_token: token, ...(handoffId ? { hmn_spapi_handoff: handoffId } : {}) };
+      req.tenant  = tenant;
+      next();
+    });
+    app.use('/', spOauthRouter);
+    return serve(app);
+  }
+
+  beforeEach(() => {
+    process.env.BASE_URL              = 'https://api.test';
+    process.env.SP_OAUTH_REDIRECT_URI = 'https://api.test/api/sp-oauth/callback';
+    __store.entries.set('handoff-1', HANDOFF);
+  });
+
+  it('sends the seller to Amazon with both states and our redirect uri', async () => {
+    const res = await request(appWithHandoff()).get('/appstore-resume');
+
+    expect(res.status).toBe(302);
+    const url = new URL(res.headers.location);
+    expect(url.origin + url.pathname).toBe(AMAZON_CB);
+    expect(url.searchParams.get('amazon_state')).toBe('amz-1');
+    expect(url.searchParams.get('state')).toMatch(/^[0-9a-f]{32}$/);
+    expect(url.searchParams.get('redirect_uri')).toContain('/api/sp-oauth/callback');
+  });
+
+  it('mints a state the existing callback will accept, and spends the handoff', async () => {
+    const res = await request(appWithHandoff()).get('/appstore-resume');
+
+    const state = new URL(res.headers.location).searchParams.get('state');
+    // The CSRF store now carries our org against that nonce — the same shape
+    // /start produces, which is what lets one callback serve both entry points.
+    expect(__store.entries.get(state)).toEqual({ orgId: 'org-1' });
+    expect(__store.entries.has('handoff-1')).toBe(false);
+    expect(res.headers['set-cookie'].join()).toContain('hmn_spapi_handoff=;');
+  });
+
+  it('leaves the handoff alone and sends a seller with no org to onboarding', async () => {
+    const res = await request(appWithHandoff({ tenant: null })).get('/appstore-resume');
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('/onboarding');
+    // Still parked: the org does not exist yet, and they are coming back.
+    expect(__store.entries.get('handoff-1')).toEqual(HANDOFF);
+  });
+
+  it('redirects an anonymous seller to login, keeping the parked handoff', async () => {
+    const app = express();
+    app.use((req, _res, next) => { req.cookies = { hmn_spapi_handoff: 'handoff-1' }; req.tenant = null; next(); });
+    app.use('/', spOauthRouter);
+
+    const res = await request(serve(app)).get('/appstore-resume');
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('/login');
+    expect(__store.entries.get('handoff-1')).toEqual(HANDOFF);
+  });
+
+  it('falls back to the ordinary connect flow when the handoff has expired', async () => {
+    __store.entries.delete('handoff-1');
+
+    const res = await request(appWithHandoff()).get('/appstore-resume');
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe('https://api.test/api/sp-oauth/start');
+  });
+
+  it('refuses to hand an unverified email to Amazon', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'user-1', email: 'seller@corp.com', emailVerified: false, tokenVersion: 0,
+    });
+
+    const res = await request(appWithHandoff()).get('/appstore-resume');
+
+    expect(res.headers.location).toContain('reason=email_unverified');
   });
 });

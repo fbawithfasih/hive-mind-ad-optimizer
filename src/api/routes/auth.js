@@ -15,6 +15,7 @@ import {
 } from '../middleware/rateLimiter.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../services/email.js';
 import { createLogger } from '../utils/logger.js';
+import { hasHandoff } from '../utils/appstore-handoff.js';
 import { isEntitled } from '../../services/entitlement.js';
 import { captureSwallowed } from '../utils/capture.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
@@ -359,6 +360,11 @@ router.get('/me', requireAuth, async (req, res) => {
         emailVerified: user.emailVerified,
         role: currentOrgMember?.role ?? null,
       },
+      // A seller who came from the Selling Partner Appstore is mid-handoff:
+      // Amazon is waiting for us to send them back. The frontend resumes on
+      // this flag rather than each auth route knowing about it, so login,
+      // signup, Google and Apple all pick the thread back up the same way.
+      spapiHandoff: hasHandoff(req),
       organizations: user.orgMembers.map(om => ({
         id: om.org.id,
         name: om.org.name,
