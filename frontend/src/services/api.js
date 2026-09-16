@@ -1,4 +1,5 @@
 import { readAttribution } from '../attribution.js';
+import { resetAnalytics } from '../analytics.js';
 import axios from 'axios';
 import { profilesCache, campaignsCache, searchTermsCache } from '../utils/cache.js';
 
@@ -131,6 +132,10 @@ export async function signupApi(email, password, firstName = '', lastName = '', 
 
 export async function logoutApi() {
   await api.post('/auth/logout');
+  // Every sign-out goes through here, so this is the one place the analytics
+  // identity has to be dropped — a shared browser must not merge the next
+  // seller into the last one.
+  resetAnalytics();
 }
 
 export async function forgotPasswordApi(email) {
