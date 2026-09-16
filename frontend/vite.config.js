@@ -30,6 +30,7 @@ export default defineConfig({
           if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'vendor-react';
           if (id.includes('@headlessui')) return 'vendor-headlessui';
           if (id.includes('axios')) return 'vendor-http';
+          if (id.includes('posthog-js') || id.includes('@posthog')) return 'vendor-posthog';
         },
       },
     },

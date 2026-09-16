@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { CommandPaletteProvider } from './components/command/CommandPaletteProvider.jsx';
 import './index.css';
 import { getMeApi, getOnboardingStatus } from './services/api.js';
+import { identifyAnalytics } from './analytics.js';
 import Dashboard        from './pages/Dashboard.jsx';
 import HubPage          from './pages/HubPage.jsx';
 import LoginPage        from './pages/LoginPage.jsx';
@@ -70,6 +71,9 @@ export default function App() {
     try {
       const u = await getMeApi();
       setUser(u);
+      // Same distinct id as the server's funnel events, so the browser session
+      // and the signup that started it are one person in PostHog.
+      identifyAnalytics(u);
       if (u?.organizations?.length > 0) {
         try {
           const status = await getOnboardingStatus();
