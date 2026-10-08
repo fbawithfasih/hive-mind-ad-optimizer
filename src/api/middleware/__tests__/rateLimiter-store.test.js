@@ -14,13 +14,13 @@
  */
 import {
   limiterPrefixes,
-  authLimiter, strictLimiter, apiLimiter, claimLimiter, uploadLimiter,
+  authLimiter, strictLimiter, apiLimiter, claimLimiter, aiBurstLimiter, uploadLimiter,
   loginAccountLimiter, passwordResetAccountLimiter,
 } from '../rateLimiter.js';
 
 describe('prefixes', () => {
   it('gives every limiter one', () => {
-    expect(limiterPrefixes()).toHaveLength(7);
+    expect(limiterPrefixes()).toHaveLength(8);
   });
 
   it('never repeats one', () => {
@@ -30,7 +30,7 @@ describe('prefixes', () => {
 
   it('names each one after what it limits', () => {
     expect(limiterPrefixes()).toEqual(
-      expect.arrayContaining(['auth', 'strict', 'api', 'claim', 'upload', 'login-account', 'reset-account'])
+      expect.arrayContaining(['auth', 'strict', 'api', 'claim', 'ai-burst', 'upload', 'login-account', 'reset-account'])
     );
   });
 });
@@ -41,6 +41,7 @@ describe('the limiters themselves', () => {
     ['strictLimiter',               strictLimiter],
     ['apiLimiter',                  apiLimiter],
     ['claimLimiter',                claimLimiter],
+    ['aiBurstLimiter',              aiBurstLimiter],
     ['uploadLimiter',               uploadLimiter],
     ['loginAccountLimiter',         loginAccountLimiter],
     ['passwordResetAccountLimiter', passwordResetAccountLimiter],
