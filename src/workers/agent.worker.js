@@ -392,27 +392,11 @@ async function startRun(job) {
   }
 
   try {
-    let adsClient;
-    try {
-      adsClient = await adsClientForOrg(orgId);
-    } catch (err) {
-      // An org with no Amazon connection will not grow one by being retried.
-      if (err instanceof NoAdsCredentialError) throw new UnrecoverableError(err.message);
-      throw err;
-    }
-
-    const window = reportWindow(occurredAt, LOOKBACK_DAYS);
-    logger.info(`Agent run starting — ${tag} window ${window.startDate}→${window.endDate} mode=${runMode}`);
-
-    const reportIds = await Promise.all(
-      splitIntoSearchTermWindows(window.startDate, window.endDate)
-        .map((w) => adsClient.createSearchTermReport(profileId, w.startDate, w.endDate)));
-
-    await enqueuePoll({
-      orgId, profileId, runId: run.id, reportIds, mode: runMode, restarted,
+    logger.info(`Agent run starting — ${tag} mode=${runMode}`);
+    return await requestReports(run, {
+      orgId, profileId, runId: run.id, mode: runMode, restarted,
       occurredAt: occurredAt.toISOString(), tries: 0, callModel: job.data?.callModel,
     });
-    return { started: reportIds };
   } catch (err) {
     await finishRun(run.id, { status: 'FAILED', error: err.message?.slice(0, 1000) ?? 'unknown error' }).catch(() => {});
     logger.error(`Agent run failed — ${tag}: ${err.message}`);
@@ -420,14 +404,89 @@ async function startRun(job) {
   }
 }
 
+/** A run still RUNNING after this long was abandoned, not slow. */
+const STALE_RUN_MS = 2 * 60 * 60 * 1000;
+
+/**
+ * Another organisation's run on this Ads profile that is ahead of this one.
+ *
+ * An agency and the seller it manages are two orgs on one Amazon profile, and
+ * both are enrolled. Amazon refuses an identical report request while the first
+ * is in flight (425) and names the first requester's report — which the second
+ * org's token cannot read, so its poll 404s. Two runs on one profile therefore
+ * take turns, not both go at once.
+ *
+ * Ordered by (startedAt, id), a strict total order, so of any two the later one
+ * waits and the earlier one never does: no deadlock, and no one waits forever on
+ * a run that started after it. A run older than STALE_RUN_MS is a crash, not a
+ * queue — treating it as ahead would block the profile until someone cleaned it
+ * up.
+ */
+async function runAhead(run) {
+  const ahead = await prisma.agentRun.findMany({
+    where: {
+      profileId: run.profileId,
+      orgId:     { not: run.orgId },
+      status:    'RUNNING',
+      AND: [
+        { startedAt: { gte: new Date(Date.now() - STALE_RUN_MS) } },
+        { OR: [
+          { startedAt: { lt: run.startedAt } },
+          { startedAt: run.startedAt, id: { lt: run.id } },
+        ] },
+      ],
+    },
+    select: { id: true },
+    take: 1,
+  });
+  return ahead.length > 0;
+}
+
+/**
+ * Ask Amazon for the report — once no other org's run on this profile is ahead.
+ * Until then the run holds its slot claim and looks again after a delay, with
+ * `reportIds: null` marking that it is waiting its turn rather than for Amazon.
+ */
+async function requestReports(run, data) {
+  const { orgId, profileId, occurredAt, tries } = data;
+
+  if (await runAhead(run)) {
+    if (tries + 1 >= REPORT_POLL.maxAttempts) {
+      return failBeforeApply(data, 'Another organisation’s run on this profile did not finish');
+    }
+    await enqueuePoll({ ...data, reportIds: null, tries: tries + 1 });
+    return { waiting: true, tries: tries + 1 };
+  }
+
+  let adsClient;
+  try {
+    adsClient = await adsClientForOrg(orgId);
+  } catch (err) {
+    // An org with no Amazon connection will not grow one by being retried.
+    if (err instanceof NoAdsCredentialError) throw new UnrecoverableError(err.message);
+    throw err;
+  }
+
+  const window = reportWindow(new Date(occurredAt), LOOKBACK_DAYS);
+  logger.info(`Agent report requested — org=${orgId} profile=${profileId} window ${window.startDate}→${window.endDate}`);
+
+  const reportIds = await Promise.all(
+    splitIntoSearchTermWindows(window.startDate, window.endDate)
+      .map((w) => adsClient.createSearchTermReport(profileId, w.startDate, w.endDate)));
+
+  await enqueuePoll({ ...data, reportIds, tries: 0 });
+  return { started: reportIds };
+}
+
 /** The next look at the report, REPORT_POLL.pollIntervalMs from now. */
 function enqueuePoll(data) {
-  const { runId, restarted, tries } = data;
+  const { runId, restarted, tries, reportIds } = data;
   return agentQueue.add('agent-poll', data, {
     delay: REPORT_POLL.pollIntervalMs,
     // A restart reuses the run row, so its look numbers must not collide with
-    // the ids of the first attempt's looks, which BullMQ may still remember.
-    jobId: `agent-poll-${runId}-${restarted ? 'r' : ''}${tries}`,
+    // the ids of the first attempt's looks, which BullMQ may still remember;
+    // nor may a wait for a turn ('w') collide with the wait for the report.
+    jobId: `agent-poll-${runId}-${restarted ? 'r' : ''}${reportIds ? '' : 'w'}${tries}`,
   });
 }
 
@@ -458,6 +517,16 @@ async function pollRun(job) {
   // decide and apply a second time.
   const run = await prisma.agentRun.findFirst({ where: { id: runId, orgId, status: 'RUNNING' } });
   if (!run) return { skipped: 'NOT_RUNNING' };
+
+  // Still waiting for its turn on the profile, not yet for Amazon.
+  if (!reportIds) {
+    try {
+      return await requestReports(run, data);
+    } catch (err) {
+      logger.error(`Agent report request failed — ${tag}: ${err.message}`);
+      return failBeforeApply(data, err.message ?? 'unknown error');
+    }
+  }
 
   let rows;
   try {
