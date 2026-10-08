@@ -76,13 +76,13 @@ export const reportingQueue = new Queue(QUEUE_NAME, {
 // so two runs for two different sellers do not contend at all, and two runs
 // for the same seller are paced rather than throttled.
 //
-// What a run mostly does is wait. Amazon takes minutes to produce a search-term
-// report, and until the poll moves off the worker slot entirely — a separate
-// change, deliberately not this one — the slot is held while nothing happens.
-// At concurrency 1 that means one profile's report blocks every other profile
-// in the queue: at 500 enrolled profiles a daily sweep cannot finish in a day.
-// Concurrency is the lever that fixes that today, and the rate limiter is what
-// makes pulling it safe.
+// A run used to mostly wait: Amazon takes minutes to produce a search-term
+// report and the slot was held the whole time, so at concurrency 1 one profile's
+// report blocked every other profile in the queue. The wait is now a chain of
+// delayed jobs (agent.worker.js) and a slot is held only for the work itself.
+// Concurrency stays raised because the work that remains — the LLM review and
+// the Amazon writes — still overlaps usefully across profiles, and the rate
+// limiter is what makes that safe.
 //
 // Overridable per queue, because the right number depends on how much memory a
 // replica has and how many replicas there are, and neither is known here.

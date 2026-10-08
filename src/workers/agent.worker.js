@@ -47,6 +47,8 @@ import { decideHarvest, decisionKey } from '../services/agent/harvest-policy.js'
 import { reviewCandidates } from '../services/agent/llm-review.js';
 import { applyGuardrails } from '../services/agent/guardrails.js';
 import { enqueueAgentSweep } from '../services/agent/agent-scheduler.js';
+import { agentQueue } from '../services/queue.js';
+import { splitIntoSearchTermWindows, mergeSearchTermWindows } from '../services/search-term-windows.js';
 
 const logger = createLogger('AGENT_WORKER');
 
@@ -116,9 +118,11 @@ export async function decidedKeys({ orgId, profileId, objective, now = new Date(
  * constraint, and three minutes is not enough: Queenza's first real run timed
  * out at exactly 180s on a 30-day window.
  *
- * Twenty minutes, in the same spirit as the Brand Analytics worker's thirty.
- * The cost of waiting is a worker slot; the cost of not waiting is losing the
- * whole day's decisions, because the slot claim then refuses the retry.
+ * Twenty minutes, in the same spirit as the Brand Analytics worker's thirty:
+ * one look every pollIntervalMs, at most maxAttempts of them. Each look is its
+ * own delayed job, so the wait costs a row in Redis rather than a worker slot.
+ * Giving up too early loses the day's decisions; a failed run gets one restart,
+ * and after that the next sweep.
  */
 export const REPORT_POLL = { pollIntervalMs: 15_000, maxAttempts: 80 };
 
@@ -134,7 +138,10 @@ export const ATTRIBUTION_BUFFER_DAYS = 2;
 /** Same derivation as automation.worker.js: the occurrence, not the clock. */
 export function occurrenceDate(job) {
   const scheduled = /^repeat:.*:(\d{10,})$/.exec(String(job?.id ?? ''))?.[1];
-  const at = new Date(Number(scheduled) || job?.timestamp || Date.now());
+  // A look at the report, or a restart, is a different job from the one that
+  // began the run; it carries the original occurrence so the window and the
+  // slot do not move with the clock.
+  const at = new Date(job?.data?.occurredAt || Number(scheduled) || job?.timestamp || Date.now());
   return Number.isNaN(at.getTime()) ? new Date() : at;
 }
 
@@ -323,10 +330,33 @@ async function claimRun({ orgId, profileId, slotKey, mode }) {
   return prisma.agentRun.findFirst({ where: { orgId, profileId, slotKey } });
 }
 
+function finishRun(runId, data) {
+  return prisma.agentRun.update({
+    where: { id: runId },
+    data: { completedAt: new Date(), ...data },
+  });
+}
+
+/**
+ * Three job shapes, so no worker slot is held while Amazon builds a report:
+ *
+ *   { __sweep: true }                              fan out (agent-scheduler)
+ *   { orgId, profileId }                           claim the slot, ask for the report
+ *   { orgId, profileId, runId, reportIds, tries }  look once; decide when it is ready
+ *
+ * The third re-enqueues itself with a delay, the pattern sales-fetch.worker.js
+ * proved. A run used to sleep through the report — minutes to twenty of them —
+ * holding one of the queue's few slots the whole time. Waiting now costs a row
+ * in Redis, and the slot is free for another profile between looks.
+ */
 export async function agentProcessor(job) {
   if (job.data?.__sweep) return enqueueAgentSweep();
+  if (job.data?.runId)   return pollRun(job);
+  return startRun(job);
+}
 
-  const { orgId, profileId } = job.data ?? {};
+async function startRun(job) {
+  const { orgId, profileId, restarted = false } = job.data ?? {};
   if (!orgId || !profileId) {
     throw new UnrecoverableError('agent job requires orgId and profileId');
   }
@@ -351,12 +381,6 @@ export async function agentProcessor(job) {
   });
   const { mode: runMode, demoted } = permittedMode(requestedMode, subscription);
 
-  // Demotion applies to the whole run, so a profile marked LIVE on one action
-  // type does not slip through on the other.
-  const effectiveObjective = runMode === 'LIVE'
-    ? objectiveRecord
-    : { ...objectiveRecord, negativeMode: 'SHADOW', promotionMode: 'SHADOW' };
-
   if (demoted) {
     logger.warn(`Agent demoted to shadow — org ${orgId} is not entitled; decisions recorded, nothing applied`);
   }
@@ -366,11 +390,6 @@ export async function agentProcessor(job) {
     logger.info(`Agent slot already claimed, skipping (${tag})`);
     return { skipped: 'ALREADY_RAN' };
   }
-
-  const finish = (data) => prisma.agentRun.update({
-    where: { id: run.id },
-    data: { completedAt: new Date(), ...data },
-  });
 
   try {
     let adsClient;
@@ -385,8 +404,115 @@ export async function agentProcessor(job) {
     const window = reportWindow(occurredAt, LOOKBACK_DAYS);
     logger.info(`Agent run starting — ${tag} window ${window.startDate}→${window.endDate} mode=${runMode}`);
 
-    const rows = await adsClient.getSearchTermReport(
-      profileId, window.startDate, window.endDate, REPORT_POLL);
+    const reportIds = await Promise.all(
+      splitIntoSearchTermWindows(window.startDate, window.endDate)
+        .map((w) => adsClient.createSearchTermReport(profileId, w.startDate, w.endDate)));
+
+    await enqueuePoll({
+      orgId, profileId, runId: run.id, reportIds, mode: runMode, restarted,
+      occurredAt: occurredAt.toISOString(), tries: 0, callModel: job.data?.callModel,
+    });
+    return { started: reportIds };
+  } catch (err) {
+    await finishRun(run.id, { status: 'FAILED', error: err.message?.slice(0, 1000) ?? 'unknown error' }).catch(() => {});
+    logger.error(`Agent run failed — ${tag}: ${err.message}`);
+    throw err;
+  }
+}
+
+/** The next look at the report, REPORT_POLL.pollIntervalMs from now. */
+function enqueuePoll(data) {
+  const { runId, restarted, tries } = data;
+  return agentQueue.add('agent-poll', data, {
+    delay: REPORT_POLL.pollIntervalMs,
+    // A restart reuses the run row, so its look numbers must not collide with
+    // the ids of the first attempt's looks, which BullMQ may still remember.
+    jobId: `agent-poll-${runId}-${restarted ? 'r' : ''}${tries}`,
+  });
+}
+
+/**
+ * The run could not get its report. Nothing has been applied, so one restart is
+ * free: the takeover in claimRun revives a FAILED run that applied nothing.
+ * That is what the retry used to buy when a report timed out inside the slot.
+ * A second failure waits for tomorrow's sweep.
+ */
+async function failBeforeApply({ runId, orgId, profileId, occurredAt, restarted }, reason) {
+  await finishRun(runId, { status: 'FAILED', error: String(reason).slice(0, 1000) }).catch(() => {});
+  if (!restarted) {
+    await agentQueue.add('agent-run',
+      { orgId, profileId, occurredAt, restarted: true },
+      { delay: 60_000, jobId: `agent-restart-${runId}` },
+    ).catch((err) => logger.warn(`Could not enqueue restart for run ${runId}: ${err.message}`));
+  }
+  return { failed: reason };
+}
+
+async function pollRun(job) {
+  const data = job.data;
+  const { orgId, profileId, runId, reportIds, tries = 0 } = data;
+  const tag = `org=${orgId} profile=${profileId} run=${runId}`;
+
+  // Only a RUNNING run is waiting on a report. A look that arrives after the
+  // run finished (a redelivered job, a restart that got there first) must not
+  // decide and apply a second time.
+  const run = await prisma.agentRun.findFirst({ where: { id: runId, orgId, status: 'RUNNING' } });
+  if (!run) return { skipped: 'NOT_RUNNING' };
+
+  let rows;
+  try {
+    const adsClient = await adsClientForOrg(orgId);
+    const polled = await Promise.all(
+      reportIds.map((id) => adsClient.pollSearchTermReport(profileId, id, [])));
+
+    const failed = polled.find((p) => p.status === 'FAILED');
+    if (failed) return failBeforeApply(data, failed.error ?? 'Report failed');
+
+    if (polled.some((p) => p.status !== 'COMPLETED')) {
+      if (tries + 1 >= REPORT_POLL.maxAttempts) {
+        logger.warn(`Agent report not ready after ${REPORT_POLL.maxAttempts} looks (${tag})`);
+        return failBeforeApply(data, 'Search term report timed out');
+      }
+      await enqueuePoll({ ...data, tries: tries + 1 });
+      return { pending: true, tries: tries + 1 };
+    }
+    rows = mergeSearchTermWindows(polled.map((p) => p.data ?? []));
+  } catch (err) {
+    logger.error(`Agent report check failed — ${tag}: ${err.message}`);
+    return failBeforeApply(data, err.message ?? 'unknown error');
+  }
+
+  return decideAndApply(data, rows);
+}
+
+/**
+ * Everything after the report: decide, review, guard, and — for a graduated
+ * action type — apply. Not retried on failure, unlike the report wait: by here
+ * Amazon may already have taken some keywords, and the claim only protects a
+ * run that applied nothing.
+ */
+async function decideAndApply(data, rows) {
+  const { orgId, profileId, runId, mode: runMode } = data;
+  const occurredAt = new Date(data.occurredAt);
+  const tag = `org=${orgId} profile=${profileId} run=${runId}`;
+
+  try {
+    const objectiveRecord = await prisma.profileObjective.findFirst({ where: { orgId, profileId } });
+    if (!objectiveRecord?.enabled) {
+      // Switched off while the report was being built.
+      await finishRun(runId, { status: 'FAILED', error: 'Objective disabled during report wait' });
+      return { skipped: 'DISABLED' };
+    }
+
+    // The mode was settled when the slot was claimed. Entitlement is not
+    // re-asked: a demotion applies to the whole run, so a profile marked LIVE
+    // on one action type does not slip through on the other.
+    const effectiveObjective = runMode === 'LIVE'
+      ? objectiveRecord
+      : { ...objectiveRecord, negativeMode: 'SHADOW', promotionMode: 'SHADOW' };
+
+    const adsClient = await adsClientForOrg(orgId);
+    const window = reportWindow(occurredAt, LOOKBACK_DAYS);
 
     const objective = objectiveFor(objectiveRecord);
     const decided = await decidedKeys({
@@ -396,7 +522,7 @@ export async function agentProcessor(job) {
 
     const { kept, vetoed, reviewError } = await reviewCandidates(candidates, {
       ...objective, profileId,
-    }, { callModel: job.data?.callModel ?? ((system, user) => defaultReviewer(system, user, orgId)) });
+    }, { callModel: data.callModel ?? ((system, user) => defaultReviewer(system, user, orgId)) });
 
     const guarded = applyGuardrails(kept, {
       report: window,
@@ -407,19 +533,19 @@ export async function agentProcessor(job) {
     const decisions = [];
 
     for (const action of vetoed) {
-      decisions.push(decisionRow(run.id, orgId, action, { status: 'VETOED' }));
+      decisions.push(decisionRow(runId, orgId, action, { status: 'VETOED' }));
     }
     for (const { action } of guarded.blocked) {
-      decisions.push(decisionRow(run.id, orgId, action, { status: 'BLOCKED' }));
+      decisions.push(decisionRow(runId, orgId, action, { status: 'BLOCKED' }));
     }
 
     if (guarded.aborted) {
       for (const action of kept) {
-        decisions.push(decisionRow(run.id, orgId, action, { status: 'PROPOSED' }));
+        decisions.push(decisionRow(runId, orgId, action, { status: 'PROPOSED' }));
       }
       await prisma.agentDecision.createMany({ data: decisions });
       logger.warn(`Agent run aborted — ${tag}: ${guarded.abortReason} (${guarded.abortDetail})`);
-      return finish({
+      return finishRun(runId, {
         status: 'ABORTED', abortReason: guarded.abortReason, abortDetail: guarded.abortDetail,
         rowsIn: rows.length, candidates: candidates.length, blocked: guarded.blocked.length,
       });
@@ -427,7 +553,7 @@ export async function agentProcessor(job) {
 
     const applied = await applyOrRecord({
       actions: guarded.allowed, objectiveRecord: effectiveObjective,
-      adsClient, profileId, runId: run.id, orgId, decisions,
+      adsClient, profileId, runId, orgId, decisions,
     });
 
     await prisma.agentDecision.createMany({ data: decisions });
@@ -442,7 +568,7 @@ export async function agentProcessor(job) {
       (reviewError ? ` (reviewer unavailable: ${reviewError})` : '')
     );
 
-    return finish({
+    return finishRun(runId, {
       status: 'COMPLETED',
       rowsIn: rows.length,
       candidates: candidates.length,
@@ -450,7 +576,7 @@ export async function agentProcessor(job) {
       blocked: guarded.blocked.length,
     });
   } catch (err) {
-    await finish({ status: 'FAILED', error: err.message?.slice(0, 1000) ?? 'unknown error' }).catch(() => {});
+    await finishRun(runId, { status: 'FAILED', error: err.message?.slice(0, 1000) ?? 'unknown error' }).catch(() => {});
     logger.error(`Agent run failed — ${tag}: ${err.message}`);
     throw err;
   }

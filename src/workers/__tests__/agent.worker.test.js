@@ -33,6 +33,8 @@ jest.mock('../../services/amazon-ads.js', () => ({
 
 jest.mock('../../services/agent/agent-scheduler.js', () => ({ enqueueAgentSweep: jest.fn() }));
 
+jest.mock('../../services/queue.js', () => ({ agentQueue: { add: jest.fn(async () => ({})) } }));
+
 // The reviewer is exercised in its own suite; here it must simply not veto.
 jest.mock('../../services/agent/llm-review.js', () => ({
   reviewCandidates: jest.fn(async (candidates) => ({
@@ -49,6 +51,7 @@ import { prisma } from '../../db/prisma.js';
 import { loadOrgCredential } from '../../services/credentials.js';
 import { createAdsClient } from '../../services/amazon-ads.js';
 import { enqueueAgentSweep } from '../../services/agent/agent-scheduler.js';
+import { agentQueue } from '../../services/queue.js';
 import { DEFAULT_OBJECTIVE } from '../../services/agent/harvest-policy.js';
 
 /** A report row that the policy will turn into a negative. */
@@ -96,7 +99,8 @@ function setup({ objective = OBJECTIVE, rows = [wasteRow()], negativeResults, su
 
   adsClient = {
     setProfileRegions:   jest.fn(),
-    getSearchTermReport: jest.fn(async () => rows),
+    createSearchTermReport: jest.fn(async () => 'rep-1'),
+    pollSearchTermReport:   jest.fn(async () => ({ status: 'COMPLETED', data: rows })),
     addNegativeKeywords: jest.fn(async (_p, items) =>
       negativeResults ?? items.map((_, i) => ({ code: 'SUCCESS', keywordId: 1000 + i }))),
     addKeywords:         jest.fn(async (_p, items) =>
@@ -104,6 +108,20 @@ function setup({ objective = OBJECTIVE, rows = [wasteRow()], negativeResults, su
   };
   createAdsClient.mockReturnValue(adsClient);
   return adsClient;
+}
+
+/**
+ * Drive a run the way the queue would: the first job asks for the report, and
+ * each delayed look it (or the previous look) enqueued is delivered in turn.
+ * Returns the last job's result, so a test sees what the run finally did.
+ */
+async function runAgent(j) {
+  let result = await agentProcessor(j);
+  for (let i = 0; i < 200 && (result?.started || result?.pending); i++) {
+    const [, data, opts] = agentQueue.add.mock.calls.filter(c => c[0] === 'agent-poll').at(-1);
+    result = await agentProcessor({ id: opts.jobId, data });
+  }
+  return result;
 }
 
 const job = (data = {}, id = 'repeat:abc:1788316200000') => ({ id, data: { orgId: 'org-A', profileId: 'p1', ...data } });
@@ -120,7 +138,7 @@ describe('shadow mode writes nothing to Amazon', () => {
   it('records decisions but calls no Ads write endpoint', async () => {
     setup();
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     expect(adsClient.addNegativeKeywords).not.toHaveBeenCalled();
     expect(adsClient.addKeywords).not.toHaveBeenCalled();
@@ -130,7 +148,7 @@ describe('shadow mode writes nothing to Amazon', () => {
   it('marks those decisions PROPOSED, never APPLIED', async () => {
     setup();
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     const statuses = new Set(writtenDecisions().map(d => d.status));
     expect(statuses.has('APPLIED')).toBe(false);
@@ -140,7 +158,7 @@ describe('shadow mode writes nothing to Amazon', () => {
   it('leaves appliedAt null on every decision', async () => {
     setup();
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     expect(writtenDecisions().every(d => d.appliedAt === null)).toBe(true);
   });
@@ -148,7 +166,7 @@ describe('shadow mode writes nothing to Amazon', () => {
   it('reports zero applied on the run', async () => {
     setup();
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     expect(runUpdate()).toMatchObject({ status: 'COMPLETED', applied: 0 });
   });
@@ -163,7 +181,7 @@ describe('graduating one action type at a time', () => {
     ];
     setup({ objective: { ...OBJECTIVE, negativeMode: 'LIVE' }, rows });
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     expect(adsClient.addNegativeKeywords).toHaveBeenCalledTimes(1);
     expect(adsClient.addKeywords).not.toHaveBeenCalled();
@@ -176,7 +194,7 @@ describe('graduating one action type at a time', () => {
   it('records what Amazon returned, including the id needed to undo it', async () => {
     setup({ objective: { ...OBJECTIVE, negativeMode: 'LIVE' } });
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     const [decision] = writtenDecisions().filter(d => d.status === 'APPLIED');
     expect(decision.appliedAt).toBeInstanceOf(Date);
@@ -192,7 +210,7 @@ describe('graduating one action type at a time', () => {
       negativeResults: [{ code: 'DUPLICATE_VALUE' }],
     });
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     expect(writtenDecisions()[0]).toMatchObject({ status: 'APPLIED', outcome: 'DUPLICATE' });
   });
@@ -205,7 +223,7 @@ describe('graduating one action type at a time', () => {
       negativeResults: [{ code: 'DUPLICATE_VALUE' }],
     });
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     expect(writtenDecisions()[0].inverse).toBeNull();
   });
@@ -214,7 +232,7 @@ describe('graduating one action type at a time', () => {
     setup({ objective: { ...OBJECTIVE, negativeMode: 'LIVE' } });
     adsClient.addNegativeKeywords.mockRejectedValue(new Error('429 rate limited'));
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     expect(writtenDecisions()[0]).toMatchObject({ status: 'FAILED' });
     expect(writtenDecisions()[0].outcome).toMatch(/429/);
@@ -225,7 +243,7 @@ describe('graduating one action type at a time', () => {
       rows: [wasteRow({ searchTerm: 'a' }), wasteRow({ searchTerm: 'b' }), ...padAdGroup()],
       negativeResults: [{ code: 'SUCCESS', keywordId: 1 }] });
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     const statuses = writtenDecisions().map(d => d.status).sort();
     expect(statuses).toEqual(['APPLIED', 'FAILED']);
@@ -237,10 +255,10 @@ describe('a slot runs once', () => {
     setup();
     prisma.agentRun.create.mockRejectedValue(Object.assign(new Error('unique'), { code: 'P2002' }));
 
-    const result = await agentProcessor(job());
+    const result = await runAgent(job());
 
     expect(result).toEqual({ skipped: 'ALREADY_RAN' });
-    expect(adsClient.getSearchTermReport).not.toHaveBeenCalled();
+    expect(adsClient.createSearchTermReport).not.toHaveBeenCalled();
   });
 
   it('claims before fetching the report, not after', async () => {
@@ -250,9 +268,9 @@ describe('a slot runs once', () => {
     setup();
     const order = [];
     prisma.agentRun.create.mockImplementation(async () => { order.push('claim'); return { id: 'run-1' }; });
-    adsClient.getSearchTermReport.mockImplementation(async () => { order.push('fetch'); return []; });
+    adsClient.createSearchTermReport.mockImplementation(async () => { order.push('fetch'); return 'rep-1'; });
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     expect(order).toEqual(['claim', 'fetch']);
   });
@@ -272,7 +290,7 @@ describe('a slot runs once', () => {
     setup();
     prisma.agentRun.create.mockRejectedValue(new Error('connection refused'));
 
-    await expect(agentProcessor(job())).rejects.toThrow('connection refused');
+    await expect(runAgent(job())).rejects.toThrow('connection refused');
   });
 });
 
@@ -304,10 +322,9 @@ describe('the report window', () => {
   it('asks Amazon for exactly that window', async () => {
     setup();
 
-    await agentProcessor(job());
+    await runAgent(job());
 
-    expect(adsClient.getSearchTermReport).toHaveBeenCalledWith(
-      'p1', '2026-08-02', '2026-08-31', expect.any(Object));
+    expect(adsClient.createSearchTermReport).toHaveBeenCalledWith('p1', '2026-08-02', '2026-08-31');
   });
 });
 
@@ -315,14 +332,14 @@ describe('enrolment is explicit', () => {
   it('does nothing for a profile with no objective', async () => {
     setup({ objective: null });
 
-    expect(await agentProcessor(job())).toEqual({ skipped: 'DISABLED' });
+    expect(await runAgent(job())).toEqual({ skipped: 'DISABLED' });
     expect(prisma.agentRun.create).not.toHaveBeenCalled();
   });
 
   it('does nothing for an objective that is switched off', async () => {
     setup({ objective: { ...OBJECTIVE, enabled: false } });
 
-    expect(await agentProcessor(job())).toEqual({ skipped: 'DISABLED' });
+    expect(await runAgent(job())).toEqual({ skipped: 'DISABLED' });
   });
 });
 
@@ -338,14 +355,14 @@ describe('failure handling', () => {
     setup();
     loadOrgCredential.mockResolvedValue(null);
 
-    await expect(agentProcessor(job())).rejects.toBeInstanceOf(UnrecoverableError);
+    await expect(runAgent(job())).rejects.toBeInstanceOf(UnrecoverableError);
   });
 
-  it('marks the run FAILED and rethrows when the report cannot be fetched', async () => {
+  it('marks the run FAILED and rethrows when the report cannot be requested', async () => {
     setup();
-    adsClient.getSearchTermReport.mockRejectedValue(new Error('report timed out'));
+    adsClient.createSearchTermReport.mockRejectedValue(new Error('amazon is down'));
 
-    await expect(agentProcessor(job())).rejects.toThrow('report timed out');
+    await expect(runAgent(job())).rejects.toThrow('amazon is down');
     expect(runUpdate()).toMatchObject({ status: 'FAILED' });
   });
 
@@ -469,7 +486,7 @@ describe('an org that has stopped paying', () => {
   it('still records decisions, so the evidence base keeps building', async () => {
     setup({ objective: { ...OBJECTIVE, negativeMode: 'LIVE' }, subscription: LAPSED });
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     expect(writtenDecisions().length).toBeGreaterThan(0);
   });
@@ -477,7 +494,7 @@ describe('an org that has stopped paying', () => {
   it('applies nothing, however the objective is configured', async () => {
     setup({ objective: { ...OBJECTIVE, negativeMode: 'LIVE', promotionMode: 'LIVE' }, subscription: LAPSED });
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     expect(adsClient.addNegativeKeywords).not.toHaveBeenCalled();
     expect(adsClient.addKeywords).not.toHaveBeenCalled();
@@ -486,7 +503,7 @@ describe('an org that has stopped paying', () => {
   it('records the run as SHADOW, not as the LIVE it asked for', async () => {
     setup({ objective: { ...OBJECTIVE, negativeMode: 'LIVE' }, subscription: LAPSED });
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     expect(prisma.agentRun.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ mode: 'SHADOW' }) })
@@ -498,7 +515,7 @@ describe('an org that has stopped paying', () => {
     // whenever only negatives had graduated.
     setup({ objective: { ...OBJECTIVE, negativeMode: 'SHADOW', promotionMode: 'LIVE' }, subscription: LAPSED });
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     expect(adsClient.addKeywords).not.toHaveBeenCalled();
   });
@@ -506,7 +523,7 @@ describe('an org that has stopped paying', () => {
   it('applies normally once the org is entitled again', async () => {
     setup({ objective: { ...OBJECTIVE, negativeMode: 'LIVE' } });
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     expect(adsClient.addNegativeKeywords).toHaveBeenCalled();
   });
@@ -514,7 +531,7 @@ describe('an org that has stopped paying', () => {
   it('does not demote a run that only wanted shadow anyway', async () => {
     setup({ subscription: LAPSED });
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     expect(runUpdate()).toMatchObject({ status: 'COMPLETED' });
   });
@@ -561,14 +578,114 @@ describe('waiting long enough for Amazon', () => {
     expect(REPORT_POLL.pollIntervalMs * REPORT_POLL.maxAttempts).toBeGreaterThanOrEqual(15 * 60 * 1000);
   });
 
-  it('passes that budget rather than taking the default', async () => {
+  it('looks again after the poll interval rather than sleeping in the slot', async () => {
     setup();
+    adsClient.pollSearchTermReport.mockResolvedValue({ status: 'PENDING' });
+
+    const first = await agentProcessor(job());
+    const [, data, opts] = agentQueue.add.mock.calls.at(-1);
+    const second = await agentProcessor({ id: opts.jobId, data });
+
+    expect(first).toEqual({ started: ['rep-1'] });
+    expect(second).toEqual({ pending: true, tries: 1 });
+    expect(opts.delay).toBe(REPORT_POLL.pollIntervalMs);
+    expect(agentQueue.add).toHaveBeenLastCalledWith(
+      'agent-poll', expect.objectContaining({ runId: 'run-1', tries: 1 }),
+      expect.objectContaining({ delay: REPORT_POLL.pollIntervalMs }));
+    // Nothing is decided or written while the report is still being built.
+    expect(prisma.agentDecision.createMany).not.toHaveBeenCalled();
+    expect(adsClient.addNegativeKeywords).not.toHaveBeenCalled();
+  });
+
+  it('gives each look its own job id', async () => {
+    setup();
+    adsClient.pollSearchTermReport.mockResolvedValue({ status: 'PENDING' });
 
     await agentProcessor(job());
+    const [, d0, o0] = agentQueue.add.mock.calls.at(-1);
+    await agentProcessor({ id: o0.jobId, data: d0 });
+    const [, , o1] = agentQueue.add.mock.calls.at(-1);
 
-    expect(adsClient.getSearchTermReport).toHaveBeenCalledWith(
-      'p1', expect.any(String), expect.any(String),
-      expect.objectContaining({ maxAttempts: REPORT_POLL.maxAttempts }));
+    expect(o1.jobId).not.toBe(o0.jobId);
+  });
+});
+
+describe('a report that never arrives', () => {
+  async function pendingUntil(tries) {
+    setup();
+    adsClient.pollSearchTermReport.mockResolvedValue({ status: 'PENDING' });
+    await agentProcessor(job());
+    const [, data] = agentQueue.add.mock.calls.at(-1);
+    return { id: 'x', data: { ...data, tries } };
+  }
+
+  it('fails the run on the last look and schedules one restart', async () => {
+    const last = await pendingUntil(REPORT_POLL.maxAttempts - 1);
+
+    expect(await agentProcessor(last)).toEqual({ failed: 'Search term report timed out' });
+    expect(runUpdate()).toMatchObject({ status: 'FAILED' });
+    expect(agentQueue.add).toHaveBeenLastCalledWith(
+      'agent-run',
+      expect.objectContaining({ orgId: 'org-A', profileId: 'p1', restarted: true }),
+      expect.objectContaining({ delay: 60_000 }));
+  });
+
+  it('does not restart a restart', async () => {
+    const last = await pendingUntil(REPORT_POLL.maxAttempts - 1);
+    agentQueue.add.mockClear();
+
+    await agentProcessor({ ...last, data: { ...last.data, restarted: true } });
+
+    expect(agentQueue.add).not.toHaveBeenCalled();
+  });
+
+  it('fails and restarts when Amazon reports the report failed', async () => {
+    const first = await pendingUntil(0);
+    adsClient.pollSearchTermReport.mockResolvedValue({ status: 'FAILED', error: 'bad window' });
+
+    expect(await agentProcessor(first)).toEqual({ failed: 'bad window' });
+    expect(agentQueue.add).toHaveBeenLastCalledWith('agent-run', expect.any(Object), expect.any(Object));
+  });
+
+  it('applies nothing, so the restart may take the slot over', async () => {
+    const last = await pendingUntil(REPORT_POLL.maxAttempts - 1);
+
+    await agentProcessor(last);
+
+    expect(adsClient.addNegativeKeywords).not.toHaveBeenCalled();
+    expect(runUpdate()).not.toHaveProperty('applied');
+  });
+});
+
+describe('a look that arrives after the run is over', () => {
+  it('neither decides nor applies a second time', async () => {
+    setup({ objective: { ...OBJECTIVE, negativeMode: 'LIVE' } });
+    await agentProcessor(job());
+    const [, data] = agentQueue.add.mock.calls.at(-1);
+    prisma.agentRun.findFirst.mockResolvedValue(null);   // no longer RUNNING
+
+    expect(await agentProcessor({ id: 'x', data })).toEqual({ skipped: 'NOT_RUNNING' });
+    expect(adsClient.addNegativeKeywords).not.toHaveBeenCalled();
+    expect(prisma.agentDecision.createMany).not.toHaveBeenCalled();
+  });
+
+  it('keeps the original window and slot even when it lands a day later', async () => {
+    setup();
+    await agentProcessor(job());
+    const [, data] = agentQueue.add.mock.calls.at(-1);
+
+    expect(occurrenceDate({ id: 'x', timestamp: Date.parse('2026-09-05T00:00:00Z'), data }).toISOString())
+      .toBe(data.occurredAt);
+  });
+
+  it('is not applied if the objective was switched off while waiting', async () => {
+    setup({ objective: { ...OBJECTIVE, negativeMode: 'LIVE' } });
+    await agentProcessor(job());
+    const [, data] = agentQueue.add.mock.calls.at(-1);
+    prisma.profileObjective.findFirst.mockResolvedValue({ ...OBJECTIVE, enabled: false });
+
+    expect(await agentProcessor({ id: 'x', data })).toEqual({ skipped: 'DISABLED' });
+    expect(adsClient.addNegativeKeywords).not.toHaveBeenCalled();
   });
 });
 
@@ -586,9 +703,9 @@ describe('retrying a run that failed without applying anything', () => {
     prisma.agentRun.create.mockRejectedValue(collision());
     prisma.agentRun.updateMany.mockResolvedValue({ count: 1 });
 
-    await agentProcessor(job());
+    await runAgent(job());
 
-    expect(adsClient.getSearchTermReport).toHaveBeenCalled();
+    expect(adsClient.createSearchTermReport).toHaveBeenCalled();
   });
 
   it('guards the takeover in the WHERE clause, so the database decides the race', async () => {
@@ -597,7 +714,7 @@ describe('retrying a run that failed without applying anything', () => {
     prisma.agentRun.create.mockRejectedValue(collision());
     prisma.agentRun.updateMany.mockResolvedValue({ count: 1 });
 
-    await agentProcessor(job());
+    await runAgent(job());
 
     expect(prisma.agentRun.updateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ status: 'FAILED', applied: 0 }),
@@ -609,15 +726,15 @@ describe('retrying a run that failed without applying anything', () => {
     prisma.agentRun.create.mockRejectedValue(collision());
     prisma.agentRun.updateMany.mockResolvedValue({ count: 0 });
 
-    expect(await agentProcessor(job())).toEqual({ skipped: 'ALREADY_RAN' });
-    expect(adsClient.getSearchTermReport).not.toHaveBeenCalled();
+    expect(await runAgent(job())).toEqual({ skipped: 'ALREADY_RAN' });
+    expect(adsClient.createSearchTermReport).not.toHaveBeenCalled();
   });
 
   it('still lets a real database error surface', async () => {
     setup();
     prisma.agentRun.create.mockRejectedValue(new Error('connection refused'));
 
-    await expect(agentProcessor(job())).rejects.toThrow('connection refused');
+    await expect(runAgent(job())).rejects.toThrow('connection refused');
     expect(prisma.agentRun.updateMany).not.toHaveBeenCalled();
   });
 });
