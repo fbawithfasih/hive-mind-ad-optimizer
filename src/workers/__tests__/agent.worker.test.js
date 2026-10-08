@@ -117,7 +117,7 @@ function setup({ objective = OBJECTIVE, rows = [wasteRow()], negativeResults, su
  */
 async function runAgent(j) {
   let result = await agentProcessor(j);
-  for (let i = 0; i < 200 && (result?.started || result?.pending); i++) {
+  for (let i = 0; i < 200 && (result?.started || result?.pending || result?.waiting); i++) {
     const [, data, opts] = agentQueue.add.mock.calls.filter(c => c[0] === 'agent-poll').at(-1);
     result = await agentProcessor({ id: opts.jobId, data });
   }
@@ -607,6 +607,125 @@ describe('waiting long enough for Amazon', () => {
     const [, , o1] = agentQueue.add.mock.calls.at(-1);
 
     expect(o1.jobId).not.toBe(o0.jobId);
+  });
+});
+
+describe('two orgs on one Ads profile (an agency and its seller) take turns', () => {
+  /**
+   * Amazon refuses an identical report request while the first is in flight and
+   * names the first requester's report, which the second org's token cannot
+   * read. So the later run must not ask until the earlier one is done.
+   */
+  const aheadOnly = (ahead) => prisma.agentRun.findMany.mockImplementation(async ({ where }) =>
+    where?.status === 'RUNNING' ? (ahead ? [{ id: 'run-0' }] : []) : []);
+
+  it('does not request the report while another org\'s run is ahead', async () => {
+    setup();
+    aheadOnly(true);
+
+    expect(await agentProcessor(job())).toEqual({ waiting: true, tries: 1 });
+
+    expect(adsClient.createSearchTermReport).not.toHaveBeenCalled();
+    expect(agentQueue.add).toHaveBeenLastCalledWith(
+      'agent-poll', expect.objectContaining({ runId: 'run-1', reportIds: null, tries: 1 }),
+      expect.objectContaining({ delay: REPORT_POLL.pollIntervalMs }));
+  });
+
+  it('asks only about other orgs\' runs on the same profile that are still running', async () => {
+    setup();
+    prisma.agentRun.create.mockResolvedValue({ id: 'run-1', orgId: 'org-A', profileId: 'p1', startedAt: new Date() });
+    aheadOnly(false);
+
+    await agentProcessor(job());
+
+    const { where, take } = prisma.agentRun.findMany.mock.calls.find(([a]) => a.where?.status === 'RUNNING')[0];
+    expect(where).toMatchObject({ profileId: 'p1', orgId: { not: 'org-A' }, status: 'RUNNING' });
+    expect(take).toBe(1);
+  });
+
+  it('breaks a tie on start time by run id, so exactly one of two goes first', async () => {
+    setup();
+    prisma.agentRun.create.mockResolvedValue({ id: 'run-1', orgId: 'org-A', profileId: 'p1', startedAt: new Date('2026-09-02T04:30:00Z') });
+    aheadOnly(false);
+
+    await agentProcessor(job());
+
+    const { where } = prisma.agentRun.findMany.mock.calls.find(([a]) => a.where?.status === 'RUNNING')[0];
+    expect(where.AND[1].OR).toEqual([
+      { startedAt: { lt: new Date('2026-09-02T04:30:00Z') } },
+      { startedAt: new Date('2026-09-02T04:30:00Z'), id: { lt: 'run-1' } },
+    ]);
+  });
+
+  it('ignores a run that has been RUNNING for hours — a crash, not a queue', async () => {
+    setup();
+    aheadOnly(false);
+
+    await agentProcessor(job());
+
+    const { where } = prisma.agentRun.findMany.mock.calls.find(([a]) => a.where?.status === 'RUNNING')[0];
+    const floor = where.AND[0].startedAt.gte.getTime();
+    expect(Date.now() - floor).toBeGreaterThanOrEqual(60 * 60 * 1000);
+  });
+
+  it('requests the report on its turn, then waits for Amazon as usual', async () => {
+    setup();
+    aheadOnly(true);
+    await agentProcessor(job());
+    const [, waiting] = agentQueue.add.mock.calls.at(-1);
+    aheadOnly(false);
+
+    const result = await agentProcessor({ id: 'x', data: waiting });
+
+    expect(result).toEqual({ started: ['rep-1'] });
+    expect(adsClient.createSearchTermReport).toHaveBeenCalledWith('p1', '2026-08-02', '2026-08-31');
+    expect(agentQueue.add).toHaveBeenLastCalledWith(
+      'agent-poll', expect.objectContaining({ reportIds: ['rep-1'], tries: 0 }), expect.any(Object));
+  });
+
+  it('runs to completion once the run ahead has finished', async () => {
+    setup();
+    aheadOnly(true);
+    let calls = 0;
+    prisma.agentRun.findMany.mockImplementation(async ({ where }) =>
+      where?.status === 'RUNNING' ? (++calls <= 2 ? [{ id: 'run-0' }] : []) : []);
+
+    await runAgent(job());
+
+    expect(writtenDecisions().length).toBeGreaterThan(0);
+    expect(runUpdate()).toMatchObject({ status: 'COMPLETED' });
+  });
+
+  it('gives its waits and its report wait different job ids', async () => {
+    setup();
+    aheadOnly(true);
+    await agentProcessor(job());
+    const [, , waitOpts] = agentQueue.add.mock.calls.at(-1);
+    const [, waiting] = agentQueue.add.mock.calls.at(-1);
+    aheadOnly(false);
+    await agentProcessor({ id: 'x', data: waiting });
+    const [, , reportOpts] = agentQueue.add.mock.calls.at(-1);
+
+    expect(waitOpts.jobId).not.toBe(reportOpts.jobId);
+  });
+
+  it('fails, and restarts once, if the run ahead never finishes', async () => {
+    setup();
+    aheadOnly(true);
+    await agentProcessor(job());
+    const [, waiting] = agentQueue.add.mock.calls.at(-1);
+
+    const result = await agentProcessor({ id: 'x', data: { ...waiting, tries: REPORT_POLL.maxAttempts - 1 } });
+
+    expect(result.failed).toMatch(/Another organisation/);
+    expect(runUpdate()).toMatchObject({ status: 'FAILED' });
+    expect(agentQueue.add).toHaveBeenLastCalledWith('agent-run', expect.objectContaining({ restarted: true }), expect.any(Object));
+  });
+
+  it('never waits for an org with nothing else running on the profile', async () => {
+    setup();
+
+    expect(await agentProcessor(job())).toEqual({ started: ['rep-1'] });
   });
 });
 
