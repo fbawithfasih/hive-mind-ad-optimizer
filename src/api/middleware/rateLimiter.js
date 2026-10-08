@@ -126,6 +126,19 @@ export const claimLimiter = limiter({
   message:          { error: 'Too many claim requests — please try again shortly.' },
 });
 
+// Burst cap on the AI endpoints, in front of the plan's monthly quota. It is
+// per person (their email, the IP only as a fallback) because the cost it guards
+// against is one user — or one script with their session — looping on a paid
+// model call. It was an in-process Map, which made the real cap 10 per replica
+// and let a deploy reset it; the counter now lives in Redis like the rest.
+export const aiBurstLimiter = limiter({
+  prefix: 'ai-burst',
+  windowMs:         60 * 1000,
+  max:              10,
+  keyGenerator:     (req) => req.user?.email || req.ip,
+  message:          { error: 'Too many requests', message: 'Rate limited. Please try again in a minute.' },
+});
+
 // Tight limiter for large file-upload endpoints — e.g. the Brand Analytics
 // CSV upload, which can write up to 600 MB to disk per request. The general
 // apiLimiter (300/min) is far too loose to blunt disk-exhaustion abuse here.

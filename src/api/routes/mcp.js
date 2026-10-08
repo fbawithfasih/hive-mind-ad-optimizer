@@ -1,6 +1,6 @@
 import express from 'express';
 import { executeMCPCommand } from '../../services/claude-mcp.js';
-import { rateLimitMiddleware } from '../utils/rateLimit.js';
+import { aiBurstLimiter } from '../middleware/rateLimiter.js';
 import { getBrandAnalyticsContext } from '../../services/brand-analytics/loader.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { enforcePlanLimit } from '../../services/plan-limits.js';
@@ -10,9 +10,6 @@ import { LLM_BUDGET_CODE } from '../../services/llm.js';
 
 const router = express.Router();
 
-// Rate limit: max 10 AI API calls per minute per user
-// This prevents cost explosion from accidental or malicious spamming
-const mcpRateLimit = rateLimitMiddleware(10, 60000, req => req.user?.email || req.ip);
 
 /**
  * POST /execute
@@ -31,7 +28,7 @@ const mcpRateLimit = rateLimitMiddleware(10, 60000, req => req.user?.email || re
 // billing shipped and nothing ever incremented it, so "100 AI questions a
 // month" was a number with no counter behind it — this route now counts, and
 // counts only a question the model actually answered.
-router.post('/execute', requireRole('MEMBER'), mcpRateLimit, enforcePlanLimit('apiCalls'), async (req, res) => {
+router.post('/execute', requireRole('MEMBER'), aiBurstLimiter, enforcePlanLimit('apiCalls'), async (req, res) => {
   const { command, history, model } = req.body;
 
   if (!command) {
