@@ -31,15 +31,24 @@ jest.mock('../../services/amazon-sp-api.js', () => ({ createSpApiClient: jest.fn
 jest.mock('../../services/brand-analytics/loader.js', () => ({ clearCache: jest.fn() }));
 jest.mock('../../services/brand-analytics-scheduler.js', () => ({ enqueueDailySweep: jest.fn() }));
 
-import { UnrecoverableError } from 'bullmq';
+import { DelayedError, UnrecoverableError } from 'bullmq';
 
-import { brandAnalyticsFetchProcessor } from '../brand-analytics-fetch.worker.js';
+import { brandAnalyticsFetchProcessor, REPORT_POLL } from '../brand-analytics-fetch.worker.js';
 import { prisma } from '../../db/prisma.js';
 import { loadOrgCredential } from '../../services/credentials.js';
 import { createBrandAnalyticsClient } from '../../services/amazon-brand-analytics-api.js';
 import { enqueueDailySweep } from '../../services/brand-analytics-scheduler.js';
 
-const job = (data) => ({ id: 'ba-1', data });
+// A job that records what the processor writes back to it, the way BullMQ would.
+const job = (data) => {
+  const j = {
+    id: 'ba-1',
+    data,
+    updateData: jest.fn(async (next) => { j.data = next; }),
+    moveToDelayed: jest.fn(async () => {}),
+  };
+  return j;
+};
 
 const JOB_DATA = {
   orgId:           'org-A',
@@ -134,6 +143,95 @@ describe('a failure that might not happen again', () => {
     });
 
     await expect(brandAnalyticsFetchProcessor(job(JOB_DATA))).rejects.toBe(original);
+  });
+});
+
+describe('waiting for Amazon to build the report', () => {
+  const LOOK = { ...JOB_DATA, reportId: 'rep-1', rowId: 'row-1', tries: 0 };
+  const client = (over = {}) => {
+    const c = {
+      createReport:    jest.fn(async () => 'rep-1'),
+      getReportStatus: jest.fn(async () => ({ state: 'PENDING' })),
+      downloadReport:  jest.fn(async () => [{ asin: 'B0X' }]),
+      ...over,
+    };
+    createBrandAnalyticsClient.mockReturnValue(c);
+    return c;
+  };
+
+  it('requests the report, then hands the job back instead of holding a slot', async () => {
+    const c = client();
+    const j = job(JOB_DATA);
+
+    await expect(brandAnalyticsFetchProcessor(j, 'tok')).rejects.toBeInstanceOf(DelayedError);
+
+    expect(c.createReport).toHaveBeenCalledTimes(1);
+    expect(c.getReportStatus).not.toHaveBeenCalled();
+    expect(j.data).toMatchObject({ reportId: 'rep-1', rowId: 'row-1', tries: 0 });
+    expect(j.moveToDelayed).toHaveBeenCalledWith(expect.any(Number), 'tok');
+  });
+
+  it('does not mark the row FAILED while it is only waiting', async () => {
+    client();
+    await brandAnalyticsFetchProcessor(job(JOB_DATA), 'tok').catch(() => {});
+
+    expect(prisma.brandAnalyticsReport.update).not.toHaveBeenCalled();
+  });
+
+  it('a still-pending look delays again and counts the look, without a new request', async () => {
+    const c = client();
+    const j = job(LOOK);
+
+    await expect(brandAnalyticsFetchProcessor(j, 'tok')).rejects.toBeInstanceOf(DelayedError);
+
+    expect(c.createReport).not.toHaveBeenCalled();
+    expect(prisma.brandAnalyticsReport.upsert).not.toHaveBeenCalled();
+    expect(j.data.tries).toBe(1);
+  });
+
+  it('stores the report when the look finds it done', async () => {
+    client({ getReportStatus: jest.fn(async () => ({ state: 'DONE', reportDocumentId: 'doc-9' })) });
+    const j = job({ ...LOOK, reportType: 'SQP_BRAND' });
+
+    await expect(brandAnalyticsFetchProcessor(j, 'tok')).resolves.toBeUndefined();
+
+    expect(prisma.brandAnalyticsReport.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'row-1' },
+      data:  expect.objectContaining({ status: 'COMPLETED', amazonReportId: 'doc-9' }),
+    }));
+    expect(j.moveToDelayed).not.toHaveBeenCalled();
+  });
+
+  it('gives up after the last look, as a retryable timeout', async () => {
+    client();
+    const j = job({ ...LOOK, tries: REPORT_POLL.maxAttempts - 1 });
+
+    const err = await brandAnalyticsFetchProcessor(j, 'tok').catch(e => e);
+
+    expect(err.message).toMatch(/did not complete within 1800s/);
+    expect(err).not.toBeInstanceOf(UnrecoverableError);
+    expect(prisma.brandAnalyticsReport.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: 'FAILED' }),
+    }));
+  });
+
+  it('lets the retry start a fresh request rather than look at the dead report', async () => {
+    client();
+    const j = job({ ...LOOK, tries: REPORT_POLL.maxAttempts - 1 });
+
+    await brandAnalyticsFetchProcessor(j, 'tok').catch(() => {});
+
+    expect(j.data).not.toHaveProperty('reportId');
+    expect(j.data).not.toHaveProperty('rowId');
+    expect(j.data).not.toHaveProperty('tries');
+    expect(j.data.orgId).toBe('org-A');
+  });
+
+  it('a terminal FAILED from Amazon still ends the job at once', async () => {
+    client({ getReportStatus: jest.fn(async () => ({ state: 'FAILED', error: 'Report FATAL: nope', terminal: true })) });
+
+    await expect(brandAnalyticsFetchProcessor(job(LOOK), 'tok'))
+      .rejects.toBeInstanceOf(UnrecoverableError);
   });
 });
 
