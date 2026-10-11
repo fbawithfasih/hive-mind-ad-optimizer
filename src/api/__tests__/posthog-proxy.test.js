@@ -20,7 +20,7 @@ function fakeHost(name) {
     const chunks = [];
     req.on('data', (c) => chunks.push(c));
     req.on('end', () => {
-      host.seen.push({ method: req.method, url: req.url, headers: req.headers, body: Buffer.concat(chunks) });
+      host.seen.push({ url: req.url, headers: req.headers, body: Buffer.concat(chunks) });
       res.setHeader('set-cookie', 'upstream=1');
       res.setHeader('x-upstream', name);
       res.end(JSON.stringify({ status: 1 }));
@@ -51,8 +51,6 @@ function app(origins = { apiOrigin: origin(api.server), assetsOrigin: origin(ass
   const a = express();
   a.set('trust proxy', 1);
   a.use('/ingest', createPostHogProxy(origins));
-  a.use(express.json());
-  a.use((_req, res) => res.status(404).end());
   return serve(a);
 }
 

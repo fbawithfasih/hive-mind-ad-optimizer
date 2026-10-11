@@ -49,7 +49,6 @@ export function createPostHogProxy({ apiOrigin = API_ORIGIN, assetsOrigin = ASSE
     // Concatenated, not resolved: new URL('//elsewhere/x', origin) would leave
     // PostHog's host for whatever the path names.
     const target = new URL(origin + req.url);
-    if (target.origin !== new URL(origin).origin) return res.status(400).end();
 
     const headers = pick(req.headers, DROP_REQUEST_HEADERS);
     headers.host = target.host;
