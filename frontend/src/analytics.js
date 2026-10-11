@@ -57,6 +57,9 @@ export function initAnalytics() {
 
   posthog.init(KEY, {
     api_host: HOST,
+    // With api_host on /ingest the SDK cannot work out where the PostHog app
+    // is, and its links (toolbar, recordings) need that.
+    ui_host: 'https://us.posthog.com',
     // Versioned defaults. The one that matters here is capture_pageview:
     // 'history_change' — this is a react-router SPA, and on the older default
     // a pageview was only captured on the first load, so every screen after
