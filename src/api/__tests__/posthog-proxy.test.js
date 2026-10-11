@@ -103,6 +103,12 @@ it('names the upstream host and the seller IP, not this server', async () => {
   expect(headers['x-forwarded-for']).toBe('203.0.113.7');
 });
 
+it('drops the edge-added cf-connecting-ip, which PostHog\'s Cloudflare rejects with a 403', async () => {
+  await request(app()).get('/ingest/static/array.js').set('cf-connecting-ip', '203.0.113.7');
+
+  expect(assets.seen[0].headers['cf-connecting-ip']).toBeUndefined();
+});
+
 it('keeps a protocol-relative path on the PostHog host', async () => {
   const res = await request(app()).get('/ingest//evil.example/x');
 

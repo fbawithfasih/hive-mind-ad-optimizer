@@ -25,9 +25,12 @@ const ASSETS_ORIGIN = 'https://us-assets.i.posthog.com';
 /** The SDK loads its lazy bundles (recorder, surveys, remote config) from these. */
 const ASSET_PATH = /^\/(static|array)\//;
 
+// cf-connecting-ip: Railway's edge adds it, and PostHog's own Cloudflare answers
+// 403 to a request that arrives with one already set (it reads it as spoofed).
 const DROP_REQUEST_HEADERS = new Set([
   'cookie', 'authorization', 'host', 'connection', 'keep-alive',
   'forwarded', 'x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-real-ip',
+  'cf-connecting-ip',
 ]);
 const DROP_RESPONSE_HEADERS = new Set(['set-cookie', 'connection', 'keep-alive', 'transfer-encoding']);
 
