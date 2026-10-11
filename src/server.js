@@ -12,6 +12,7 @@ import { correlationIdMiddleware, createLogger, getCorrelationId } from './api/u
 import { prisma } from './db/prisma.js';
 import { livenessHandler, readinessHandler } from './api/readiness.js';
 import { sentryVerifyHandler } from './api/sentry-verify.js';
+import { posthogProxy } from './api/posthog-proxy.js';
 import { runAsSystem } from './db/tenant-context.js';
 import { closeEphemeralStore } from './services/ephemeral-store.js';
 import { closeQueue } from './services/queue.js';
@@ -75,6 +76,10 @@ app.post(
   express.raw({ type: 'application/json' }),
   (req, res, next) => runAsSystem(() => razorpayWebhookHandler(req, res, next))
 );
+
+// The browser's PostHog traffic, forwarded so ad blockers do not drop it. Like
+// the webhook above, it needs the raw body, so it sits above express.json().
+app.use('/ingest', posthogProxy);
 
 // Bumped from the 100 KB default so image-optimizer requests can carry a
 // product photo as base64 (a typical 5 MB JPEG becomes ~7 MB base64).

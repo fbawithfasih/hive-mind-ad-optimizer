@@ -13,7 +13,9 @@ ARG VITE_SENTRY_DSN=""
 ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
 ARG VITE_POSTHOG_KEY=""
 ENV VITE_POSTHOG_KEY=$VITE_POSTHOG_KEY
-ARG VITE_POSTHOG_HOST=""
+# Same-origin path that src/api/posthog-proxy.js forwards to PostHog, so ad
+# blockers do not drop browser events. Set the Railway variable only to bypass it.
+ARG VITE_POSTHOG_HOST="/ingest"
 ENV VITE_POSTHOG_HOST=$VITE_POSTHOG_HOST
 
 WORKDIR /app/frontend
