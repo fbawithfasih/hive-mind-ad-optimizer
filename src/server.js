@@ -18,6 +18,9 @@ import { closeEphemeralStore } from './services/ephemeral-store.js';
 import { closeQueue } from './services/queue.js';
 import { startWorkers, shouldRunWorkers } from './workers/start.js';
 import { capturePostHogException, initPostHog, shutdownPostHog } from './services/posthog.js';
+import { ignoreLostStdio } from './api/utils/stdio.js';
+
+ignoreLostStdio();
 
 dotenv.config({ override: true });
 initPostHog();

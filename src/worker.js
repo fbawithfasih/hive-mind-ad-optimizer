@@ -24,6 +24,9 @@ import { closeQueue } from './services/queue.js';
 import { closeEphemeralStore } from './services/ephemeral-store.js';
 import { startWorkers } from './workers/start.js';
 import { initPostHog, shutdownPostHog } from './services/posthog.js';
+import { ignoreLostStdio } from './api/utils/stdio.js';
+
+ignoreLostStdio();
 
 dotenv.config();
 initPostHog();
