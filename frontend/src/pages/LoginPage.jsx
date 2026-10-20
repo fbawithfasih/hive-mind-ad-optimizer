@@ -8,7 +8,9 @@ import { ssoUrl } from '../attribution.js';
 
 const SSO_ERRORS = {
   google_denied:   'Google sign-in was cancelled.',
-  state_mismatch:  'Security check failed. Please try again.',
+  state_mismatch:
+    'Google or Apple sign-in could not be completed. Start it again, or log ' +
+    'in with your email and password.',
   google_failed:   'Google sign-in failed. Please try again or use email/password.',
   apple_denied:    'Apple sign-in was cancelled.',
   apple_failed:    'Apple sign-in failed. Please try again or use email/password.',
@@ -23,11 +25,16 @@ export default function LoginPage({ onLogin }) {
   const [showPass, setShowPass] = useState(false);
   const [error, setError]       = useState(null);
   const [loading, setLoading]   = useState(false);
-  const [searchParams]          = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
+  // Read the SSO callback's ?error= once, then drop it from the URL. Left in
+  // place, a reload, a restored tab or a bookmark replays the banner on a
+  // page load that had no sign-in attempt behind it.
   useEffect(() => {
     const errKey = searchParams.get('error');
-    if (errKey && SSO_ERRORS[errKey]) setError(SSO_ERRORS[errKey]);
+    if (!errKey) return;
+    if (SSO_ERRORS[errKey]) setError(SSO_ERRORS[errKey]);
+    setSearchParams((params) => { params.delete('error'); return params; }, { replace: true });
   }, []);
 
   async function handleSubmit(e) {
