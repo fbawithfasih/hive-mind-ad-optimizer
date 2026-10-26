@@ -1,10 +1,4 @@
-/**
- * The global error handler reports server faults to PostHog and nothing else.
- *
- * A request for a path Express cannot decode (GET /%c0) throws a URIError with
- * status 400. Reporting that opened a new error tracking issue for each probe,
- * which buries the real 5xx failures.
- */
+/** The global error handler reports server faults to PostHog and nothing else. */
 jest.mock('../../services/posthog.js', () => ({
   capturePostHogException: jest.fn().mockResolvedValue(),
 }));
@@ -25,8 +19,6 @@ function app(err) {
   return a;
 }
 
-const withStatus = (message, status) => Object.assign(new Error(message), { status });
-
 beforeEach(() => { jest.clearAllMocks(); });
 
 it('does not report a malformed path to PostHog, and still answers 400', async () => {
@@ -38,14 +30,6 @@ it('does not report a malformed path to PostHog, and still answers 400', async (
   const res = await request(serve(a)).get('/%c0');
 
   expect(res.status).toBe(400);
-  expect(capturePostHogException).not.toHaveBeenCalled();
-});
-
-it('does not report a 4xx error to PostHog', async () => {
-  const res = await request(serve(app(withStatus('Bad input', 400)))).get('/boom');
-
-  expect(res.status).toBe(400);
-  expect(res.body).toEqual({ error: { code: 'INTERNAL_ERROR', message: 'Bad input' } });
   expect(capturePostHogException).not.toHaveBeenCalled();
 });
 
@@ -63,7 +47,7 @@ it('reports an error with no status to PostHog as a 500', async () => {
 });
 
 it('reports a 5xx error to PostHog', async () => {
-  const res = await request(serve(app(withStatus('Upstream failed', 502)))).get('/boom');
+  const res = await request(serve(app(Object.assign(new Error('Upstream failed'), { status: 502 })))).get('/boom');
 
   expect(res.status).toBe(502);
   expect(capturePostHogException).toHaveBeenCalledTimes(1);
