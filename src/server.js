@@ -17,7 +17,8 @@ import { runAsSystem } from './db/tenant-context.js';
 import { closeEphemeralStore } from './services/ephemeral-store.js';
 import { closeQueue } from './services/queue.js';
 import { startWorkers, shouldRunWorkers } from './workers/start.js';
-import { capturePostHogException, initPostHog, shutdownPostHog } from './services/posthog.js';
+import { initPostHog, shutdownPostHog } from './services/posthog.js';
+import { errorHandler } from './api/error-handler.js';
 
 dotenv.config({ override: true });
 initPostHog();
@@ -136,30 +137,7 @@ if (isProd) {
 // otherwise ours ends the response and Sentry never sees the error.
 Sentry.setupExpressErrorHandler(app);
 
-// Global error handler with structured logging
-app.use(async (err, req, res, next) => {
-  const status = err.status || 500;
-  const message = err.message || 'Internal Server Error';
-
-  logger.error('Unhandled error', err, {
-    status,
-    path: req.path,
-    method: req.method,
-  });
-
-  await capturePostHogException(err, req.user?.userId, {
-    status,
-    request_path: req.path,
-    request_method: req.method,
-  }).catch((posthogErr) => logger.warn(`PostHog exception capture failed: ${posthogErr.message}`));
-
-  res.status(status).json({
-    error: {
-      code: err.code || 'INTERNAL_ERROR',
-      message,
-    },
-  });
-});
+app.use(errorHandler);
 
 const server = app.listen(PORT, () => {
   logger.info('Server started', { port: PORT, nodeEnv: process.env.NODE_ENV });
